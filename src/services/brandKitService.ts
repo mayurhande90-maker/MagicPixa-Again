@@ -77,7 +77,7 @@ export const generateBrandIdentity = async (
 ): Promise<Partial<BrandKit>> => {
     const ai = getAiClient();
     
-    const prompt = `You are a Brand Identity Expert AI.
+    const prompt = `You are a Brand Identity & Business Intelligence Expert AI.
     
     USER INPUT:
     - URL: ${url}
@@ -87,6 +87,15 @@ export const generateBrandIdentity = async (
     Analyze the available information to generate a complete "Brand DNA Kit".
     Use Google Search to find the actual brand colors, style, website, and details if the URL is provided.
     
+    **CRITICAL: INDUSTRY CLASSIFICATION**
+    Analyze the business model and categorize it into EXACTLY ONE of the following industries:
+    1. 'physical': Selling tangible goods (bottles, boxes, devices, food) that need product photography.
+    2. 'digital': Selling software, apps, SaaS, or digital courses.
+    3. 'realty': Real estate, property management, interior design, or architecture.
+    4. 'fashion': Apparel, clothing lines, accessories that need models.
+    5. 'service': Personal brands, coaching, consulting, finance, law, or agencies.
+
+    **OTHER GENERATION TASKS:**
     1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
     2. **Tone**: Define the Tone of Voice (e.g., "Professional", "Playful", "Luxury").
     3. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
@@ -100,6 +109,7 @@ export const generateBrandIdentity = async (
     \`\`\`json
     {
         "companyName": "Inferred Name",
+        "industry": "physical", 
         "website": "https://...",
         "toneOfVoice": "...",
         "targetAudience": "...",
@@ -125,11 +135,20 @@ export const generateBrandIdentity = async (
         }
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        
+        // Safety check for industry enum
+        const validIndustries = ['physical', 'digital', 'realty', 'fashion', 'service'];
+        if (!validIndustries.includes(parsed.industry)) {
+            parsed.industry = 'physical'; // Fallback
+        }
+
+        return parsed;
     } catch (e) {
         console.error("Auto-Brand Generation Failed:", e);
         return {
             companyName: "New Brand",
+            industry: 'physical',
             website: url,
             toneOfVoice: "Professional",
             targetAudience: "General",

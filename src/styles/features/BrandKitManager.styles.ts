@@ -55,6 +55,21 @@ export const BrandKitManagerStyles = {
   cardDesc: "text-xs text-gray-500",
   cardContent: "p-8",
 
+  // Industry Card Grid (New)
+  industryGrid: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4",
+  
+  industryCard: "relative p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-3 h-32 hover:shadow-md",
+  industryCardSelected: "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20",
+  industryCardInactive: "border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50",
+  industryCardDisabled: "opacity-40 grayscale cursor-not-allowed border-gray-100 bg-gray-50",
+  
+  industryIconBox: "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+  
+  industryLabel: "text-xs font-bold text-gray-800 uppercase tracking-wide",
+  industrySub: "text-[10px] text-gray-400 font-medium leading-tight px-2",
+  
+  industryCheck: "absolute top-2 right-2 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-sm animate-scaleIn",
+
   // Color Input
   colorInputWrapper: "group",
   colorLabel: "text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block group-hover:text-gray-600 transition-colors",

@@ -16,9 +16,10 @@ import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
 // --- INDUSTRY CONFIGURATION ---
-const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; catalogDesc: string; itemLabel: string; itemPlaceholder: string; btn: string; icon: any; color: string }> = {
+const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; catalogDesc: string; itemLabel: string; itemPlaceholder: string; btn: string; icon: any; color: string; sub: string }> = {
     'physical': { 
-        label: 'Physical Product', 
+        label: 'Physical Goods', 
+        sub: 'E-commerce products',
         catalogTitle: 'Product Catalog', 
         catalogDesc: 'Upload your core products.', 
         itemLabel: 'Product', 
@@ -29,6 +30,7 @@ const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; cat
     },
     'digital': { 
         label: 'SaaS / Digital', 
+        sub: 'Software & Apps',
         catalogTitle: 'Interface Assets', 
         catalogDesc: 'Upload screenshots, mockups, or UI elements.', 
         itemLabel: 'Screen', 
@@ -39,6 +41,7 @@ const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; cat
     },
     'realty': { 
         label: 'Real Estate', 
+        sub: 'Property & Interior',
         catalogTitle: 'Property Portfolio', 
         catalogDesc: 'Upload key listings, rooms, or building exteriors.', 
         itemLabel: 'Property', 
@@ -49,6 +52,7 @@ const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; cat
     },
     'fashion': { 
         label: 'Apparel', 
+        sub: 'Fashion & Wearables',
         catalogTitle: 'Collection & Looks', 
         catalogDesc: 'Upload garments, flat lays, or model shots.', 
         itemLabel: 'Look', 
@@ -58,7 +62,8 @@ const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; cat
         color: 'pink'
     },
     'service': { 
-        label: 'Service / Personal', 
+        label: 'Service', 
+        sub: 'Personal Brand / Agency',
         catalogTitle: 'Key Personas', 
         catalogDesc: 'Upload headshots of team members or experts.', 
         itemLabel: 'Persona', 
@@ -248,7 +253,12 @@ const MagicSetupModal: React.FC<{ onClose: () => void; onGenerate: (url: string,
                         disabled={isGenerating || !url}
                         className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center"
                     >
-                        {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"/> : "Generate Magic Kit"}
+                        {isGenerating ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"/>
+                                Analyzing Industry...
+                            </>
+                        ) : "Generate Magic Kit"}
                     </button>
                 </div>
             </div>
@@ -276,6 +286,9 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         products: [],
         moodBoard: []
     });
+    
+    // New State for Industry Locking
+    const [isAutoDetected, setIsAutoDetected] = useState(false);
 
     const [isSaving, setIsSaving] = useState(false);
     const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
@@ -338,6 +351,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
         }
         const newBrand = createEmptyBrand('New Brand');
         setKit(newBrand);
+        setIsAutoDetected(false); // Reset auto-detection on new
         setDetailTab('identity');
         setViewMode('detail');
         setLastSaved(null);
@@ -352,6 +366,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             moodBoard: brand.moodBoard || [],
             competitor: brand.competitor || { website: '', adScreenshots: [] }
         });
+        setIsAutoDetected(false); // Reset when loading existing
         setDetailTab('identity');
         setViewMode('detail');
         setLastSaved(null);
@@ -633,6 +648,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                 newKit.name = generated.companyName;
             }
             setKit(newKit);
+            setIsAutoDetected(true); // Lock the industry
             setToast({ msg: "Brand identity generated! Review and save.", type: "success" });
             setShowMagicModal(false);
         } catch (e) {
@@ -833,25 +849,61 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                 </div>
 
                                 <div className={`space-y-5 ${BrandKitManagerStyles.cardContent}`}>
-                                    {/* INDUSTRY SELECTOR */}
+                                    {/* INDUSTRY SELECTOR (REDESIGNED) */}
                                     <div className="mb-2">
-                                        <label className={BrandKitManagerStyles.inputLabel}>Business Type (Industry)</label>
-                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                                            {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
-                                                <button
-                                                    key={key}
-                                                    onClick={() => setKit(prev => ({ ...prev, industry: key as IndustryType }))}
-                                                    className={`p-2 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1 ${
-                                                        (kit.industry || 'physical') === key 
-                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
-                                                        : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50 hover:border-gray-200'
-                                                    }`}
+                                        <div className="flex justify-between items-center mb-4">
+                                            <label className={BrandKitManagerStyles.inputLabel}>Business Type (Industry)</label>
+                                            {isAutoDetected && (
+                                                <button 
+                                                    onClick={() => setIsAutoDetected(false)}
+                                                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
                                                 >
-                                                    <conf.icon className={`w-4 h-4 ${(kit.industry || 'physical') === key ? 'text-white' : 'text-gray-400'}`} />
-                                                    {conf.label}
+                                                    Change Industry
                                                 </button>
-                                            ))}
+                                            )}
                                         </div>
+                                        
+                                        <div className={BrandKitManagerStyles.industryGrid}>
+                                            {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => {
+                                                const isSelected = (kit.industry || 'physical') === key;
+                                                // Disable if auto-detected and not the selected one
+                                                const isDisabled = isAutoDetected && !isSelected;
+                                                
+                                                return (
+                                                    <button
+                                                        key={key}
+                                                        onClick={() => !isDisabled && setKit(prev => ({ ...prev, industry: key as IndustryType }))}
+                                                        disabled={isDisabled}
+                                                        className={`group ${BrandKitManagerStyles.industryCard} ${
+                                                            isSelected 
+                                                            ? BrandKitManagerStyles.industryCardSelected 
+                                                            : isDisabled 
+                                                                ? BrandKitManagerStyles.industryCardDisabled
+                                                                : BrandKitManagerStyles.industryCardInactive
+                                                        }`}
+                                                    >
+                                                        <div className={`${BrandKitManagerStyles.industryIconBox} ${isSelected ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500'}`}>
+                                                            <conf.icon className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <span className={BrandKitManagerStyles.industryLabel}>{conf.label}</span>
+                                                            <p className={BrandKitManagerStyles.industrySub}>{conf.sub}</p>
+                                                        </div>
+                                                        {isSelected && (
+                                                            <div className={BrandKitManagerStyles.industryCheck}>
+                                                                <CheckIcon className="w-3 h-3" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {isAutoDetected && (
+                                            <p className="text-[10px] text-indigo-500 font-medium mt-3 flex items-center gap-1.5 animate-fadeIn">
+                                                <SparklesIcon className="w-3 h-3" />
+                                                Industry automatically optimized based on your website analysis.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
