@@ -469,7 +469,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {!referenceImage && (
                                             <div className="animate-fadeIn">
                                                 <div className="flex items-center gap-2 mb-2 px-1">
-                                                    <LightbulbIcon className="w-3 h-3 text-yellow-500" />
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Choose a Blueprint</label>
                                                 </div>
                                                 <div className={AdMakerStyles.blueprintGrid}>
