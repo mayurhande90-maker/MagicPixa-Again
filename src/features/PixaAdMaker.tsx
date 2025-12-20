@@ -550,10 +550,24 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
+    // Dynamic Tone Options based on Industry
+    const getToneOptions = (ind: string | null) => {
+        switch(ind) {
+            case 'fashion': return ['Chic', 'Street', 'Luxury', 'Minimal', 'Vintage'];
+            case 'food': return ['Spicy', 'Fresh', 'Sweet', 'Comfort', 'Gourmet'];
+            case 'realty': return ['Luxury', 'Modern', 'Cozy', 'Classic', 'Rustic'];
+            case 'saas':
+            case 'education':
+            case 'services': return ['Modern', 'Trustworthy', 'Creative', 'Clean', 'Corporate'];
+            default: return ['Modern', 'Bold', 'Minimalist', 'Playful', 'Luxury']; // Default for E-com/FMCG
+        }
+    };
+
     const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
 
     // Get Active Config for Header
     const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
+    const activeToneOptions = getToneOptions(industry);
 
     return (
         <>
@@ -667,7 +681,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center justify-between mb-0.5">
                                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Industry</p>
-                                                            <div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1">
+                                                            <div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 <span>Switch</span> <ArrowRightIcon className="w-2 h-2" />
                                                             </div>
                                                         </div>
@@ -694,7 +708,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                                                                 <LockIcon className="w-2.5 h-2.5" /> Strategy
                                                             </span>
-                                                            <span className="text-[9px] font-bold text-indigo-300">Edit</span>
+                                                            <span className="text-[9px] font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
                                                         </div>
                                                         <h3 className="text-xs font-black text-indigo-900 truncate leading-tight">
                                                             {auth.user.brandKit.companyName || auth.user.brandKit.name || 'Active Brand'}
@@ -776,6 +790,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* VISUAL STYLE SELECTOR (Moved from bottom) */}
+                                        <div className="mt-6 pt-4 border-t border-gray-100">
+                                             <SelectionGrid
+                                                label={industry === 'food' ? "Taste Vibe" : "Visual Style"}
+                                                options={activeToneOptions}
+                                                value={tone}
+                                                onChange={setTone}
+                                             />
+                                        </div>
                                     </div>
 
                                     {/* 3. SMART DETAILS & STRATEGY */}
@@ -837,7 +861,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="space-y-4">
                                                 <InputField placeholder="Brand / Product" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
                                                 <InputField placeholder="Collection / Offer" value={offer} onChange={(e: any) => setOffer(e.target.value)} />
-                                                <SelectionGrid label="Vibe" options={['Chic', 'Street', 'Luxury', 'Minimal', 'Vintage']} value={tone} onChange={setTone} />
                                             </div>
                                         )}
 
@@ -863,7 +886,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="space-y-4">
                                                 <InputField placeholder="Dish Name" value={dishName} onChange={(e: any) => setDishName(e.target.value)} />
                                                 <InputField placeholder="Restaurant Name" value={restaurant} onChange={(e: any) => setRestaurant(e.target.value)} />
-                                                <SelectionGrid label="Taste Vibe" options={['Spicy', 'Fresh', 'Sweet', 'Comfort', 'Gourmet']} value={tone} onChange={setTone} />
                                             </div>
                                         )}
 
@@ -873,7 +895,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <InputField placeholder="Sub-headline / Value Prop" value={subheadline} onChange={(e: any) => setSubheadline(e.target.value)} />
                                                 <div className={AdMakerStyles.grid2}>
                                                     <InputField placeholder="Call to Action" value={cta} onChange={(e: any) => setCta(e.target.value)} />
-                                                    <SelectionGrid label="Style" options={['Modern', 'Trustworthy', 'Creative', 'Clean']} value={tone} onChange={setTone} />
                                                 </div>
                                             </div>
                                         )}
