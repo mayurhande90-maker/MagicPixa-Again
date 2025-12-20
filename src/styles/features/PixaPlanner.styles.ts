@@ -1,4 +1,3 @@
-
 export const PlannerStyles = {
     // Config Cards
     optionCard: "relative p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col gap-2 h-full text-left hover:shadow-md",
@@ -15,7 +14,7 @@ export const PlannerStyles = {
     logTitle: "text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]",
     logItem: "flex items-start gap-3 mb-3 animate-fadeIn",
     logDot: "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
-    logText: "text-xs text-gray-300 font-medium leading-relaxed",
+    logText: "text-xs text-gray-300 font-medium leading-relaxed text-left",
 
     // Review Grid
     gridContainer: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
