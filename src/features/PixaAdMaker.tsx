@@ -52,7 +52,7 @@ const FocusCard: React.FC<{ title: string; desc: string; icon: React.ReactNode; 
         </div>
         <div className="text-left relative z-10">
             <h4 className={`text-sm font-bold ${selected ? 'text-gray-900' : 'text-gray-600'}`}>{title}</h4>
-            <p className="text-[10px] font-medium text-gray-400 mt-1">{desc}</p>
+            <p className="text-[10px] font-medium text-gray-400 mt-1 leading-snug">{desc}</p>
         </div>
         {selected && (
             <div className={`absolute top-3 right-3 p-1 rounded-full ${colorClass.replace('text-', 'bg-')} text-white shadow-sm`}>
@@ -546,7 +546,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="flex gap-2">
                                                 <FocusCard 
                                                     title="Product" 
-                                                    desc="Studio Focus" 
+                                                    desc="Studio lighting & clean background" 
                                                     icon={<CubeIcon className="w-5 h-5"/>}
                                                     selected={visualFocus === 'product'} 
                                                     onClick={() => setVisualFocus('product')} 
@@ -554,7 +554,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 />
                                                 <FocusCard 
                                                     title="Lifestyle" 
-                                                    desc="In-Context" 
+                                                    desc="Realistic real-world environment" 
                                                     icon={<UserIcon className="w-5 h-5"/>}
                                                     selected={visualFocus === 'lifestyle'} 
                                                     onClick={() => setVisualFocus('lifestyle')} 
@@ -562,7 +562,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 />
                                                 <FocusCard 
                                                     title="Concept" 
-                                                    desc="Creative Art" 
+                                                    desc="Abstract, surreal & artistic" 
                                                     icon={<SparklesIcon className="w-5 h-5"/>}
                                                     selected={visualFocus === 'conceptual'} 
                                                     onClick={() => setVisualFocus('conceptual')} 
