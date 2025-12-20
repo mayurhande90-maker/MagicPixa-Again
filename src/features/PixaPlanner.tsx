@@ -28,7 +28,8 @@ const BrandSelectionGate: React.FC<{
     onSelect: (brand: BrandKit) => void;
     onCreate: () => void;
     isLoading: boolean;
-}> = ({ brands, onSelect, onCreate, isLoading }) => {
+    activatingId: string | null;
+}> = ({ brands, onSelect, onCreate, isLoading, activatingId }) => {
     return (
         <div className="relative h-full w-full flex flex-col items-center justify-center p-6 overflow-hidden min-h-[600px]">
             {/* Ambient Background */}
@@ -57,8 +58,21 @@ const BrandSelectionGate: React.FC<{
                                 <button
                                     key={brand.id}
                                     onClick={() => onSelect(brand)}
-                                    className="group relative bg-white/60 backdrop-blur-md hover:bg-white p-6 rounded-3xl border border-gray-200 hover:border-indigo-500 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 text-left flex flex-col gap-4"
+                                    disabled={!!activatingId}
+                                    className={`group relative bg-white/60 backdrop-blur-md p-6 rounded-3xl border transition-all duration-300 text-left flex flex-col gap-4 ${
+                                        activatingId === brand.id 
+                                        ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-white scale-[1.02]' 
+                                        : !!activatingId 
+                                            ? 'opacity-50 grayscale border-gray-200 cursor-not-allowed' 
+                                            : 'border-gray-200 hover:border-indigo-500 hover:bg-white hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer'
+                                    }`}
                                 >
+                                    {activatingId === brand.id && (
+                                        <div className="absolute inset-0 z-20 bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-3xl">
+                                            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
+
                                     <div className="flex justify-between items-start">
                                         <div className="w-12 h-12 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
                                             {brand.logos.primary ? (
@@ -67,13 +81,15 @@ const BrandSelectionGate: React.FC<{
                                                 <span className="text-sm font-black text-gray-300 uppercase">{brand.companyName ? brand.companyName.substring(0,2) : (brand.name || '??').substring(0,2)}</span>
                                             )}
                                         </div>
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-50 text-indigo-600 p-2 rounded-full">
+                                        <div className={`transition-opacity p-2 rounded-full ${activatingId === brand.id ? 'opacity-100 bg-indigo-50 text-indigo-600' : 'opacity-0 group-hover:opacity-100 bg-indigo-50 text-indigo-600'}`}>
                                             <ArrowRightIcon className="w-4 h-4" />
                                         </div>
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-gray-900 leading-tight truncate">{brand.companyName || brand.name}</h3>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1 group-hover:text-indigo-500 transition-colors">Activate Context</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1 group-hover:text-indigo-500 transition-colors">
+                                            {activatingId === brand.id ? 'Activating...' : 'Activate Context'}
+                                        </p>
                                     </div>
                                 </button>
                             ))}
@@ -81,7 +97,8 @@ const BrandSelectionGate: React.FC<{
                             {/* Create New Card */}
                             <button
                                 onClick={onCreate}
-                                className="group relative border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center gap-3 min-h-[160px]"
+                                disabled={!!activatingId}
+                                className={`group relative border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center gap-3 min-h-[160px] ${!!activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-white group-hover:text-indigo-600 text-gray-400 flex items-center justify-center transition-colors shadow-sm">
                                     <PlusIcon className="w-5 h-5" />
@@ -465,6 +482,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Brand Gate States
     const [userBrands, setUserBrands] = useState<BrandKit[]>([]);
     const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+    const [activatingBrandId, setActivatingBrandId] = useState<string | null>(null);
 
     const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
     const documentInputRef = useRef<HTMLInputElement>(null);
@@ -478,7 +496,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     // Fetch Brands if no active brand
     useEffect(() => {
-        if (auth.user && !activeBrand) {
+        if (auth.user?.uid && !activeBrand) {
             setIsLoadingBrands(true);
             getUserBrands(auth.user.uid).then(brands => {
                 setUserBrands(brands);
@@ -488,15 +506,22 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 setIsLoadingBrands(false);
             });
         }
-    }, [auth.user, activeBrand]);
+    }, [auth.user?.uid, !!activeBrand]);
 
     const handleActivateBrand = async (brand: BrandKit) => {
-        if (!auth.user || !brand.id) return;
+        if (!auth.user) return;
+        if (!brand.id) {
+            setToast({ msg: "Error: Invalid Brand ID", type: 'error' });
+            return;
+        }
+
+        setActivatingBrandId(brand.id);
         try {
             await activateBrand(auth.user.uid, brand.id);
         } catch (e) {
             console.error("Activation failed", e);
             setToast({ msg: "Failed to switch brand.", type: 'error' });
+            setActivatingBrandId(null);
         }
     };
 
@@ -687,6 +712,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 onSelect={handleActivateBrand} 
                 onCreate={() => navigateTo('dashboard', 'brand_manager')}
                 isLoading={isLoadingBrands}
+                activatingId={activatingBrandId}
             />
         );
     }
