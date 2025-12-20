@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -79,7 +80,6 @@ export interface BrandKit {
             lastUpdated: string;
         };
     };
-    searchLinks?: { uri: string; title: string }[]; // Grounding sources
 }
 
 export interface Ticket {
