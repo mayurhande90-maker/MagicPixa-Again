@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
@@ -36,40 +36,57 @@ const IndustryCard: React.FC<{
 );
 
 // --- COMPONENT: VISUAL FOCUS CARD ---
-const FocusCard: React.FC<{ title: string; desc: string; selected: boolean; onClick: () => void }> = ({ title, desc, selected, onClick }) => (
+const FocusCard: React.FC<{ title: string; desc: string; icon: React.ReactNode; selected: boolean; onClick: () => void; colorClass: string }> = ({ title, desc, icon, selected, onClick, colorClass }) => (
     <button 
         onClick={onClick} 
-        className={`flex-1 p-3 rounded-xl border-2 transition-all duration-300 text-center relative overflow-hidden group ${
+        className={`relative flex flex-col items-start p-4 rounded-2xl border-2 transition-all duration-300 w-full group overflow-hidden ${
             selected 
-            ? 'bg-indigo-50 border-indigo-500 shadow-md scale-[1.02]' 
-            : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+            ? `bg-white ${colorClass.replace('text-', 'border-')} shadow-lg ring-1 ${colorClass.replace('text-', 'ring-').replace('600', '100')}` 
+            : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
         }`}
     >
-        <div className="relative z-10">
-            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</p>
-            <p className={`text-[9px] font-medium leading-tight ${selected ? 'text-indigo-500' : 'text-gray-400'}`}>{desc}</p>
+        <div className={`mb-3 p-2.5 rounded-xl transition-colors ${selected ? 'bg-opacity-10' : 'bg-gray-50 group-hover:bg-white'} ${selected ? colorClass.replace('text-', 'bg-') : ''}`}>
+             <div className={`${selected ? colorClass : 'text-gray-400 group-hover:text-gray-500'}`}>
+                {icon}
+             </div>
         </div>
-        {selected && <div className="absolute top-1 right-1 text-indigo-500"><CheckIcon className="w-3 h-3"/></div>}
+        <div className="text-left relative z-10">
+            <h4 className={`text-sm font-bold ${selected ? 'text-gray-900' : 'text-gray-600'}`}>{title}</h4>
+            <p className="text-[10px] font-medium text-gray-400 mt-1">{desc}</p>
+        </div>
+        {selected && (
+            <div className={`absolute top-3 right-3 p-1 rounded-full ${colorClass.replace('text-', 'bg-')} text-white shadow-sm`}>
+                <CheckIcon className="w-2.5 h-2.5" />
+            </div>
+        )}
     </button>
 );
 
 // --- COMPONENT: RATIO CARD ---
-const RatioCard: React.FC<{ label: string; ratio: string; sub: string; selected: boolean; onClick: () => void }> = ({ label, ratio, sub, selected, onClick }) => (
-    <button 
-        onClick={onClick} 
-        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all w-full ${
-            selected 
-            ? 'bg-blue-50 border-blue-500 shadow-sm' 
-            : 'bg-white border-gray-100 hover:border-gray-200'
-        }`}
-    >
-        <div className={`border-2 rounded flex items-center justify-center bg-gray-50 ${ratio === '9:16' ? 'w-4 h-7' : ratio === '4:5' ? 'w-5 h-6' : 'w-6 h-6'} ${selected ? 'border-blue-400 bg-blue-100' : 'border-gray-300'}`}></div>
-        <div className="text-left">
-            <p className={`text-[10px] font-bold uppercase tracking-wider ${selected ? 'text-blue-700' : 'text-gray-600'}`}>{label}</p>
-            <p className="text-[9px] text-gray-400">{sub}</p>
-        </div>
-    </button>
-);
+const RatioCard: React.FC<{ label: string; ratio: string; sub: string; selected: boolean; onClick: () => void }> = ({ label, ratio, sub, selected, onClick }) => {
+    const getRatioStyle = () => {
+        switch(ratio) {
+            case '9:16': return 'w-3 h-5';
+            case '4:5': return 'w-3.5 h-4.5';
+            default: return 'w-5 h-5';
+        }
+    };
+    
+    return (
+        <button 
+            onClick={onClick} 
+            className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all w-full h-full min-h-[90px] ${
+                selected 
+                ? 'bg-indigo-50 border-indigo-500 shadow-sm' 
+                : 'bg-white border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+            }`}
+        >
+            <div className={`border-2 rounded-sm mb-2 ${getRatioStyle()} ${selected ? 'border-indigo-600 bg-indigo-200' : 'border-gray-300 bg-gray-100'}`}></div>
+            <p className={`text-[10px] font-bold uppercase tracking-wider ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{label}</p>
+            <p className="text-[9px] text-gray-400 mt-0.5">{sub}</p>
+        </button>
+    );
+};
 
 // --- COMPONENT: COMPACT UPLOAD ---
 const CompactUpload: React.FC<{ 
@@ -527,9 +544,30 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className="mb-4">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label>
                                             <div className="flex gap-2">
-                                                <FocusCard title="Product" desc="Studio Focus" selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} />
-                                                <FocusCard title="Lifestyle" desc="In-Context" selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} />
-                                                <FocusCard title="Concept" desc="Creative Art" selected={visualFocus === 'conceptual'} onClick={() => setVisualFocus('conceptual')} />
+                                                <FocusCard 
+                                                    title="Product" 
+                                                    desc="Studio Focus" 
+                                                    icon={<CubeIcon className="w-5 h-5"/>}
+                                                    selected={visualFocus === 'product'} 
+                                                    onClick={() => setVisualFocus('product')} 
+                                                    colorClass="text-blue-600"
+                                                />
+                                                <FocusCard 
+                                                    title="Lifestyle" 
+                                                    desc="In-Context" 
+                                                    icon={<UserIcon className="w-5 h-5"/>}
+                                                    selected={visualFocus === 'lifestyle'} 
+                                                    onClick={() => setVisualFocus('lifestyle')} 
+                                                    colorClass="text-orange-600"
+                                                />
+                                                <FocusCard 
+                                                    title="Concept" 
+                                                    desc="Creative Art" 
+                                                    icon={<SparklesIcon className="w-5 h-5"/>}
+                                                    selected={visualFocus === 'conceptual'} 
+                                                    onClick={() => setVisualFocus('conceptual')} 
+                                                    colorClass="text-purple-600"
+                                                />
                                             </div>
                                         </div>
 
