@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
@@ -13,6 +13,18 @@ import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
+
+// --- CONFIGURATION FOR INDUSTRY DISPLAY ---
+const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
+    'ecommerce': { label: 'E-Commerce', icon: EcommerceAdIcon, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+    'fashion': { label: 'Fashion', icon: ApparelIcon, color: 'text-pink-500', bg: 'bg-pink-50', border: 'border-pink-200' },
+    'realty': { label: 'Real Estate', icon: RealtyAdIcon, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
+    'food': { label: 'Food & Dining', icon: FoodIcon, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+    'saas': { label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
+    'education': { label: 'Education', icon: EducationAdIcon, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+    'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+};
 
 // --- COMPONENT: INDUSTRY CARD ---
 const IndustryCard: React.FC<{ 
@@ -354,6 +366,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
 
+    // Get Active Config for Header
+    const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
+
     return (
         <>
             <FeatureLayout
@@ -451,16 +466,49 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </div>
                             ) : (
                                 <div className={AdMakerStyles.formContainer}>
-                                    {/* HEADER / BACK */}
-                                    <button onClick={() => setIndustry(null)} className={AdMakerStyles.backButton}>
-                                        ← Change Industry
-                                    </button>
-                                    
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600`}>
-                                            {industry.toUpperCase()} Mode
-                                        </span>
-                                    </div>
+                                    {/* PROMINENT INDUSTRY HEADER */}
+                                    {activeConfig && (
+                                        <div className="mb-6 animate-fadeIn">
+                                            <button onClick={() => setIndustry(null)} className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors mb-4 group">
+                                                <ArrowLeftIcon className="w-3 h-3 transition-transform group-hover:-translate-x-1" /> Back to Categories
+                                            </button>
+
+                                            <div className={`flex items-center gap-4 p-4 rounded-3xl border-2 ${activeConfig.bg} ${activeConfig.border}`}>
+                                                <div className={`p-3 rounded-2xl bg-white shadow-sm ${activeConfig.color}`}>
+                                                    <activeConfig.icon className="w-8 h-8" />
+                                                </div>
+                                                <div>
+                                                    <h2 className={`text-2xl font-black ${activeConfig.color} tracking-tight leading-none`}>{activeConfig.label} Mode</h2>
+                                                    <p className="text-xs font-bold text-gray-500 opacity-80 mt-1 uppercase tracking-wider"> AI Creative Engine Active</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ACTIVE BRAND CARD (Context Injection) */}
+                                    {auth.user?.brandKit && (
+                                        <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-fadeIn relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-200/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                                            
+                                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border-2 border-white shadow-md overflow-hidden shrink-0">
+                                                {auth.user.brandKit.logos.primary ? (
+                                                    <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" alt="Brand Logo" />
+                                                ) : (
+                                                    <BrandKitIcon className="w-6 h-6 text-indigo-500" />
+                                                )}
+                                            </div>
+                                            
+                                            <div className="flex-1 min-w-0 relative z-10">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-white/50 px-2 py-0.5 rounded-full">Active Strategy</span>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-indigo-900 truncate">{auth.user.brandKit.companyName || auth.user.brandKit.name || 'Your Brand'}</h3>
+                                                <p className="text-xs text-indigo-600/80 font-medium truncate flex items-center gap-1">
+                                                <SparklesIcon className="w-3 h-3" /> Applying fonts, colors & logo automatically
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* 1. ASSETS */}
                                     <div>
