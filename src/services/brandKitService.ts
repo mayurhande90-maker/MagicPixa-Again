@@ -23,18 +23,20 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64, mimeType);
         
-        const prompt = `Analyze this logo image.
-        Extract the 3 dominant colors in HEX format.
+        const prompt = `You are an Expert Visual Identity Designer.
         
-        Rules:
-        1. Primary: The most dominant color (background or main text).
-        2. Secondary: The second most used color.
-        3. Accent: A contrasting or highlight color found in the logo. If only 2 colors exist, generate a complementary accent color that fits the brand vibe.
+        TASK: Analyze this logo image and extract the definitive Brand Color Palette.
+        
+        **ANALYSIS RULES:**
+        1. **Primary**: The most dominant, recognizable brand color. (e.g. Coke Red, Facebook Blue).
+        2. **Secondary**: The supporting color used for backgrounds or hierarchy.
+        3. **Accent**: A contrasting highlight color. 
+           - *Critical*: If the logo is monochrome (e.g. Black/White), generate a sophisticated Accent color that fits the brand's likely industry (e.g. Gold for Luxury, Blue for Tech, Green for Eco). Do NOT return just Black/White.
         
         Return ONLY a JSON object: { "primary": "#RRGGBB", "secondary": "#RRGGBB", "accent": "#RRGGBB" }`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', // Optimized for speed and accuracy
+            model: 'gemini-3-pro-preview', // Upgraded for better color theory reasoning
             contents: {
                 parts: [
                     { inlineData: { data, mimeType: optimizedMime } },
@@ -77,62 +79,59 @@ export const generateBrandIdentity = async (
 ): Promise<Partial<BrandKit>> => {
     const ai = getAiClient();
     
-    const prompt = `You are a Brand Identity & Business Intelligence Expert AI.
+    const prompt = `You are a World-Class Chief Brand Officer & Design Strategist.
     
-    USER INPUT:
-    - URL: ${url}
-    - Description: ${description}
+    **INPUT DATA**:
+    - **Website**: ${url}
+    - **Context**: ${description}
     
-    TASK:
-    Analyze the available information to generate a complete "Brand DNA Kit".
-    Use Google Search to find the actual brand colors, style, website, and details if the URL is provided.
+    **MISSION**: 
+    Reverse-engineer a complete, high-fidelity "Brand DNA Kit" by performing a deep analysis of the provided URL and description. 
+    You must identify the *actual* brand identity, not just guess generic values.
     
-    **CRITICAL: INDUSTRY CLASSIFICATION**
-    Analyze the business model and categorize it into EXACTLY ONE of the following industries:
-    1. 'physical': Selling tangible goods (bottles, boxes, devices, food) that need product photography.
-    2. 'digital': Selling software, apps, SaaS, or digital courses.
-    3. 'realty': Real estate, property management, interior design, or architecture.
-    4. 'fashion': Apparel, clothing lines, accessories that need models.
-    5. 'service': Personal brands, coaching, consulting, finance, law, or agencies.
-
-    **CRITICAL: TONE OF VOICE ANALYSIS**
-    Deeply analyze the copywriting style on the website or description. Select EXACTLY ONE of the following values for 'toneOfVoice':
-    ['Professional', 'Luxury', 'Playful', 'Friendly', 'Urgent', 'Technical', 'Minimal']
+    **EXECUTION PROTOCOL (Use Google Search)**:
+    1.  **Crawl & Analyze**: Search for the brand's homepage. Read the 'About', 'Mission', and 'Products' pages.
+    2.  **Visual Audit**: Look for the brand's logo, color hex codes (e.g. from design system documentation or CSS analysis descriptions), and typography style.
+    3.  **Strategic Profiling**:
+        -   **Industry**: Classify into EXACTLY ONE: ['physical', 'digital', 'realty', 'fashion', 'service'].
+            -   *Physical*: Tangible goods (food, electronics, beauty).
+            -   *Digital*: Software, SaaS, Apps.
+            -   *Realty*: Real estate, architecture.
+            -   *Fashion*: Clothing, accessories.
+            -   *Service*: Consulting, agencies, personal brands.
+        -   **Tone of Voice**: Classify into EXACTLY ONE: ['Professional', 'Luxury', 'Playful', 'Friendly', 'Urgent', 'Technical', 'Minimal'].
+            -   *Analyze Copy*: Is it slang-heavy? (Playful). Scientific? (Technical). Exclusive? (Luxury).
     
-    - 'Professional': Corporate, trustworthy, serious.
-    - 'Luxury': Elegant, exclusive, expensive.
-    - 'Playful': Fun, energetic, colorful, uses emojis.
-    - 'Friendly': Warm, community-focused, casual.
-    - 'Urgent': Sales-driven, discount-heavy.
-    - 'Technical': Data-driven, complex, expert.
-    - 'Minimal': Simple, understated, clean.
-
-    **OTHER GENERATION TASKS:**
-    1. **Colors**: Suggest a Primary, Secondary, and Accent color based on the industry/vibe.
-    2. **Audience**: Define the Target Audience (e.g. "Busy moms", "Tech Startups").
-    3. **Negative**: What should visual AI AVOID? (e.g. "Cartoons", "Neon colors", "Clutter").
-    4. **Fonts**: Suggest generic font styles (e.g. "Modern Sans", "Classic Serif").
-    5. **Website**: Extract or infer the main website URL.
+    **DESIGN SYNTHESIS (The Visual DNA)**:
+    -   **Colors**:
+        -   *Primary*: The main brand color (Hex). If uncertain, deduce from brand psychology (e.g., Green for eco, Blue for trust).
+        -   *Secondary*: Complementary color.
+        -   *Accent*: High-contrast color for Buttons/CTAs.
+    -   **Typography**:
+        -   Map their font style to one of: 'Modern Sans', 'Classic Serif', 'Bold Display', 'Elegant Script', 'Minimal Mono'.
+    -   **Strategic Constraints**:
+        -   *Target Audience*: Define the core demographic (e.g., "Eco-conscious Gen Z", "Enterprise CIOs").
+        -   *Negative Prompts*: What visuals would *damage* this brand? (e.g., "cartoon, neon, clutter, low resolution").
     
-    OUTPUT FORMAT:
+    **OUTPUT FORMAT**:
     Return strictly a valid JSON object wrapped in a markdown code block.
     Example:
     \`\`\`json
     {
-        "companyName": "Inferred Name",
+        "companyName": "Exact Brand Name",
         "industry": "physical", 
         "website": "https://...",
         "toneOfVoice": "Professional",
-        "targetAudience": "...",
-        "negativePrompts": "...",
-        "colors": { "primary": "#...", "secondary": "#...", "accent": "#..." },
+        "targetAudience": "Specific persona",
+        "negativePrompts": "specific, visual, avoid, tags",
+        "colors": { "primary": "#Hex", "secondary": "#Hex", "accent": "#Hex" },
         "fonts": { "heading": "Modern Sans", "body": "Clean Sans" }
     }
     \`\`\``;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', // Optimized for speed + search capability
+            model: 'gemini-3-pro-preview', // Upgraded to Pro for Deep Research
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
