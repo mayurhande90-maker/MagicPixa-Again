@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { IconProps, BaseIcon } from './types';
 
@@ -19,6 +20,10 @@ export const CloudUploadIcon: React.FC<IconProps> = ({ className }) => (
 
 export const DownloadIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />} />
+);
+
+export const SaveIcon: React.FC<IconProps> = (props) => (
+    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V7.5l-4.75-4.75h-15a2.25 2.25 0 00-2.25 2.25v13.5M9 3v4.5h6V3m-9 18v-7.5h12v7.5" />} />
 );
 
 export const RetryIcon: React.FC<IconProps> = (props) => (
