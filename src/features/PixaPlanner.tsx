@@ -778,10 +778,14 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         })}
                     </div>
 
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
                         <button onClick={handleStartGeneration} className="bg-[#F9D230] text-[#1A1A1E] px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-all border-4 border-white active:scale-95">
-                            Render HD Campaign ({totalCost} CR)
+                            Generate Full Campaign
                         </button>
+                        <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full border border-gray-100 shadow-xl text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">
+                            <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                            Batch Cost: {totalCost} Credits
+                        </div>
                     </div>
                 </div>
             )}
