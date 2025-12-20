@@ -8,7 +8,9 @@ import {
     PencilIcon, MagicWandIcon, CreditCoinIcon, LockIcon,
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
-    CopyIcon, ChevronRightIcon, CampaignStudioIcon, StrategyStarIcon
+    CopyIcon, ChevronRightIcon, CampaignStudioIcon, StrategyStarIcon,
+    // Fix: Added missing CogIcon import
+    CogIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation } from '../firebase';
@@ -103,6 +105,118 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
 };
 
 /**
+ * Settings Modal for Refinement
+ */
+const SettingsModal: React.FC<{ 
+    isOpen: boolean; 
+    onClose: () => void; 
+    config: PlanConfig; 
+    onApply: (newConfig: PlanConfig) => void;
+}> = ({ isOpen, onClose, config, onApply }) => {
+    const [localConfig, setLocalConfig] = useState<PlanConfig>(config);
+    
+    // Check if any changes were actually made
+    const hasChanges = useMemo(() => {
+        return JSON.stringify(localConfig) !== JSON.stringify(config);
+    }, [localConfig, config]);
+
+    if (!isOpen) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-10 max-w-3xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh] animate-bounce-slight" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+                    <div className="flex items-center gap-3 text-indigo-600">
+                        <CogIcon className="w-6 h-6" />
+                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Refine Strategy</h2>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Month</label>
+                            <select value={localConfig.month} onChange={e => setLocalConfig({...localConfig, month: e.target.value})} className="w-full p-3.5 bg-gray-50 border-none rounded-xl font-bold focus:ring-2 focus:ring-indigo-500 appearance-none">
+                                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Market</label>
+                            <input value={localConfig.country} onChange={e => setLocalConfig({...localConfig, country: e.target.value})} className="w-full p-3.5 bg-gray-50 border-none rounded-xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, India" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Posting Frequency</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                { label: 'Every Day (30 Posts)', desc: 'Organic Dominance' },
+                                { label: 'Weekday Warrior (20 Posts)', desc: 'Standard B2B' },
+                                { label: 'Steady Growth (12 Posts)', desc: 'Balanced Presence' },
+                                { label: 'Minimalist (4 Posts)', desc: 'Brand Placeholder' }
+                            ].map(f => (
+                                <OptionCard 
+                                    key={f.label} 
+                                    title={f.label} 
+                                    description={f.desc} 
+                                    icon={<CalendarIcon className="w-8 h-8"/>} 
+                                    selected={localConfig.frequency === f.label} 
+                                    onClick={() => setLocalConfig({...localConfig, frequency: f.label})} 
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Strategy Algorithm</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {[
+                                { label: 'Balanced', desc: '70/20/10 Hybrid Mix' },
+                                { label: 'Ads Only', desc: 'Performance Marketing' },
+                                { label: 'Lifestyle Only', desc: 'Aesthetic Storytelling' }
+                            ].map(m => (
+                                <OptionCard 
+                                    key={m.label} 
+                                    title={m.label} 
+                                    description={m.desc} 
+                                    icon={<StrategyStarIcon className="w-8 h-8"/>} 
+                                    selected={localConfig.mixType === m.label} 
+                                    onClick={() => setLocalConfig({...localConfig, mixType: m.label as any})} 
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-4 mt-10 border-t border-gray-100 pt-6">
+                    <button 
+                        onClick={onClose}
+                        className="flex-1 py-4 text-gray-500 font-bold text-sm hover:bg-gray-50 rounded-2xl transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={() => hasChanges && onApply(localConfig)} 
+                        disabled={!hasChanges}
+                        className={`flex-[2] py-4 rounded-2xl font-black text-sm transition-all shadow-xl flex items-center justify-center gap-2 ${
+                            !hasChanges 
+                            ? 'bg-gray-100 text-gray-400 cursor-default grayscale' 
+                            : 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b] hover:scale-[1.02] shadow-yellow-500/10'
+                        }`}
+                    >
+                        {hasChanges ? <><SparklesIcon className="w-4 h-4" /> Apply & Regenerate</> : 'No Changes'}
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
+/**
  * Multi-image Full-screen Gallery Viewer
  */
 const MultiGalleryViewer: React.FC<{ 
@@ -122,7 +236,7 @@ const MultiGalleryViewer: React.FC<{
 
     const handleCopy = () => {
         navigator.clipboard.writeText(`${post.caption}\n\n${post.hashtags}`);
-        setIsCopied(false);
+        setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
         onToast("Campaign copy copied to clipboard!");
     };
@@ -220,6 +334,7 @@ const MultiGalleryViewer: React.FC<{
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [step, setStep] = useState<Step>('config');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     
     // Initial configuration with no pre-selections
     const [config, setConfig] = useState<PlanConfig>({
@@ -227,7 +342,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         year: new Date().getFullYear(),
         goal: 'Sales & Promos',
         frequency: '',
-        country: '', // UI label: Target Market
+        country: '', 
         mixType: '' as any
     });
     
@@ -284,8 +399,10 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const handleGeneratePlan = async () => {
+    const handleGeneratePlan = async (configOverride?: PlanConfig) => {
         if (!activeBrand) return;
+        const targetConfig = configOverride || config;
+        
         setIsGenerating(true); 
         setLogs([]);
         setProgress(0);
@@ -293,25 +410,33 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             addLog("Initiating Art Direction Protocol...");
             const products = activeBrand.products || [];
-            const audits: Record<string, ProductAnalysis> = {};
+            const audits: Record<string, ProductAnalysis> = { ...productAudits };
             
-            for (let i = 0; i < products.length; i++) {
-                const p = products[i];
+            // Only analyze products if not already audited to save tokens/time
+            const unAudited = products.filter(p => !audits[p.id]);
+            for (let i = 0; i < unAudited.length; i++) {
+                const p = unAudited[i];
                 addLog(`Analyzing geometry for: ${p.name}...`);
                 const res = await urlToBase64(p.imageUrl);
                 const audit = await analyzeProductPhysically(p.id, res.base64, res.mimeType);
                 audits[p.id] = audit;
-                setProgress(((i + 1) / products.length) * 40); 
+                setProgress(((i + 1) / unAudited.length) * 40); 
             }
             setProductAudits(audits);
 
-            addLog(`Deep Research: Scanning trends for "${config.country}"...`);
+            addLog(`Deep Research: Scanning trends for "${targetConfig.country}"...`);
             addLog(`Applying "Rule of Thirds" and negative space logic...`);
             
-            const newPlan = await generateContentPlan(activeBrand, config, audits);
+            const newPlan = await generateContentPlan(activeBrand, targetConfig, audits);
             setPlan(newPlan);
+            
+            // If images were already generated, we clear them as the strategy changed
+            setGeneratedImages({});
+            
             setProgress(100);
             setStep('review');
+            if (isSettingsModalOpen) setIsSettingsModalOpen(false);
+            if (configOverride) setConfig(configOverride);
         } catch (e: any) {
             console.error(e);
             setToast({ msg: "Strategy Engine failed. Try again.", type: "error" });
@@ -379,7 +504,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const url = generatedImages[post.id];
             if (url) {
                 const blob = await fetch(url).then(r => r.blob());
-                // Handle slashes in dates for filename safety
                 zip.file(`${post.date.replace(/\//g, '-')}_${post.topic.replace(/\s+/g, '_')}.jpg`, blob);
             }
         }
@@ -404,6 +528,22 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 return next;
             });
         }, 2000);
+    };
+
+    const handleRefineSettings = () => {
+        setIsSettingsModalOpen(true);
+    };
+
+    const handleApplySettings = async (newConfig: PlanConfig) => {
+        await handleGeneratePlan(newConfig);
+    };
+
+    const handleStartNew = () => {
+        if (confirm("Heads up! Starting a new project will clear your current campaign plan. Do you want to proceed?")) {
+            setStep('config');
+            setPlan([]);
+            setGeneratedImages({});
+        }
     };
 
     if (!hasBrand) {
@@ -469,7 +609,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     key={f.label} 
                                     title={f.label} 
                                     description={f.desc} 
-                                    icon={<CampaignStudioIcon className="w-8 h-8"/>} 
+                                    icon={<CalendarIcon className="w-8 h-8"/>} 
                                     selected={config.frequency === f.label} 
                                     onClick={() => setConfig({...config, frequency: f.label})} 
                                 />
@@ -499,7 +639,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                     <div className="flex justify-end pt-4 relative z-10">
                         <button 
-                            onClick={handleGeneratePlan} 
+                            onClick={() => handleGeneratePlan()} 
                             disabled={!isConfigValid}
                             className={`bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-2xl font-bold transition-all shadow-xl flex items-center gap-3 ${!isConfigValid ? 'opacity-30 cursor-not-allowed grayscale' : 'hover:bg-[#dfbc2b] hover:scale-105 shadow-yellow-500/20'}`}
                         >
@@ -518,7 +658,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             <h2 className="text-3xl font-black mb-2 flex items-center gap-3"><CheckIcon className="w-8 h-8 p-1 bg-white/20 rounded-full"/> Strategy Engineered</h2>
                             <p className="text-indigo-100 font-medium">Verified {plan.length} entries for {activeBrand.companyName}. Each post is designed to maximize engagement and ROI.</p>
                         </div>
-                        <button onClick={() => setStep('config')} className="relative z-10 bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all border border-white/20">Refine Settings</button>
+                        <button 
+                            onClick={handleRefineSettings} 
+                            className="relative z-10 bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all border border-white/20"
+                        >
+                            Refine Settings
+                        </button>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -638,7 +783,18 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             <p className="text-green-50 font-medium text-lg opacity-90">Your commercial campaign has been rendered to brand standards.</p>
                         </div>
                         <div className="flex gap-4 relative z-10 w-full md:w-auto">
-                            <button onClick={() => setStep('config')} className="flex-1 md:flex-none bg-white/20 hover:bg-white/30 px-8 py-4 rounded-2xl font-bold transition-all border border-white/10">Start New</button>
+                            <button 
+                                onClick={handleStartNew} 
+                                className="flex-1 md:flex-none bg-white/20 hover:bg-white/30 px-8 py-4 rounded-2xl font-bold transition-all border border-white/10"
+                            >
+                                Start New
+                            </button>
+                            <button 
+                                onClick={handleRefineSettings} 
+                                className="flex-1 md:flex-none bg-white/20 hover:bg-white/30 px-8 py-4 rounded-2xl font-bold transition-all border border-white/10"
+                            >
+                                Refine Strategy
+                            </button>
                             <button onClick={handleDownloadAll} className="flex-1 md:flex-none bg-white text-emerald-700 px-10 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-3">
                                 <DownloadIcon className="w-6 h-6"/> Export ZIP
                             </button>
@@ -729,6 +885,14 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 </div>
             )}
             
+            {/* Settings Modal */}
+            <SettingsModal 
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                config={config}
+                onApply={handleApplySettings}
+            />
+
             {/* Full Screen Gallery Viewer */}
             {viewingIndex !== null && (
                 <MultiGalleryViewer 
