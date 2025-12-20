@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { logApiError, auth } from '../firebase';
 
@@ -10,18 +9,10 @@ const USE_SECURE_BACKEND = false;
 /**
  * Helper function to get a fresh AI client on every call.
  * This is used ONLY when USE_SECURE_BACKEND is false.
+ * FIX: Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY}); as per GenAI guidelines.
  */
 export const getAiClient = (): GoogleGenAI => {
-    const key = process.env.API_KEY;
-    
-    if (!key || key === 'undefined' || key === '') {
-        console.error("Gemini API: API_KEY is missing from environment. Triggering selection gate...");
-        // Dispatch custom event to trigger the selection gate again
-        window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
-        throw new Error("An API Key must be set to use AI features. Please select your key in the prompted dialog.");
-    }
-
-    return new GoogleGenAI({ apiKey: key });
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 /**
@@ -31,16 +22,9 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
     try {
         return await fn();
     } catch (error: any) {
+        // Classify Error Type
         const status = error.status || error.code;
         const message = (error.message || "").toLowerCase();
-
-        // Specific handling for mandatory key selection environments
-        // "Requested entity was not found" usually means the key selected is invalid or from a non-paid project
-        if (message.includes('requested entity was not found') || message.includes('api key must be set')) {
-            console.error("Gemini API: Key error detected. Resetting gate...", message);
-            window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
-            throw new Error("Your AI session is invalid or expired. Please select your API key again.");
-        }
 
         const isTransientError = 
             status === 503 || 
@@ -98,15 +82,21 @@ export const secureGenerateContent = async (params: {
         }
 
         const data = await response.json();
+        
+        // The backend returns the raw Gemini response object.
+        // We pass it back as-is so the services don't need to change.
         return data;
 
     } else {
-        // Use the validated client creator
-        const ai = getAiClient();
-        return await callWithRetry(() => ai.models.generateContent({
+        // Fallback to Client-Side (Insecure but works for dev)
+        /**
+         * FIX: re-initializing AI client locally to ensure it picks up the latest environment values as per @google/genai guidelines.
+         */
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        return await ai.models.generateContent({
             model: params.model,
             contents: params.contents,
             config: params.config
-        }));
+        });
     }
 };

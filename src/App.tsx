@@ -8,7 +8,6 @@ import AuthModal from './components/AuthModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
 import ConfigurationError from './components/ConfigurationError';
-import { ApiKeyGate } from './components/ApiKeyGate';
 import { 
     auth as firebaseAuth, 
     signInWithGoogle, 
@@ -240,89 +239,87 @@ function App() {
   };
 
   return (
-    <ApiKeyGate>
-      <div className={`min-h-screen flex flex-col font-sans text-slate-900 ${impersonatedUser ? 'pt-14' : ''}`}>
-        {impersonatedUser && user && (
-            <ImpersonationBanner 
-                originalUser={user} 
-                targetUser={impersonatedUser} 
-                onExit={() => handleImpersonate(null)} 
-            />
-        )}
-        
-        {/* 1. Global Announcement Display */}
-        {showBanner && announcement && announcement.isActive && (
-            <NotificationDisplay 
-                title={announcement.title}
-                message={announcement.message}
-                type={announcement.type}
-                style={announcement.style || 'banner'}
-                link={announcement.link}
-                onClose={() => setShowBanner(false)}
-            />
-        )}
-        
-        {/* 2. User System Notification Display */}
-        {activeUser?.systemNotification && !activeUser.systemNotification.read && (
-            <NotificationDisplay 
-                title={activeUser.systemNotification.title}
-                message={activeUser.systemNotification.message}
-                type={activeUser.systemNotification.type}
-                style={activeUser.systemNotification.style || 'banner'}
-                link={activeUser.systemNotification.link || undefined}
-                onClose={clearNotification}
-            />
-        )}
+    <div className={`min-h-screen flex flex-col font-sans text-slate-900 ${impersonatedUser ? 'pt-14' : ''}`}>
+      {impersonatedUser && user && (
+          <ImpersonationBanner 
+            originalUser={user} 
+            targetUser={impersonatedUser} 
+            onExit={() => handleImpersonate(null)} 
+          />
+      )}
+      
+      {/* 1. Global Announcement Display */}
+      {showBanner && announcement && announcement.isActive && (
+          <NotificationDisplay 
+              title={announcement.title}
+              message={announcement.message}
+              type={announcement.type}
+              style={announcement.style || 'banner'}
+              link={announcement.link}
+              onClose={() => setShowBanner(false)}
+          />
+      )}
+      
+      {/* 2. User System Notification Display */}
+      {activeUser?.systemNotification && !activeUser.systemNotification.read && (
+          <NotificationDisplay 
+              title={activeUser.systemNotification.title}
+              message={activeUser.systemNotification.message}
+              type={activeUser.systemNotification.type}
+              style={activeUser.systemNotification.style || 'banner'}
+              link={activeUser.systemNotification.link || undefined}
+              onClose={clearNotification}
+          />
+      )}
 
-        {/* Credit Grant Modal */}
-        {activeUser?.creditGrantNotification && (
-            <CreditGrantModal 
-                userId={activeUser.uid}
-                amount={activeUser.creditGrantNotification.amount}
-                message={activeUser.creditGrantNotification.message}
-                type={activeUser.creditGrantNotification.type}
-                packageName={activeUser.creditGrantNotification.packageName}
-            />
-        )}
+      {/* Credit Grant Modal */}
+      {activeUser?.creditGrantNotification && (
+          <CreditGrantModal 
+              userId={activeUser.uid}
+              amount={activeUser.creditGrantNotification.amount}
+              message={activeUser.creditGrantNotification.message}
+              type={activeUser.creditGrantNotification.type}
+              packageName={activeUser.creditGrantNotification.packageName}
+          />
+      )}
 
-        {currentPage === 'home' && (
-            <HomePage 
-                navigateTo={navigateTo} 
-                auth={authProps} 
-                appConfig={appConfig}
-            />
-        )}
+      {currentPage === 'home' && (
+        <HomePage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            appConfig={appConfig}
+        />
+      )}
 
-        {currentPage === 'about' && (
-            <AboutUsPage 
-                navigateTo={navigateTo} 
-                auth={authProps} 
-            />
-        )}
+      {currentPage === 'about' && (
+        <AboutUsPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+        />
+      )}
 
-        {currentPage === 'dashboard' && (
-            <DashboardPage 
-                navigateTo={navigateTo} 
-                auth={authProps} 
-                activeView={currentView}
-                setActiveView={setCurrentView}
-                openEditProfileModal={() => {}} // Placeholder if needed
-                isConversationOpen={isConversationOpen}
-                setIsConversationOpen={setIsConversationOpen}
-                appConfig={appConfig}
-                setAppConfig={setAppConfig as any}
-            />
-        )}
+      {currentPage === 'dashboard' && (
+        <DashboardPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            activeView={currentView}
+            setActiveView={setCurrentView}
+            openEditProfileModal={() => {}} // Placeholder if needed
+            isConversationOpen={isConversationOpen}
+            setIsConversationOpen={setIsConversationOpen}
+            appConfig={appConfig}
+            setAppConfig={setAppConfig as any}
+        />
+      )}
 
-        {isAuthModalOpen && (
-            <AuthModal 
-                onClose={() => setIsAuthModalOpen(false)} 
-                onGoogleSignIn={handleGoogleSignIn}
-                error={authError}
-            />
-        )}
-      </div>
-    </ApiKeyGate>
+      {isAuthModalOpen && (
+        <AuthModal 
+            onClose={() => setIsAuthModalOpen(false)} 
+            onGoogleSignIn={handleGoogleSignIn}
+            error={authError}
+        />
+      )}
+    </div>
   );
 }
 
