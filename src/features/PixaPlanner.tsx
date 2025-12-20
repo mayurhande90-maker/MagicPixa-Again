@@ -9,7 +9,6 @@ import {
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
     CopyIcon, ChevronRightIcon, CampaignStudioIcon, StrategyStarIcon,
-    // Fix: Added missing CogIcon import
     CogIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
@@ -127,7 +126,6 @@ const SettingsModal: React.FC<{
             <div className="bg-white rounded-[2.5rem] p-8 md:p-10 max-w-3xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh] animate-bounce-slight" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
                     <div className="flex items-center gap-3 text-indigo-600">
-                        <CogIcon className="w-6 h-6" />
                         <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Refine Strategy</h2>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
@@ -207,7 +205,7 @@ const SettingsModal: React.FC<{
                             : 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b] hover:scale-[1.02] shadow-yellow-500/10'
                         }`}
                     >
-                        {hasChanges ? <><SparklesIcon className="w-4 h-4" /> Apply & Regenerate</> : 'No Changes'}
+                        {hasChanges ? 'Apply Strategy' : 'No Changes'}
                     </button>
                 </div>
             </div>
@@ -435,7 +433,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             
             setProgress(100);
             setStep('review');
-            if (isSettingsModalOpen) setIsSettingsModalOpen(false);
             if (configOverride) setConfig(configOverride);
         } catch (e: any) {
             console.error(e);
@@ -535,6 +532,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleApplySettings = async (newConfig: PlanConfig) => {
+        setIsSettingsModalOpen(false); // Close immediately so user can see the progress modal
         await handleGeneratePlan(newConfig);
     };
 
