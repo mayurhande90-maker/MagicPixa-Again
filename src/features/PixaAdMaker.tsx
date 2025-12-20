@@ -84,26 +84,26 @@ const BrandSelectionModal: React.FC<{
 
     return createPortal(
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100" onClick={e => e.stopPropagation()}>
                 
                 {/* Header */}
-                <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
-                    <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100">
-                            <BrandKitIcon className="w-6 h-6 text-indigo-600" />
+                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                    <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
+                            <BrandKitIcon className="w-5 h-5 text-indigo-600" />
                          </div>
                          <div>
-                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Select Brand Identity</h3>
-                            <p className="text-sm text-gray-500 font-medium">Choose a brand kit to apply visual assets automatically.</p>
+                            <h3 className="text-lg font-black text-gray-900 tracking-tight">Select Identity</h3>
+                            <p className="text-xs text-gray-500 font-medium">Apply a brand kit to your ad.</p>
                          </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
-                        <XIcon className="w-6 h-6" />
+                        <XIcon className="w-5 h-5" />
                     </button>
                 </div>
                 
                 {/* Grid Content */}
-                <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1">
+                <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1">
                      {loading ? (
                         <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                     ) : brands.length === 0 ? (
@@ -115,7 +115,7 @@ const BrandSelectionModal: React.FC<{
                             <button onClick={onCreateNew} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-2 gap-4">
                             {brands.map(brand => {
                                 const isActive = currentBrandId === brand.id;
                                 const isActivating = activatingId === brand.id;
@@ -124,51 +124,51 @@ const BrandSelectionModal: React.FC<{
                                         key={brand.id}
                                         onClick={() => handleSelect(brand)}
                                         disabled={isActivating || isActive}
-                                        className={`group relative flex flex-col h-60 rounded-3xl border transition-all duration-300 overflow-hidden text-left ${
+                                        className={`group relative flex flex-col h-44 rounded-2xl border transition-all duration-200 overflow-hidden text-left ${
                                             isActive 
-                                            ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-xl scale-[1.02]' 
-                                            : 'border-gray-200 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-1 bg-white'
+                                            ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-md scale-[1.01]' 
+                                            : 'border-gray-200 hover:border-indigo-300 hover:shadow-lg bg-white'
                                         }`}
                                     >
                                         {/* Header / Logo Area */}
-                                        <div className={`h-32 flex items-center justify-center p-6 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/50 border-gray-100 group-hover:bg-gray-50'}`}>
+                                        <div className={`h-24 flex items-center justify-center p-4 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
                                             {brand.logos.primary ? (
-                                                <img src={brand.logos.primary} className="max-w-full max-h-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform" alt="Logo" />
+                                                <img src={brand.logos.primary} className="max-w-full max-h-full object-contain drop-shadow-sm" alt="Logo" />
                                             ) : (
-                                                <span className="text-3xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
+                                                <span className="text-2xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
                                             )}
                                             
                                             {/* Active Badge */}
                                             {isActive && (
-                                                <div className="absolute top-3 right-3 bg-indigo-600 text-white p-1.5 rounded-full shadow-sm animate-scaleIn">
-                                                    <CheckIcon className="w-3 h-3" />
+                                                <div className="absolute top-2 right-2 bg-indigo-600 text-white p-1 rounded-full shadow-sm animate-scaleIn">
+                                                    <CheckIcon className="w-2.5 h-2.5" />
                                                 </div>
                                             )}
                                             
                                             {/* Loading Spinner */}
                                             {isActivating && (
                                                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                                                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Body */}
-                                        <div className={`p-5 flex-1 flex flex-col justify-between ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
+                                        <div className={`p-3 flex-1 flex flex-col justify-between ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
                                             <div>
-                                                <h4 className={`font-bold text-base truncate ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>
+                                                <h4 className={`font-bold text-xs truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>
                                                     {brand.companyName || brand.name || 'Untitled'}
                                                 </h4>
-                                                <p className="text-[10px] text-gray-500 font-medium mt-1">
-                                                    {brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'General'} • {brand.toneOfVoice}
+                                                <p className="text-[9px] text-gray-500 font-medium truncate opacity-80">
+                                                    {brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'General'}
                                                 </p>
                                             </div>
                                             
                                             {/* Color Palette Preview */}
-                                            <div className="flex gap-2 mt-3">
-                                                 <div className="w-6 h-6 rounded-full border border-gray-100 shadow-sm" style={{ background: brand.colors.primary }}></div>
-                                                 <div className="w-6 h-6 rounded-full border border-gray-100 shadow-sm" style={{ background: brand.colors.secondary }}></div>
-                                                 <div className="w-6 h-6 rounded-full border border-gray-100 shadow-sm" style={{ background: brand.colors.accent }}></div>
+                                            <div className="flex gap-1.5 mt-2">
+                                                 <div className="w-3.5 h-3.5 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary }}></div>
+                                                 <div className="w-3.5 h-3.5 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary }}></div>
+                                                 <div className="w-3.5 h-3.5 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent }}></div>
                                             </div>
                                         </div>
                                     </button>
@@ -178,12 +178,12 @@ const BrandSelectionModal: React.FC<{
                             {/* "Add New" Card injected into grid */}
                             <button 
                                 onClick={onCreateNew}
-                                className="group relative flex flex-col h-60 rounded-3xl border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300 items-center justify-center text-center gap-3 bg-white hover:shadow-md"
+                                className="group relative flex flex-col h-44 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-200 items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md"
                             >
-                                <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
-                                    <PlusCircleIcon className="w-6 h-6" />
+                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
+                                    <PlusCircleIcon className="w-5 h-5" />
                                 </div>
-                                <span className="text-sm font-bold text-gray-500 group-hover:text-indigo-700 transition-colors">Create New Brand</span>
+                                <span className="text-xs font-bold text-gray-500 group-hover:text-indigo-700 transition-colors">Create New</span>
                             </button>
                         </div>
                     )}
