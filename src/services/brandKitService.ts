@@ -1,5 +1,5 @@
-import { Type, Modality } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { Type, Modality, GenerateContentResponse } from "@google/genai";
+import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, makeTransparent } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -120,33 +120,43 @@ export const generateBrandIdentity = async (
     \`\`\``;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Pro model for deep strategic research
+        // Using callWithRetry for robustness
+        const response: GenerateContentResponse = await callWithRetry(() => ai.models.generateContent({
+            model: 'gemini-3-flash-preview', // Switch to flash for search stability
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
             }
-        });
+        }));
 
-        let text = response.text || "{}";
-        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        let text = response.text || "";
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/) || text.match(/(\{[\s\S]*\})/);
         if (jsonMatch) {
             text = jsonMatch[1];
         }
+        
+        // Final cleaning
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        return JSON.parse(text);
+        const result = JSON.parse(text);
+
+        // Extract Search Grounding Links if available
+        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (groundingChunks) {
+            const links: { uri: string; title: string }[] = [];
+            groundingChunks.forEach((chunk: any) => {
+                if (chunk.web?.uri) {
+                    links.push({ uri: chunk.web.uri, title: chunk.web.title || 'Research Source' });
+                }
+            });
+            result.searchLinks = links;
+        }
+
+        return result;
     } catch (e) {
         console.error("Auto-Brand Generation Failed:", e);
-        return {
-            companyName: "New Brand",
-            website: url,
-            toneOfVoice: "Professional",
-            targetAudience: "General",
-            negativePrompts: "Low quality, blur, distortion",
-            colors: { primary: "#000000", secondary: "#FFFFFF", accent: "#3B82F6" },
-            fonts: { heading: "Modern Sans", body: "Clean Sans" }
-        };
+        // Throwing error so the manager's catch block can handle it
+        throw new Error("Failed to research brand data. Please check your inputs or try again.");
     }
 };
 
@@ -208,7 +218,7 @@ export const analyzeCompetitorStrategy = async (
         });
 
         let text = response.text || "{}";
-        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/) || text.match(/(\{[\s\S]*\})/);
         if (jsonMatch) {
             text = jsonMatch[1];
         }

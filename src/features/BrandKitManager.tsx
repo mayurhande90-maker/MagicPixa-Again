@@ -6,7 +6,8 @@ import {
     PlusIcon, MagicWandIcon, ChevronDownIcon, TrashIcon,
     SparklesIcon, CheckIcon, ArrowLeftIcon, LockIcon,
     CubeIcon, LightbulbIcon, ChartBarIcon, LightningIcon,
-    GlobeIcon, CameraIcon, EyeIcon, FlagIcon, DocumentTextIcon
+    GlobeIcon, CameraIcon, EyeIcon, FlagIcon, DocumentTextIcon,
+    InformationCircleIcon
 } from '../components/icons';
 // FIX: Import InputField from FeatureLayout to resolve "Cannot find name 'InputField'" error.
 import { InputField } from '../components/FeatureLayout';
@@ -251,7 +252,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const [isSaving, setIsSaving] = useState(false);
     const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
     const [processingState, setProcessingState] = useState<{ [key: string]: boolean }>({});
-    const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+    const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [showMagicModal, setShowMagicModal] = useState(false);
     const [isMagicGen, setIsMagicGen] = useState(false);
@@ -439,12 +440,13 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const handleMagicGenerate = async (url: string, desc: string, compUrl: string) => {
         setIsMagicGen(true);
         try {
-            const generated = await generateBrandIdentity(url, desc, compUrl);
-            setKit(prev => ({ ...prev, ...generated }));
+            const generatedData = await generateBrandIdentity(url, desc, compUrl);
+            setKit(prev => ({ ...prev, ...generatedData }));
             setToast({ msg: "Unified strategy generated!", type: "success" });
             setShowMagicModal(false);
-        } catch (e) {
-            setToast({ msg: "Research failed.", type: "error" });
+        } catch (e: any) {
+            console.error("Magic Generation Error:", e);
+            setToast({ msg: e.message || "Research failed.", type: "error" });
         } finally {
             setIsMagicGen(false);
         }
@@ -542,6 +544,23 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                 <div><label className={BrandKitManagerStyles.inputLabel}>Tone of Voice</label><select value={kit.toneOfVoice} onChange={(e) => handleSelectChange('toneOfVoice', e.target.value)} className={BrandKitManagerStyles.selectField}><option>Professional</option><option>Luxury</option><option>Playful</option><option>Urgent</option><option>Casual</option></select></div>
                                 <InputField label="Target Audience" value={kit.targetAudience || ''} onChange={(e: any) => handleTextChange('targetAudience', e.target.value)} />
                                 <InputField label="Negative Prompts (What to Avoid)" value={kit.negativePrompts || ''} onChange={(e: any) => handleTextChange('negativePrompts', e.target.value)} />
+                                
+                                {/* Grounding display */}
+                                {kit.searchLinks && kit.searchLinks.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <InformationCircleIcon className="w-4 h-4 text-indigo-500" />
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Research Sources</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {kit.searchLinks.map((link, i) => (
+                                                <a key={i} href={link.uri} target="_blank" rel="noreferrer" className="text-[9px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md border border-indigo-100 hover:bg-indigo-100 transition-colors truncate max-w-[150px]">
+                                                    {link.title}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         
