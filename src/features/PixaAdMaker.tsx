@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon } from '../components/icons';
-import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon } from '../components/icons/adMakerIcons';
+import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, STYLE_BLUEPRINTS } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -374,7 +374,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     />
                                     <IndustryCard 
                                         title="FMCG / CPG" desc="Packaged Goods" 
-                                        icon={<CubeIcon className={`w-8 h-8 text-green-600`}/>} 
+                                        icon={<FMCGIcon className={`w-8 h-8 text-green-600`}/>} 
                                         onClick={() => setIndustry('fmcg')}
                                         styles={{ card: "bg-gradient-to-br from-[#E8F5E9] via-[#F1F8E9] to-[#DCEDC8]", orb: "bg-gradient-to-tr from-green-300 to-lime-200 -top-20 -right-20", icon: "text-green-600" }}
                                     />
