@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { logApiError, auth } from '../firebase';
 
@@ -9,10 +10,13 @@ const USE_SECURE_BACKEND = false;
 /**
  * Helper function to get a fresh AI client on every call.
  * This is used ONLY when USE_SECURE_BACKEND is false.
- * FIX: Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY}); as per GenAI guidelines.
  */
 export const getAiClient = (): GoogleGenAI => {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (!apiKey || apiKey === 'undefined') {
+      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+    }
+    return new GoogleGenAI({ apiKey });
 };
 
 /**
@@ -89,10 +93,7 @@ export const secureGenerateContent = async (params: {
 
     } else {
         // Fallback to Client-Side (Insecure but works for dev)
-        /**
-         * FIX: re-initializing AI client locally to ensure it picks up the latest environment values as per @google/genai guidelines.
-         */
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = getAiClient();
         return await ai.models.generateContent({
             model: params.model,
             contents: params.contents,

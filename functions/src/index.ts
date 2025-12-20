@@ -17,6 +17,12 @@ export const generateSecureContent = onCall({ secrets: ["GEMINI_API_KEY"] }, asy
     const uid = request.auth.uid;
     const { model, contents, config, cost = 1, featureName = 'Unknown' } = request.data;
 
+    // 2. Access the Secret Key (Hidden from the user)
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new HttpsError('internal', 'API Configuration Error');
+    }
+
     // 3. Check Balance (Server-Side Verification)
     // We read the credits directly from the database, so the user cannot fake their balance.
     const userRef = db.collection('users').doc(uid);
@@ -36,10 +42,7 @@ export const generateSecureContent = onCall({ secrets: ["GEMINI_API_KEY"] }, asy
         }
 
         // 4. Call Gemini AI (Securely)
-        /**
-         * FIX: Initializing AI client using process.env.API_KEY directly as per GenAI guidelines.
-         */
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = new GoogleGenAI({ apiKey });
         let aiResponse;
         
         try {
