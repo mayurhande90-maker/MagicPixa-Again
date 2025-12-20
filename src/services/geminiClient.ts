@@ -10,14 +10,17 @@ const USE_SECURE_BACKEND = false;
 /**
  * Helper function to get a fresh AI client on every call.
  * This is used ONLY when USE_SECURE_BACKEND is false.
- * FIX: Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY}); as per GenAI guidelines.
  */
 export const getAiClient = (): GoogleGenAI => {
     const key = process.env.API_KEY;
-    if (!key) {
-        // This will be caught by the calling function or constructor
-        console.warn("Gemini API: No key found in process.env.API_KEY.");
+    
+    if (!key || key === 'undefined' || key === '') {
+        console.error("Gemini API: API_KEY is missing from environment. Triggering selection gate...");
+        // Dispatch custom event to trigger the selection gate again
+        window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
+        throw new Error("An API Key must be set to use AI features. Please select your key in the prompted dialog.");
     }
+
     return new GoogleGenAI({ apiKey: key });
 };
 
@@ -32,11 +35,11 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
         const message = (error.message || "").toLowerCase();
 
         // Specific handling for mandatory key selection environments
-        if (message.includes('requested entity was not found')) {
-            console.error("Gemini API: Selected key is invalid or not found. Resetting gate...");
-            // Dispatch custom event to trigger the selection gate again
+        // "Requested entity was not found" usually means the key selected is invalid or from a non-paid project
+        if (message.includes('requested entity was not found') || message.includes('api key must be set')) {
+            console.error("Gemini API: Key error detected. Resetting gate...", message);
             window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
-            throw new Error("Your AI session has expired. Please select your API key again.");
+            throw new Error("Your AI session is invalid or expired. Please select your API key again.");
         }
 
         const isTransientError = 
@@ -98,14 +101,8 @@ export const secureGenerateContent = async (params: {
         return data;
 
     } else {
-        // Fallback to Client-Side (Insecure but works for dev)
-        // Ensure a key is provided
-        if (!process.env.API_KEY) {
-            window.dispatchEvent(new CustomEvent('pixa-reset-api-key'));
-            throw new Error("No API key provided. Please select a key to continue.");
-        }
-
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // Use the validated client creator
+        const ai = getAiClient();
         return await callWithRetry(() => ai.models.generateContent({
             model: params.model,
             contents: params.contents,

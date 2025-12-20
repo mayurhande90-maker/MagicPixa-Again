@@ -12,9 +12,11 @@ export const ApiKeyGate: React.FC<ApiKeyGateProps> = ({ children }) => {
     const checkKey = async () => {
         if (window.aistudio) {
             const selected = await window.aistudio.hasSelectedApiKey();
-            setHasKey(selected);
+            // Verify that not only is a key selected, but the env var is actually populated
+            const envKeyReady = !!process.env.API_KEY && process.env.API_KEY !== 'undefined';
+            setHasKey(selected && envKeyReady);
         } else {
-            // Fallback if not in the specialized environment
+            // Fallback if not in the specialized environment (local dev)
             setHasKey(true);
         }
     };
@@ -22,21 +24,43 @@ export const ApiKeyGate: React.FC<ApiKeyGateProps> = ({ children }) => {
     useEffect(() => {
         checkKey();
         
-        // Listen for reset events from our services if a key becomes invalid
-        const handleReset = () => setHasKey(false);
+        // Listen for reset events from our services if a key becomes invalid or is found missing
+        const handleReset = () => {
+            console.warn("ApiKeyGate: Received reset event. Forcing key selection...");
+            setHasKey(false);
+        };
+
         window.addEventListener('pixa-reset-api-key', handleReset);
-        return () => window.removeEventListener('pixa-reset-api-key', handleReset);
-    }, []);
+        
+        // Polling as a safety net because injection of process.env.API_KEY 
+        // can happen slightly after hasSelectedApiKey returns true.
+        const interval = setInterval(() => {
+            if (hasKey === false) {
+                // If we are currently showing the gate, keep checking if a key appeared
+                // (e.g. user selected one in the native dialog)
+                checkKey();
+            }
+        }, 2000);
+
+        return () => {
+            window.removeEventListener('pixa-reset-api-key', handleReset);
+            clearInterval(interval);
+        };
+    }, [hasKey]);
 
     const handleSelectKey = async () => {
         if (window.aistudio) {
-            await window.aistudio.openSelectKey();
-            // Per instructions: assume success immediately to mitigate race conditions
-            setHasKey(true);
+            try {
+                await window.aistudio.openSelectKey();
+                // Assume success and proceed to attempt use
+                setHasKey(true);
+            } catch (e) {
+                console.error("Key selection failed", e);
+            }
         }
     };
 
-    if (hasKey === null) return null; // Still loading state
+    if (hasKey === null) return null; // Loading state
 
     if (!hasKey) {
         return (
@@ -52,10 +76,10 @@ export const ApiKeyGate: React.FC<ApiKeyGateProps> = ({ children }) => {
                         <ShieldCheckIcon className="w-10 h-10" />
                     </div>
 
-                    <h2 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Activate High-Fidelity AI</h2>
+                    <h2 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Activate AI Intelligence</h2>
                     
                     <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                        To enable Agency-grade features and high-fidelity generation (Gemini 3 Pro), you must select an API key from a paid Google Cloud project.
+                        To enable high-fidelity generation and strategic research (Gemini 3 Pro), you must select an API key from a paid Google Cloud project.
                     </p>
 
                     <div className="space-y-4">
@@ -77,7 +101,7 @@ export const ApiKeyGate: React.FC<ApiKeyGateProps> = ({ children }) => {
                     </div>
                     
                     <p className="mt-10 text-[10px] text-gray-400 font-medium uppercase tracking-widest">
-                        Agency Workspace • Powered by Gemini 3
+                        MagicPixa Workspace • Powered by Gemini 3
                     </p>
                 </div>
             </div>
