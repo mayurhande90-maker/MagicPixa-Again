@@ -421,6 +421,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 }).catch(console.warn);
             }
             if (kit.website) setCta(`Visit ${kit.website}`);
+        } else {
+            // BRAND INTEGRATION OFF: Clear the fetched assets
+            setLogoImage(null);
+            setCta('');
         }
     }, [auth.activeBrandKit, industry]);
 

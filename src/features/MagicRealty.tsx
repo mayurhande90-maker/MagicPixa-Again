@@ -119,9 +119,11 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 setLogoImage(null);
             }
         } else {
+            // BRAND INTEGRATION OFF: Clear the fetched assets
             setLogoImage(null);
+            setTexts(prev => ({ ...prev, contact: '' }));
         }
-    }, [auth.activeBrandKit?.id]);
+    }, [auth.activeBrandKit]); // Dependent on the whole object to catch the null switch
 
     // Loading Animation Loop
     useEffect(() => { 
