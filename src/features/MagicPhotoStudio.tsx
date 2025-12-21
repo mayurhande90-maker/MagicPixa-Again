@@ -272,6 +272,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </div>
                             </div>
                         )}
+                        {/* FIX: Removed grayscale from loading filter */}
                         <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <>
