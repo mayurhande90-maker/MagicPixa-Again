@@ -363,7 +363,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // 4. UI STATE
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState("");
+    const [loadingText, setLoadingText] = useState("Initializing...");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
@@ -489,7 +489,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 aspectRatio,
                 mainImage: mainImage.base64,
                 logoImage: logoImage?.base64,
-                tone: selectedBlueprint ? '' : tone, // Enforce One Pilot Rule: Clear tone if blueprint is active
+                tone: selectedBlueprint ? '' : tone, // Enforce One Pilot Rule
                 blueprintId: selectedBlueprint || undefined,
                 productName, offer, description: desc,
                 project, location, config, features,
@@ -497,7 +497,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 headline, cta, subheadline
             };
 
-            const assetUrl = await generateAdCreative(inputs);
+            const assetUrl = await generateAdCreative(inputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
             const finalImageUrl = `data:image/png;base64,${assetUrl}`; 
             const creationId = await saveCreation(auth.user.uid, finalImageUrl, `Pixa AdMaker (${industry})`); setLastCreationId(creationId);
@@ -587,6 +587,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 onGenerate={handleGenerate} 
                 resultImage={resultImage} 
                 creationId={lastCreationId}
+                activeBrandKit={auth.activeBrandKit}
+                isBrandCritical={true}
                 onResetResult={undefined}
                 onNewSession={handleNewSession}
                 onEdit={() => setShowMagicEditor(true)}
@@ -719,8 +721,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             {auth.activeBrandKit.companyName || auth.activeBrandKit.name || 'Active Brand'}
                                                         </h3>
                                                     </div>
-                                                    {/* Expensive sheen effect */}
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:animate-shine pointer-events-none"></div>
                                                 </button>
                                             ) : (
                                                 <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/10 transition-all flex items-center justify-center gap-2 group hover:shadow-sm">
@@ -760,7 +760,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} 
                                                 heightClass="h-28"
                                                 optional={true}
-                                                isScanning={isRefScanning} // Pass scanning state
+                                                isScanning={isRefScanning}
                                             />
                                             {refAnalysisDone && (
                                                 <div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn">
@@ -804,7 +804,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                         )}
 
-                                        {/* VISUAL STYLE SELECTOR (Moved from bottom) */}
+                                        {/* VISUAL STYLE SELECTOR */}
                                         {!selectedBlueprint && (
                                             <div className="mt-6 pt-4 border-t border-gray-100 animate-fadeIn">
                                                  <SelectionGrid

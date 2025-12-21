@@ -1,7 +1,7 @@
-
-import { Modality, Type, GenerateContentResponse } from "@google/genai";
+import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
+import { BrandKit } from "../types";
 
 // Optimize images to 1024px
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -112,7 +112,7 @@ export interface AdMakerInputs {
     subheadline?: string;
 }
 
-const getSystemPrompt = (inputs: AdMakerInputs) => {
+const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null) => {
     const ratio = inputs.aspectRatio || '1:1';
     
     // 1. SAFE ZONES & FORMAT LOGIC
@@ -138,7 +138,18 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         `;
     }
 
-    // 2. VISUAL FOCUS STRATEGY
+    // 2. BRAND DNA INTEGRATION
+    const brandDNA = brand ? `
+    *** BRAND DNA (STRICT ADHERENCE) ***
+    - **Client**: '${brand.companyName || brand.name}'
+    - **Visual Tone**: ${brand.toneOfVoice || inputs.tone}.
+    - **Color Palette**: Use ${brand.colors.primary} as the dominant theme or accent color.
+    - **Audience**: Target visuals for ${brand.targetAudience || 'General'}.
+    - **Negative Prompts**: ${brand.negativePrompts || 'None'}.
+    ` : `*** BRAND TONE ***
+    - Tone: ${inputs.tone || 'Modern'}`;
+
+    // 3. VISUAL FOCUS STRATEGY
     let visualStrategy = "";
     const focus = inputs.visualFocus || 'product';
 
@@ -155,73 +166,60 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         *** STRATEGY: LIFESTYLE (AUTHENTICITY) ***
         - **Goal**: Show the product in use. "Sound-off" visual storytelling.
         - **Visuals**: Candid, authentic, "User Generated Content" vibe but pro quality.
-        - **Lighting**: Golden hour or natural window light.
+        - **Lighting**: Natural window light or golden hour.
         - **Atmosphere**: Warm, relatable, human presence (hands, blurred figures).
         `;
     } else if (focus === 'conceptual') {
         visualStrategy = `
         *** STRATEGY: CONCEPTUAL (METAPHOR) ***
-        - **Goal**: Illustrate the BENEFIT or FEELING (e.g., Speed, Freshness, Calm).
+        - **Goal**: Illustrate the BENEFIT or FEELING.
         - **Visuals**: Creative visual metaphor, surreal elements, floating objects.
         - **Style**: Editorial, dreamlike, high-end art direction.
         `;
     }
 
-    // 3. SMART MAPPING
+    // 4. SMART MAPPING
     const smartMappingLogic = `
     *** INTELLIGENT CONTENT ENGINE (COPYWRITING) ***
     - **Analyze, Don't Copy**: You are a Creative Director. The "CONTEXT" sections below are raw data points. **DO NOT copy-paste the user's text blindly.**
     - **Synthesize Value**: Analyze the product details to understand the core benefit. Generate your own high-impact, punchy headlines and micro-copy that is better than the input.
-      - Example Input: "Sale 50%" -> Output Headline: "Half Price. Full Style."
-      - Example Input: "Fast car" -> Output Headline: "Unleash Speed."
     - **Language**: English, unless the input is clearly in another language.
     
     *** STRICT LOGO PROTOCOL (NO HALLUCINATIONS) ***
-    - **Sacred Asset**: The provided "BRAND LOGO" image is immutable. You must include it in the final image.
-    - **No Alterations**: Do NOT warp, redraw, or "creatively interpret" the logo shape or text. Use it EXACTLY as provided.
-    - **Smart Contrast**: 
-      - Analyze the background where you place the logo.
-      - **IF Dark Background**: Render the logo in **WHITE/LIGHT**.
-      - **IF Light Background**: Render the logo in **BLACK/DARK**.
-      - Ensure 100% legibility and separation from the background.
+    - **Sacred Asset**: The provided "BRAND LOGO" image is immutable. Include it exactly.
+    - **Smart Contrast**: Place the logo where it is 100% legible. Ensure high separation from background.
 
     *** DESIGN PROTOCOL: WORLD CLASS & CLUTTER-FREE ***
-    - **Clutter-Free**: Use ample whitespace. Focus on ONE core message.
-    - **Authenticity**: Avoid looking cheap or overly "salesy". Use elegant layouts.
-    - **Hierarchy**: 
-      1. HERO IMAGE (Visual Story)
-      2. GENERATED HEADLINE (Short, < 6 words)
-      3. CTA (Button/Pill)
+    - **Hierarchy**: 1. HERO IMAGE, 2. HEADLINE, 3. CTA.
+    - **Whitespace**: Use ample negative space.
     `;
 
-    // 3. BLUEPRINT INJECTION
+    // 5. STYLE SOURCE
     let styleInstruction = "";
     if (inputs.blueprintId) {
-        // Look up in ALL blueprints since we don't know the exact category context here
         const blueprint = ALL_BLUEPRINTS.find(b => b.id === inputs.blueprintId);
         if (blueprint) {
             styleInstruction = `
             *** STYLE BLUEPRINT: ${blueprint.label.toUpperCase()} ***
-            - **Visual Direction**: ${blueprint.prompt}
-            - **Constraint**: Adhere strictly to this aesthetic.
+            - **Direction**: ${blueprint.prompt}
             `;
         }
     } else {
         styleInstruction = `
         *** REFERENCE MATCHING ***
-        - **Visual Direction**: Analyze the 'Reference Image' provided (if any). Copy its lighting, layout structure, text placement, and color palette exactly.
+        - **Visual Direction**: Copy the lighting, layout, and palette of the provided Reference Image.
         `;
     }
 
     const commonRules = `
     ${layoutRules}
+    ${brandDNA}
     ${smartMappingLogic}
     ${visualStrategy}
     ${styleInstruction}
     `;
 
-    // INDUSTRY SPECIFIC LOGIC
-    
+    // INDUSTRY SPECIFIC CONTEXT
     if (inputs.industry === 'realty') {
         return `You are a Luxury Real Estate Designer.
         TASK: Create a Premium Property Ad (${ratio}).
@@ -232,9 +230,7 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - Features: ${inputs.features?.join(', ')}
         
         EXECUTION:
-        - Layout: Large hero image of the property.
-        - Text: Elegant Serif fonts for headers.
-        - **Critical**: Make the property look expensive. Boost dynamic range (HDR look).
+        - Must look expensive. Boost dynamic range (HDR).
         ${commonRules}`;
     }
 
@@ -244,12 +240,9 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         CONTEXT: 
         - Dish: "${inputs.dishName}"
         - Brand: "${inputs.restaurant}"
-        VIBE: ${inputs.tone}.
         
         EXECUTION:
-        - Layout: Macro shot or Top-down.
-        - Physics: Steam, droplets, flying ingredients (splash).
-        - **Critical**: Must look edible and delicious.
+        - Macro shot or Top-down. edibility focus.
         ${commonRules}`;
     }
 
@@ -262,36 +255,19 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
         - Desc: "${inputs.description}"
         
         EXECUTION:
-        - Layout: Center the packaging. Make it pop.
-        - Text: BOLD, punchy. Use badges for offers.
-        - **Critical**: Brand color consistency.
-        ${commonRules}`;
-    }
-
-    if (inputs.industry === 'fashion') {
-        return `You are a High-Fashion Ad Designer.
-        TASK: Create a Stylish Ad (${ratio}).
-        CONTEXT: 
-        - Brand: "${inputs.productName}"
-        - Offer: "${inputs.offer}"
-        
-        EXECUTION:
-        - Layout: Magazine cover style. Full bleed.
-        - Vibe: Trendy, Chic, Aspirational.
-        - **Critical**: Model/Clothing must look premium.
+        - Focus on packaging pop. Bold text.
         ${commonRules}`;
     }
 
     if (inputs.industry === 'saas') {
-        return `You are a Tech/SaaS Ad Designer.
+        return `You are a Tech Ad Designer.
         TASK: Create a B2B Ad Creative (${ratio}).
         CONTEXT: 
         - Headline: "${inputs.headline}"
         - CTA: "${inputs.cta}"
         
         EXECUTION:
-        - Layout: Abstract tech visualization or device mockup.
-        - Text: Modern Sans-Serif. Clean.
+        - Modern UI/Abstract tech visualization.
         ${commonRules}`;
     }
 
@@ -301,15 +277,13 @@ const getSystemPrompt = (inputs: AdMakerInputs) => {
     CONTEXT: 
     - Product: "${inputs.productName}"
     - Offer: "${inputs.offer}"
-    - Desc: "${inputs.description}"
     
     EXECUTION:
-    - Text: Punchy, bold, urgent.
-    - **Critical**: The product must pop.
+    - Punchy, bold, conversion-focused.
     ${commonRules}`;
 };
 
-export const generateAdCreative = async (inputs: AdMakerInputs): Promise<string> => {
+export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
     // 1. Optimize
@@ -318,18 +292,16 @@ export const generateAdCreative = async (inputs: AdMakerInputs): Promise<string>
 
     // 2. Prepare Parts
     const parts: any[] = [];
-    parts.push({ text: "MAIN VISUAL ASSET (Must be the Hero):" });
+    parts.push({ text: "HERO ASSET:" });
     parts.push({ inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
     
     if (optLogo) {
-        parts.push({ text: "BRAND LOGO (Place in corner or top center):" });
+        parts.push({ text: "BRAND LOGO:" });
         parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
-    // 3. Prompt
-    const systemPrompt = getSystemPrompt(inputs);
+    const systemPrompt = getSystemPrompt(inputs, brand);
     parts.push({ text: systemPrompt });
-    parts.push({ text: `OUTPUT: A single high-resolution image file. Ensure text is legible and correctly spelled. Aspect Ratio: ${inputs.aspectRatio || '1:1'}.` });
 
     // 4. Generate
     try {
@@ -341,7 +313,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs): Promise<string>
                 imageConfig: { 
                     aspectRatio: inputs.aspectRatio || "1:1", 
                     imageSize: "1K" 
-                }
+                },
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ]
             },
         }));
 

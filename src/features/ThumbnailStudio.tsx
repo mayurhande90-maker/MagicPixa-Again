@@ -112,6 +112,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 title="Pixa Thumbnail Pro" description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results." icon={<ThumbnailIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={!!hasRequirements && !isLowCredits} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleRegenerate} onNewSession={result ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
+                isBrandCritical={true}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleRegenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass={format === 'portrait' ? "h-[1000px]" : "h-[850px]"} hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Thumbnail" }} scrollRef={scrollRef}
                 leftContent={

@@ -69,7 +69,7 @@ const CompactUpload: React.FC<{ label: string; subLabel?: string; image: { url: 
             {image ? (
                 <div className={`relative w-full ${heightClass} bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm group-hover:border-blue-300 transition-colors`}>
                     <img src={image.url} className="max-w-full max-h-full object-contain p-2" alt={label} />
-                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-10 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-10 border border-gray-100"><XIcon className="w-3 h-3"/></button>
                 </div>
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}>
@@ -158,7 +158,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 type: mode, mainImage: mainImage.base64, backImage: backImage?.base64, modelImage: modelSource === 'upload' ? modelImage?.base64 : undefined,
                 modelParams: modelSource === 'ai' ? { gender: aiGender, ethnicity: aiEthnicity, age: 'Young Adult', skinTone: aiSkinTone, bodyType: aiBodyType } : undefined,
                 productType: productType, productVibe: productVibe, packSize: packSize
-            });
+            }, auth.activeBrandKit); // Passed brand kit
             if (!outputBase64Images || outputBase64Images.length === 0) throw new Error("Generation failed.");
             
             const blobUrls = await Promise.all(outputBase64Images.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
@@ -277,6 +277,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
+                activeBrandKit={auth.activeBrandKit}
+                isBrandCritical={true}
                 generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: `Generate ${packSize} Assets` }} scrollRef={scrollRef}
                 leftContent={
                     <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
@@ -385,18 +387,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         </div>
                                     </div>
 
-                                    {/* BRAND KIT ACTIVE PILL */}
-                                    {auth.activeBrandKit && (
-                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
-                                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
-                                                {auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Active Brand</p>
-                                                <p className="text-xs font-bold text-indigo-900">{auth.activeBrandKit.name || auth.activeBrandKit.companyName}</p>
-                                            </div>
-                                        </div>
-                                    )}
+                                    {/* BRAND KIT ACTIVE PILL - Pill handled by FeatureLayout, but we need isBrandCritical */}
 
                                     <CompactUpload label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
                                     {mode === 'apparel' && (

@@ -278,13 +278,14 @@ export const FeatureLayout: React.FC<{
     resultOverlay?: React.ReactNode;
     customActionButtons?: React.ReactNode;
     rawIcon?: boolean; 
-    activeBrandKit?: BrandKit | null; // Added for Awareness Pill
+    activeBrandKit?: BrandKit | null; 
+    isBrandCritical?: boolean; // New prop to control pill visibility
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, creationId, onResetResult, onNewSession, onEdit, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
     disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon,
-    activeBrandKit
+    activeBrandKit, isBrandCritical
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
@@ -363,8 +364,8 @@ export const FeatureLayout: React.FC<{
                         )}
                         <h1 className={FeatureStyles.titleText}>{title}</h1>
                     </div>
-                    {/* Brand Awareness Pill */}
-                    {activeBrandKit && <BrandAwarenessPill brand={activeBrandKit} />}
+                    {/* Brand Awareness Pill - Only shown for Brand-Critical features */}
+                    {activeBrandKit && isBrandCritical && <BrandAwarenessPill brand={activeBrandKit} />}
                 </div>
                 {description && <p className={FeatureStyles.description}>{description}</p>}
             </div>
