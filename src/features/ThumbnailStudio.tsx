@@ -65,7 +65,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const isLowCredits = userCredits < cost;
     
     const categories = ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'];
-    const moods = ['Viral Extreme', 'Cinematic Noir', 'Luxury Gold', 'Minimalist', 'Neon Gamer', 'Dark Mystery', 'Retro Film', 'Bright & Airy'];
+    const moods = ['Viral', 'Cinematic', 'Luxury/Premium', 'Minimalist/Clean', 'Gamer', 'Dark Mystery', 'Retro Style', 'Bright & Natural'];
     const podcastGears = ['Professional Mics', 'No Mic'];
 
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is blending elements...", "Pixa is designing layout...", "Pixa is polishing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);

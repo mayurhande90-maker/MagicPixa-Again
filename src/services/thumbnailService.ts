@@ -135,17 +135,17 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         }
 
         const MOOD_SPECS: Record<string, string> = {
-            'Viral Extreme': 'Style: High-energy, ultra-vibrant colors, exaggerated saturation, high-key lighting, subjects are extremely sharp and pop off the screen.',
-            'Cinematic Noir': 'Style: Movie poster aesthetic, heavy cinematic shadows, anamorphic lens flares, teal and orange color grade, high dramatic contrast.',
-            'Luxury Gold': 'Style: Elegant premium lighting, warm golden highlights, deep blacks, expensive textures, sophisticated polished finish.',
-            'Minimalist': 'Style: Clean white space, soft shadows, airy colors, modern minimalist aesthetic, uncluttered high-end design.',
-            'Neon Gamer': 'Style: Aggressive pink and blue rim lighting, dark gaming environment, glowing accents, electric atmosphere.',
+            'Viral': 'Style: High-energy, ultra-vibrant colors, exaggerated saturation, high-key lighting, subjects are extremely sharp and pop off the screen.',
+            'Cinematic': 'Style: Movie poster aesthetic, heavy cinematic shadows, anamorphic lens flares, teal and orange color grade, high dramatic contrast.',
+            'Luxury/Premium': 'Style: Elegant premium lighting, warm golden highlights, deep blacks, expensive textures, sophisticated polished finish.',
+            'Minimalist/Clean': 'Style: Clean white space, soft shadows, airy colors, modern minimalist aesthetic, uncluttered high-end design.',
+            'Gamer': 'Style: Aggressive pink and blue rim lighting, dark gaming environment, glowing accents, electric atmosphere.',
             'Dark Mystery': 'Style: Low-key lighting, cold desaturated tones, heavy atmosphere, spotlighting on focal points, "hidden truth" vibe.',
-            'Retro Film': 'Style: 95s film grain, warm nostalgic tones, vintage polaroid texture, soft focus background, authentic analog look.',
-            'Bright & Airy': 'Style: Soft natural daylight, high exposure without losing detail, clean and friendly, cheerful vibes.'
+            'Retro Style': 'Style: 95s film grain, warm nostalgic tones, vintage polaroid texture, soft focus background, authentic analog look.',
+            'Bright & Natural': 'Style: Soft natural daylight, high exposure without losing detail, clean and friendly, cheerful vibes.'
         };
 
-        const moodDetail = MOOD_SPECS[inputs.mood || 'Viral Extreme'] || MOOD_SPECS['Viral Extreme'];
+        const moodDetail = MOOD_SPECS[inputs.mood || 'Viral'] || MOOD_SPECS['Viral'];
 
         const gearModifier = inputs.micMode === 'Professional Mics' ? `
         *** STUDIO GEAR PROTOCOL ***
