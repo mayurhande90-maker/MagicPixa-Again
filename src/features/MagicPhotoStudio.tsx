@@ -16,6 +16,27 @@ import ToastNotification from '../components/ToastNotification';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
 
+// FIX: Added missing IndustryCard component definition.
+const IndustryCard: React.FC<{ 
+    title: string; 
+    desc: string; 
+    icon: React.ReactNode; 
+    onClick: () => void;
+    styles: { card: string; orb: string; icon: string; };
+}> = ({ title, desc, icon, onClick, styles }) => (
+    <button onClick={onClick} className={`${PhotoStudioStyles.modeCard} ${styles.card}`}>
+        <div className={`${PhotoStudioStyles.orb} ${styles.orb}`}></div>
+        <div className={`${PhotoStudioStyles.iconGlass} ${styles.icon}`}>{icon}</div>
+        <div className={PhotoStudioStyles.contentWrapper}>
+            <h3 className={PhotoStudioStyles.title}>{title}</h3>
+            <p className={PhotoStudioStyles.desc}>{desc}</p>
+        </div>
+        <div className={PhotoStudioStyles.actionBtn}>
+            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
+        </div>
+    </button>
+);
+
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
@@ -63,7 +84,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
     const modelTypes = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
-    const modelRegions = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
+    const modelRegions = ['International', 'Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American'];
     const skinTones = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
     const bodyTypes = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
     const compositionTypes = ['Single Model', 'Group Shot'];
@@ -75,13 +96,20 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Pixa is analyzing structure...", "Pixa is generating model...", "Pixa is adjusting lighting...", "Pixa is applying physics...", "Pixa is polishing pixels..."];
+            const steps = [
+                "Performing Forensic Physics Audit...", 
+                "Extracting Material Topology...", 
+                "Calculating Volumetric Shadows...", 
+                "Synthesizing High-Fidelity Geometry...", 
+                "Harmonizing Environment Lighting...",
+                "Applying Final 4K Polish..."
+            ];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 1500);
+            }, 2000);
         }
         return () => clearInterval(interval);
     }, [loading]);
@@ -124,13 +152,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             try {
                 const prompts = await analyzeProductImage(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                 setSuggestedPrompts(prompts);
-            } catch (err) { setSuggestedPrompts(["Put this on a clean white table", "Show this product on a luxury gold podium"]); } finally { setIsAnalyzing(false); }
+            } catch (err) { setSuggestedPrompts(["On a minimalist studio podium", "In a natural lifestyle setting"]); } finally { setIsAnalyzing(false); }
         } else if (mode === 'model') {
              setIsAnalyzingModel(true); 
              try {
                  const prompts = await analyzeProductForModelPrompts(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                  setSuggestedModelPrompts(prompts);
-             } catch (e) { setSuggestedModelPrompts([{ display: "Close-Up", prompt: "Close-up model shot" }]); } finally { setIsAnalyzingModel(false); }
+             } catch (e) { setSuggestedModelPrompts([{ display: "Modern Lifestyle", prompt: "Lifestyle shot with a model" }]); } finally { setIsAnalyzingModel(false); }
         }
     };
 
@@ -183,7 +211,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const handleEditorSave = async (newUrl: string) => { 
         setResult(newUrl); 
         if (lastCreationId && auth.user) {
-            // Update existing instead of creating new
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
             const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
@@ -200,7 +227,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         <>
         <FeatureLayout 
             title="Pixa Product Shots"
-            description="Transform simple photos into professional, studio-quality product shots or lifelike model images."
+            description="Transform raw photos into hyper-realistic, commercial-grade visual assets. MagicPixa Vision analyzes lighting and materials for perfect results."
             icon={<PixaProductIcon className="w-14 h-14"/>}
             rawIcon={true}
             creditCost={currentCost}
@@ -217,20 +244,21 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
             generateButtonStyle={{ 
-                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", 
+                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] font-black uppercase tracking-wider", 
                 hideIcon: true,
-                label: studioMode === 'model' ? "Generate Model Shots" : "Generate Product Shots"
+                label: studioMode === 'model' ? "Generate Model Campaign" : "Render Studio Asset"
             }}
             scrollRef={scrollRef}
             leftContent={
                 image ? (
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                          {loading && (
-                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md animate-fadeIn">
+                                <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                                <p className="text-sm font-black text-white tracking-[0.2em] uppercase animate-pulse">{loadingText}</p>
                             </div>
                         )}
                         {(isAnalyzing || isAnalyzingModel) && (
@@ -241,11 +269,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </>
                                 <div className={PhotoStudioStyles.analysisBadge}>
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Generating AI Suggestions...' : 'Pixa Vision Scanning...'}</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Identifying Commercial Personas...' : 'MagicPixa Forensic Audit...'}</span>
                                 </div>
                             </div>
                         )}
-                        <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
+                        <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105 grayscale' : ''}`} />
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <>
                                 <button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40"><XIcon className="w-5 h-5"/></button>
@@ -264,7 +292,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
                                 <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Product Photo</p>
                                 <div className="bg-gray-50 rounded-full px-3 py-1 inline-block"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p></div>
-                                <p className="text-[10px] text-gray-400 mt-3 font-medium">Recommended: High-res product photo with good lighting.</p>
+                                <p className="text-[10px] text-gray-400 mt-3 font-medium">Recommended: Clear photo with standard lighting.</p>
                             </div>
                             {isDragging && <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none"><div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce"><p className="text-lg font-bold text-indigo-600 flex items-center gap-2"><UploadIcon className="w-5 h-5"/> Drop to Upload!</p></div></div>}
                         </div>
@@ -283,16 +311,16 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                     <div className={`space-y-4 animate-fadeIn p-1 h-full flex flex-col ${(!image || loading) ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                         {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
-                                <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
+                                <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Production Workflow</p>
                                 <div className={PhotoStudioStyles.modeGrid}>
                                     <IndustryCard 
-                                        title="Product Shot" desc="Studio lighting, 3D podiums, and pure environments." 
+                                        title="Product Asset" desc="Studio-perfect rendering with material physics and podiums." 
                                         icon={<CubeIcon className={`w-8 h-8 ${PhotoStudioStyles.iconProduct}`}/>} 
                                         onClick={() => handleModeSelect('product')}
                                         styles={{ card: PhotoStudioStyles.modeCardProduct, orb: PhotoStudioStyles.orbProduct, icon: PhotoStudioStyles.iconProduct }}
                                     />
                                     <IndustryCard 
-                                        title="Model Shot" desc="AI Humans holding, wearing, or interacting with it." 
+                                        title="Model Campaign" desc="Hyper-realistic humans naturally interacting with your item." 
                                         icon={<UsersIcon className={`w-8 h-8 ${PhotoStudioStyles.iconModel}`}/>} 
                                         onClick={() => handleModeSelect('model')}
                                         styles={{ card: PhotoStudioStyles.modeCardModel, orb: PhotoStudioStyles.orbModel, icon: PhotoStudioStyles.iconModel }}
@@ -304,16 +332,16 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             <div className="animate-fadeIn relative flex flex-col h-full">
                                 <div className="flex items-center mb-4 -ml-2 shrink-0"> 
                                     <button onClick={() => { setStudioMode(null); setSelectedPrompt(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); }} className={PhotoStudioStyles.backButton}>
-                                        <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
+                                        <ArrowLeftIcon className="w-4 h-4" /> Back to Production
                                     </button>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-20">
                                     {(isAnalyzing || isAnalyzingModel) ? (
                                         <div className="space-y-6">
                                              <div className="bg-gray-100/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4 animate-pulse">
                                                  <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pixa Vision is Analyzing Identity...</p>
+                                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">MagicPixa AI is Auditing Physics...</p>
                                              </div>
                                         </div>
                                     ) : (
@@ -323,13 +351,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                             <div className={PhotoStudioStyles.promptContainer}>
                                                 <div className={PhotoStudioStyles.promptHeader}>
                                                     <label className={PhotoStudioStyles.promptLabel}>
-                                                        {studioMode === 'product' ? '1. AI Suggestions (Blueprints)' : '1. AI Suggestions (Model Concepts)'}
+                                                        {studioMode === 'product' ? '1. AI Strategic Concepts' : '1. AI Lifestyle Concepts'}
                                                     </label>
                                                     {selectedPrompt && <button onClick={() => setSelectedPrompt(null)} className={PhotoStudioStyles.promptClearBtn}>Reset</button>}
                                                 </div>
                                                 <p className="text-[10px] text-gray-400 mb-3 italic px-1">
                                                     <InformationCircleIcon className="w-3 h-3 inline mr-1" />
-                                                    Pixa has analyzed your image to provide these custom AI recommendations.
+                                                    Pixa has audited your image to generate these production-ready blueprints.
                                                 </p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {studioMode === 'product' ? suggestedPrompts.map((p, i) => (
@@ -361,7 +389,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
                                         <div className="flex items-center gap-3 py-4">
                                             <div className="h-px bg-gray-200 flex-1"></div>
-                                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Or Manual Refinement</span>
+                                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Manual Refinement</span>
                                             <div className="h-px bg-gray-200 flex-1"></div>
                                         </div>
 
@@ -369,14 +397,14 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                         <div className={`space-y-6 ${selectedPrompt ? 'opacity-30 pointer-events-none blur-[1px] grayscale' : ''}`}>
                                             {studioMode === 'product' ? (
                                                 <>
-                                                    <SelectionGrid label="2. Product Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
-                                                    {category && <SelectionGrid label="3. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); autoScroll(); }} />}
-                                                    {brandStyle && <SelectionGrid label="4. Visual Theme" options={visualTypes} value={visualType} onChange={setVisualType} />}
+                                                    <SelectionGrid label="2. Industry Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                                                    {category && <SelectionGrid label="3. Brand Aesthetic" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); autoScroll(); }} />}
+                                                    {brandStyle && <SelectionGrid label="4. Lighting Environment" options={visualTypes} value={visualType} onChange={setVisualType} />}
                                                 </>
                                             ) : (
                                                 <>
                                                     <SelectionGrid label="2. Model Persona" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />
-                                                    {modelType && <SelectionGrid label="3. Regional Identity" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
+                                                    {modelType && <SelectionGrid label="3. Region" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
                                                     {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
                                                     {skinTone && <SelectionGrid label="5. Body Archetype" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); }} />}
                                                     {bodyType && <SelectionGrid label="6. Shot Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />}
@@ -390,9 +418,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             </div>
                         )}
                         {!image && (
-                            <div className="h-full flex items-center justify-center gap-3 text-xs text-gray-400 font-bold uppercase tracking-widest opacity-60">
+                            <div className="h-full flex items-center justify-center gap-3 text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] opacity-60">
                                 <ArrowUpCircleIcon className="w-5 h-5 animate-bounce" />
-                                <span>Upload a photo to begin</span>
+                                <span>Upload a photo to start audit</span>
                             </div>
                         )}
                     </div>
@@ -419,23 +447,3 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         </>
     );
 };
-
-const IndustryCard: React.FC<{ 
-    title: string; 
-    desc: string; 
-    icon: React.ReactNode; 
-    onClick: () => void;
-    styles: { card: string; orb: string; icon: string; };
-}> = ({ title, desc, icon, onClick, styles }) => (
-    <button onClick={onClick} className={`${PhotoStudioStyles.modeCard} ${styles.card}`}>
-        <div className={`${PhotoStudioStyles.orb} ${styles.orb}`}></div>
-        <div className={`${PhotoStudioStyles.iconGlass} ${styles.icon}`}>{icon}</div>
-        <div className={PhotoStudioStyles.contentWrapper}>
-            <h3 className={PhotoStudioStyles.title}>{title}</h3>
-            <p className={PhotoStudioStyles.desc}>{desc}</p>
-        </div>
-        <div className={PhotoStudioStyles.actionBtn}>
-            <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
-        </div>
-    </button>
-);
