@@ -134,4 +134,9 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor
+            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
+            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Pixa Mockups" />}
+            {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+        </>
+    );
+};
