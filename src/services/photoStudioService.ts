@@ -69,14 +69,17 @@ export const analyzeProductImage = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Imagine you are a professional product photographer. Suggest 4 creative scenes to place this product in. 
+        const prompt = `Act as a professional photographer. Suggest 4 creative scenes for this product.
         
         **RULES**:
-        - Use SIMPLE, NATURAL ENGLISH. 
-        - It should feel like a human wrote it, not an AI.
-        - Avoid technical buzzwords like "photorealistic", "8k", "cinematic", or "hyper-detailed".
-        - Add a few specific, realistic details (e.g., "A cozy wooden table with a cup of coffee nearby").
-        - Keep each suggestion between 6-12 words for a clean UI.
+        - Use SIMPLE, HUMAN-LIKE ENGLISH. 
+        - Start every suggestion with "I will...". 
+        - Make it sound like you are actively setting up the shot.
+        - Avoid technical words like "photorealistic", "raytracing", "8k".
+        - Include natural details about the surface and environment.
+        - Length: 10-18 words.
+        
+        Example: "I will take a closeup shot of the product on a white marble counter with soft morning sunlight."
         
         Return ONLY a JSON array of strings.`;
 
@@ -101,10 +104,10 @@ export const analyzeProductImage = async (
         return JSON.parse(jsonText);
     } catch (e) {
         return [
-            "On a clean marble counter with soft morning sunlight",
-            "On a rustic wooden table with a small green plant",
-            "Floating over calm water with gentle ripples underneath",
-            "On a simple concrete stand in a bright, modern room"
+            "I will take a closeup shot of the product on a white marble counter with soft sunlight.",
+            "I will place the item on a rustic wooden table with a small green plant nearby.",
+            "I will capture the product floating over calm water with gentle ripples underneath.",
+            "I will set up the product on a simple concrete stand in a bright, modern room."
         ];
     }
 }
@@ -118,14 +121,16 @@ export const analyzeProductForModelPrompts = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyze this product. Generate 4 detailed scenarios where a person is naturally using or holding this product.
+        const prompt = `Analyze this product. Generate 4 detailed scenarios for a commercial shoot with a human model.
         
         **RULES**:
-        - Write in natural, descriptive English (like a photography brief).
-        - Each scenario must be 2-3 sentences long with rich details about the person's clothes, their expression, and the specific setting.
-        - Ensure the interaction with the product feels authentic and high-end.
+        - Use SIMPLE, HUMAN ENGLISH.
+        - Start the "prompt" with "I will...".
+        - Describe a realistic scene where a model interacts with the product.
+        - Include details about the model's outfit, expression, and the background.
         
-        Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description" }.`;
+        Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description starting with I will..." }.
+        Example prompt: "I will capture a shot of a young woman in a cozy knit sweater holding the product near a window during golden hour."`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -155,10 +160,10 @@ export const analyzeProductForModelPrompts = async (
         return JSON.parse(jsonText);
     } catch (e) {
         return [
-            { display: "Office Lifestyle", prompt: "A professional woman in a sharp navy blazer is sitting at a clean glass desk, naturally reaching for the product while looking at her laptop. The office background is bright and airy with large windows and a few green plants for a modern touch." },
-            { display: "Morning Routine", prompt: "A young man in a comfortable grey linen shirt holds the product with both hands near a sun-drenched window. He has a relaxed, happy expression as the morning light creates soft shadows across the warm wooden kitchen counter." },
-            { display: "Urban Adventure", prompt: "A stylish individual wearing a casual beige trench coat is carrying the product through a bustling city plaza during the golden hour. The background shows blurred city lights and modern architecture, creating a high-energy lifestyle vibe." },
-            { display: "Home Comfort", prompt: "Someone is enjoying a quiet moment on a plush cream sofa, with the product resting naturally in their lap. They are wearing a soft knit sweater, and the room is filled with warm, cozy evening light from a nearby floor lamp." }
+            { display: "Office Setup", prompt: "I will take a photo of a professional woman in a sharp navy blazer naturally reaching for the product on a clean glass desk." },
+            { display: "Morning Vibes", prompt: "I will capture a young man in a comfortable linen shirt holding the product with both hands near a sun-drenched window." },
+            { display: "City Life", prompt: "I will shoot a stylish person carrying the product through a busy city plaza with blurred street lights in the background." },
+            { display: "Relaxed Home", prompt: "I will take a cozy shot of someone resting on a plush cream sofa with the product sitting on an oak coffee table nearby." }
         ];
     }
 }
