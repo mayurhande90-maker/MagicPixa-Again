@@ -41,19 +41,19 @@ interface ThumbnailStrategy {
 
 /**
  * STAGE 1: THE ANALYST (Trend & Psychology Engine)
+ * Researches the niche and engineers the clickbait strategy.
  */
-const performTrendResearch = async (category: string, title: string, format: string): Promise<ThumbnailStrategy> => {
+const performTrendResearch = async (category: string, title: string): Promise<ThumbnailStrategy> => {
     const ai = getAiClient();
-    const platform = format === 'portrait' ? 'Instagram Reels/Stories' : 'YouTube';
-    const prompt = `You are a viral ${platform} Growth Consultant & CTR Specialist.
+    const prompt = `You are a viral YouTube Growth Consultant & CTR Specialist.
     
     RESEARCH TOPIC: "${title}" in category "${category}".
     
-    TASK: Use Google Search to analyze top-performing ${platform} thumbnails/covers for this niche in 2025.
-    1. Identify the most common "Viral Hook" (e.g., Extreme Comparison, The Big Red Arrow, Shocked Facial Expression).
-    2. Determine the Trending Color Palette for ${platform}.
-    3. Determine Subject Placement.
-    4. Write a Clickbait Title (2-4 words for vertical, longer for horizontal).
+    TASK: Use Google Search to analyze top-performing thumbnails for this niche in 2025.
+    1. Identify the most common "Viral Hook" (e.g., Extreme Comparison, The Big Red Arrow, Shocked Facial Expression, Mystery Box).
+    2. Determine the Trending Color Palette (e.g., High-Saturation Yellow/Blue for Gaming, Clean Minimalist for Tech).
+    3. Determine Subject Placement (e.g., Rule of Thirds, Center Symmetrical).
+    4. Write a Clickbait Title if the user's title is weak. Use Curiosity Gaps or Negativity Bias.
     
     OUTPUT: Return ONLY a JSON object.`;
 
@@ -84,27 +84,33 @@ const performTrendResearch = async (category: string, title: string, format: str
         return { 
             viralTitle: title,
             colorPalette: "High Contrast Primary Colors", 
-            compositionRule: "Subject Focused", 
-            emotionVibe: "High Energy", 
-            textStyle: "Bold Impact Sans-Serif", 
-            lightingStyle: "Rim Lighting",
-            viralHookDescription: "Standard high-engagement layout"
+            compositionRule: "Subject Focused Left-Third", 
+            emotionVibe: "High Energy Shock", 
+            textStyle: "Bold Impact Sans-Serif with Shadow", 
+            lightingStyle: "Rim Lighting with Colorful Accents",
+            viralHookDescription: "Standard professional YouTube layout"
         }; 
     }
 };
 
 /**
  * STAGE 2: THE DIRECTOR (Visual Production Engine)
+ * Orchestrates the final 4K generation based on the analyst's strategy.
  */
 export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     try {
-        const strategy = await performTrendResearch(inputs.category, inputs.title, inputs.format);
+        // 1. Get Strategy
+        const strategy = await performTrendResearch(inputs.category, inputs.title);
+        
+        // 2. Prepare Assets
         const parts: any[] = [];
         
         const brandDNA = brand ? `
         *** BRAND OVERRIDE (STRICT) ***
-        Company: '${brand.companyName || brand.name}'. Colors: ${brand.colors.primary}.
+        Company: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice}.
+        Colors: Primary=${brand.colors.primary}, Accent=${brand.colors.accent}.
+        Fonts: ${brand.fonts.heading}.
         ` : "";
 
         if (inputs.referenceImage) {
@@ -114,7 +120,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         
         if (inputs.subjectImage) {
             const optSub = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
-            parts.push({ text: "SUBJECT (Main Persona):" }, { inlineData: { data: optSub.data, mimeType: optSub.mimeType } });
+            parts.push({ text: "SUBJECT (Digital Twin Lock):" }, { inlineData: { data: optSub.data, mimeType: optSub.mimeType } });
         }
 
         if (inputs.hostImage) {
@@ -132,56 +138,37 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
             parts.push({ text: "PROB/ELEMENT:" }, { inlineData: { data: optElem.data, mimeType: optElem.mimeType } });
         }
 
+        // 3. Assemble Production Prompt
         const finalTitle = inputs.customText || strategy.viralTitle;
-        let productionPrompt = "";
-
-        if (inputs.format === 'portrait') {
-            // --- STRICT INSTAGRAM REEL RULES ---
-            productionPrompt = `
-            You are a professional Instagram thumbnail designer.
-            TASK: Generate a high-quality Instagram reel thumbnail/cover (9:16).
-            
-            **CANVAS & FORMAT**:
-            - Resolution: 1080 x 1920 px.
-            - **SAFE ZONE RULE**: Keep ALL critical elements (faces, text) inside the center 1:1 square zone (center 1080x1080 area) so nothing is cropped in the profile grid view.
-            - **UI AVOIDANCE**: Avoid placing important elements in the top 250px or bottom 300px (Reels UI overlay).
-            
-            **COMPOSITION RULES**:
-            - Focus on one clear idea only.
-            - One primary subject (human face with visible emotional expression).
-            - **Tight framing**: Medium close-up or close-up.
-            - NO clutter, NO background distractions.
-            - Strong visual hierarchy: Subject first, text second.
-            
-            **TEXT RULES**:
-            - Text to render: "${finalTitle}". 
-            - LIMIT: 2–4 words only (Maximum 5).
-            - Style: Bold, clean, thick sans-serif typography.
-            - Visibility: High contrast against background. Must be readable as a small grid thumbnail.
-            
-            **COLOR & STYLE**:
-            - High contrast colors. Avoid dull tones.
-            - Modern, minimal aesthetic. Bright, clear lighting.
-            
-            ${brandDNA}
-            
-            **QUALITY CONTROL**: Sharp focus, clean edges, no distorted faces.
-            FINAL OUTPUT: A scroll-stopping static poster for mobile viewing.`;
-        } else {
-            // --- HIGH-END YOUTUBE RULES ---
-            productionPrompt = `
-            You are an Elite YouTube Production Designer. Create a hyper-realistic 4K YouTube thumbnail (16:9).
-            - Strategy: ${strategy.viralHookDescription}.
-            - Lighting: ${strategy.lightingStyle}. Use volumetric shadows and rim light.
-            - Text Layer: Render large, bold text saying "${finalTitle}".
-            - Subject Realism: 1:1 facial identity lock. Extreme emotional expression. High-fidelity skin texture.
-            - Composition: ${strategy.compositionRule}. Use leading lines.
-            ${brandDNA}
-            NEGATIVE: NO text artifacts, NO messy fonts, NO blurry hands.`;
-        }
+        
+        const productionPrompt = `
+        You are an Elite Commercial Production Designer. Create a hyper-realistic 4K YouTube thumbnail.
+        
+        **TECHNICAL SPECIFICATION**:
+        - Format: ${inputs.format === 'portrait' ? '9:16 vertical' : '16:9 landscape'}.
+        - Strategy: ${strategy.viralHookDescription}.
+        - Lighting: ${strategy.lightingStyle}. Use volumetric shadows and rim light to separate subject from background.
+        - Color Palette: ${strategy.colorPalette}.
+        - Optic Rule: Shot on Sony A7R IV, 35mm f/1.4 lens. Cinematic depth of field.
+        
+        ${brandDNA}
+        
+        **CONTENT EXECUTION**:
+        1. **Text Layer**: Render large, bold, 3D extruded text saying "${finalTitle}". 
+           - Style: ${strategy.textStyle}. 
+           - Visibility: High-contrast stroke. Place in "Safe Zone" (Top center or center right).
+        2. **Subject Realism**: 1:1 facial identity lock. Extreme emotional expression (wide eyes, muscle tension). High-fidelity skin texture (pores visible). No plastic look.
+        3. **Composition**: ${strategy.compositionRule}. Use leading lines to point at the subject or the text.
+        
+        **NEGATIVE CONSTRAINTS**: 
+        - DO NOT warp facial identity. 
+        - NO text artifacts, NO messy fonts, NO blurry hands, NO extra fingers, NO AI-clutter.
+        
+        FINAL OUTPUT: A single, click-worthy commercial visual.`;
 
         parts.push({ text: productionPrompt });
 
+        // 4. Generate
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
@@ -202,7 +189,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Generation failed. System could not render the production brief.");
+        throw new Error("Thumbnail generation failed. System could not render the production brief.");
     } catch (error) { 
         console.error("Master Production Error:", error);
         throw error; 
