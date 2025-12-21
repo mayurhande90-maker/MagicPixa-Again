@@ -41,21 +41,26 @@ interface ThumbnailStrategy {
 
 /**
  * STAGE 1: THE ANALYST (Trend & Psychology Engine)
- * Researches the niche and engineers the clickbait strategy.
  */
-const performTrendResearch = async (category: string, title: string): Promise<ThumbnailStrategy> => {
+const performTrendResearch = async (category: string, title: string, format: string): Promise<ThumbnailStrategy> => {
     const ai = getAiClient();
-    const prompt = `You are a viral YouTube Growth Consultant & CTR Specialist.
+    const platform = format === 'portrait' ? 'Instagram Reels/Stories' : 'YouTube';
+    const orderId = Date.now(); // Unique ID to force fresh reasoning
+
+    const prompt = `FRESH PRODUCTION ORDER #${orderId}
+    You are a viral ${platform} Growth Consultant & CTR Specialist.
     
     RESEARCH TOPIC: "${title}" in category "${category}".
     
-    TASK: Use Google Search to analyze top-performing thumbnails for this niche in 2025.
-    1. Identify the most common "Viral Hook" (e.g., Extreme Comparison, The Big Red Arrow, Shocked Facial Expression, Mystery Box).
-    2. Determine the Trending Color Palette (e.g., High-Saturation Yellow/Blue for Gaming, Clean Minimalist for Tech).
-    3. Determine Subject Placement (e.g., Rule of Thirds, Center Symmetrical).
-    4. Write a Clickbait Title if the user's title is weak. Use Curiosity Gaps or Negativity Bias.
+    TASK: Use Google Search to analyze top-performing ${platform} thumbnails/covers for THIS EXACT niche in 2025.
+    1. Identify the most common "Viral Hook" (e.g., Extreme Comparison, The Big Red Arrow, Shocked Facial Expression).
+    2. Determine the Trending Color Palette for ${platform}.
+    3. Determine Subject Placement. 
+       - IF PODCAST: Focus on Host-Guest interaction (Side-by-side or Split-screen).
+       - CRITICAL FOR VERTICAL: Design MUST fit inside the center 1:1 safe zone.
+    4. Write a Clickbait Title (2-4 words for vertical, longer for horizontal).
     
-    OUTPUT: Return ONLY a JSON object.`;
+    OUTPUT: Return ONLY a JSON object. Ensure the strategy is unique to the provided Title and Category.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -84,91 +89,102 @@ const performTrendResearch = async (category: string, title: string): Promise<Th
         return { 
             viralTitle: title,
             colorPalette: "High Contrast Primary Colors", 
-            compositionRule: "Subject Focused Left-Third", 
-            emotionVibe: "High Energy Shock", 
-            textStyle: "Bold Impact Sans-Serif with Shadow", 
-            lightingStyle: "Rim Lighting with Colorful Accents",
-            viralHookDescription: "Standard professional YouTube layout"
+            compositionRule: "Subject Focused Center", 
+            emotionVibe: "High Energy", 
+            textStyle: "Bold Impact Sans-Serif", 
+            lightingStyle: "Rim Lighting",
+            viralHookDescription: "Standard high-engagement layout."
         }; 
     }
 };
 
 /**
  * STAGE 2: THE DIRECTOR (Visual Production Engine)
- * Orchestrates the final 4K generation based on the analyst's strategy.
  */
 export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
+    const orderId = `UID-${Date.now()}`; // Fresh unique order identifier
+
     try {
-        // 1. Get Strategy
-        const strategy = await performTrendResearch(inputs.category, inputs.title);
-        
-        // 2. Prepare Assets
+        const strategy = await performTrendResearch(inputs.category, inputs.title, inputs.format);
         const parts: any[] = [];
+        const isPodcast = inputs.category === 'Podcast';
         
         const brandDNA = brand ? `
         *** BRAND OVERRIDE (STRICT) ***
-        Company: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice}.
-        Colors: Primary=${brand.colors.primary}, Accent=${brand.colors.accent}.
-        Fonts: ${brand.fonts.heading}.
+        Company: '${brand.companyName || brand.name}'. Colors: ${brand.colors.primary}.
         ` : "";
+
+        // Reset directive for the image model
+        parts.push({ text: `FRESH PRODUCTION ORDER: ${orderId}\nSTRICT: Purge all prior conceptual memory. Execute THIS specific order using ONLY the assets provided below.` });
 
         if (inputs.referenceImage) {
             const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-            parts.push({ text: "REFERENCE STYLE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+            parts.push({ text: "CURRENT REFERENCE STYLE (MANDATORY):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
         }
         
         if (inputs.subjectImage) {
             const optSub = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
-            parts.push({ text: "SUBJECT (Digital Twin Lock):" }, { inlineData: { data: optSub.data, mimeType: optSub.mimeType } });
+            parts.push({ text: "CURRENT MAIN SUBJECT (MANDATORY):" }, { inlineData: { data: optSub.data, mimeType: optSub.mimeType } });
         }
 
         if (inputs.hostImage) {
             const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
-            parts.push({ text: "HOST IMAGE:" }, { inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
+            parts.push({ text: "CURRENT HOST IMAGE (MANDATORY - PERSON A):" }, { inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
         }
 
         if (inputs.guestImage) {
             const optGuest = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
-            parts.push({ text: "GUEST IMAGE:" }, { inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
+            parts.push({ text: "CURRENT GUEST IMAGE (MANDATORY - PERSON B):" }, { inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
         }
 
         if (inputs.elementImage) {
             const optElem = await optimizeImage(inputs.elementImage.base64, inputs.elementImage.mimeType);
-            parts.push({ text: "PROB/ELEMENT:" }, { inlineData: { data: optElem.data, mimeType: optElem.mimeType } });
+            parts.push({ text: "CURRENT PROP/ELEMENT (OPTIONAL):" }, { inlineData: { data: optElem.data, mimeType: optElem.mimeType } });
         }
 
-        // 3. Assemble Production Prompt
         const finalTitle = inputs.customText || strategy.viralTitle;
-        
-        const productionPrompt = `
-        You are an Elite Commercial Production Designer. Create a hyper-realistic 4K YouTube thumbnail.
-        
+        let productionPrompt = "";
+
+        const coreProductionBrief = `
         **TECHNICAL SPECIFICATION**:
         - Format: ${inputs.format === 'portrait' ? '9:16 vertical' : '16:9 landscape'}.
         - Strategy: ${strategy.viralHookDescription}.
         - Lighting: ${strategy.lightingStyle}. Use volumetric shadows and rim light to separate subject from background.
-        - Color Palette: ${strategy.colorPalette}.
-        - Optic Rule: Shot on Sony A7R IV, 35mm f/1.4 lens. Cinematic depth of field.
-        
-        ${brandDNA}
-        
-        **CONTENT EXECUTION**:
-        1. **Text Layer**: Render large, bold, 3D extruded text saying "${finalTitle}". 
-           - Style: ${strategy.textStyle}. 
-           - Visibility: High-contrast stroke. Place in "Safe Zone" (Top center or center right).
-        2. **Subject Realism**: 1:1 facial identity lock. Extreme emotional expression (wide eyes, muscle tension). High-fidelity skin texture (pores visible). No plastic look.
-        3. **Composition**: ${strategy.compositionRule}. Use leading lines to point at the subject or the text.
-        
-        **NEGATIVE CONSTRAINTS**: 
-        - DO NOT warp facial identity. 
-        - NO text artifacts, NO messy fonts, NO blurry hands, NO extra fingers, NO AI-clutter.
-        
-        FINAL OUTPUT: A single, click-worthy commercial visual.`;
+        - Text Layer: Render large, bold text saying "${finalTitle}". Ensure high contrast.
+        - Subject Realism: 1:1 facial identity lock for ALL provided subjects. High-fidelity skin texture.
+        - Composition: ${strategy.compositionRule}.
+        ${brandDNA}`;
+
+        if (isPodcast && inputs.hostImage && inputs.guestImage) {
+            productionPrompt = `
+            You are an Elite Podcast Production Designer. 
+            **TASK**: Create a professional YouTube Podcast thumbnail.
+            1. **MULTI-SUBJECT LOCK**: Render Person A (Host) and Person B (Guest) together in the same frame.
+            2. **COMPOSITION**: Use a "Split-Frame" or "Interview" layout. Place Host on one side and Guest on the other. Ensure they appear to be in the same studio.
+            3. **ENVIRONMENT**: Set the scene in a high-end podcast studio with visible Shure SM7B microphones, acoustic foam panels, and soft neon accent lights.
+            4. **FOCAL POINT**: Both faces must be large and expressive. Maintain 1:1 biometrics for BOTH individuals.
+            ${coreProductionBrief}
+            NEGATIVE: NO merged faces, NO missing subjects, NO low-res backgrounds, NO messy text.`;
+        } else if (inputs.format === 'portrait') {
+            productionPrompt = `
+            You are a professional Instagram thumbnail designer.
+            **TASK**: Generate a high-quality Instagram reel thumbnail/cover (9:16).
+            - **1:1 SAFE ZONE**: Keep all critical elements strictly inside the center 1080x1080 area.
+            - **UI AVOIDANCE**: DO NOT place text/faces in the TOP 250px or BOTTOM 300px.
+            ${coreProductionBrief}
+            FINAL OUTPUT: A single, professionally designed, scroll-stopping static poster.`;
+        } else {
+            productionPrompt = `
+            You are an Elite YouTube Production Designer. 
+            **TASK**: Create a hyper-realistic 4K YouTube thumbnail (16:9).
+            ${coreProductionBrief}
+            **STRICT**: Ignore previous designs. Focus purely on the provided title "${finalTitle}" and the provided images.
+            NEGATIVE: NO text artifacts, NO messy fonts, NO blurry hands, NO extra fingers, NO AI-clutter.`;
+        }
 
         parts.push({ text: productionPrompt });
 
-        // 4. Generate
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
@@ -189,7 +205,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Thumbnail generation failed. System could not render the production brief.");
+        throw new Error("Generation failed. System could not render the production brief.");
     } catch (error) { 
         console.error("Master Production Error:", error);
         throw error; 
