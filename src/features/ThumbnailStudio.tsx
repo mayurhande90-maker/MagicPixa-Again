@@ -70,7 +70,28 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is blending elements...", "Pixa is designing layout...", "Pixa is polishing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
-    const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
+    
+    /**
+     * Professional Auto-Scroll:
+     * Focuses on the next interaction block to keep the flow intuitive.
+     */
+    const autoScroll = () => { 
+        if (scrollRef.current) {
+            setTimeout(() => {
+                const container = scrollRef.current;
+                if (container) {
+                    // Smoothly scroll down by 150px to reveal the next block, or to bottom if at end
+                    const targetScroll = container.scrollTop + 150;
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    container.scrollTo({ 
+                        top: Math.min(targetScroll, maxScroll), 
+                        behavior: 'smooth' 
+                    });
+                }
+            }, 150); 
+        } 
+    };
+
     const processFile = async (file: File) => { const base64 = await fileToBase64(file); return { url: URL.createObjectURL(file), base64 }; };
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const data = await processFile(e.target.files[0]); setter(data); autoScroll(); e.target.value = ''; } };
 
@@ -136,17 +157,9 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     
                                     {category && (
                                         <div className="animate-fadeIn space-y-8">
-                                            <SelectionGrid label="3. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
-
-                                            {isPodcast && (
-                                                <div className="animate-fadeIn">
-                                                    <SelectionGrid label="4. Podcast Studio Gear" options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
-                                                </div>
-                                            )}
-
-                                            <div className="h-px w-full bg-gray-200"></div>
+                                            {/* MOVED: Upload Assets is now Step 3 */}
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">{isPodcast ? '5.' : '4.'} Upload Assets</label>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
                                                 {isPodcast ? (
                                                     <div className="space-y-4">
                                                         <div className="grid grid-cols-2 gap-4">
@@ -165,6 +178,18 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                     </div>
                                                 )}
                                             </div>
+
+                                            <div className="h-px w-full bg-gray-200"></div>
+
+                                            {/* MOVED: Visual Mood is now Step 4 */}
+                                            <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
+
+                                            {isPodcast && (
+                                                <div className="animate-fadeIn">
+                                                    <SelectionGrid label="5. Podcast Studio Gear" options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
+                                                </div>
+                                            )}
+
                                             <div className="animate-fadeIn"><InputField label={(isPodcast ? '6.' : '5.') + " What is the video about? (Context)"} placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
                                             <div className="animate-fadeIn"><InputField label={(isPodcast ? '7.' : '6.') + " Exact Title Text (Optional)"} placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
                                         </div>
