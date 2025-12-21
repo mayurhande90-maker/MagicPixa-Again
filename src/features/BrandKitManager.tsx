@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -774,9 +775,7 @@ const BrandCreationWizard: React.FC<{
                                     <label className="block text-sm font-bold text-gray-700">Ad Screenshots</label>
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] text-gray-400 font-medium">{kit.competitor?.adScreenshots?.length || 0} added</span>
-                                        <button onClick={() => wizardCompRef.current?.click()} disabled={uploadingState['competitor'] > 0} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">
-                                            {uploadingState['competitor'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}
-                                        </button>
+                                        <button onClick={() => wizardCompRef.current?.click()} disabled={uploadingState['competitor'] > 0} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">{uploadingState['competitor'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}</button>
                                     </div>
                                     <input ref={wizardCompRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompUpload} />
                                 </div>
@@ -840,7 +839,7 @@ const BrandCreationWizard: React.FC<{
 
     return (
         <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-            <div className="w-full max-w-5xl h-[90vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
+            <div className="w-full max-w-4xl h-[85vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
                 
                 {step > 0 && (
                     <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
