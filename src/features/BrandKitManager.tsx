@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -774,10 +773,7 @@ const BrandCreationWizard: React.FC<{
                             <div>
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="block text-sm font-bold text-gray-700">Ad Screenshots</label>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] text-gray-400 font-medium">{kit.competitor?.adScreenshots?.length || 0} added</span>
-                                        <button onClick={() => wizardCompRef.current?.click()} disabled={uploadingState['competitor'] > 0} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">{uploadingState['competitor'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}</button>
-                                    </div>
+                                    <span className="text-[10px] text-gray-400 font-medium">{kit.competitor?.adScreenshots?.length || 0} added</span>
                                     <input ref={wizardCompRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompUpload} />
                                 </div>
                                 <div className="flex flex-wrap gap-2 mb-3">
@@ -794,7 +790,7 @@ const BrandCreationWizard: React.FC<{
                                             <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
                                         </div>
                                     ))}
-                                    {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) && (
+                                    {(uploadingCompCount === 0) && (
                                         <div onClick={() => wizardCompRef.current?.click()} className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-amber-400 hover:text-amber-500 transition-all cursor-pointer">
                                             <PlusIcon className="w-6 h-6"/>
                                         </div>
