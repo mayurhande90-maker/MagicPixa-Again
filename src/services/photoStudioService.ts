@@ -121,16 +121,17 @@ export const analyzeProductForModelPrompts = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyze this product. Generate 4 detailed scenarios for a commercial shoot with a human model.
+        const prompt = `Analyze this product. Imagine you are a professional photographer. Suggest 4 creative scenes where a human model is using this product.
         
         **RULES**:
         - Use SIMPLE, HUMAN ENGLISH.
-        - Start the "prompt" with "I will...".
-        - Describe a realistic scene where a model interacts with the product.
-        - Include details about the model's outfit, expression, and the background.
+        - Start every "prompt" with "I will...".
+        - Describe the person naturally (e.g., "a white skin lady", "a man with a beard", "a smiling young woman").
+        - Describe their outfit and exactly what they are doing with the product.
+        - Set the scene in a realistic setting (e.g., "modern kitchen", "sunny office", "cozy living room").
         
         Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description starting with I will..." }.
-        Example prompt: "I will capture a shot of a young woman in a cozy knit sweater holding the product near a window during golden hour."`;
+        Example: { "display": "Home Kitchen", "prompt": "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup while she prepares breakfast." }`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -160,10 +161,10 @@ export const analyzeProductForModelPrompts = async (
         return JSON.parse(jsonText);
     } catch (e) {
         return [
-            { display: "Office Setup", prompt: "I will take a photo of a professional woman in a sharp navy blazer naturally reaching for the product on a clean glass desk." },
-            { display: "Morning Vibes", prompt: "I will capture a young man in a comfortable linen shirt holding the product with both hands near a sun-drenched window." },
-            { display: "City Life", prompt: "I will shoot a stylish person carrying the product through a busy city plaza with blurred street lights in the background." },
-            { display: "Relaxed Home", prompt: "I will take a cozy shot of someone resting on a plush cream sofa with the product sitting on an oak coffee table nearby." }
+            { display: "Kitchen Prep", prompt: "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup." },
+            { display: "Morning Coffee", prompt: "I will capture a shot of a smiling young woman in a cozy sweater holding the product near a sun-drenched window." },
+            { display: "Office Work", prompt: "I will take a photo of a professional man in a sharp navy blazer naturally reaching for the product on a tidy desk." },
+            { display: "Outdoor Walk", prompt: "I will shoot a person wearing a casual linen shirt carrying the product while walking through a bright city park." }
         ];
     }
 }
