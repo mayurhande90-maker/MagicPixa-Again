@@ -250,8 +250,10 @@ const UploadSkeleton: React.FC = () => (
 // URL Validator
 const isValidUrl = (url: string) => {
     if (!url) return false;
-    // Simple check: must have a dot and at least 4 chars
-    return url.includes('.') && url.length > 3;
+    // Regex to check for valid domain format (e.g. example.com, https://example.com)
+    // Allows optional http/s, requires domain.tld
+    const pattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+    return pattern.test(url);
 };
 
 // --- BRAND CREATION WIZARD ---
@@ -436,6 +438,7 @@ const BrandCreationWizard: React.FC<{
     const renderStepContent = () => {
         switch (step) {
             case 0: // SETUP CARD (AI + Manual Option)
+                const isUrlValid = isValidUrl(magicUrl);
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-8 relative">
                         {/* Close button for Step 0 (Hero) */}
@@ -465,13 +468,18 @@ const BrandCreationWizard: React.FC<{
                                                 <GlobeIcon className="w-5 h-5"/>
                                             </div>
                                             <input 
-                                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400"
+                                                className={`w-full pl-12 pr-4 py-4 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 outline-none transition-all placeholder-gray-400 ${magicUrl && !isUrlValid ? 'border-red-300 focus:ring-red-100' : 'border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'}`}
                                                 placeholder="e.g. www.yourbrand.com"
                                                 value={magicUrl}
                                                 onChange={e => setMagicUrl(e.target.value)}
                                                 autoFocus
                                             />
                                         </div>
+                                        {magicUrl && !isUrlValid && (
+                                            <p className="text-xs text-red-500 font-bold mt-2 ml-1 animate-fadeIn">
+                                                Please enter a valid website URL (e.g. brand.com)
+                                            </p>
+                                        )}
                                     </div>
                                     
                                     <div className="group">
@@ -486,7 +494,7 @@ const BrandCreationWizard: React.FC<{
 
                                     <button 
                                         onClick={handleMagicGenerate}
-                                        disabled={isGenerating || !magicUrl}
+                                        disabled={isGenerating || !magicUrl || !isUrlValid}
                                         className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold hover:shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 transition-all shadow-lg"
                                     >
                                         {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Generate Identity"}
