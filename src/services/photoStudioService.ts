@@ -121,18 +121,19 @@ export const analyzeProductForModelPrompts = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyze this product. Imagine you are a professional photographer. Suggest 4 creative scenes where a human model is using this product.
+        const prompt = `Analyze this product. Imagine you are a professional photographer planning a commercial shoot with a human model.
         
         **RULES**:
-        - Use SIMPLE, HUMAN ENGLISH.
+        - Use SIMPLE, NATURAL, HUMAN ENGLISH.
         - Start every "prompt" with "I will...".
-        - Describe the person naturally (e.g., "a white skin lady", "a man with a beard", "a smiling young woman").
-        - Be descriptive and detailed (15-25 words).
-        - Include details about their outfit, their expression, and the specific setting.
-        - Set the scene in a realistic setting (e.g., "modern kitchen", "sunny office", "cozy living room").
+        - Describe the scene as if you are setting up the actual camera shot.
+        - Describe the person naturally (e.g., "a white skin lady", "a man with a beard", "a smiling girl").
+        - Describe what they are wearing, their expression, and exactly what they are doing with the product.
+        - Mention a specific, simple setting (e.g., "modern kitchen", "sunny balcony", "cozy sofa").
+        - Keep it descriptive but avoid AI jargon.
         
         Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description starting with I will..." }.
-        Example: { "display": "Kitchen Prep", "prompt": "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup while she prepares breakfast." }`;
+        Example: { "display": "Morning Prep", "prompt": "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup while she makes breakfast." }`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -163,8 +164,8 @@ export const analyzeProductForModelPrompts = async (
     } catch (e) {
         return [
             { display: "Kitchen Prep", prompt: "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup." },
-            { display: "Morning Vibes", prompt: "I will capture a shot of a smiling young woman in a cozy knit sweater holding the product near a window." },
-            { display: "Office Setup", prompt: "I will take a photo of a professional man in a sharp navy blazer naturally reaching for the product on a clean desk." },
+            { display: "Morning Vibes", prompt: "I will capture a shot of a smiling young woman in a cozy knit sweater holding the product near a big window." },
+            { display: "Office Setup", prompt: "I will take a photo of a professional man in a sharp navy blazer naturally reaching for the product on a clean white desk." },
             { display: "Outdoor Shot", prompt: "I will shoot a stylish person wearing a casual linen shirt carrying the product while walking through a bright city park." }
         ];
     }
