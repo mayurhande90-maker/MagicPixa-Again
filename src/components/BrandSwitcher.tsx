@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { User, BrandKit } from '../types';
 import { activateBrand, deactivateBrand, subscribeToUserBrands } from '../firebase';
@@ -6,20 +5,18 @@ import { BrandKitIcon, CheckIcon, PlusIcon, ChevronDownIcon, XIcon } from './ico
 
 interface BrandSwitcherProps {
     user: User;
+    activeBrand: BrandKit | null;
+    setActiveBrand: (kit: BrandKit | null) => void;
     onNavigate: (view: 'brand_manager') => void;
 }
 
-export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }) => {
+export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, activeBrand, setActiveBrand, onNavigate }) => {
     const [brands, setBrands] = useState<BrandKit[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [switchingId, setSwitchingId] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Active brand is whatever is currently in user.brandKit
-    // Fallback to "No Brand" state if undefined
-    const activeBrand = user.brandKit;
-
-    // Use Subscription to keep brands updated and loaded in background
+    // Use Subscription to keep brands list updated in background
     useEffect(() => {
         if (!user.uid) return;
         const unsubscribe = subscribeToUserBrands(user.uid, (list) => {
@@ -47,7 +44,9 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
         
         setSwitchingId(brand.id);
         try {
-            await activateBrand(user.uid, brand.id);
+            // Fetch brand data (session-based, no persistent update)
+            const brandData = await activateBrand(user.uid, brand.id);
+            setActiveBrand(brandData || null);
         } catch (e) {
             console.error("Failed to switch brand", e);
             alert("Failed to switch brand.");
@@ -62,11 +61,11 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
         setSwitchingId('disable');
         try {
             await deactivateBrand(user.uid);
+            setActiveBrand(null);
         } catch (e) {
             console.error("Failed to disable brand", e);
         } finally {
             setSwitchingId(null);
-            // Don't close immediately so they see the toggle state change
         }
     };
 
@@ -113,7 +112,6 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, onNavigate }
                                     </span>
                                 )}
                             </div>
-                            {/* Active Indicator Dot */}
                             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
                         </div>
                         <span className="text-xs font-bold text-gray-700 max-w-[100px] truncate">

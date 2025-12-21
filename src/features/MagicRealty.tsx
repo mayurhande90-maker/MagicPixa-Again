@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -103,15 +102,15 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Initial Brand Kit Load & Sync on Change
+    // Initial Session Brand Kit Load & Sync
     useEffect(() => { 
-        if (auth.user?.brandKit) { 
-            const kit = auth.user.brandKit;
+        if (auth.activeBrandKit) { 
+            const kit = auth.activeBrandKit;
             
-            // Auto-fill contact info if not set by user manually or overwrite if switching
+            // Auto-fill contact info
             setTexts(prev => ({ ...prev, contact: kit.website || kit.companyName || prev.contact }));
             
-            // Auto-load logo if available
+            // Auto-load logo
             if (kit.logos.primary) { 
                 urlToBase64(kit.logos.primary).then(base64 => {
                     setLogoImage({ url: kit.logos.primary!, base64 });
@@ -120,11 +119,9 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 setLogoImage(null);
             }
         } else {
-            // Brand Kit Deactivated (Toggled OFF)
-            // Clear logo to reflect manual mode
             setLogoImage(null);
         }
-    }, [auth.user?.brandKit?.id]); // Re-runs when active brand switches or becomes undefined
+    }, [auth.activeBrandKit?.id]);
 
     // Loading Animation Loop
     useEffect(() => { 
@@ -271,15 +268,15 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     ) : (
                         <div className={RealtyStyles.container}>
                             
-                            {/* BRAND KIT ACTIVE PILL */}
-                            {auth.user?.brandKit && (
+                            {/* SESSION BRAND KIT ACTIVE PILL */}
+                            {auth.activeBrandKit && (
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
                                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
-                                        {auth.user.brandKit.logos.primary ? <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
+                                        {auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Active Brand</p>
-                                        <p className="text-xs font-bold text-indigo-900">{auth.user.brandKit.name || auth.user.brandKit.companyName}</p>
+                                        <p className="text-xs font-bold text-indigo-900">{auth.activeBrandKit.name || auth.activeBrandKit.companyName}</p>
                                     </div>
                                 </div>
                             )}

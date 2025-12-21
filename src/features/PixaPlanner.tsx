@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
@@ -10,7 +9,7 @@ import {
     XIcon, BrandKitIcon, CubeIcon, UploadIcon, DocumentTextIcon,
     ShieldCheckIcon, LightningIcon, InformationCircleIcon, CameraIcon, CaptionIcon,
     CopyIcon, ChevronRightIcon, CampaignStudioIcon, StrategyStarIcon,
-    CogIcon, PlusIcon
+    CogIcon, PlusIcon, EyeIcon
 } from '../components/icons';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation, getUserBrands, activateBrand } from '../firebase';
@@ -484,7 +483,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isLoadingBrands, setIsLoadingBrands] = useState(false);
     const [activatingBrandId, setActivatingBrandId] = useState<string | null>(null);
 
-    const activeBrand = useMemo(() => auth.user?.brandKit, [auth.user?.brandKit]);
+    const activeBrand = useMemo(() => auth.activeBrandKit, [auth.activeBrandKit]);
     const documentInputRef = useRef<HTMLInputElement>(null);
 
     const costPerImage = 10;
@@ -517,10 +516,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
         setActivatingBrandId(brand.id);
         try {
-            await activateBrand(auth.user.uid, brand.id);
+            const brandData = await activateBrand(auth.user.uid, brand.id);
+            auth.setActiveBrandKit(brandData || null);
         } catch (e) {
             console.error("Activation failed", e);
             setToast({ msg: "Failed to switch brand.", type: 'error' });
+        } finally {
             setActivatingBrandId(null);
         }
     };
@@ -924,152 +925,106 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
-                        <button onClick={handleStartGeneration} className="bg-[#F9D230] text-[#1A1A1E] px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-all border-4 border-white active:scale-95">
-                            Generate Full Campaign
+                        {/* FIX: Complete truncated button and fix handleStart to handleStartGeneration */}
+                        <button 
+                            onClick={handleStartGeneration}
+                            className="bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold shadow-2xl hover:bg-black transition-all transform hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-3"
+                        >
+                            <SparklesIcon className="w-5 h-5 text-yellow-400" />
+                            <span>Launch {plan.length}-Post Campaign</span>
                         </button>
-                        <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full border border-gray-100 shadow-xl text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">
-                            <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
-                            Batch Cost: {totalCost} Credits
-                        </div>
+                        <p className="text-[10px] font-bold text-gray-500 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full border border-gray-100 shadow-sm">
+                            Estimated Cost: {totalCost} Credits
+                        </p>
                     </div>
                 </div>
             )}
 
             {/* Step 3: Done */}
             {step === 'done' && (
-                <div className="space-y-8 animate-fadeIn">
-                    <div className="bg-gradient-to-r from-emerald-600 to-green-600 text-white p-10 rounded-[3rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                        <div className="relative z-10">
-                            <h2 className="text-4xl font-black mb-2 flex items-center gap-4"><CheckIcon className="w-10 h-10 p-2 bg-white/20 rounded-full"/> Kit Finalized!</h2>
-                            <p className="text-green-50 font-medium text-lg opacity-90">Your commercial campaign has been rendered to brand standards.</p>
+                <div className="space-y-10 animate-fadeIn">
+                     <div className="bg-emerald-600 rounded-3xl p-10 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                        <div className="relative z-10 text-center md:text-left">
+                            <h2 className="text-4xl font-black mb-2 flex items-center justify-center md:justify-start gap-4">
+                                <div className="p-2 bg-white/20 rounded-full">
+                                    <CheckIcon className="w-10 h-10"/>
+                                </div>
+                                Campaign Ready!
+                            </h2>
+                            <p className="text-emerald-50 font-medium text-lg">Your high-fidelity assets for {activeBrand.companyName} have been rendered and saved to your gallery.</p>
                         </div>
-                        <div className="flex gap-4 relative z-10 w-full md:w-auto">
+                        <div className="flex gap-4 relative z-10">
                             <button 
-                                onClick={handleStartNew} 
-                                className="flex-1 md:flex-none bg-white/20 hover:bg-white/30 px-8 py-4 rounded-2xl font-bold transition-all border border-white/10"
+                                onClick={handleDownloadAll}
+                                className="bg-white text-emerald-700 px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-emerald-50 transition-all flex items-center gap-2"
                             >
-                                Start New
+                                <DownloadIcon className="w-5 h-5"/> Download All (ZIP)
                             </button>
                             <button 
-                                onClick={handleRefineSettings} 
-                                className="flex-1 md:flex-none bg-white/20 hover:bg-white/30 px-8 py-4 rounded-2xl font-bold transition-all border border-white/10"
+                                onClick={handleStartNew}
+                                className="bg-black/20 hover:bg-black/30 text-white px-8 py-4 rounded-2xl font-bold transition-all border border-white/20"
                             >
-                                Refine Strategy
-                            </button>
-                            <button onClick={handleDownloadAll} className="flex-1 md:flex-none bg-white text-emerald-700 px-10 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-3">
-                                <DownloadIcon className="w-6 h-6"/> Export ZIP
+                                Start New Project
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {plan.map((p, idx) => {
-                            const isCopied = copiedIds.has(p.id);
-                            return (
-                                <div key={p.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all flex flex-col">
-                                    <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden cursor-zoom-in" onClick={() => setViewingIndex(idx)}>
-                                        {generatedImages[p.id] ? (
-                                            <>
-                                                <img src={generatedImages[p.id]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                                
-                                                {/* Top Right Quick Download Button */}
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        downloadImage(generatedImages[p.id], `CampaignStudio_${p.date.replace(/\//g, '-')}.jpg`);
-                                                    }}
-                                                    className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-gray-800 shadow-lg border border-white/20 hover:bg-white hover:scale-110 transition-all z-20 opacity-0 group-hover:opacity-100"
-                                                    title="Quick Download"
-                                                >
-                                                    <DownloadIcon className="w-4 h-4"/>
-                                                </button>
-
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                    <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
-                                                        <SparklesIcon className="w-6 h-6"/>
-                                                    </div>
-                                                </div>
-
-                                                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-lg border border-white/10 shadow-sm uppercase tracking-[0.1em]">
-                                                    {p.dayLabel}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
-                                                <XIcon className="w-10 h-10 mb-2 opacity-50"/>
-                                                <span className="text-xs font-bold uppercase tracking-widest">Failed</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-5 flex-1 flex flex-col gap-4">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
-                                                        p.postType === 'Ad' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
-                                                    }`}>{p.postType}</span>
-                                                    <span className={`text-[9px] font-bold text-gray-400 uppercase`}>{p.archetype}</span>
-                                                </div>
-                                                <span className="text-[9px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-full">{p.date}</span>
-                                            </div>
-                                            <h4 className="font-bold text-gray-900 text-sm truncate">{p.topic}</h4>
-                                        </div>
-                                        
-                                        {/* Finalized Caption Section */}
-                                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm relative group-hover:border-indigo-100 transition-colors">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <CaptionIcon className="w-3.5 h-3.5 text-indigo-500"/>
-                                                    <h4 className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">Campaign Copy</h4>
-                                                </div>
-                                                <button 
-                                                    onClick={() => handleCopyText(p.id, `${p.caption}\n\n${p.hashtags}`)}
-                                                    className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase transition-all duration-300 ${
-                                                        isCopied 
-                                                        ? 'bg-green-100 text-green-600 border border-green-200' 
-                                                        : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
-                                                    }`}
-                                                >
-                                                    {isCopied ? 'Copied' : 'Copy'}
-                                                </button>
-                                            </div>
-                                            <p className="text-[11px] text-gray-600 leading-relaxed font-medium line-clamp-3 mb-2">{p.caption}</p>
-                                            <div className="pt-2 border-t border-gray-50 text-[9px] font-mono text-indigo-400 line-clamp-1">
-                                                {p.hashtags}
-                                            </div>
-                                        </div>
-                                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {plan.map((post, idx) => (
+                            <div 
+                                key={post.id} 
+                                className={PlannerStyles.resultCard}
+                                onClick={() => setViewingIndex(idx)}
+                            >
+                                <img src={generatedImages[post.id]} className={PlannerStyles.resultImage} alt={post.topic} />
+                                <div className={PlannerStyles.resultOverlay}>
+                                    <span className="text-white font-bold text-xs">{post.date}</span>
+                                    <button className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white border border-white/20">
+                                        <EyeIcon className="w-5 h-5" />
+                                    </button>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
-            
-            {/* Settings Modal */}
-            <SettingsModal 
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
-                config={config}
-                onApply={handleApplySettings}
-            />
 
-            {/* Full Screen Gallery Viewer */}
-            {viewingIndex !== null && (
-                <MultiGalleryViewer 
-                    posts={plan}
-                    images={generatedImages}
-                    initialIndex={viewingIndex}
-                    onClose={() => setViewingIndex(null)}
-                    onToast={(msg) => setToast({ msg, type: 'success' })}
+            {/* MODALS */}
+            {isGenerating && (
+                <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />
+            )}
+            
+            {isSettingsModalOpen && (
+                <SettingsModal 
+                    isOpen={isSettingsModalOpen} 
+                    onClose={() => setIsSettingsModalOpen(false)} 
+                    config={config} 
+                    onApply={handleApplySettings} 
                 />
             )}
 
-            {isGenerating && <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />}
-            
-            <input type="file" ref={documentInputRef} className="hidden" accept=".csv, .pdf, .xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleImportDocument} />
-            {toast && <ToastNotification message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+            {viewingIndex !== null && (
+                <MultiGalleryViewer 
+                    posts={plan} 
+                    images={generatedImages} 
+                    initialIndex={viewingIndex} 
+                    onClose={() => setViewingIndex(null)}
+                    onToast={(msg) => setToast({ msg, type: 'info' })}
+                />
+            )}
+
+            {toast && (
+                <ToastNotification message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+            )}
+
+            <input 
+                type="file" 
+                ref={documentInputRef} 
+                className="hidden" 
+                accept=".csv,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" 
+                onChange={handleImportDocument} 
+            />
         </div>
     );
 };

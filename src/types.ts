@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -166,6 +165,8 @@ export interface AuthProps {
   isAuthenticated: boolean;
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  activeBrandKit: BrandKit | null;
+  setActiveBrandKit: (kit: BrandKit | null) => void;
   handleLogout: () => void;
   openAuthModal: () => void;
   impersonateUser?: (user: User | null) => void;

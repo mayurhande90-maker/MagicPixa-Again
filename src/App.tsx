@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
@@ -20,7 +19,7 @@ import {
     getMissingConfigKeys,
     isConfigValid
 } from './firebase';
-import { User, Page, View, AuthProps, AppConfig, Announcement } from './types';
+import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from './types';
 import { ShieldCheckIcon } from './components/icons';
 
 // --- Inline Components for Admin Features ---
@@ -78,6 +77,9 @@ function App() {
   const [user, setUser] = useState<User | null>(null); // The logged-in user
   const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // Admin impersonation target
   const [loading, setLoading] = useState(true);
+
+  // SESSION-BASED BRAND KIT (Option A: Reset on login/refresh)
+  const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -136,6 +138,7 @@ function App() {
       } else {
         setUser(null);
         setImpersonatedUser(null);
+        setActiveBrandKit(null); // Clear session brand kit on logout
         setLoading(false);
       }
     });
@@ -162,6 +165,7 @@ function App() {
         await firebaseAuth.signOut();
         setUser(null);
         setImpersonatedUser(null);
+        setActiveBrandKit(null);
         setCurrentPage('home');
     }
   };
@@ -233,6 +237,8 @@ function App() {
     isAuthenticated: !!activeUser,
     user: activeUser,
     setUser: impersonatedUser ? (() => {}) : setUser, // Disable local updates if impersonating
+    activeBrandKit,
+    setActiveBrandKit,
     handleLogout,
     openAuthModal: () => setIsAuthModalOpen(true),
     impersonateUser: user?.isAdmin ? handleImpersonate : undefined

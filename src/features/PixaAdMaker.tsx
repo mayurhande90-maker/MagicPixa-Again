@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
@@ -201,7 +200,7 @@ const BrandSelectionModal: React.FC<{
                             <button 
                                 onClick={onCreateNew}
                                 disabled={!!activatingId}
-                                className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300 items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md ${activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md ${activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
                                     <PlusCircleIcon className="w-5 h-5" />
@@ -410,10 +409,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // AUTO-FILL FROM BRAND KIT & INDUSTRY CHANGE
+    // AUTO-FILL FROM SESSION BRAND KIT & INDUSTRY CHANGE
     useEffect(() => {
-        if (auth.user?.brandKit) {
-            const kit = auth.user.brandKit;
+        if (auth.activeBrandKit) {
+            const kit = auth.activeBrandKit;
             
             // 1. Assets (Logo/Website) - Only need to load once or if kit changes
             if (kit.logos.primary) {
@@ -423,8 +422,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }
             if (kit.website) setCta(`Visit ${kit.website}`);
         }
-        // Removed automatic tone setting logic to ensure user selects it manually.
-    }, [auth.user?.brandKit, industry]);
+    }, [auth.activeBrandKit, industry]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
@@ -464,10 +462,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleBrandSelect = async (brand: BrandKit) => {
         if (auth.user && brand.id) {
             try {
-                await activateBrand(auth.user.uid, brand.id);
-                // Manually update user state to reflect change instantly in UI
-                auth.setUser(prev => prev ? { ...prev, brandKit: brand } : null);
-                setNotification({ msg: `Switched to ${brand.companyName || brand.name}`, type: 'success' });
+                // Fetch brand data (session-based)
+                const brandData = await activateBrand(auth.user.uid, brand.id);
+                auth.setActiveBrandKit(brandData || null);
+                setNotification({ msg: `Applied ${brand.companyName || brand.name} session strategy.`, type: 'success' });
                 setShowBrandModal(false);
             } catch (error) {
                 console.error("Brand switch failed", error);
@@ -477,6 +475,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
+        // Reference is now optional
         if (!mainImage || !industry || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
@@ -622,7 +621,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             {!industry ? (
                                 <div className={AdMakerStyles.modeGrid}>
                                     <IndustryCard 
-                                        title="E-commerce" desc="Product ads, Sales" 
+                                        title="E-Commerce" desc="Product ads, Sales" 
                                         icon={<EcommerceAdIcon className={`w-8 h-8 ${AdMakerStyles.iconEcommerce}`}/>} 
                                         onClick={() => setIndustry('ecommerce')}
                                         styles={{ card: AdMakerStyles.cardEcommerce, orb: AdMakerStyles.orbEcommerce, icon: AdMakerStyles.iconEcommerce }}
@@ -697,14 +696,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             )}
 
                                             {/* 2. Brand Box (Status Indicator + Edit Modal Trigger) */}
-                                            {auth.user?.brandKit ? (
+                                            {auth.activeBrandKit ? (
                                                 <button 
                                                     onClick={() => setShowBrandModal(true)}
                                                     className="relative overflow-hidden p-3 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/30 to-white hover:shadow-md hover:border-indigo-200 transition-all flex items-center gap-3 group text-left"
                                                 >
                                                     <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center border border-indigo-50 shadow-sm overflow-hidden shrink-0 p-0.5">
-                                                        {auth.user.brandKit.logos.primary ? (
-                                                            <img src={auth.user.brandKit.logos.primary} className="w-full h-full object-contain" alt="Brand" />
+                                                        {auth.activeBrandKit.logos.primary ? (
+                                                            <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain" alt="Brand" />
                                                         ) : (
                                                             <BrandKitIcon className="w-5 h-5 text-indigo-500" />
                                                         )}
@@ -717,7 +716,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             <span className="text-[9px] font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
                                                         </div>
                                                         <h3 className="text-xs font-black text-indigo-900 truncate leading-tight">
-                                                            {auth.user.brandKit.companyName || auth.user.brandKit.name || 'Active Brand'}
+                                                            {auth.activeBrandKit.companyName || auth.activeBrandKit.name || 'Active Brand'}
                                                         </h3>
                                                     </div>
                                                     {/* Expensive sheen effect */}
@@ -931,7 +930,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     isOpen={showBrandModal}
                     onClose={() => setShowBrandModal(false)}
                     userId={auth.user.uid}
-                    currentBrandId={auth.user.brandKit?.id}
+                    currentBrandId={auth.activeBrandKit?.id}
                     onSelect={handleBrandSelect}
                     onCreateNew={() => {
                         setShowBrandModal(false);

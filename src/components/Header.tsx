@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Page, AuthProps, View } from '../types';
 import UserMenu from './UserMenu';
@@ -125,7 +124,12 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                         
                         {/* Brand Switcher - Added here */}
                         <div className="h-6 w-px bg-gray-200"></div>
-                        <BrandSwitcher user={auth.user} onNavigate={handleNavigateToBrandManager as any} />
+                        <BrandSwitcher 
+                            user={auth.user} 
+                            activeBrand={auth.activeBrandKit}
+                            setActiveBrand={auth.setActiveBrandKit}
+                            onNavigate={handleNavigateToBrandManager as any} 
+                        />
                         
                         <UserMenu user={auth.user} onLogout={auth.handleLogout} navigateTo={navigateTo} setActiveView={auth.setActiveView} />
                   </div>

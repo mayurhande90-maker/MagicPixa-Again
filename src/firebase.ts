@@ -577,19 +577,24 @@ export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
     }
 };
 
+/**
+ * OPTION A: SESSION-BASED SELECTION
+ * Fetch the brand data but do NOT persist it to the User profile document.
+ * The selection will reset on login or refresh.
+ */
 export const activateBrand = async (uid: string, brandId: string) => {
     if (!db) return;
     const brandSnap = await db.collection('users').doc(uid).collection('brands').doc(brandId).get();
     if (!brandSnap.exists) throw new Error("Brand not found");
     const brandData = { id: brandSnap.id, ...brandSnap.data() } as BrandKit;
-    await db.collection('users').doc(uid).update({ brandKit: brandData });
+    // Persist removed as per Option A
     return brandData;
 };
 
-// Deactivates the brand kit (switches to manual/default mode)
+// Deactivates the brand kit locally (Session Reset)
 export const deactivateBrand = async (uid: string) => {
-    if (!db) return;
-    await db.collection('users').doc(uid).update({ brandKit: null });
+    // No database action needed for session-based deactivation
+    return null;
 };
 
 export const deleteBrandFromCollection = async (uid: string, brandId: string) => {
@@ -601,7 +606,7 @@ export const saveUserBrandKit = async (uid: string, brandKit: BrandKit) => {
     if (!db) return;
     const brandId = await saveBrandToCollection(uid, brandKit);
     const activeKit = { ...brandKit, id: brandId }; 
-    await db.collection('users').doc(uid).update({ brandKit: activeKit });
+    // Persist removed as per Option A
     return activeKit;
 };
 
@@ -622,10 +627,11 @@ export const saveSupportMessage = async (uid: string, message: any) => { if (!db
 export const getSupportHistory = async (uid: string) => { if (!db) return []; const snap = await db.collection('users').doc(uid).collection('support_chat').orderBy('timestamp', 'asc').get(); return snap.docs.map(d => d.data()); };
 export const cleanupSupportHistory = async (uid: string) => { if (!db) return; const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); const snap = await db.collection('users').doc(uid).collection('support_chat').where('timestamp', '<', cutoff).get(); if (snap.empty) return; const batch = db.batch(); snap.docs.forEach(doc => batch.delete(doc.ref)); await batch.commit(); };
 export const clearSupportChat = async (uid: string) => { if (!db) return; const ref = db.collection('users').doc(uid).collection('support_chat'); const snapshot = await ref.get(); if (snapshot.size === 0) return; const batch = db.batch(); snapshot.docs.forEach((doc) => { batch.delete(doc.ref); }); await batch.commit(); };
-export const submitFeedback = async (uid: string, creationId: string | null, feedback: 'up' | 'down', feature: string = 'Unknown', imageUrl: string | null = null, userEmail: string = '', userName: string = '') => { if (!db) return; await db.collection('feedbacks').add({ userId: uid, creationId: creationId, feedback: feedback, feature: feature, imageUrl: imageUrl, userEmail: userEmail, userName: userName, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); };
+export const submitFeedback = async (uid: string, creationId: string | null, feedback: 'up' | 'down', feature: string = 'Unknown', imageUrl: string | null = null, userEmail: string = '', userName: string = '') => { if (!db) return; await db.collection('feedbacks').add({ userId: uid, creationId: creationId, feedback: feedback, feature: feature, imageUrl: imageUrl, userEmail: userEmail, userName: userName, timestamp: firebase.firestore.Timestamp.now() }); };
 export const getRecentFeedbacks = async (limit = 100) => { if (!db) return []; const snap = await db.collection('feedbacks').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); };
 export const getAllUsers = async (limit = 100) => { if (!db) return []; const snapshot = await db.collection('users').limit(limit).get(); return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User)); };
-export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => { if (!db) { callback([]); return () => {}; } return db.collection('users').orderBy('lastActive', 'desc').limit(limit).onSnapshot((snapshot) => { const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User)); callback(users); }, (error) => { console.error("Error subscribing to active users:", error); }); };
+// FIX: Use uid instead of id to match User interface and cast via unknown to satisfy TS
+export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => { if (!db) { callback([]); return () => {}; } return db.collection('users').orderBy('lastActive', 'desc').limit(limit).onSnapshot((snapshot) => { const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as unknown as User)); callback(users); }, (error) => { console.error("Error subscribing to active users:", error); }); };
 export const getUser = async (uid: string) => { if (!db) return null; const doc = await db.collection('users').doc(uid).get(); return doc.exists ? ({ uid: doc.id, ...doc.data() } as User) : null; };
 export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(amount), creditGrantNotification: { amount: amount, message: reason || 'Admin Grant', type: 'credit', timestamp: firebase.firestore.Timestamp.now() } }); await userRef.collection('transactions').add({ feature: 'Admin Grant', reason, creditChange: `+${amount}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() }); await logAudit(adminUid, 'Grant Credits', `Granted ${amount} to ${targetUid}. Reason: ${reason}`); };
 export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } }); await userRef.collection('transactions').add({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() }); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };

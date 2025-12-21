@@ -1,9 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, ImageModal } from '../components/FeatureLayout';
 import { 
-    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon
+    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon,
+    BrandKitIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
@@ -168,11 +168,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             for (let i = 0; i < outputBase64Images.length; i++) {
                 const label = getLabel(i, mode); 
                 const rawUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
-                
-                // Compress specifically for Firestore storage to stay under 1MB document limit
-                // 1024px width and 0.7 quality provides good balance of visual quality and file size (<300KB usually)
                 const storedUri = await resizeImage(rawUri, 1024, 0.7);
-                
                 const id = await saveCreation(auth.user.uid, storedUri, `Ecommerce Kit: ${label}`);
                 creationIds.push(id);
             }
@@ -199,7 +195,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setMode(null); 
         setViewIndex(null); 
         setPackSize(5); 
-        setModelSource(null); // Reset to null 
+        setModelSource(null); 
         setHeroCreationId(null);
         setFeedbackGiven(null);
         setAnimatingFeedback(null);
@@ -213,7 +209,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setAiBodyType(''); 
         
         setProductType(''); 
-        setProductVibe(''); // Reset to empty instead of default 
+        setProductVibe(''); 
     };
 
     const handleFeedback = async (type: 'up' | 'down') => {
@@ -269,8 +265,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
     
-    // Updated Logic: Check if model details are selected if mode is apparel + ai model
-    // Added check for productVibe when mode is product
     const canGenerate = !!mainImage && !isLowCredits && (
         (mode === 'product' && !!productVibe) || 
         (mode === 'apparel' && (
@@ -305,12 +299,12 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                         
                                         {!feedbackGiven && heroCreationId && (
                                             <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'up' ? 'bg-green-500 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Good Result">
+                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'up' ? 'bg-green-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Good Result">
                                                     <ThumbUpIcon className="w-5 h-5" />
                                                     {animatingFeedback === 'up' && <FeedbackSparkle />}
                                                 </button>
                                                 <div className="w-px bg-white/10 my-1"></div>
-                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'down' ? 'bg-red-500 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Bad Result">
+                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'down' ? 'bg-red-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Bad Result">
                                                     <ThumbDownIcon className="w-5 h-5" />
                                                     {animatingFeedback === 'down' && <FeedbackSparkle />}
                                                 </button>
@@ -390,6 +384,19 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             <PackCard size={10} label="Ultimate" subLabel="Complete Kit" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} />
                                         </div>
                                     </div>
+
+                                    {/* BRAND KIT ACTIVE PILL */}
+                                    {auth.activeBrandKit && (
+                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
+                                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
+                                                {auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Active Brand</p>
+                                                <p className="text-xs font-bold text-indigo-900">{auth.activeBrandKit.name || auth.activeBrandKit.companyName}</p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <CompactUpload label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
                                     {mode === 'apparel' && (
