@@ -37,6 +37,8 @@ const FormatSelector: React.FC<{ selected: 'landscape' | 'portrait' | null; onSe
 export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void; }> = ({ auth, appConfig, navigateTo }) => {
     const [format, setFormat] = useState<'landscape' | 'portrait' | null>(null);
     const [category, setCategory] = useState('');
+    const [mood, setMood] = useState('');
+    const [podcastGear, setPodcastGear] = useState('');
     const [title, setTitle] = useState('');
     const [customText, setCustomText] = useState('');
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -61,7 +63,10 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const isPodcast = category === 'Podcast';
     const hasRequirements = format && (isPodcast ? (!!hostImage && !!guestImage && !!title) : (!!title));
     const isLowCredits = userCredits < cost;
+    
     const categories = ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'];
+    const moods = ['Shocking', 'Cinematic', 'Mystery', 'Luxury', 'Bright'];
+    const podcastGears = ['Professional Mic', 'No Mic'];
 
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is blending elements...", "Pixa is designing layout...", "Pixa is polishing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
@@ -77,6 +82,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const res = await generateThumbnail({ 
                 format, 
                 category, 
+                mood,
+                micMode: isPodcast ? podcastGear : undefined,
                 title, 
                 customText: customText || undefined, 
                 referenceImage: referenceImage?.base64, 
@@ -99,12 +106,12 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRegenerate = async () => { if (!hasRequirements || !auth.user || !format) return; if (userCredits < regenCost) { alert("Insufficient credits."); return; } setLoading(true); setResult(null); setLastCreationId(null); try { const res = await generateThumbnail({ format, category, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64 }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e) { console.error(e); alert("Regeneration failed. Please try again."); } finally { setLoading(false); } };
+    const handleRegenerate = async () => { if (!hasRequirements || !auth.user || !format) return; if (userCredits < regenCost) { alert("Insufficient credits."); return; } setLoading(true); setResult(null); setLastCreationId(null); try { const res = await generateThumbnail({ format, category, mood, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64 }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e) { console.error(e); alert("Regeneration failed. Please try again."); } finally { setLoading(false); } };
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Thumbnail Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setLastCreationId(null); };
+    const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); };
     const handleEditorSave = (newUrl: string) => { setResult(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Thumbnail Pro (Edited)'); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-    const handleFormatSelect = (val: 'landscape' | 'portrait') => { setFormat(val); if (val !== format) { setCategory(''); setTitle(''); setCustomText(''); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setReferenceImage(null); } autoScroll(); };
+    const handleFormatSelect = (val: 'landscape' | 'portrait') => { setFormat(val); if (val !== format) { setCategory(''); setMood(''); setPodcastGear(''); setTitle(''); setCustomText(''); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setReferenceImage(null); } autoScroll(); };
 
     return (
         <>
@@ -126,11 +133,20 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                             {format && (
                                 <div className="animate-fadeIn space-y-8">
                                     <SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
+                                    
                                     {category && (
-                                        <div className="animate-fadeIn space-y-6">
+                                        <div className="animate-fadeIn space-y-8">
+                                            <SelectionGrid label="3. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
+
+                                            {isPodcast && (
+                                                <div className="animate-fadeIn">
+                                                    <SelectionGrid label="4. Podcast Studio Gear" options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
+                                                </div>
+                                            )}
+
                                             <div className="h-px w-full bg-gray-200"></div>
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">{isPodcast ? '5.' : '4.'} Upload Assets</label>
                                                 {isPodcast ? (
                                                     <div className="space-y-4">
                                                         <div className="grid grid-cols-2 gap-4">
@@ -149,8 +165,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="animate-fadeIn"><InputField label="4. What is the video about? (Context)" placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
-                                            <div className="animate-fadeIn"><InputField label="5. Exact Title Text (Optional)" placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
+                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '6.' : '5.') + " What is the video about? (Context)"} placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
+                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '7.' : '6.') + " Exact Title Text (Optional)"} placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
                                         </div>
                                     )}
                                 </div>

@@ -20,6 +20,8 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 interface ThumbnailInputs {
     format: 'landscape' | 'portrait';
     category: string;
+    mood?: string;
+    micMode?: string;
     title: string;
     customText?: string; 
     referenceImage?: { base64: string; mimeType: string } | null; 
@@ -33,10 +35,11 @@ interface ThumbnailInputs {
  * PHASE 1: STRATEGIC CTR RESEARCH
  * Uses Gemini 3 Pro + Search Grounding to find high-performance curiosity hooks.
  */
-const performTrendResearch = async (category: string, title: string): Promise<any> => {
+const performTrendResearch = async (category: string, title: string, mood?: string): Promise<any> => {
     const ai = getAiClient();
     const prompt = `You are a World-Class Thumbnail Designer and CTR Strategist.
     TASK: Research 2025 high-performing viral trends for Category: "${category}" and Topic: "${title}".
+    ${mood ? `USER-DEFINED MOOD: ${mood}` : ''}
     
     GOAL: Engineering a "Clickbait Success Formula".
     1. **Visual Hook**: Identify one dominant idea/emotion (Curiosity, Surprise, Fear, Authority, or Contrast).
@@ -77,7 +80,7 @@ const performTrendResearch = async (category: string, title: string): Promise<an
         return JSON.parse(response.text || "{}");
     } catch (e) {
         return { 
-            emotion: "Curiosity",
+            emotion: mood || "Curiosity",
             curiosityHeadline: "THE TRUTH REVEALED", 
             visualStrategy: "Extreme close-up of subject with shocked expression", 
             vibe: "Intense" 
@@ -109,7 +112,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
     const ai = getAiClient();
     try {
         // 1. Strategic Research
-        const blueprint = await performTrendResearch(inputs.category, inputs.title);
+        const blueprint = await performTrendResearch(inputs.category, inputs.title, inputs.mood);
         
         // 2. Identity Lock & Asset Preparation
         const parts: any[] = [];
@@ -160,8 +163,11 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
             `;
         }
 
-        // 4. Content Type Logic
+        // 4. Content Type & Mood Logic
         let contentTypeLogic = "";
+        const moodModifier = inputs.mood ? `*** TARGET MOOD: ${inputs.mood.toUpperCase()} ***\n- Adjust lighting contrast and color saturation to match a "${inputs.mood}" aesthetic.` : "";
+        const gearModifier = inputs.micMode === 'Professional Mic' ? "- **STUDIO GEAR**: Add a professional high-end condenser microphone (like a Shure SM7B) in front of or between the subjects. Ensure it looks integrated into the professional studio setting." : "";
+
         if (inputs.category === 'Podcast') {
             contentTypeLogic = `
             *** CONTENT TYPE: PODCAST (SYMMETRY PROTOCOL) ***
@@ -169,6 +175,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
             - **BALANCE**: Place subjects on opposite sides (Host Left, Guest Right or vice versa).
             - **VISIBILITY**: Ensure both faces are equally large and clearly visible.
             - **TEXT PLACEMENT**: Center the headline between subjects or place it above their shoulders. DO NOT overlap faces.
+            ${gearModifier}
             `;
         } else {
             contentTypeLogic = `
@@ -183,6 +190,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         ${platformMandates}
         ${contentTypeLogic}
+        ${moodModifier}
 
         **IDENTITY PROTOCOL (STRICT)**:
         - SUBJECT A: ${subjectA_Identity}
@@ -191,7 +199,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         - SKIN: Natural skin textures (pores, organic light), NO smooth plastic AI skin.
 
         **DESIGN SPECS**:
-        - **ONE IDEA ONLY**: Focus on the emotion of "${blueprint.emotion}".
+        - **ONE IDEA ONLY**: Focus on the emotion of "${inputs.mood || blueprint.emotion}".
         - **CURIOSITY HOOK**: Render the text "${inputs.customText || blueprint.curiosityHeadline}" in BOLD, CLEAN, THICK SANS-SERIF typography.
         - **LEGIBILITY**: Text must be high-contrast and readable at small sizes. Text must NOT touch image edges.
         - **AESTHETICS**: Modern premium look. ${blueprint.lightingStyle}. ${blueprint.colorPalette}. ${blueprint.visualStrategy}.
