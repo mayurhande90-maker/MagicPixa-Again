@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -733,7 +734,8 @@ const BrandCreationWizard: React.FC<{
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
                                             <UploadIcon className="w-6 h-6" />
                                         </div>
-                                        <p className="text-sm font-bold text-gray-500">Upload Inspiration</p>
+                                        <p className="text-sm font-bold text-gray-500">Upload reference images</p>
+                                        <p className="text-xs text-gray-400 mt-1">Supports multiple files</p>
                                     </div>
                                 )
                             ) : (
