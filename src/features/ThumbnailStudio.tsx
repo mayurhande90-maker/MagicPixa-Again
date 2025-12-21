@@ -71,22 +71,14 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is blending elements...", "Pixa is designing layout...", "Pixa is polishing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
     
-    /**
-     * Professional Auto-Scroll:
-     * Focuses on the next interaction block to keep the flow intuitive.
-     */
     const autoScroll = () => { 
         if (scrollRef.current) {
             setTimeout(() => {
                 const container = scrollRef.current;
                 if (container) {
-                    // Smoothly scroll down by 150px to reveal the next block, or to bottom if at end
                     const targetScroll = container.scrollTop + 150;
                     const maxScroll = container.scrollHeight - container.clientHeight;
-                    container.scrollTo({ 
-                        top: Math.min(targetScroll, maxScroll), 
-                        behavior: 'smooth' 
-                    });
+                    container.scrollTo({ top: Math.min(targetScroll, maxScroll), behavior: 'smooth' });
                 }
             }, 150); 
         } 
@@ -99,20 +91,25 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (!hasRequirements || !auth.user || !format) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
+        
+        // SESSION REFRESH: Captures absolute current state at time of click
+        const currentInputs = {
+            format, 
+            category, 
+            mood,
+            micMode: isPodcast ? podcastGear : undefined,
+            title, 
+            customText: customText || undefined, 
+            referenceImage: referenceImage?.base64, 
+            subjectImage: subjectImage?.base64, 
+            hostImage: hostImage?.base64, 
+            guestImage: guestImage?.base64,
+            elementImage: elementImage?.base64,
+            requestId: Math.random().toString(36).substring(7) // Cache-buster for AI
+        };
+
         try {
-            const res = await generateThumbnail({ 
-                format, 
-                category, 
-                mood,
-                micMode: isPodcast ? podcastGear : undefined,
-                title, 
-                customText: customText || undefined, 
-                referenceImage: referenceImage?.base64, 
-                subjectImage: subjectImage?.base64, 
-                hostImage: hostImage?.base64, 
-                guestImage: guestImage?.base64,
-                elementImage: elementImage?.base64 
-            }, auth.activeBrandKit);
+            const res = await generateThumbnail(currentInputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail Pro');
@@ -127,7 +124,29 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRegenerate = async () => { if (!hasRequirements || !auth.user || !format) return; if (userCredits < regenCost) { alert("Insufficient credits."); return; } setLoading(true); setResult(null); setLastCreationId(null); try { const res = await generateThumbnail({ format, category, mood, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64 }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e) { console.error(e); alert("Regeneration failed. Please try again."); } finally { setLoading(false); } };
+    const handleRegenerate = async () => { 
+        if (!hasRequirements || !auth.user || !format) return; 
+        if (userCredits < regenCost) { alert("Insufficient credits."); return; } 
+        setLoading(true); setResult(null); setLastCreationId(null); 
+        
+        const currentInputs = { 
+            format, category, mood, micMode: isPodcast ? podcastGear : undefined, title, 
+            customText: customText || undefined, referenceImage: referenceImage?.base64, 
+            subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, 
+            guestImage: guestImage?.base64, elementImage: elementImage?.base64,
+            requestId: Math.random().toString(36).substring(7)
+        };
+
+        try { 
+            const res = await generateThumbnail(currentInputs, auth.activeBrandKit); 
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); 
+            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); 
+            const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)'); 
+            if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
+        } catch (e) { console.error(e); alert("Regeneration failed. Please try again."); } finally { setLoading(false); } 
+    };
+
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Thumbnail Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); };
     const handleEditorSave = (newUrl: string) => { setResult(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Thumbnail Pro (Edited)'); };
@@ -157,7 +176,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     
                                     {category && (
                                         <div className="animate-fadeIn space-y-8">
-                                            {/* MOVED: Upload Assets is now Step 3 */}
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">3. Upload Assets</label>
                                                 {isPodcast ? (
@@ -181,7 +199,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
                                             <div className="h-px w-full bg-gray-200"></div>
 
-                                            {/* MOVED: Visual Mood is now Step 4 */}
                                             <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
 
                                             {isPodcast && (

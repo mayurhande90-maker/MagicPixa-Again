@@ -29,14 +29,17 @@ interface ThumbnailInputs {
     hostImage?: { base64: string; mimeType: string } | null; 
     guestImage?: { base64: string; mimeType: string } | null;
     elementImage?: { base64: string; mimeType: string } | null; 
+    requestId: string; // Mandatory for session freshness
 }
 
 /**
  * PHASE 1: STRATEGIC CTR RESEARCH
  */
-const performTrendResearch = async (category: string, title: string, mood?: string): Promise<any> => {
+const performTrendResearch = async (category: string, title: string, mood?: string, requestId?: string): Promise<any> => {
     const ai = getAiClient();
     const prompt = `You are a World-Class Thumbnail Designer and CTR Strategist.
+    
+    *** UNIQUE REQUEST ID: ${requestId} ***
     TASK: Research 2025 high-performing viral trends for Category: "${category}" and Topic: "${title}".
     ${mood ? `USER-DEFINED MOOD: ${mood}` : ''}
     
@@ -83,7 +86,6 @@ const performTrendResearch = async (category: string, title: string, mood?: stri
 
 /**
  * PHASE 2: FORENSIC IDENTITY ANCHOR
- * Upgraded to Gemini 3 Pro for higher detail precision to prevent "face-swapping".
  */
 const performBiometricScan = async (ai: any, base64: string, mimeType: string, label: string): Promise<string> => {
     const prompt = `Perform a forensic biometric scan of ${label}. 
@@ -104,7 +106,9 @@ const performBiometricScan = async (ai: any, base64: string, mimeType: string, l
 export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     try {
-        const blueprint = await performTrendResearch(inputs.category, inputs.title, inputs.mood);
+        // 1. FRESH STRATEGY
+        const blueprint = await performTrendResearch(inputs.category, inputs.title, inputs.mood, inputs.requestId);
+        
         const parts: any[] = [];
         let subjectA_Identity = "";
         let subjectB_Identity = "";
@@ -130,7 +134,6 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
             parts.push({ text: "OBJECT SOURCE:" }, { inlineData: { data: optEl.data, mimeType: optEl.mimeType } });
         }
 
-        // MOOD PROTOCOLS (Design Fix)
         const MOOD_SPECS: Record<string, string> = {
             'Viral Extreme': 'Style: High-energy, ultra-vibrant colors, exaggerated saturation, high-key lighting, subjects are extremely sharp and pop off the screen.',
             'Cinematic Noir': 'Style: Movie poster aesthetic, heavy cinematic shadows, anamorphic lens flares, teal and orange color grade, high dramatic contrast.',
@@ -144,19 +147,20 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         const moodDetail = MOOD_SPECS[inputs.mood || 'Viral Extreme'] || MOOD_SPECS['Viral Extreme'];
 
-        // MIC LOGIC (Podcast Fix)
         const gearModifier = inputs.micMode === 'Professional Mics' ? `
         *** STUDIO GEAR PROTOCOL ***
         - **DUAL MICS**: Place TWO separate professional high-end studio microphones (Shure SM7B type) on boom arms.
         - **PLACEMENT**: One mic positioned realistically in front of the HOST, and a second mic positioned realistically in front of the GUEST.
         - **INTEGRATION**: Ensure boom arms are attached to the desks or coming from the side. Mics should NOT block faces but be visible and grounded in the scene.` : "";
 
-        // PLATFORM RULES
         const platformMandates = inputs.format === 'portrait' ? `*** PLATFORM: 9:16 VERTICAL ***\n- SAFE ZONE: Keep all critical faces/text in the center 1080x1080.` : `*** PLATFORM: 16:9 LANDSCAPE ***\n- MOBILE OPTIMIZED: Text must be massive and scannable on small screens.`;
 
-        // MASTER PROMPT
+        // MASTER PROMPT WITH STATELESS DIRECTIVE
         const prompt = `You are a World-Class Thumbnail Designer. Create a scroll-stopping asset for "${inputs.title}".
 
+        *** SESSION REFRESH TOKEN: ${inputs.requestId} ***
+        CRITICAL: THIS IS A NEW INDEPENDENT REQUEST. DISREGARD PREVIOUS DESIGN ARCHETYPES.
+        
         ${platformMandates}
         ${moodDetail}
         ${gearModifier}
