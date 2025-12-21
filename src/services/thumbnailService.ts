@@ -3,7 +3,7 @@ import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
-// Helper: Optimize image for high-fidelity production (1536px for better face detail)
+// Helper: Optimize image for high-fidelity production (1536px for face detail retention)
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -30,28 +30,27 @@ interface ThumbnailInputs {
 }
 
 /**
- * PHASE 1: STRATEGIC TREND RESEARCH
- * Uses Gemini 3 Pro + Search Grounding to identify viral design patterns.
+ * PHASE 1: STRATEGIC CTR RESEARCH
+ * Uses Gemini 3 Pro + Search Grounding to find high-performance curiosity hooks.
  */
 const performTrendResearch = async (category: string, title: string): Promise<any> => {
     const ai = getAiClient();
-    const prompt = `You are a World-Class Viral Content Strategist.
-    TASK: Research 2025 YouTube and Instagram trends for Category: "${category}" and Topic: "${title}".
+    const prompt = `You are a World-Class Thumbnail Designer and CTR Strategist.
+    TASK: Research 2025 high-performing viral trends for Category: "${category}" and Topic: "${title}".
     
-    GOAL: Identify the "Clickbait Success Formula" for this specific niche.
-    1. **Visual Hooks**: What visual elements are stopping the scroll? (e.g. glowing borders, extreme depth, specific props).
-    2. **Color Palette**: Identify colors that signify "must-watch" or "high value" in this category.
-    3. **Typography**: What font styles have the highest CTR right now? (e.g. Heavy sans-serif with yellow stroke).
-    4. **Composition**: Where is the subject vs the text?
+    GOAL: Engineering a "Clickbait Success Formula".
+    1. **Visual Hook**: Identify one dominant idea/emotion (Curiosity, Surprise, Fear, Authority, or Contrast).
+    2. **Headline Engineering**: Generate a 2-5 word Curiosity Gap headline. Avoid complete sentences.
+    3. **Composition Style**: Determine if it should be an extreme facial expression, a "Before vs After", or a "Secret" reveal.
     
     OUTPUT JSON ONLY:
     {
-        "clickbaitHeadline": "A viral, high-energy 2-4 word headline",
-        "colorStrategy": "Exact color palette description",
-        "lightingMood": "e.g. Dramatic Rim Lighting, Sunset Glow, High-Key Studio",
-        "compositionRules": "Specific layout rules for subject and text",
-        "trendingElements": "e.g. Red circles, arrows, specific background textures",
-        "vibe": "e.g. Shocking, Professional, Urgent, Mysterious"
+        "emotion": "Single dominant emotion",
+        "curiosityHeadline": "2-5 word high-impact text hook",
+        "visualStrategy": "Detailed description of the singular focal point",
+        "lightingStyle": "e.g. Cinematic High-Contrast, Rim Lighting",
+        "colorPalette": "Vibrant, high-contrast palette description",
+        "vibe": "The specific performance-oriented mood"
     }`;
 
     try {
@@ -64,36 +63,36 @@ const performTrendResearch = async (category: string, title: string): Promise<an
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        clickbaitHeadline: { type: Type.STRING },
-                        colorStrategy: { type: Type.STRING },
-                        lightingMood: { type: Type.STRING },
-                        compositionRules: { type: Type.STRING },
-                        trendingElements: { type: Type.STRING },
+                        emotion: { type: Type.STRING },
+                        curiosityHeadline: { type: Type.STRING },
+                        visualStrategy: { type: Type.STRING },
+                        lightingStyle: { type: Type.STRING },
+                        colorPalette: { type: Type.STRING },
                         vibe: { type: Type.STRING }
                     },
-                    required: ["clickbaitHeadline", "colorStrategy", "compositionRules", "vibe"]
+                    required: ["emotion", "curiosityHeadline", "visualStrategy", "vibe"]
                 }
             }
         }));
         return JSON.parse(response.text || "{}");
     } catch (e) {
         return { 
-            clickbaitHeadline: "UNBELIEVABLE RESULT", 
-            colorStrategy: "High-contrast Yellow and Black", 
-            compositionRules: "Rule of thirds, subject on left", 
+            emotion: "Curiosity",
+            curiosityHeadline: "THE TRUTH REVEALED", 
+            visualStrategy: "Extreme close-up of subject with shocked expression", 
             vibe: "Intense" 
         };
     }
 };
 
 /**
- * PHASE 2: BIOMETRIC IDENTITY LOCK
- * Scans the person to ensure generation doesn't warp their appearance.
+ * PHASE 2: FORENSIC BIOMETRIC ANCHOR
+ * Ensures the generated output preserves the uploaded person's identity exactly.
  */
-const performIdentityScan = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Perform a forensic biometric scan of this person. 
-    Describe their face shape, eye color, exact hair texture/style, nose bridge, and unique features. 
-    This description will be used as an IMMUTABLE ANCHOR. The final image must preserve this identity with 100% precision.`;
+const performBiometricScan = async (ai: any, base64: string, mimeType: string, label: string): Promise<string> => {
+    const prompt = `Perform a forensic biometric scan of ${label}. 
+    Precisely describe: Face shape, jawline, eye color, nose bridge, exact hair texture/style, and unique marks.
+    This description is an IMMUTABLE ANCHOR. You must NOT change these features in the final render.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -104,7 +103,7 @@ const performIdentityScan = async (ai: any, base64: string, mimeType: string): P
 };
 
 /**
- * THE PRODUCTION ENGINE
+ * THE PRODUCTION ENGINE: PIXA THUMBNAIL PRO
  */
 export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
@@ -112,22 +111,30 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         // 1. Strategic Research
         const blueprint = await performTrendResearch(inputs.category, inputs.title);
         
-        // 2. Identity Anchor (Detect first if subject exists)
-        let identityBrief = "";
+        // 2. Identity Lock & Asset Preparation
         const parts: any[] = [];
+        let subjectA_Identity = "";
+        let subjectB_Identity = "";
 
         if (inputs.subjectImage) {
-            identityBrief = await performIdentityScan(ai, inputs.subjectImage.base64, inputs.subjectImage.mimeType);
-            const optSub = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
-            parts.push({ text: "IDENTITY ANCHOR (SUBJECT):" }, { inlineData: { data: optSub.data, mimeType: optSub.mimeType } });
+            subjectA_Identity = await performBiometricScan(ai, inputs.subjectImage.base64, inputs.subjectImage.mimeType, "Subject");
+            const opt = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
+            parts.push({ text: "IDENTITY SOURCE:" }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
         } else if (inputs.hostImage) {
-             identityBrief = await performIdentityScan(ai, inputs.hostImage.base64, inputs.hostImage.mimeType);
-             const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
-             parts.push({ text: "IDENTITY ANCHOR (HOST):" }, { inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
-             if (inputs.guestImage) {
-                const optGuest = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
-                parts.push({ text: "GUEST REFERENCE:" }, { inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
-             }
+            subjectA_Identity = await performBiometricScan(ai, inputs.hostImage.base64, inputs.hostImage.mimeType, "Host");
+            const optH = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
+            parts.push({ text: "HOST SOURCE:" }, { inlineData: { data: optH.data, mimeType: optH.mimeType } });
+            
+            if (inputs.guestImage) {
+                subjectB_Identity = await performBiometricScan(ai, inputs.guestImage.base64, inputs.guestImage.mimeType, "Guest");
+                const optG = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
+                parts.push({ text: "GUEST SOURCE:" }, { inlineData: { data: optG.data, mimeType: optG.mimeType } });
+            }
+        }
+
+        if (inputs.elementImage) {
+            const optEl = await optimizeImage(inputs.elementImage.base64, inputs.elementImage.mimeType);
+            parts.push({ text: "PROP/OBJECT SOURCE:" }, { inlineData: { data: optEl.data, mimeType: optEl.mimeType } });
         }
 
         if (inputs.referenceImage) {
@@ -135,49 +142,62 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
             parts.push({ text: "LAYOUT REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
         }
 
-        // 3. Platform Logic (Safe Zones)
-        let platformInstruction = "";
+        // 3. Platform Technical Rules
+        let platformMandates = "";
         if (inputs.format === 'portrait') {
-            platformInstruction = `
-            *** PLATFORM SPEC: INSTAGRAM REELS / STORIES ***
-            - **Safe Zone Rule**: Leave the TOP 15% and BOTTOM 20% clear of important text/logos to avoid UI overlap.
-            - **Grid View Optimization**: All core visual elements and headlines must be centered so they look perfect in a 1:1 square profile grid.
-            - **Typography**: Vertical text or centered bold headlines.
+            platformMandates = `
+            *** PLATFORM: INSTAGRAM (1080x1920) ***
+            - **GRID SAFE ZONE**: All critical elements (Faces, Text, Props) MUST stay within the center 1080x1080 square.
+            - **UI CLEARANCE**: Keep the TOP 250px and BOTTOM 300px clear of all text/logos.
+            - **COMPOSITION**: Vertical orientation with center-focal visual hierarchy.
             `;
         } else {
-            platformInstruction = `
-            *** PLATFORM SPEC: YOUTUBE THUMBNAIL ***
-            - **Safe Zone Rule**: Leave the BOTTOM RIGHT corner clear (Timer overlap).
-            - **Composition**: Cinematic wide angle, extreme focal depth.
+            platformMandates = `
+            *** PLATFORM: YOUTUBE (1280x720) ***
+            - **PREVIEW OPTIMIZATION**: Design for both desktop and mobile app previews.
+            - **TEXT SCALING**: Text should be massive, bold, and aggressive for tiny mobile screens.
+            - **TIMER CLEARANCE**: Keep the BOTTOM RIGHT corner clear of critical info.
             `;
         }
 
-        // 4. Master Creative Prompt
-        const brandDNA = brand ? `
-        *** BRAND INTEGRATION ***
-        Brand Name: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Modern'}.
-        Target Palette: ${brand.colors.primary}, ${brand.colors.accent}.
-        Typography: ${brand.fonts.heading}.
-        ` : "";
+        // 4. Content Type Logic
+        let contentTypeLogic = "";
+        if (inputs.category === 'Podcast') {
+            contentTypeLogic = `
+            *** CONTENT TYPE: PODCAST (SYMMETRY PROTOCOL) ***
+            - **CO-PRESENCE**: Include BOTH the Host and Guest in the frame.
+            - **BALANCE**: Place subjects on opposite sides (Host Left, Guest Right or vice versa).
+            - **VISIBILITY**: Ensure both faces are equally large and clearly visible.
+            - **TEXT PLACEMENT**: Center the headline between subjects or place it above their shoulders. DO NOT overlap faces.
+            `;
+        } else {
+            contentTypeLogic = `
+            *** CONTENT TYPE: ${inputs.category} (SINGLE FOCUS) ***
+            - **PRIMARY SUBJECT**: Use a tight crop (head and shoulders) of the subject.
+            - **ENGAGEMENT**: Ensure strong eye contact or a high-emotion profile angle.
+            `;
+        }
 
-        let prompt = `You are a World-Class Advertising Creative Director.
-        ${brandDNA}
-        ${platformInstruction}
+        // 5. Final Creative Instruction
+        const prompt = `You are a High-CTR Thumbnail Designer. Generate a scroll-stopping asset for "${inputs.title}".
 
-        **GOAL**: Generate a high-CTR clickbait masterpiece for "${inputs.title}".
-        
+        ${platformMandates}
+        ${contentTypeLogic}
+
         **IDENTITY PROTOCOL (STRICT)**:
-        - SUBJECT BIOMETRICS: ${identityBrief}
-        - RULE: **DO NOT change facial features, hair structure, or body shape.** The person must be 1:1 recognizable. 
-        - Skin must have natural texture (pores, vellus hair), NOT smooth AI plastic.
+        - SUBJECT A: ${subjectA_Identity}
+        - SUBJECT B: ${subjectB_Identity}
+        - RULES: **STRICTLY DO NOT change facial features, hair structure, eye color, or body shape.** Preserve likeness 1:1.
+        - SKIN: Natural skin textures (pores, organic light), NO smooth plastic AI skin.
 
-        **DESIGN SCIENCE**:
-        - **Visual Style**: ${blueprint.lightingMood}. Use ${blueprint.colorStrategy}.
-        - **Composition**: ${blueprint.compositionRules}. Integrate the subject into the environment with realistic contact shadows and depth-of-field (f/1.8). NO cutout look.
-        - **Text Overlay**: Render the text "${inputs.customText || blueprint.clickbaitHeadline}" using ${brand?.fonts.heading || 'Bold Sans-Serif'}.
-        - **Impact**: ${blueprint.vibe}. Add ${blueprint.trendingElements} for maximum scroll-stop.
+        **DESIGN SPECS**:
+        - **ONE IDEA ONLY**: Focus on the emotion of "${blueprint.emotion}".
+        - **CURIOSITY HOOK**: Render the text "${inputs.customText || blueprint.curiosityHeadline}" in BOLD, CLEAN, THICK SANS-SERIF typography.
+        - **LEGIBILITY**: Text must be high-contrast and readable at small sizes. Text must NOT touch image edges.
+        - **AESTHETICS**: Modern premium look. ${blueprint.lightingStyle}. ${blueprint.colorPalette}. ${blueprint.visualStrategy}.
+        - **CLUTTER**: ZERO decorative noise. Clean cutouts integrated with atmospheric depth/gradients.
 
-        OUTPUT: A photorealistic, high-resolution 4K designed asset.`;
+        OUTPUT: A photorealistic, platform-native 4K Designed Thumbnail.`;
 
         parts.push({ text: prompt });
 
@@ -188,7 +208,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
                 responseModalities: [Modality.IMAGE],
                 imageConfig: { 
                     aspectRatio: inputs.format === 'portrait' ? '9:16' : '16:9',
-                    imageSize: "1K" 
+                    imageSize: "1K"
                 },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -201,9 +221,9 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("The AI production engine failed to render. Please check your source photos and try again.");
+        throw new Error("AI Production engine failed to render. Please verify source assets.");
     } catch (error) { 
-        console.error("Thumbnail Generation Error:", error);
+        console.error("Thumbnail AI Service Error:", error);
         throw error; 
     }
 };
