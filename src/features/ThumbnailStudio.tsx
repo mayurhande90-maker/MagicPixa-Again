@@ -61,7 +61,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const regenCost = 3;
     const userCredits = auth.user?.credits || 0;
     const isPodcast = category === 'Podcast';
-    const hasRequirements = format && (isPodcast ? (!!hostImage && !!guestImage && !!title) : (!!title));
+    // Logic updated to make mood required
+    const hasRequirements = format && !!mood && (isPodcast ? (!!hostImage && !!guestImage && !!title) : (!!title));
     const isLowCredits = userCredits < cost;
     
     const categories = ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'];
@@ -96,7 +97,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         const currentInputs = {
             format, 
             category, 
-            mood: referenceImage ? undefined : mood, // Ignore mood if reference exists
+            mood: mood, // Always pass mood as it is now required
             micMode: isPodcast ? podcastGear : undefined,
             title, 
             customText: customText || undefined, 
@@ -130,7 +131,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setLoading(true); setResult(null); setLastCreationId(null); 
         
         const currentInputs = { 
-            format, category, mood: referenceImage ? undefined : mood, micMode: isPodcast ? podcastGear : undefined, title, 
+            format, category, mood: mood, micMode: isPodcast ? podcastGear : undefined, title, 
             customText: customText || undefined, referenceImage: referenceImage?.base64, 
             subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, 
             guestImage: guestImage?.base64, elementImage: elementImage?.base64,
@@ -199,27 +200,17 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
                                             <div className="h-px w-full bg-gray-200"></div>
 
-                                            {/* SMART TOGGLE: Hides Visual Mood if Reference is present */}
-                                            {referenceImage ? (
-                                                <div className="animate-fadeIn p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-start gap-3">
-                                                    <InformationCircleIcon className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide">Smart Vibe Active</p>
-                                                        <p className="text-[11px] text-indigo-700 leading-relaxed mt-1 font-medium">Pixa will now automatically match the lighting and vibe of your reference image.</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
-                                            )}
+                                            {/* Visual Mood selection is now always visible and required */}
+                                            <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
 
                                             {isPodcast && (
                                                 <div className="animate-fadeIn">
-                                                    <SelectionGrid label={referenceImage ? "4. Podcast Studio Gear" : "5. Podcast Studio Gear"} options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
+                                                    <SelectionGrid label="5. Podcast Studio Gear" options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
                                                 </div>
                                             )}
 
-                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? (referenceImage ? '5.' : '6.') : (referenceImage ? '4.' : '5.')) + " What is the video about? (Context)"} placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
-                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? (referenceImage ? '6.' : '7.') : (referenceImage ? '5.' : '6.')) + " Exact Title Text (Optional)"} placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
+                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '6.' : '5.') + " What is the video about? (Context)"} placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
+                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '7.' : '6.') + " Exact Title Text (Optional)"} placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
                                         </div>
                                     )}
                                 </div>
