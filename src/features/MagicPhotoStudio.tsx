@@ -200,8 +200,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     };
 
     const handleRefundRequest = async (reason: string) => {
-        if (!auth.user || !result) return; setIsRefunding(true);
-        try { const res = await processRefundRequest(auth.user.uid, auth.user.email, currentCost, reason, "Product Shot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); }
+        if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, currentCost, reason, "Product Shot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); }
     };
 
     const handleNewSession = () => {
@@ -260,7 +259,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </div>
                                 <p className="text-sm font-black text-white tracking-[0.2em] uppercase animate-pulse">{loadingText}</p>
                             </div>
-                        )}
+                         )}
                         {(isAnalyzing || isAnalyzingModel) && (
                             <div className={PhotoStudioStyles.analysisOverlay}>
                                 <>
@@ -273,7 +272,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </div>
                             </div>
                         )}
-                        <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105 grayscale' : ''}`} />
+                        <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <>
                                 <button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40"><XIcon className="w-5 h-5"/></button>
@@ -389,7 +388,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
                                         <div className="flex items-center gap-3 py-4">
                                             <div className="h-px bg-gray-200 flex-1"></div>
-                                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Manual Refinement</span>
+                                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Or Manual Refinement</span>
                                             <div className="h-px bg-gray-200 flex-1"></div>
                                         </div>
 

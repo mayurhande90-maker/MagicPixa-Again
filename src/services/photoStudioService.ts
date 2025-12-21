@@ -87,11 +87,11 @@ export const analyzeProductImage = async (
 
         const prompt = `Act as a Vogue Product Stylist. Analyze this product. ${brand ? `This is for '${brand.companyName}'.` : ''}
         
-        Suggest 4 high-converting, hyper-realistic photography concepts that would stop a user's scroll on Instagram or Amazon.
+        Suggest 4 short, punchy, hyper-realistic photography concepts.
         
         **RULES**:
-        - Prompts must be technical scene descriptions.
-        - Focus on environment, textures, and specific lighting types (e.g. "caustics", "bokeh", "rim light").
+        - Concepts must be SHORT (3-7 words max) for a clean UI.
+        - Focus on environment and lighting (e.g., "Minimal marble with window light").
         - Ensure variety: 1 Minimalist, 1 Lifestyle, 1 Luxury, 1 Seasonal.
         
         Return ONLY a JSON array of strings.`;
@@ -118,10 +118,10 @@ export const analyzeProductImage = async (
     } catch (e) {
         console.error("Error analyzing product:", e);
         return [
-            "On a pristine white marble counter with soft morning sunlight through a nearby window",
-            "Floating elegantly on a calm water surface with subtle ripples and refractive caustics",
-            "On a textured concrete podium with dramatic rim lighting in a sleek minimalist studio",
-            "On a rustic wooden table with lifestyle props like dried flowers and soft window shadows"
+            "White marble with soft sunlight",
+            "Floating on refractive water ripples",
+            "Concrete podium with rim lighting",
+            "Rustic wood with window shadows"
         ];
     }
 }
@@ -136,10 +136,14 @@ export const analyzeProductForModelPrompts = async (
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
         const prompt = `Analyze this product. ${brand ? `This is for '${brand.companyName}' targeting '${brand.targetAudience}'.` : ''}
-        Generate 4 "Commercial Model Scenarios" where a human model is naturally interacting with this specific item.
+        Generate 4 detailed "Commercial Model Scenarios" where a human model is naturally interacting with this specific item.
+        
+        **RULES**:
+        - Each scenario must be HIGHLY DETAILED (2-3 sentences).
+        - Include specific art direction: camera lens (e.g. 85mm), model's expression, precise environment, and clothing style.
         
         Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description" }.
-        Example: { "display": "Morning Ritual", "prompt": "A mid-shot of a smiling woman in a bright, modern kitchen, holding the product naturally while looking towards the window light." }`;
+        Example: { "display": "Morning Ritual", "prompt": "A cinematic close-up of a smiling young woman in a sun-drenched, modern minimalist kitchen. She holds the product naturally at eye level with a soft grip, wearing an organic linen robe. Shot with an 85mm prime lens for creamy background bokeh." }`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -169,10 +173,10 @@ export const analyzeProductForModelPrompts = async (
         return JSON.parse(jsonText);
     } catch (e) {
         return [
-            { display: "Professional Studio", prompt: "Professional studio portrait of a model holding the product with a confident expression, neutral grey backdrop, 85mm prime lens." },
-            { display: "Urban Lifestyle", prompt: "A candid shot of a model walking through a modern city plaza, carrying the product, natural afternoon daylight, soft bokeh." },
-            { display: "Cozy Interior", prompt: "A relaxed shot of a model enjoying a quiet moment at home, product placed nearby on a coffee table, warm evening lighting." },
-            { display: "Nature/Greenery", prompt: "Fresh outdoor shot of a model with the product in a botanical garden, soft sunlight filtering through leaves." }
+            { display: "Professional Studio", prompt: "A sophisticated portrait of a professional model in a tailored charcoal blazer, holding the product with quiet confidence against a textured slate grey backdrop. Shot with a 100mm macro lens for sharp detail and professional studio lighting." },
+            { display: "Urban Lifestyle", prompt: "A dynamic candid shot of a stylish man walking through a glass-walled city plaza at dusk. He carries the product naturally in one hand while checking his watch. The city lights create a beautiful out-of-focus bokeh background. Shot on 35mm film aesthetic." },
+            { display: "Cozy Interior", prompt: "A warm, intimate shot of a model sitting on a plush cream sofa in a living room filled with plants. The product sits on a nearby oak coffee table while the model reaches for it with a relaxed, happy expression. Golden hour light filters through sheer curtains." },
+            { display: "Nature/Greenery", prompt: "A fresh outdoor shot in a lush botanical garden. The model is wearing neutral earth tones and holds the product amidst soft ferns and dappled sunlight. Shot with a wide aperture to emphasize the organic textures and natural atmosphere." }
         ];
     }
 }
