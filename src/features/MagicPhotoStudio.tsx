@@ -152,13 +152,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             try {
                 const prompts = await analyzeProductImage(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                 setSuggestedPrompts(prompts);
-            } catch (err) { setSuggestedPrompts(["On a minimalist studio podium", "In a natural lifestyle setting"]); } finally { setIsAnalyzing(false); }
+            } catch (err) { setSuggestedPrompts(["I will take a closeup shot on a white marble counter.", "I will place it on a rustic wooden table."]); } finally { setIsAnalyzing(false); }
         } else if (mode === 'model') {
              setIsAnalyzingModel(true); 
              try {
                  const prompts = await analyzeProductForModelPrompts(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                  setSuggestedModelPrompts(prompts);
-             } catch (e) { setSuggestedModelPrompts([{ display: "Modern Lifestyle", prompt: "Lifestyle shot with a model" }]); } finally { setIsAnalyzingModel(false); }
+             } catch (e) { setSuggestedModelPrompts([{ display: "Kitchen Prep", prompt: "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup." }]); } finally { setIsAnalyzingModel(false); }
         }
     };
 
@@ -272,7 +272,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </div>
                             </div>
                         )}
-                        {/* FIX: Removed grayscale from loading filter */}
+                        {/* FIX: Simplified filter to just blur, removed grayscale */}
                         <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
                         {!loading && !isAnalyzing && !isAnalyzingModel && (
                             <>

@@ -74,12 +74,12 @@ export const analyzeProductImage = async (
         **RULES**:
         - Use SIMPLE, HUMAN-LIKE ENGLISH. 
         - Start every suggestion with "I will...". 
+        - Keep suggestions SHORT (8-12 words max).
         - Make it sound like you are actively setting up the shot.
-        - Avoid technical words like "photorealistic", "raytracing", "8k".
-        - Include natural details about the surface and environment.
-        - Length: 10-18 words.
+        - Avoid technical buzzwords like "photorealistic", "raytracing", "8k".
+        - Focus on a clean, simple environment.
         
-        Example: "I will take a closeup shot of the product on a white marble counter with soft morning sunlight."
+        Example: "I will take a closeup shot of the product on a white marble counter."
         
         Return ONLY a JSON array of strings.`;
 
@@ -104,10 +104,10 @@ export const analyzeProductImage = async (
         return JSON.parse(jsonText);
     } catch (e) {
         return [
-            "I will take a closeup shot of the product on a white marble counter with soft sunlight.",
-            "I will place the item on a rustic wooden table with a small green plant nearby.",
-            "I will capture the product floating over calm water with gentle ripples underneath.",
-            "I will set up the product on a simple concrete stand in a bright, modern room."
+            "I will take a closeup shot of the product on a white marble counter.",
+            "I will place it on a rustic wooden table with soft sunlight.",
+            "I will capture it floating over calm water with gentle ripples.",
+            "I will set it up on a concrete stand in a modern room."
         ];
     }
 }
@@ -127,11 +127,12 @@ export const analyzeProductForModelPrompts = async (
         - Use SIMPLE, HUMAN ENGLISH.
         - Start every "prompt" with "I will...".
         - Describe the person naturally (e.g., "a white skin lady", "a man with a beard", "a smiling young woman").
-        - Describe their outfit and exactly what they are doing with the product.
+        - Be descriptive and detailed (15-25 words).
+        - Include details about their outfit, their expression, and the specific setting.
         - Set the scene in a realistic setting (e.g., "modern kitchen", "sunny office", "cozy living room").
         
         Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description starting with I will..." }.
-        Example: { "display": "Home Kitchen", "prompt": "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup while she prepares breakfast." }`;
+        Example: { "display": "Kitchen Prep", "prompt": "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup while she prepares breakfast." }`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -162,9 +163,9 @@ export const analyzeProductForModelPrompts = async (
     } catch (e) {
         return [
             { display: "Kitchen Prep", prompt: "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup." },
-            { display: "Morning Coffee", prompt: "I will capture a shot of a smiling young woman in a cozy sweater holding the product near a sun-drenched window." },
-            { display: "Office Work", prompt: "I will take a photo of a professional man in a sharp navy blazer naturally reaching for the product on a tidy desk." },
-            { display: "Outdoor Walk", prompt: "I will shoot a person wearing a casual linen shirt carrying the product while walking through a bright city park." }
+            { display: "Morning Vibes", prompt: "I will capture a shot of a smiling young woman in a cozy knit sweater holding the product near a window." },
+            { display: "Office Setup", prompt: "I will take a photo of a professional man in a sharp navy blazer naturally reaching for the product on a clean desk." },
+            { display: "Outdoor Shot", prompt: "I will shoot a stylish person wearing a casual linen shirt carrying the product while walking through a bright city park." }
         ];
     }
 }
