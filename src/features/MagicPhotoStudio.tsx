@@ -245,7 +245,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             generateButtonStyle={{ 
                 className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] font-black uppercase tracking-wider", 
                 hideIcon: true,
-                label: studioMode === 'model' ? "Generate Model Campaign" : "Render Studio Asset"
+                label: studioMode === 'model' ? "Generate Model Shots" : "Generate Product Shots"
             }}
             scrollRef={scrollRef}
             leftContent={
