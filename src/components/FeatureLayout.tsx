@@ -12,11 +12,13 @@ import {
     ChevronRightIcon,
     ThumbUpIcon,
     ThumbDownIcon,
-    MagicWandIcon
+    MagicWandIcon,
+    BrandKitIcon
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 import { submitFeedback, auth } from '../firebase';
 import { FeatureStyles } from '../styles/FeatureLayout.styles.ts';
+import { BrandKit } from '../types';
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
     <div className="mb-6">
@@ -211,7 +213,7 @@ export const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; i
         
         <div className="relative z-10 mt-6 text-center space-y-2 px-6">
             <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">{label}</p>
-            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#4D7CFF] transition-colors delay-75 bg-gray-50 px-3 py-1 rounded-full">Click to Browse</p>
+            <p className="text-xs font-bold text-gray-300 uppercase tracking-widest group-hover:text-[#4D7CFF] transition-colors duration-300 bg-gray-50 px-3 py-1 rounded-full">Click to Browse</p>
         </div>
     </div>
 );
@@ -235,6 +237,18 @@ const FeedbackSparkle = () => (
         />
     ))}
   </div>
+);
+
+const BrandAwarenessPill: React.FC<{ brand: BrandKit }> = ({ brand }) => (
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full shadow-sm animate-fadeIn transform transition-transform hover:scale-[1.02] cursor-default group/pill">
+        <div className="relative">
+            <SparklesIcon className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+            <div className="absolute inset-0 bg-indigo-400 rounded-full blur-md opacity-20 group-hover/pill:opacity-40 transition-opacity"></div>
+        </div>
+        <span className="text-[10px] font-bold text-indigo-700 whitespace-nowrap">
+            Following <span className="font-black underline decoration-indigo-200 underline-offset-2">{brand.companyName || brand.name}</span> DNA
+        </span>
+    </div>
 );
 
 export const FeatureLayout: React.FC<{
@@ -264,11 +278,13 @@ export const FeatureLayout: React.FC<{
     resultOverlay?: React.ReactNode;
     customActionButtons?: React.ReactNode;
     rawIcon?: boolean; 
+    activeBrandKit?: BrandKit | null; // Added for Awareness Pill
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, creationId, onResetResult, onNewSession, onEdit, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
-    disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon
+    disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon,
+    activeBrandKit
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
@@ -334,17 +350,21 @@ export const FeatureLayout: React.FC<{
         <div className={FeatureStyles.wrapper}>
             {/* Header */}
             <div className={FeatureStyles.header}>
-                <div className={FeatureStyles.titleRow}>
-                    {rawIcon ? (
-                        <div className="transition-transform hover:scale-105">
-                            {icon}
-                        </div>
-                    ) : (
-                        <div className={FeatureStyles.iconContainer}>
-                            {icon}
-                        </div>
-                    )}
-                    <h1 className={FeatureStyles.titleText}>{title}</h1>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className={FeatureStyles.titleRow}>
+                        {rawIcon ? (
+                            <div className="transition-transform hover:scale-105">
+                                {icon}
+                            </div>
+                        ) : (
+                            <div className={FeatureStyles.iconContainer}>
+                                {icon}
+                            </div>
+                        )}
+                        <h1 className={FeatureStyles.titleText}>{title}</h1>
+                    </div>
+                    {/* Brand Awareness Pill */}
+                    {activeBrandKit && <BrandAwarenessPill brand={activeBrandKit} />}
                 </div>
                 {description && <p className={FeatureStyles.description}>{description}</p>}
             </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -57,7 +56,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
 
     const handleGenerate = async () => {
         if (!image || !restoreMode || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
-        try { const res = await colourizeImage(image.base64.base64, image.base64.mimeType, restoreMode); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); try { const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Photo Restore'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (persistenceError) { console.warn("Persistence/Credit deduction failed:", persistenceError); } } catch (e) { console.error(e); alert("Restoration failed. Please try again with a simpler image."); } finally { setLoading(false); }
+        try { const res = await colourizeImage(image.base64.base64, image.base64.mimeType, restoreMode, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); try { const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Photo Restore'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (persistenceError) { console.warn("Persistence/Credit deduction failed:", persistenceError); } } catch (e) { console.error(e); alert("Restoration failed. Please try again with a simpler image."); } finally { setLoading(false); }
     };
 
     const handleClaimBonus = async () => {
@@ -88,6 +87,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                 title="Pixa Photo Restore" description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize." icon={<PixaRestoreIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)}
+                activeBrandKit={auth.activeBrandKit}
                 resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Begin Restoration" }} scrollRef={scrollRef}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 leftContent={

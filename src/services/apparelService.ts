@@ -1,7 +1,7 @@
-
 import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
+import { BrandKit } from "../types";
 
 export interface ApparelStylingOptions {
     tuck?: string;
@@ -9,12 +9,9 @@ export interface ApparelStylingOptions {
     sleeve?: string;
 }
 
-// Helper to reduce image size for AI payload safety
-// Updated for Gemini 3 Pro: Increased to 1280px and 85% quality for high-definition results
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Increased to 1280px (Standard HD) to leverage Gemini 3 Pro's higher visual fidelity
         const resizedUri = await resizeImage(dataUri, 1280, 0.85);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -31,94 +28,54 @@ export const generateApparelTryOn = async (
   topGarment: { base64: string; mimeType: string } | null,
   bottomGarment: { base64: string; mimeType: string } | null,
   userPrompt?: string,
-  stylingOptions?: ApparelStylingOptions
+  stylingOptions?: ApparelStylingOptions,
+  brand?: BrandKit | null
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    // Check for Single Outfit Upload (Same image for Top and Bottom)
     const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
-
-    // 1. Optimize Images (Parallel) to ensure request fits in limit
     const personPromise = optimizeImage(personBase64, personMimeType);
-    let topPromise, bottomPromise;
-
-    if (isSameGarmentImage && topGarment) {
-        // If same, just optimize one and reuse the promise result
-        topPromise = optimizeImage(topGarment.base64, topGarment.mimeType);
-        bottomPromise = topPromise;
-    } else {
-        topPromise = topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
-        bottomPromise = bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
-    }
-
+    let topPromise = topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
+    let bottomPromise = bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
     const [optPerson, optTop, optBottom] = await Promise.all([personPromise, topPromise, bottomPromise]);
 
-    // Construct the multimodal prompt
-    const parts: any[] = [];
-    
-    // Simplified System Instruction for better adherence
-    parts.push({ text: `You are an expert AI fashion stylist and image editor using the advanced Gemini 3 Pro vision capabilities.
-Task: Virtual Try-On. 
-Goal: Generate a photorealistic image of the model wearing the provided clothing.
-Constraint: Keep the model's face, skin tone, body shape, and background EXACTLY the same.` });
+    const brandDNA = brand ? `
+    *** BRAND FASHION CONTEXT ***
+    Brand: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Professional'}.
+    Guidelines: The model should look as if they are in a '${brand.industry}' professional photo shoot.
+    ` : "";
 
-    // Part 1: The Person (Target)
-    parts.push({ text: "TARGET MODEL:" });
-    parts.push({ inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
+    const parts: any[] = [{ text: `Task: Virtual Try-On. ${brandDNA} Maintain face/body/bg exactly.` }];
+    parts.push({ text: "MODEL:" }, { inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
     if (isSameGarmentImage && optTop) {
-        // Optimization: Send image once, instruct to extract both
-        parts.push({ text: "REFERENCE OUTFIT (Source Image):" });
-        parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        parts.push({ text: `INSTRUCTION: The Reference Outfit image contains a full look (Top + Bottom). 
-        1. Identify the upper body garment (shirt/jacket) from the Reference and put it on the Model.
-        2. Identify the lower body garment (pants/skirt) from the Reference and put it on the Model.
-        3. Ensure the fit matches the reference.` });
+        parts.push({ text: "OUTFIT SOURCE:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
+        parts.push({ text: "INSTRUCTION: Extract both top and bottom from source and apply to model." });
     } else {
-        // Distinct Images Logic
-        if (optTop) {
-             parts.push({ text: "REFERENCE TOP:" });
-             parts.push({ inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-             parts.push({ text: "INSTRUCTION: Replace the model's top with this Reference Top." });
-        } 
-        if (optBottom) {
-            parts.push({ text: "REFERENCE BOTTOM:" });
-            parts.push({ inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
-            parts.push({ text: "INSTRUCTION: Replace the model's bottom with this Reference Bottom." });
-        }
+        if (optTop) { parts.push({ text: "TOP:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } }); } 
+        if (optBottom) { parts.push({ text: "BOTTOM:" }, { inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } }); }
     }
 
-    // Explicit Styling Overrides
-    if (stylingOptions && (stylingOptions.tuck || stylingOptions.fit || stylingOptions.sleeve)) {
-        let styleText = "STYLING RULES: ";
-        if (stylingOptions.tuck) styleText += `Waist: ${stylingOptions.tuck}. `;
-        if (stylingOptions.fit) styleText += `Fit: ${stylingOptions.fit}. `;
-        if (stylingOptions.sleeve) styleText += `Sleeves: ${stylingOptions.sleeve}. `;
+    if (stylingOptions) {
+        let styleText = "STYLING: ";
+        if (stylingOptions.tuck) styleText += `${stylingOptions.tuck}. `;
+        if (stylingOptions.fit) styleText += `${stylingOptions.fit}. `;
         parts.push({ text: styleText });
     }
-
-    parts.push({ text: `Ensure the lighting on the clothes matches the model's environment. The result must be indistinguishable from a real photo.` });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
-          // CRITICAL: Relax safety settings to prevent false positives on clothing/skin
           safetySettings: [
-              { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-              { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
               { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
               { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
       },
     });
-    
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated. The model might have blocked the request.");
-  } catch (error) {
-    console.error("Error generating apparel try-on:", error);
-    throw error;
-  }
+    throw new Error("Failed to generate apparel try-on.");
+  } catch (error) { throw error; }
 };

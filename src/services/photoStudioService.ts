@@ -1,7 +1,7 @@
-
 import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
+import { BrandKit } from "../types";
 
 // Helper: Resize to custom width (default 1280px for HD generation)
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -15,6 +15,23 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
         console.warn("Image optimization failed, using original", e);
         return { data: base64, mimeType };
     }
+};
+
+/**
+ * Helper to generate brand-aware context block for prompts.
+ */
+const getBrandDNA = (brand?: BrandKit | null) => {
+    if (!brand) return "";
+    return `
+    *** BRAND DNA (STRICT ADHERENCE) ***
+    - **Identity**: This is a production for '${brand.companyName || brand.name}'.
+    - **Industry**: ${brand.industry || 'General'}.
+    - **Visual Tone**: ${brand.toneOfVoice || 'Professional'}.
+    - **Target Audience**: ${brand.targetAudience || 'General Consumers'}.
+    - **Color Palette**: Primary=${brand.colors.primary}, Secondary=${brand.colors.secondary}, Accent=${brand.colors.accent}. Use these as accent colors or in environment styling.
+    - **Typography Style**: ${brand.fonts.heading}.
+    - **Safety Constraints (AVOID)**: ${brand.negativePrompts || 'None'}.
+    `;
 };
 
 /**
@@ -52,14 +69,15 @@ const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): P
 
 export const analyzeProductImage = async (
     base64ImageData: string,
-    mimeType: string
+    mimeType: string,
+    brand?: BrandKit | null
 ): Promise<string[]> => {
     const ai = getAiClient();
     try {
         // Optimization: Use 512px for analysis
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyze the uploaded product. 
+        const prompt = `Analyze the uploaded product. ${brand ? `This is for the brand '${brand.companyName}'.` : ''}
         Based on its form, function, and aesthetic, suggest 4 high-converting photography concepts.
         
         **Constraint**: The prompts must be SCENE DESCRIPTIONS, not generic ideas.
@@ -69,7 +87,7 @@ export const analyzeProductImage = async (
         Return ONLY a JSON array of strings.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Improved to Pro for better creative direction
+            model: 'gemini-3-pro-preview', 
             contents: {
                 parts: [
                     { inlineData: { data: data, mimeType: optimizedMime } },
@@ -100,13 +118,14 @@ export const analyzeProductImage = async (
 
 export const analyzeProductForModelPrompts = async (
     base64ImageData: string,
-    mimeType: string
+    mimeType: string,
+    brand?: BrandKit | null
 ): Promise<{ display: string; prompt: string }[]> => {
     const ai = getAiClient();
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyze this product. 
+        const prompt = `Analyze this product. ${brand ? `This is for '${brand.companyName}' which targets '${brand.targetAudience}'.` : ''}
         Generate 4 "Model Photography Scenarios" where a human would naturally use this item.
         
         Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description" }.
@@ -150,47 +169,44 @@ export const analyzeProductForModelPrompts = async (
 }
 
 /**
- * THE CORE GENERATION ENGINE (UPGRADED)
- * Uses the Physics Audit to enforce realism.
+ * THE CORE GENERATION ENGINE
+ * Uses the Physics Audit + Brand DNA to enforce realism and consistency.
  */
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
-  styleInstructions: string
+  styleInstructions: string,
+  brand?: BrandKit | null
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    // 1. Optimize for Generation (High Fidelity)
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1536);
 
-    // 2. PRE-FLIGHT: Analyze Physics (Lighting/Material/Angle)
-    // This prevents the "floating object" or "wrong angle" hallucination.
+    // 1. Technical Analysis
     const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
+    
+    // 2. Brand Logic
+    const brandContext = getBrandDNA(brand);
 
-    // 3. GENERATION: The "Reality Engine" Prompt
     const prompt = `You are Pixa Studio Pro, a Physics-Compliant Product Photography AI.
     
     *** INPUT TECHNICAL BLUEPRINT (MUST RESPECT) ***
     ${technicalBlueprint}
     
+    ${brandContext}
+    
     *** USER CREATIVE DIRECTION ***
     Target Scene: "${styleInstructions}"
     
     *** EXECUTION PROTOCOL: ZERO HALLUCINATIONS ***
-    1. **Identity Lock (CRITICAL)**: You must preserve the product's pixels EXACTLY where possible. Do not warp the text, logo, or shape.
-    2. **Physics Compliance**:
-       - **Lighting**: You MUST match the scene's lighting to the "LIGHTING MAP" from the blueprint. If the original product has a shadow on the left, the new scene MUST imply a light source from the right.
-       - **Perspective**: You MUST generate the background at the "PERSPECTIVE GRID" angle defined in the blueprint. Do not put a top-down background on a front-facing product.
-       - **Material Interaction**: If the blueprint says "Reflective", generate realistic reflections of the new environment on the product surface.
-    
-    3. **Compositing Rules**:
-       - **Contact Shadows**: Generate a realistic Ambient Occlusion shadow where the object touches the ground. It must not look like a sticker.
-       - **Depth of Field**: Keep the product razor sharp (f/8). Apply subtle bokeh (f/2.8) to the background to separate the subject.
+    1. **Identity Lock**: You must preserve the product's pixels EXACTLY where possible. Do not warp the text, logo, or shape.
+    2. **Physics Compliance**: Match scene's lighting to the "LIGHTING MAP". shadows must fall correctly.
+    3. **Brand Alignment**: Infuse the environment with the Brand's Color Palette and Tone. If '${brand?.companyName || 'the brand'}' is Luxury, the background should be high-end.
     
     OUTPUT: A photorealistic, 4K commercial product shot.`;
     
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview', // The most powerful model for pixel accuracy
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
           { inlineData: { data: data, mimeType: optimizedMime } },
@@ -228,14 +244,18 @@ export const generateModelShot = async (
         composition?: string; 
         framing?: string; 
         freeformPrompt?: string;
-    }
+    },
+    brand?: BrandKit | null
   ): Promise<string> => {
     const ai = getAiClient();
     try {
       const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1536);
 
-      // Perform Audit for Scale and Material
+      // Perform Audit
       const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
+      
+      // Brand Logic
+      const brandContext = getBrandDNA(brand);
 
       let userSelectionPart = "";
       if (inputs.freeformPrompt) {
@@ -255,6 +275,8 @@ export const generateModelShot = async (
   *** PRODUCT TECHNICAL SPECS ***
   ${technicalBlueprint}
 
+  ${brandContext}
+
   *** GOAL ***
   Generate a photo of a human model holding, wearing, or interacting with this product.
   
@@ -262,19 +284,9 @@ export const generateModelShot = async (
   ${userSelectionPart}
   
   *** EXECUTION RULES ***
-  1. **Physical Scale (CRITICAL)**: Based on the "Technical Blueprint", estimate the size of the product. 
-     - If it's a ring, it fits on a finger.
-     - If it's a bottle, it fits in a hand.
-     - If it's furniture, the model sits on/near it.
-     - **DO NOT HALLUCINATE SIZE.** A perfume bottle must not be the size of a watermelon.
-  
-  2. **Interaction Physics**:
-     - **Grip**: Hands must hold the object naturally. No floating hands. Fingers must wrap around the volume correctly.
-     - **Weight**: If the object is heavy (e.g. dumbbell), show muscle tension.
-  
-  3. **Photorealism**:
-     - Skin Texture: Must be high-fidelity (pores, vellus hair, imperfections). No plastic skin.
-     - Lighting: Match the product's existing lighting to the new scene.
+  1. **Scale**: Maintain product size relative to the model.
+  2. **Interaction**: Hands must hold the object naturally.
+  3. **Branding**: The model's wardrobe and the environment must reflect the Brand's Visual Tone and Industry.
   
   OUTPUT: A cinematic, high-end lifestyle photograph.`;
       

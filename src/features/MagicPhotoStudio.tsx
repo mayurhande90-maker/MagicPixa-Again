@@ -122,13 +122,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         if (mode === 'product') {
             setIsAnalyzing(true);
             try {
-                const prompts = await analyzeProductImage(image!.base64.base64, image!.base64.mimeType);
+                const prompts = await analyzeProductImage(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                 setSuggestedPrompts(prompts);
             } catch (err) { setSuggestedPrompts(["Put this on a clean white table", "Show this product on a luxury gold podium"]); } finally { setIsAnalyzing(false); }
         } else if (mode === 'model') {
              setIsAnalyzingModel(true); 
              try {
-                 const prompts = await analyzeProductForModelPrompts(image!.base64.base64, image!.base64.mimeType);
+                 const prompts = await analyzeProductForModelPrompts(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                  setSuggestedModelPrompts(prompts);
              } catch (e) { setSuggestedModelPrompts([{ display: "Close-Up", prompt: "Close-up model shot" }]); } finally { setIsAnalyzingModel(false); }
         }
@@ -148,10 +148,10 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         try {
             let res;
             if (studioMode === 'model') {
-                 res = await generateModelShot(image.base64.base64, image.base64.mimeType, { modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming, freeformPrompt: selectedPrompt || undefined });
+                 res = await generateModelShot(image.base64.base64, image.base64.mimeType, { modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming, freeformPrompt: selectedPrompt || undefined }, auth.activeBrandKit);
             } else {
                 let generationDirection = selectedPrompt || (category ? `${visualType || 'Professional'} shot of ${category} product. Style: ${brandStyle || 'Clean'}.` : "Professional studio lighting");
-                res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection);
+                res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit);
             }
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResult(blobUrl);
@@ -212,6 +212,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             onResetResult={result ? undefined : () => setResult(null)}
             onNewSession={result ? undefined : handleNewSession}
             onEdit={() => setShowMagicEditor(true)}
+            activeBrandKit={auth.activeBrandKit}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}

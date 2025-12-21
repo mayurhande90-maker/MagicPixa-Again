@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
@@ -78,7 +77,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
-            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType);
+            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -112,7 +111,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <FeatureLayout 
                 title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : () => setResult(null)} onNewSession={result ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)}
+                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }} scrollRef={scrollRef}
                 leftContent={

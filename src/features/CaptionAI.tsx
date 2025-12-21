@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { generateCaptions } from '../services/captionService';
@@ -43,7 +42,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const handleGenerate = async () => {
         if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; } if (!language || !captionType) return;
         setLoading(true); setIsAnalyzing(true); setCaptions([]);
-        try { const res = await generateCaptions(image.base64.base64, image.base64.mimeType, language || 'English', (captionType as any) || 'SEO Friendly'); setCaptions(res); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); scrollToResults(); } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); setIsAnalyzing(false); }
+        try { const res = await generateCaptions(image.base64.base64, image.base64.mimeType, language || 'English', (captionType as any) || 'SEO Friendly', auth.activeBrandKit); setCaptions(res); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); scrollToResults(); } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); setIsAnalyzing(false); }
     };
 
     const handleNewSession = () => { setImage(null); setCaptions([]); setLanguage(''); setCaptionType(''); setCopiedIndex(null); };
@@ -54,6 +53,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
         <>
             <FeatureLayout
                 title="Pixa Caption Pro" description="Get viral, research-backed captions optimized for engagement and organic reach." icon={<PixaCaptionIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits}
+                activeBrandKit={auth.activeBrandKit}
                 generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions", hideIcon: true }} scrollRef={scrollRef}
                 leftContent={
                     image ? (
