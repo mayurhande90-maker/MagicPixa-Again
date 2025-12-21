@@ -18,15 +18,15 @@ import {
     saveUserBrandKit, 
     deleteBrandFromCollection, 
     subscribeToUserBrands,
-    getUserBrands,      // Added
-    saveBrandToCollection // Added
+    getUserBrands,      
+    saveBrandToCollection 
 } from '../firebase';
 
 import { 
     generateBrandIdentity, 
     processLogoAsset, 
     analyzeCompetitorStrategy,
-    extractBrandColors // Added
+    extractBrandColors 
 } from '../services/brandKitService';
 
 import ToastNotification from '../components/ToastNotification';
@@ -247,11 +247,12 @@ const UploadSkeleton: React.FC = () => (
     </div>
 );
 
-// URL Validator
+// URL Validator - Updated with regex to prevent random text
 const isValidUrl = (url: string) => {
     if (!url) return false;
-    // Simple check: must have a dot and at least 4 chars
-    return url.includes('.') && url.length > 3;
+    // Pattern to match standard domains like google.com, https://site.io, etc.
+    const pattern = /^(https?:\/\/)?([\w\d-]+\.)+[\w\d-]{2,}(\/.*)?$/i;
+    return pattern.test(url.trim());
 };
 
 // --- BRAND CREATION WIZARD ---
@@ -262,10 +263,10 @@ const BrandCreationWizard: React.FC<{
 }> = ({ onClose, onComplete, userId }) => {
     const [step, setStep] = useState(0);
     const [kit, setKit] = useState<BrandKit>({
-        industry: null as any, // Start with no selection
+        industry: null as any, 
         companyName: '',
         website: '',
-        toneOfVoice: '', // Start with no selection
+        toneOfVoice: '', 
         targetAudience: '',
         negativePrompts: '',
         colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
@@ -285,19 +286,6 @@ const BrandCreationWizard: React.FC<{
     // Local Upload State for Wizard (Tracks count of uploading files)
     const [uploadingState, setUploadingState] = useState<{ [key: string]: number }>({});
 
-    // Manual Flow Steps:
-    // 0: Fork (Magic vs Manual)
-    // 1: Identity (Name & Industry)
-    // 2: Strategy (Web & Tone)
-    // 3: Audience (Target & Negative)
-    // 4: Visuals (Colors & Fonts)
-    // 5: Products
-    // 6: Mood Board
-    // 7: Competitor
-    // 8: Assets (Logo)
-    // 9: Success
-    const TOTAL_STEPS = 9;
-    
     // Fallback for rendering content before industry is selected
     const industryConf = INDUSTRY_CONFIG[kit.industry || 'physical'] || INDUSTRY_CONFIG['physical'];
 
@@ -316,8 +304,8 @@ const BrandCreationWizard: React.FC<{
     };
 
     const handleMagicGenerate = async () => {
-        if (!magicUrl) {
-            alert("Website URL is required for Auto-fill.");
+        if (!isValidUrl(magicUrl)) {
+            alert("Please enter a valid website URL for Auto-fill.");
             return;
         }
         setIsGenerating(true);
@@ -335,7 +323,7 @@ const BrandCreationWizard: React.FC<{
     };
 
     const handleNext = () => {
-        if (step < TOTAL_STEPS && isStepValid()) setStep(step + 1);
+        if (step < 9 && isStepValid()) setStep(step + 1);
     };
 
     const handleBack = () => {
@@ -343,7 +331,7 @@ const BrandCreationWizard: React.FC<{
     };
     
     const handleSkip = () => {
-        if (step < TOTAL_STEPS) setStep(step + 1);
+        if (step < 9) setStep(step + 1);
     };
 
     const handleFinish = async () => {
@@ -435,27 +423,23 @@ const BrandCreationWizard: React.FC<{
     // Render Steps
     const renderStepContent = () => {
         switch (step) {
-            case 0: // SETUP CARD (AI + Manual Option)
+            case 0: 
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-8 relative">
-                        {/* Close button for Step 0 (Hero) */}
                         <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
                             <XIcon className="w-6 h-6" />
                         </button>
 
                         <div className="w-full max-w-lg text-center animate-fadeInUp relative z-10">
-                            {/* Brand Kit Icon */}
                             <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                                 <BrandKitIcon className="w-10 h-10 text-indigo-600" />
                             </div>
                             
-                            {/* Headings */}
                             <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 tracking-tight">Setup Your Brand Kit</h1>
                             <p className="text-gray-500 mb-10 text-sm md:text-base leading-relaxed max-w-md mx-auto">
                                 Auto-fill with <span className="text-indigo-600 font-bold">Pixa AI</span>. Our agents will scan your website and build your visual identity instantly.
                             </p>
 
-                            {/* Main Input Card */}
                             <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 relative z-20">
                                 <div className="space-y-5 text-left">
                                     <div className="group">
@@ -465,13 +449,20 @@ const BrandCreationWizard: React.FC<{
                                                 <GlobeIcon className="w-5 h-5"/>
                                             </div>
                                             <input 
-                                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400"
+                                                className={`w-full pl-12 pr-4 py-4 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 outline-none transition-all placeholder-gray-400 ${
+                                                    magicUrl && !isValidUrl(magicUrl) 
+                                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' 
+                                                    : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/10'
+                                                }`}
                                                 placeholder="e.g. www.yourbrand.com"
                                                 value={magicUrl}
                                                 onChange={e => setMagicUrl(e.target.value)}
                                                 autoFocus
                                             />
                                         </div>
+                                        {magicUrl && !isValidUrl(magicUrl) && (
+                                            <p className="text-[10px] text-red-500 font-bold mt-1.5 ml-1 animate-fadeIn">Please enter a valid domain (e.g. yourbrand.com)</p>
+                                        )}
                                     </div>
                                     
                                     <div className="group">
@@ -486,8 +477,12 @@ const BrandCreationWizard: React.FC<{
 
                                     <button 
                                         onClick={handleMagicGenerate}
-                                        disabled={isGenerating || !magicUrl}
-                                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold hover:shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 transition-all shadow-lg"
+                                        disabled={isGenerating || !isValidUrl(magicUrl)}
+                                        className={`w-full py-4 rounded-2xl font-bold transition-all shadow-lg ${
+                                            isValidUrl(magicUrl) 
+                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:scale-[1.02] active:scale-95' 
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
+                                        } flex items-center justify-center gap-2.5 mt-2`}
                                     >
                                         {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Generate Identity"}
                                     </button>
@@ -495,7 +490,6 @@ const BrandCreationWizard: React.FC<{
                             </div>
                         </div>
 
-                        {/* Manual Toggle - Bottom Right */}
                         <button 
                             onClick={() => setStep(1)}
                             className="absolute bottom-8 right-8 z-30 bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg text-gray-600 hover:text-black px-6 py-3 rounded-full text-xs font-bold transition-all flex items-center gap-3 group"
@@ -842,7 +836,6 @@ const BrandCreationWizard: React.FC<{
         <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
             <div className="w-full max-w-5xl h-[90vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
                 
-                {/* Header / Progress */}
                 {step > 0 && (
                     <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                         <div className="flex items-center gap-4">
@@ -865,12 +858,10 @@ const BrandCreationWizard: React.FC<{
                     </div>
                 )}
 
-                {/* Content Body */}
                 <div className={`flex-1 overflow-y-auto relative ${step === 0 ? 'p-0' : 'p-8 md:p-12'}`}>
                     {renderStepContent()}
                 </div>
 
-                {/* Footer Navigation */}
                 {step > 0 && (
                     <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0">
                         <button 
@@ -881,7 +872,6 @@ const BrandCreationWizard: React.FC<{
                         </button>
                         
                         <div className="flex items-center gap-4">
-                             {/* Skip Button: Starts appearing from Step 3 (Target Audience) onwards */}
                              {step >= 3 && step < 8 && (
                                  <button onClick={handleSkip} className="text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors">
                                      Skip for now
@@ -891,7 +881,7 @@ const BrandCreationWizard: React.FC<{
                              <button 
                                 onClick={handleFinish}
                                 disabled={isSaving || (step === 8 && !kit.logos.primary)}
-                                className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 ${
+                                className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
                                     step === 8 
                                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-105 hover:shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed' 
                                     : 'bg-white border border-gray-200 text-gray-400 cursor-not-allowed hidden' 
@@ -904,7 +894,7 @@ const BrandCreationWizard: React.FC<{
                                 <button 
                                     onClick={handleNext}
                                     disabled={!isStepValid()} 
-                                    className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 ${
+                                    className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
                                         isStepValid()
                                         ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/20'
                                         : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
@@ -949,7 +939,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     
     const [isAutoDetected, setIsAutoDetected] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    // Updated uploadingState to number count
     const [uploadingState, setUploadingState] = useState<{ [key: string]: number }>({});
     const [processingState, setProcessingState] = useState<{ [key: string]: boolean }>({});
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -1063,7 +1052,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
             let processedUri = `data:${base64Data.mimeType};base64,${base64Data.base64}`;
             if (key === 'primary') processedUri = await processLogoAsset(base64Data.base64, base64Data.mimeType);
             setProcessingState(prev => ({ ...prev, [key]: false }));
-            // Set count to 1 for single upload
             setUploadingState(prev => ({ ...prev, [key]: 1 }));
             const url = await uploadBrandAsset(auth.user.uid, processedUri, key);
             setKit(prev => ({ ...prev, logos: { ...prev.logos, [key]: url } }));
@@ -1162,7 +1150,6 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
 
     const renderBrandList = () => (
         <div className={BrandKitManagerStyles.container}>
-            {/* ... List View Content ... (Unchanged) */}
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className={BrandKitManagerStyles.sectionTitle}>My Brands</h1>
@@ -1305,7 +1292,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                         <div><label className={BrandKitManagerStyles.inputLabel}>Competitor Website</label><input type="text" placeholder="e.g. www.competitor.com" className={BrandKitManagerStyles.inputField} value={kit.competitor?.website || ''} onChange={(e) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { adScreenshots: [] }, website: e.target.value } }))} /></div>
                                         <div>
                                             <div className="flex justify-between items-center mb-2"><label className={BrandKitManagerStyles.inputLabel}>Competitor Ad Screenshots</label><button onClick={() => competitorAdRef.current?.click()} disabled={uploadingState['competitor'] > 0} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">{uploadingState['competitor'] > 0 ? 'Uploading...' : <><PlusIcon className="w-3 h-3"/> Add Image</>}</button><input ref={competitorAdRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompetitorAdUpload} /></div>
-                                            {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) ? (<div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/50"><p className="text-xs text-gray-400">Upload screenshots of their ads or social posts.</p></div>) : (<div className="grid grid-cols-3 gap-2">{kit.competitor.adScreenshots.map(ad => (<div key={ad.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-100"><img src={ad.imageUrl} className="w-full h-full object-cover" /><button onClick={() => deleteCompetitorAd(ad.id)} className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50"><XIcon className="w-3 h-3" /></button></div>))}</div>)}
+                                            {(!kit.competitor?.adScreenshots || kit.competitor.adScreenshots.length === 0) ? (<div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/50"><p className="text-xs text-gray-400">Upload screenshots of their ads or social posts.</p></div>) : (<div className="grid grid-cols-3 gap-2">{kit.competitor.adScreenshots.map(ad => (<div key={ad.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200"><img src={ad.imageUrl} className="w-full h-full object-cover" /><button onClick={() => deleteCompetitorAd(ad.id)} className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50"><XIcon className="w-3 h-3" /></button></div>))}</div>)}
                                         </div>
                                         <button onClick={runCompetitorAnalysis} disabled={isAnalyzingCompetitor || !kit.competitor?.website} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none">{isAnalyzingCompetitor ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Analyzing Strategy...</>) : (<><LightningIcon className="w-4 h-4 text-white" /> Analyze & Outsmart</>)}</button>
                                     </div>
