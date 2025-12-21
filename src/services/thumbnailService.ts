@@ -53,7 +53,8 @@ const performTrendResearch = async (category: string, title: string, format: str
     1. Identify the most common "Viral Hook" (e.g., Extreme Comparison, The Big Red Arrow, Shocked Facial Expression).
     2. Determine the Trending Color Palette for ${platform}.
     3. Determine Subject Placement. 
-       - CRITICAL FOR VERTICAL: Design MUST fit inside the center 1:1 safe zone for the Instagram grid view.
+       - IF PODCAST: Focus on Host-Guest interaction (Side-by-side or Split-screen).
+       - CRITICAL FOR VERTICAL: Design MUST fit inside the center 1:1 safe zone.
     4. Write a Clickbait Title (2-4 words for vertical, longer for horizontal).
     
     OUTPUT: Return ONLY a JSON object.`;
@@ -89,7 +90,7 @@ const performTrendResearch = async (category: string, title: string, format: str
             emotionVibe: "High Energy", 
             textStyle: "Bold Impact Sans-Serif", 
             lightingStyle: "Rim Lighting",
-            viralHookDescription: "Standard high-engagement layout with center-focused safe zone."
+            viralHookDescription: "Standard high-engagement layout."
         }; 
     }
 };
@@ -102,6 +103,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
     try {
         const strategy = await performTrendResearch(inputs.category, inputs.title, inputs.format);
         const parts: any[] = [];
+        const isPodcast = inputs.category === 'Podcast';
         
         const brandDNA = brand ? `
         *** BRAND OVERRIDE (STRICT) ***
@@ -120,12 +122,12 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         if (inputs.hostImage) {
             const optHost = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
-            parts.push({ text: "HOST IMAGE:" }, { inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
+            parts.push({ text: "HOST IMAGE (Person A):" }, { inlineData: { data: optHost.data, mimeType: optHost.mimeType } });
         }
 
         if (inputs.guestImage) {
             const optGuest = await optimizeImage(inputs.guestImage.base64, inputs.guestImage.mimeType);
-            parts.push({ text: "GUEST IMAGE:" }, { inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
+            parts.push({ text: "GUEST IMAGE (Person B):" }, { inlineData: { data: optGuest.data, mimeType: optGuest.mimeType } });
         }
 
         if (inputs.elementImage) {
@@ -136,50 +138,43 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         const finalTitle = inputs.customText || strategy.viralTitle;
         let productionPrompt = "";
 
-        if (inputs.format === 'portrait') {
-            // --- STRICT INSTAGRAM REEL RULES ---
+        // Common Core instructions
+        const coreProductionBrief = `
+        **TECHNICAL SPECIFICATION**:
+        - Format: ${inputs.format === 'portrait' ? '9:16 vertical' : '16:9 landscape'}.
+        - Strategy: ${strategy.viralHookDescription}.
+        - Lighting: ${strategy.lightingStyle}. Use volumetric shadows and rim light.
+        - Text Layer: Render large, bold text saying "${finalTitle}". 
+        - Subject Realism: 1:1 facial identity lock. High-fidelity skin texture.
+        - Composition: ${strategy.compositionRule}.
+        ${brandDNA}`;
+
+        if (isPodcast && inputs.hostImage && inputs.guestImage) {
+            productionPrompt = `
+            You are an Elite Podcast Production Designer. Create a professional YouTube Podcast thumbnail.
+            
+            **STRICT PODCAST RULES**:
+            1. **MULTI-SUBJECT LOCK**: Render Person A (Host) and Person B (Guest) together in the same frame.
+            2. **COMPOSITION**: Use a "Split-Frame" or "Interview" layout. Place Host on one side and Guest on the other. Ensure they appear to be in the same studio.
+            3. **ENVIRONMENT**: Set the scene in a high-end podcast studio with visible Shure SM7B microphones, acoustic foam panels, and soft neon accent lights.
+            4. **FOCAL POINT**: Both faces must be large and expressive. Maintain 1:1 biometrics for BOTH individuals.
+            
+            ${coreProductionBrief}
+            
+            NEGATIVE: NO merged faces, NO missing subjects, NO low-res backgrounds, NO messy text.`;
+        } else if (inputs.format === 'portrait') {
             productionPrompt = `
             You are a professional Instagram thumbnail designer.
             TASK: Generate a high-quality Instagram reel thumbnail/cover (9:16).
-            
-            **CANVAS & FORMAT RULES (STRICTLY MANDATORY)**:
-            - Resolution: 1080 x 1920 px.
-            - **1:1 SAFE ZONE**: Keep all critical elements (faces, expressions, text) strictly inside the center 1:1 safe zone (the middle 1080x1080 area) so nothing is cropped in the Instagram profile grid view.
-            - **UI AVOIDANCE**: DO NOT place any important elements (text or faces) in the TOP 250px or BOTTOM 300px. This space must be reserved for the Instagram UI (Status bar, Username, Caption).
-            
-            **COMPOSITION RULES**:
-            - Focus on one clear idea only.
-            - One primary subject (human face with visible emotional expression).
-            - **Tight framing**: Medium close-up or close-up to ensure visibility on mobile.
-            - NO clutter, NO background distractions.
-            - Strong visual hierarchy: Subject first, text second.
-            
-            **TEXT RULES**:
-            - Text to render: "${finalTitle}". 
-            - LIMIT: 2–4 words only (Maximum 5).
-            - Style: Bold, clean, thick sans-serif typography.
-            - Visibility: High contrast against background. Text must be perfectly readable even at very small thumbnail sizes.
-            
-            **COLOR & STYLE**:
-            - Use high contrast, attention-grabbing colors. Avoid washed-out tones.
-            - Modern, minimal aesthetic.
-            - Lighting should be bright, clear, and professional.
-            
-            ${brandDNA}
-            
-            **QUALITY CONTROL**: Sharp focus, clean edges, zero facial distortion.
-            FINAL OUTPUT: A single, professionally designed, scroll-stopping static poster optimized for mobile feed and grid.`;
+            - **1:1 SAFE ZONE**: Keep all critical elements strictly inside the center 1080x1080 area.
+            - **UI AVOIDANCE**: DO NOT place text/faces in the TOP 250px or BOTTOM 300px.
+            ${coreProductionBrief}
+            FINAL OUTPUT: A single, professionally designed, scroll-stopping static poster.`;
         } else {
-            // --- HIGH-END YOUTUBE RULES ---
             productionPrompt = `
             You are an Elite YouTube Production Designer. Create a hyper-realistic 4K YouTube thumbnail (16:9).
-            - Strategy: ${strategy.viralHookDescription}.
-            - Lighting: ${strategy.lightingStyle}. Use volumetric shadows and rim light to separate subject from background.
-            - Text Layer: Render large, bold text saying "${finalTitle}". Ensure high contrast.
-            - Subject Realism: 1:1 facial identity lock. Extreme emotional expression. High-fidelity skin texture.
-            - Composition: ${strategy.compositionRule}. Use leading lines toward focal points.
-            ${brandDNA}
-            **NEGATIVE CONSTRAINTS**: NO text artifacts, NO messy fonts, NO blurry hands, NO extra fingers, NO AI-clutter.`;
+            ${coreProductionBrief}
+            NEGATIVE: NO text artifacts, NO messy fonts, NO blurry hands, NO extra fingers.`;
         }
 
         parts.push({ text: productionPrompt });
