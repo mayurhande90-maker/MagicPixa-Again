@@ -200,8 +200,10 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
                                             <div className="h-px w-full bg-gray-200"></div>
 
-                                            {/* Visual Mood is restored to always visible and marked as required via hasRequirements logic */}
-                                            <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
+                                            {/* Visual Mood is hidden when a reference image is present */}
+                                            {!referenceImage && (
+                                                <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
+                                            )}
 
                                             {isPodcast && (
                                                 <div className="animate-fadeIn">
