@@ -36,17 +36,23 @@ const getBrandDNA = (brand?: BrandKit | null) => {
 
 /**
  * PHASE 1: FORENSIC PHYSICS AUDIT
+ * Detects the immutable properties of the input image to prevent hallucinations and lighting mismatches.
  */
 const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `You are a Commercial Photography Director. Analyze this image to match its physics for realistic rendering.
-    1. LIGHTING: Direction and quality.
-    2. MATERIAL: Surface texture and reflectivity.
-    3. OPTICS: Camera angle and depth.
-    Output a concise technical blueprint paragraph.`;
+    const prompt = `You are a Commercial Photography Director performing a Technical Audit.
+    
+    ANALYZE this product image to ensure perfect compositing later.
+    
+    1. **LIGHTING MAP**: Where is the primary light coming from? (e.g., "Soft light from Top-Left", "Hard sunlight from Right"). What is the shadow hardness?
+    2. **MATERIAL PHYSICS**: What is the surface made of? (e.g., "Clear Glass (refractive)", "Matte Plastic (diffuse)", "Polished Metal (specular)").
+    3. **PERSPECTIVE GRID**: What is the camera angle? (e.g., "Straight-on Eye Level", "High Angle/45-degree down", "Low Angle").
+    4. **SCALE**: Estimate the real-world size (e.g., "Small cosmetic bottle", "Large furniture").
+    
+    OUTPUT: A concise "Technical Blueprint" paragraph describing these 4 attributes.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-lite-latest',
+            model: 'gemini-3-pro-preview', // Reasoning model
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
@@ -56,6 +62,7 @@ const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): P
         });
         return response.text || "Standard studio lighting, eye-level perspective.";
     } catch (e) {
+        console.warn("Physics audit failed, using defaults.", e);
         return "Standard studio lighting, eye-level perspective.";
     }
 };
@@ -67,24 +74,20 @@ export const analyzeProductImage = async (
 ): Promise<string[]> => {
     const ai = getAiClient();
     try {
+        // Optimization: Use 512px for analysis
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Act as a professional photographer. Suggest 4 creative scenes for this product.
+        const prompt = `Analyze the uploaded product. ${brand ? `This is for the brand '${brand.companyName}'.` : ''}
+        Based on its form, function, and aesthetic, suggest 4 high-converting photography concepts.
         
-        **RULES**:
-        - Use SIMPLE, HUMAN-LIKE ENGLISH. 
-        - Start every suggestion with "I will...". 
-        - Keep suggestions SHORT (8-12 words max).
-        - Make it sound like you are actively setting up the shot.
-        - Avoid technical buzzwords like "photorealistic", "raytracing", "8k".
-        - Focus on a clean, simple environment.
-        
-        Example: "I will take a closeup shot of the product on a white marble counter."
+        **Constraint**: The prompts must be SCENE DESCRIPTIONS, not generic ideas.
+        - GOOD: "Place it on a textured concrete surface with dappled sunlight through palm leaves."
+        - BAD: "Make it look cool."
         
         Return ONLY a JSON array of strings.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', 
+            model: 'gemini-3-pro-preview', 
             contents: {
                 parts: [
                     { inlineData: { data: data, mimeType: optimizedMime } },
@@ -103,11 +106,12 @@ export const analyzeProductImage = async (
         if (!jsonText) throw new Error("No text");
         return JSON.parse(jsonText);
     } catch (e) {
+        console.error("Error analyzing product:", e);
         return [
-            "I will take a closeup shot of the product on a white marble counter.",
-            "I will place it on a rustic wooden table with soft sunlight.",
-            "I will capture it floating over calm water with gentle ripples.",
-            "I will set it up on a concrete stand in a modern room."
+            "On a clean white marble counter with morning sunlight",
+            "Floating on a calm water surface with ripples",
+            "On a rustic wooden table with lifestyle props",
+            "In a sleek minimalist studio with pastel geometry"
         ];
     }
 }
@@ -121,19 +125,12 @@ export const analyzeProductForModelPrompts = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
 
-        const prompt = `Analyze this product. Imagine you are a professional photographer planning a commercial shoot with a human model.
+        const prompt = `Analyze this product. ${brand ? `This is for '${brand.companyName}' which targets '${brand.targetAudience}'.` : ''}
+        Generate 4 "Model Photography Scenarios" where a human would naturally use this item.
         
-        **RULES**:
-        - Use SIMPLE, NATURAL, HUMAN ENGLISH.
-        - Start every "prompt" with "I will...".
-        - Describe the scene as if you are setting up the actual camera shot.
-        - Describe the person naturally (e.g., "a white skin lady", "a man with a beard", "a smiling girl").
-        - Describe what they are wearing, their expression, and exactly what they are doing with the product.
-        - Mention a specific, simple setting (e.g., "modern kitchen", "sunny balcony", "cozy sofa").
-        - Keep it descriptive but avoid AI jargon.
-        
-        Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description starting with I will..." }.
-        Example: { "display": "Morning Prep", "prompt": "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup while she makes breakfast." }`;
+        Format: JSON Array of objects { "display": "Short Label", "prompt": "Detailed Scene Description" }.
+        Example Display: "Lifestyle Cafe".
+        Example Prompt: "Medium shot of a smiling woman holding the coffee cup in a sunny cafe, blurred background."`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -163,16 +160,17 @@ export const analyzeProductForModelPrompts = async (
         return JSON.parse(jsonText);
     } catch (e) {
         return [
-            { display: "Kitchen Prep", prompt: "I will take a closeup shot of the white skin lady holding the product in her modern kitchen setup." },
-            { display: "Morning Vibes", prompt: "I will capture a shot of a smiling young woman in a cozy knit sweater holding the product near a big window." },
-            { display: "Office Setup", prompt: "I will take a photo of a professional man in a sharp navy blazer naturally reaching for the product on a clean white desk." },
-            { display: "Outdoor Shot", prompt: "I will shoot a stylish person wearing a casual linen shirt carrying the product while walking through a bright city park." }
+            { display: "Professional Studio", prompt: "Professional studio portrait of a model holding the product, neutral background, softbox lighting." },
+            { display: "Urban Lifestyle", prompt: "Street style shot of a model walking with the product, city background, natural daylight." },
+            { display: "Cozy Home", prompt: "Relaxed shot of a model using the product on a sofa, warm indoor lighting." },
+            { display: "Nature/Outdoor", prompt: "Fresh outdoor shot of a model with the product in a park, sunlight and greenery." }
         ];
     }
 }
 
 /**
  * THE CORE GENERATION ENGINE
+ * Uses the Physics Audit + Brand DNA to enforce realism and consistency.
  */
 export const editImageWithPrompt = async (
   base64ImageData: string,
@@ -183,22 +181,29 @@ export const editImageWithPrompt = async (
   const ai = getAiClient();
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1536);
+
+    // 1. Technical Analysis
     const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
+    
+    // 2. Brand Logic
     const brandContext = getBrandDNA(brand);
 
-    const prompt = `You are Pixa Studio Pro. Generate a photorealistic 4K image maintaining the IDENTICAL shape and labels of the product.
+    const prompt = `You are Pixa Studio Pro, a Physics-Compliant Product Photography AI.
     
-    BLUEPRINT: ${technicalBlueprint}
+    *** INPUT TECHNICAL BLUEPRINT (MUST RESPECT) ***
+    ${technicalBlueprint}
+    
     ${brandContext}
-    TARGET SCENE: "${styleInstructions}"
     
-    STRICT RULES:
-    1. DO NOT warp or change the product or its text.
-    2. Match the environment lighting to the product's existing highlights.
-    3. Ensure realistic contact shadows on surfaces.
-    4. Maintain natural textures (skin pores, fabric weaves).
+    *** USER CREATIVE DIRECTION ***
+    Target Scene: "${styleInstructions}"
     
-    OUTPUT: A high-resolution image file.`;
+    *** EXECUTION PROTOCOL: ZERO HALLUCINATIONS ***
+    1. **Identity Lock**: You must preserve the product's pixels EXACTLY where possible. Do not warp the text, logo, or shape.
+    2. **Physics Compliance**: Match scene's lighting to the "LIGHTING MAP". shadows must fall correctly.
+    3. **Brand Alignment**: Infuse the environment with the Brand's Color Palette and Tone. If '${brand?.companyName || 'the brand'}' is Luxury, the background should be high-end.
+    
+    OUTPUT: A photorealistic, 4K commercial product shot.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -221,7 +226,7 @@ export const editImageWithPrompt = async (
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("Generation failed.");
+    throw new Error("No image generated.");
   } catch (error) {
     console.error("Error editing image:", error);
     throw error;
@@ -245,24 +250,45 @@ export const generateModelShot = async (
     const ai = getAiClient();
     try {
       const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1536);
+
+      // Perform Audit
       const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
+      
+      // Brand Logic
       const brandContext = getBrandDNA(brand);
 
-      let userSelectionPart = inputs.freeformPrompt ? `SCENE: "${inputs.freeformPrompt}".` : `Model: ${inputs.modelType}, ${inputs.region}, ${inputs.skinTone}, ${inputs.bodyType}. Composition: ${inputs.composition}. Framing: ${inputs.framing}.`;
+      let userSelectionPart = "";
+      if (inputs.freeformPrompt) {
+          userSelectionPart = `USER SCENE: "${inputs.freeformPrompt}".`;
+      } else {
+          userSelectionPart = `
+          Model Archetype: ${inputs.modelType}
+          Ethnicity/Region: ${inputs.region}
+          Skin Tone: ${inputs.skinTone}
+          Body Build: ${inputs.bodyType}
+          Composition: ${inputs.composition || 'Single Model'}
+          Framing: ${inputs.framing || 'Mid Shot'}`;
+      }
 
-      let prompt = `You are Pixa Model Studio. Generate a 4K photo of a human holding or interacting with the product from the source image.
+      let prompt = `You are Pixa Model Studio - A Hyper-Realistic Human Generation Engine.
   
-  BLUEPRINT: ${technicalBlueprint}
+  *** PRODUCT TECHNICAL SPECS ***
+  ${technicalBlueprint}
+
   ${brandContext}
-  PARAMETERS: ${userSelectionPart}
+
+  *** GOAL ***
+  Generate a photo of a human model holding, wearing, or interacting with this product.
   
-  STRICT RULES:
-  1. Product scale and appearance must be 100% accurate.
-  2. Fingers must look natural. No extra digits.
-  3. Skin must have real texture (pores, hair). No plastic looks.
-  4. Match environment lighting to the product perfectly.
+  *** PARAMETERS ***
+  ${userSelectionPart}
   
-  OUTPUT: High-end commercial photograph.`;
+  *** EXECUTION RULES ***
+  1. **Scale**: Maintain product size relative to the model.
+  2. **Interaction**: Hands must hold the object naturally.
+  3. **Branding**: The model's wardrobe and the environment must reflect the Brand's Visual Tone and Industry.
+  
+  OUTPUT: A cinematic, high-end lifestyle photograph.`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
@@ -285,7 +311,7 @@ export const generateModelShot = async (
   
       const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
       if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-      throw new Error("Failed to generate model shot.");
+      throw new Error("No image generated.");
     } catch (error) {
       console.error("Error generating model shot:", error);
       throw error;
