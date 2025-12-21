@@ -727,7 +727,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     </div>
                                                 </button>
                                             ) : (
-                                                <button onClick={() => navigateTo('dashboard', 'brand_manager')} className="p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/10 transition-all flex items-center justify-center gap-2 group hover:shadow-sm">
+                                                <button onClick={() => setShowBrandModal(true)} className="p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/10 transition-all flex items-center justify-center gap-2 group hover:shadow-sm">
                                                     <div className="p-1 bg-white rounded-full shadow-sm">
                                                          <PlusCircleIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
                                                     </div>
