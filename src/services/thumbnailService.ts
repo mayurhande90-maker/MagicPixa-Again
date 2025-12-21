@@ -116,7 +116,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         if (inputs.subjectImage) {
             subjectA_Identity = await performBiometricScan(ai, inputs.subjectImage.base64, inputs.subjectImage.mimeType, "Subject");
             const opt = await optimizeImage(inputs.subjectImage.base64, inputs.subjectImage.mimeType);
-            parts.push({ text: "SOURCE IDENTITY PIXELS (MAIN):" }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
+            parts.push({ text: "SOURCE IDENTITY PIXELS (MAIN SUBJECT):" }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
         } else if (inputs.hostImage) {
             subjectA_Identity = await performBiometricScan(ai, inputs.hostImage.base64, inputs.hostImage.mimeType, "Host");
             const optH = await optimizeImage(inputs.hostImage.base64, inputs.hostImage.mimeType);
@@ -150,14 +150,18 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         let styleInstruction = "";
         if (inputs.referenceImage) {
             styleInstruction = `
-            *** VISUAL INHERITANCE PROTOCOL (HIGH PRIORITY) ***
+            *** VISUAL INHERITANCE & IDENTITY REPLACEMENT PROTOCOL (HIGH PRIORITY) ***
             - **SOURCE**: Use the provided 'REFERENCE THUMBNAIL' as the absolute source of truth for lighting, layout, color palette, and visual vibe.
             ${inputs.mood ? `- **SECONDARY STYLE**: Infuse elements of the '${inputs.mood}' mood while maintaining the core structure of the reference.` : ''}
+            
+            - **IDENTITY INJECTION**: If the 'REFERENCE THUMBNAIL' contains any human subjects, characters, or faces, you MUST replace them with the digital twins provided in 'SOURCE IDENTITY PIXELS'.
+            - **MATCHING**: Match the exact pose, scale, and emotional expression of the character in the reference image, but ensure the face, hair, and physical features are a 1:1 replica of the user-uploaded photos.
+            
             - **MANDATE**: Copy the grading, exposure, and atmosphere of the reference exactly. 
-            - **COMPOSITION**: You may adapt the layout to fit the new subjects, but the "feeling" must match the reference pixels.
+            - **COMPOSITION**: You must maintain the layout architecture of the reference, putting the Hero Subject in the same focal position as the person in the reference.
             `;
             const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
-            parts.push({ text: "REFERENCE THUMBNAIL (STYLE SOURCE):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+            parts.push({ text: "REFERENCE THUMBNAIL (STYLE & COMPOSITION SOURCE):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
         } else {
             styleInstruction = moodDetail || MOOD_SPECS['Viral'];
         }
@@ -181,9 +185,10 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         ${gearModifier}
 
         *** IDENTITY ARCHITECTURE (STRICT) ***
-        - SUBJECT A (HOST): ${subjectA_Identity}
+        - SUBJECT A (HOST/MAIN): ${subjectA_Identity}
         - SUBJECT B (GUEST): ${subjectB_Identity}
-        - **MANDATE**: DO NOT generate generic AI faces. The subjects in the output must be the EXACT 1:1 physical digital twins of the uploaded sources.
+        - **MANDATE**: DO NOT generate generic AI faces. The subjects in the output must be the EXACT 1:1 physical digital twins of the uploaded sources. 
+        - **SWAP LOGIC**: If a reference image is provided, ensure Subject A replaces the primary figure in that reference.
         - **SKIN**: Photorealistic skin textures (pores, organic light). Zero plastic smoothness.
 
         *** VISUAL COMPOSITION ***
