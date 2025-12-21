@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -732,7 +731,7 @@ const BrandCreationWizard: React.FC<{
                                 ) : (
                                     <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
-                                            <LightbulbIcon className="w-6 h-6" />
+                                            <UploadIcon className="w-6 h-6" />
                                         </div>
                                         <p className="text-sm font-bold text-gray-500">Upload Inspiration</p>
                                     </div>
