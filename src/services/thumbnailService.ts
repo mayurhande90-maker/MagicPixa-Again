@@ -145,7 +145,19 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
             'Bright & Natural': 'Style: Soft natural daylight, high exposure without losing detail, clean and friendly, cheerful vibes.'
         };
 
-        const moodDetail = MOOD_SPECS[inputs.mood || 'Viral'] || MOOD_SPECS['Viral'];
+        let styleInstruction = "";
+        if (inputs.referenceImage) {
+            styleInstruction = `
+            *** VISUAL INHERITANCE PROTOCOL (HIGH PRIORITY) ***
+            - **SOURCE**: Use the provided 'REFERENCE THUMBNAIL' as the absolute source of truth for lighting, mood, color palette, and visual vibe.
+            - **MANDATE**: Copy the grading, exposure, and atmosphere of the reference exactly. 
+            - **COMPOSITION**: You may adapt the layout to fit the new subjects, but the "feeling" must match the reference pixels.
+            `;
+            const optRef = await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType);
+            parts.push({ text: "REFERENCE THUMBNAIL (STYLE SOURCE):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+        } else {
+            styleInstruction = MOOD_SPECS[inputs.mood || 'Viral'] || MOOD_SPECS['Viral'];
+        }
 
         const gearModifier = inputs.micMode === 'Professional Mics' ? `
         *** STUDIO GEAR PROTOCOL ***
@@ -162,7 +174,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         CRITICAL: THIS IS A NEW INDEPENDENT REQUEST. DISREGARD PREVIOUS DESIGN ARCHETYPES.
         
         ${platformMandates}
-        ${moodDetail}
+        ${styleInstruction}
         ${gearModifier}
 
         *** IDENTITY ARCHITECTURE (STRICT) ***
