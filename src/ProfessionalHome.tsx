@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -14,277 +14,249 @@ interface ProfessionalHomePageProps {
   appConfig: AppConfig | null;
 }
 
-const DEPARTMENTS = [
-    {
-        title: "Commerce Visuals",
-        icon: <PixaProductIcon className="w-7 h-7 text-white" />,
-        features: [
-            { id: 'studio', name: 'Elite Product Shots', desc: 'Commercial Grade' },
-            { id: 'brand_kit', name: 'Merchant Packs', desc: 'Listing Automation' },
-            { id: 'mockup', name: 'Physical Mockups', desc: 'High-Fidelity' }
-        ]
-    },
-    {
-        title: "Performance Ads",
-        icon: <MagicAdsIcon className="w-7 h-7 text-white" />,
-        features: [
-            { id: 'brand_stylist', name: 'Pixa AdMaker', desc: 'Conversion Engine' },
-            { id: 'thumbnail_studio', name: 'Thumbnail Pro', desc: 'CTR Engineering' },
-            { id: 'caption', name: 'Content Strategy', desc: 'Social Narrative' }
-        ]
-    },
-    {
-        title: "Industry Verticals",
-        icon: <BuildingIcon className="w-7 h-7 text-white" />,
-        features: [
-            { id: 'realty', name: 'Realty Suite', desc: 'Property Marketing' },
-            { id: 'interior', name: 'Interior Engine', desc: 'Spatial Design' },
-            { id: 'headshot', name: 'Headshot Pro', desc: 'Persona Building' }
-        ]
-    }
+const SHOWREEL_IMAGES = [
+    { label: "Elite Product Shots", url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop" },
+    { label: "Pixa Headshot Pro", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" },
+    { label: "Lifestyle Commerce", url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop" },
+    { label: "Interior Engine", url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" },
+    { label: "High-End Mockups", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop" },
+    { label: "Photo Restoration", url: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?q=80&w=2070&auto=format&fit=crop" }
 ];
 
-const PERSONAS = [
+const DEPARTMENTS = [
     {
-        title: "Startup Founders",
-        hook: "Speed to Market",
-        desc: "Save weeks of photography delay. Launch your brand with world-class visuals generated from your raw smartphone prototype photos.",
-        icon: <LightningIcon className="w-6 h-6" />
+        title: "Production Dept.",
+        icon: <PixaProductIcon className="w-7 h-7" />,
+        colSpan: "lg:col-span-4",
+        features: [
+            { id: 'studio', name: 'Elite Product Shots', desc: 'Studio-Grade Optics' },
+            { id: 'headshot', name: 'Executive Headshots', desc: 'Identity Cloning' },
+            { id: 'colour', name: 'Archive Restore', desc: 'Forensic Repair' }
+        ]
     },
     {
-        title: "Agency Owners",
-        hook: "Scale at Infinity",
-        desc: "Replace a full design department with one Pixa seat. Deliver high-fidelity assets to clients instantly without increasing your payroll.",
-        icon: <BuildingIcon className="w-6 h-6" />
+        title: "Marketing Dept.",
+        icon: <MagicAdsIcon className="w-7 h-7" />,
+        colSpan: "lg:col-span-4",
+        features: [
+            { id: 'brand_stylist', name: 'Pixa AdMaker', desc: 'Conversion Engineering' },
+            { id: 'brand_kit', name: 'Ecommerce Packs', desc: 'Listing Automation' },
+            { id: 'thumbnail_studio', name: 'Thumbnail Pro', desc: 'CTR Optimization' }
+        ]
     },
     {
-        title: "Freelancers",
-        hook: "Unlock Capacity",
-        desc: "Automate the retouching and prompt work. Focus on creative direction while Pixa handles the 48-hour design cycle in seconds.",
-        icon: <UserIcon className="w-6 h-6" />
+        title: "Strategy & Design",
+        icon: <CampaignStudioIcon className="w-7 h-7" />,
+        colSpan: "lg:col-span-4",
+        features: [
+            { id: 'campaign_studio', name: 'Campaign Studio', desc: 'Annual Content Engine' },
+            { id: 'interior', name: 'Interior Design', desc: 'Spatial Visualization' },
+            { id: 'mockup', name: 'Pixa Mockups', desc: 'Physical Prototyping' }
+        ]
     }
 ];
 
 const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, auth, appConfig }) => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <>
-      <div className={styles.main}>
-        <Header navigateTo={navigateTo} auth={auth} />
+    <div className={styles.main}>
+      <Header navigateTo={navigateTo} auth={auth} />
+      
+      {/* LUXURY BACKGROUND LAYERS */}
+      <div className={styles.meshGradient}></div>
+      <div className={styles.grainTexture}></div>
+
+      <main className="relative">
         
-        {/* BACKGROUND DECOR */}
-        <div className={styles.meshGradient}></div>
-        <div className={styles.gridTexture}></div>
+        {/* HERO SECTION: THE MISSION CONTROL */}
+        <section className={styles.heroWrapper}>
+            <div className={styles.heroContainer}>
+                <div className={styles.heroBadge}>
+                    <SparklesIcon className="w-3 h-3 animate-pulse" />
+                    <span>The Design Department for High-Growth Brands</span>
+                </div>
+                
+                <h1 className={styles.heroTitle}>
+                    Design at the Speed <br/>
+                    <span className="text-indigo-600">of Thought.</span>
+                </h1>
+                
+                <p className={styles.heroSubtitle}>
+                    Pixa replaces weeks of photography and design delay with an instant generative production engine. 
+                    Commercial-grade visuals engineered for founders who value ROI over retainers.
+                </p>
 
-        <main className="relative">
-          
-          {/* HERO SECTION */}
-          <section className={styles.heroWrapper}>
-              <div className={styles.heroContainer}>
-                  <div className={styles.heroBadge}>
-                      <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-                      <span>Generative Agency for High-Growth Brands</span>
-                  </div>
-                  
-                  <h1 className={styles.heroTitle}>
-                      Ship Commercial Art <br/>
-                      <span className="text-slate-300">Without the Agency.</span>
-                  </h1>
-                  
-                  <p className={styles.heroSubtitle}>
-                      Pixa replaces the 48-hour design wait with an instant production engine. 
-                      High-fidelity, commercial-grade visuals for Founders who value ROI over overhead.
-                  </p>
+                <div className={styles.heroActionGroup}>
+                    <button 
+                        onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
+                        className={styles.primaryButton}
+                    >
+                        <span className="relative z-10 flex items-center gap-3 font-black">
+                          Start Creating (50 Free Credits) <ArrowRightIcon className="w-5 h-5"/>
+                        </span>
+                        <div className={styles.buttonGlow}></div>
+                    </button>
+                    <button 
+                        onClick={() => navigateTo('home', undefined, 'showreel')}
+                        className={styles.secondaryButton}
+                    >
+                        Explore Showreel
+                    </button>
+                </div>
+            </div>
 
-                  <div className={styles.heroActionGroup}>
-                      <button 
-                          onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                          className={styles.primaryButton}
-                      >
-                          <span className="relative z-10 flex items-center gap-3">
-                            Start Generating (50 Free Credits) <ArrowRightIcon className="w-5 h-5"/>
-                          </span>
-                          <div className={styles.buttonGlow}></div>
-                      </button>
-                      <button 
-                          onClick={() => navigateTo('home', undefined, 'roi')}
-                          className={styles.secondaryButton}
-                      >
-                          View Case Studies
-                      </button>
-                  </div>
+            {/* VISUAL SHOWREEL: THE PROOF */}
+            <div id="showreel" className={styles.showreelGrid}>
+                {SHOWREEL_IMAGES.map((img, i) => (
+                    <div key={i} className={styles.showreelItem} style={{ animationDelay: `${i * 100}ms` }}>
+                        <img src={img.url} className="w-full h-full object-cover" alt={img.label} />
+                        <div className={styles.showreelLabel}>{img.label}</div>
+                    </div>
+                ))}
+            </div>
+        </section>
 
-                  {/* PROOF VISUAL: Split Screen Mock */}
-                  <div className={styles.comparisonWrapper}>
-                      <div className={styles.comparisonBox}>
-                          <div className={styles.comparisonLabelLeft}>Raw Smartphone Asset</div>
-                          <div className={styles.comparisonLabelRight}>Pixa Ad Production</div>
-                          
-                          {/* Image Placeholder Layer */}
-                          <div className="flex h-full w-full">
-                              <div className="flex-1 bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center grayscale border-r border-slate-100 relative">
-                                  <div className="absolute inset-0 bg-white/20"></div>
-                              </div>
-                              <div className="flex-1 bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center relative text-white">
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                                  <div className="absolute bottom-8 left-8 text-left">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300 mb-1">Pixa AI Engine</p>
-                                      <p className="text-xl font-black leading-none">NIKE AIR MAX • SERIES 2025</p>
-                                  </div>
-                              </div>
-                          </div>
-                          
-                          {/* Slider Handle (Visual only) */}
-                          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-slate-300 z-30">
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full border border-slate-200 shadow-2xl flex items-center justify-center">
-                                  <div className="flex gap-1">
-                                      <div className="w-1 h-3 bg-slate-900 rounded-full"></div>
-                                      <div className="w-1 h-3 bg-slate-900 rounded-full"></div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </section>
+        {/* COMPARISON: THE ROI ENGINE */}
+        <section className={styles.sectionPadding}>
+            <div className={styles.contentWrapper}>
+                <div className="text-center mb-20">
+                    <h2 className={styles.sectionTitle}>Kill the Overhead.</h2>
+                    <p className={styles.sectionSubtitle}>Why wait for designers to finish their morning coffee when Pixa is already rendering your campaign?</p>
+                </div>
 
-          {/* ROI SECTION (BENTO GRID - Preserved Dark Boxes for expensive look) */}
-          <section id="roi" className={styles.sectionPadding}>
-              <div className={styles.contentWrapper}>
-                  <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-16 px-4">
-                      <div>
-                          <h2 className={styles.sectionTitle}>Kill the Overhead.</h2>
-                          <p className={styles.sectionSubtitle}>Why wait for designers to finish their morning coffee when Pixa is already rendering your campaign?</p>
-                      </div>
-                      <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          <span>Trusted by 5,000+ Founders</span>
-                          <div className="flex -space-x-2">
-                              {[1,2,3,4].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-[#F8F9FB] bg-slate-200 shadow-sm"></div>)}
-                          </div>
-                      </div>
-                  </div>
+                <div className={styles.comparisonTable}>
+                    <div className={styles.compRow}>
+                        <div className={styles.compCell + " border-r border-slate-100"}>
+                            <span className={styles.compHeader}>Standard Design Firm</span>
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-end border-b border-slate-100 pb-3">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Wait Time</p>
+                                    <p className="text-lg font-black text-rose-500">48-72 Hours</p>
+                                </div>
+                                <div className="flex justify-between items-end border-b border-slate-100 pb-3">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost Per Asset</p>
+                                    <p className="text-lg font-black text-rose-500">₹2,500+</p>
+                                </div>
+                                <div className="flex justify-between items-end">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Process</p>
+                                    <p className="text-sm font-bold text-slate-600">Manual Emails</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={styles.compCell + " bg-indigo-50/20"}>
+                            <span className={styles.compHeader + " text-indigo-600"}>Pixa Agency Suite</span>
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-end border-b border-indigo-100/50 pb-3">
+                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Wait Time</p>
+                                    <p className="text-xl font-black text-indigo-600">10 Seconds</p>
+                                </div>
+                                <div className="flex justify-between items-end border-b border-indigo-100/50 pb-3">
+                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Cost Per Asset</p>
+                                    <p className="text-xl font-black text-indigo-600">₹10</p>
+                                </div>
+                                <div className="flex justify-between items-end">
+                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Process</p>
+                                    <p className="text-sm font-bold text-indigo-900 flex items-center gap-1"><LightningIcon className="w-3 h-3"/> One-Click Production</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-                  <div className={styles.bentoGrid}>
-                      <div className={styles.bentoMain}>
-                          <h3 className="text-3xl font-black mb-4">Prompt-less Performance</h3>
-                          <p className="text-gray-400 max-w-sm mb-12">No need to learn complex AI syntax. Pixa understands business context and industry standards automatically.</p>
-                          
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                              <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                                  <p className="text-4xl font-black text-white mb-1">10s</p>
-                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Delivery Time</p>
-                              </div>
-                              <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                                  <p className="text-4xl font-black text-white mb-1">₹10</p>
-                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Cost Per Asset</p>
-                              </div>
-                              <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                                  <p className="text-4xl font-black text-white mb-1">8K</p>
-                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Raw Resolution</p>
-                              </div>
-                          </div>
-                          
-                          <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700"></div>
-                      </div>
+        {/* BENTO DEPARTMENTS: THE CAPABILITIES */}
+        <section className={styles.sectionPadding}>
+            <div className={styles.contentWrapper}>
+                <div className="text-center mb-24">
+                    <h2 className={styles.sectionTitle}>Everything In-House.</h2>
+                    <p className={styles.sectionSubtitle}>A full suite of creative departments, integrated with your Brand Kit.</p>
+                </div>
 
-                      <div className={styles.bentoSide}>
-                          <div>
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-4">Strategic Advantage</p>
-                              <h3 className="text-2xl font-black text-white leading-tight mb-6">Replace your <br/> ₹50k Retainer.</h3>
-                          </div>
-                          <button 
-                            onClick={() => auth.openAuthModal()}
-                            className="w-full py-4 bg-white text-indigo-600 rounded-2xl font-black text-sm hover:bg-gray-100 transition-all shadow-xl"
-                          >
-                              Start Saving Today
-                          </button>
-                          <div className="absolute top-0 right-0 p-8 opacity-10">
-                              <ChartBarIcon className="w-32 h-32 text-white" />
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </section>
+                <div className={styles.bentoGrid}>
+                    {DEPARTMENTS.map((dept, i) => (
+                        <div key={i} className={`${dept.colSpan} ${styles.glassCard} p-10`}>
+                            <div className={styles.deptHeader}>
+                                <div className={styles.deptIcon}>{dept.icon}</div>
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{dept.title}</h3>
+                            </div>
+                            
+                            <div className={styles.featureList}>
+                                {dept.features.map(f => (
+                                    <button 
+                                        key={f.id}
+                                        onClick={() => navigateTo('dashboard', f.id as View)}
+                                        className={styles.featureItem}
+                                    >
+                                        <div className="text-left">
+                                            <p className={styles.featureName}>{f.name}</p>
+                                            <p className={styles.featureDesc}>{f.desc}</p>
+                                        </div>
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-50 opacity-0 group-hover/item:opacity-100 transition-all">
+                                            <ArrowRightIcon className="w-4 h-4 text-indigo-600" />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
 
-          {/* DEPARTMENTS SECTION (Dark boxes on light textured background) */}
-          <section className={styles.sectionPadding}>
-              <div className="absolute inset-0 bg-slate-100/50 border-y border-slate-200"></div>
-              <div className={styles.contentWrapper + " relative"}>
-                  <div className="text-center mb-24">
-                      <h2 className={styles.sectionTitle}>The Full Agency Suite</h2>
-                      <p className={styles.sectionSubtitle}>Everything your marketing team needs, built on the Gemini architecture.</p>
-                  </div>
+        {/* PERSOANAS: BUILT FOR THE SHAKERS */}
+        <section className={styles.sectionPadding}>
+            <div className={styles.contentWrapper}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        { title: "Founders", hook: "Go to Market in Hours.", desc: "Save ₹50,000+ on design retainers. Launch with world-class visuals from raw prototype photos.", icon: <LightningIcon className="w-6 h-6"/> },
+                        { title: "Agencies", hook: "Output at Scale.", desc: "White-label quality for a fraction of the cost. Handle 5x more clients without hiring more staff.", icon: <BuildingIcon className="w-6 h-6"/> },
+                        { title: "Freelancers", hook: "Capacity Unlocked.", desc: "Automate the tedious 48-hour design cycle. Focus on strategy, not clicking pen tools.", icon: <UserIcon className="w-6 h-6"/> }
+                    ].map((p, i) => (
+                        <div key={i} className={styles.glassCard + " p-12 text-center"}>
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-8 mx-auto shadow-inner text-slate-400 group-hover:text-indigo-600 transition-colors">
+                                {p.icon}
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">{p.title}</h3>
+                            <p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest mb-6">{p.hook}</p>
+                            <p className="text-sm text-slate-500 leading-relaxed font-medium">{p.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
 
-                  <div className={styles.deptGrid}>
-                      {DEPARTMENTS.map((dept, i) => (
-                          <div key={i} className={styles.deptCard}>
-                              <div className={styles.deptIcon}>
-                                  {dept.icon}
-                              </div>
-                              <h3 className="text-2xl font-black mb-6 tracking-tight">{dept.title}</h3>
-                              <div className="space-y-3">
-                                  {dept.features.map(f => (
-                                      <button 
-                                          key={f.id}
-                                          onClick={() => navigateTo('dashboard', f.id as View)}
-                                          className={styles.featureItem}
-                                      >
-                                          <div className="text-left">
-                                              <p className={styles.featureName}>{f.name}</p>
-                                              <p className={styles.featureDesc}>{f.desc}</p>
-                                          </div>
-                                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 opacity-0 group-hover/item:opacity-100 transition-all">
-                                            <ArrowRightIcon className="w-3 h-3 text-white" />
-                                          </div>
-                                      </button>
-                                  ))}
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-          </section>
+        {/* FINAL CTA: THE CALL TO SCALE */}
+        <section className="py-48 px-4 text-center relative overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-full bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="max-w-3xl mx-auto relative z-10">
+                <h2 className="text-5xl md:text-[84px] font-black mb-12 tracking-tighter text-slate-950 leading-[0.9]">
+                    Fire your <br/> designer.
+                </h2>
+                <button 
+                    onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
+                    className={styles.primaryButton}
+                >
+                    <span className="relative z-10 flex items-center gap-3 font-black">
+                      Join 5,000+ High-Growth Teams <ArrowRightIcon className="w-5 h-5"/>
+                    </span>
+                    <div className={styles.buttonGlow}></div>
+                </button>
+                <p className="mt-10 text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">No Retainers • No Contracts • No Prompts</p>
+            </div>
+        </section>
 
-          {/* PERSONAS SECTION (Light cards) */}
-          <section className={styles.sectionPadding}>
-              <div className={styles.contentWrapper}>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      {PERSONAS.map((p, i) => (
-                          <div key={i} className={styles.personaCard}>
-                              <div className={styles.personaIcon}>
-                                  {p.icon}
-                              </div>
-                              <h3 className="text-2xl font-black mb-2 text-slate-900">{p.title}</h3>
-                              <p className="text-indigo-600 font-bold text-xs uppercase tracking-widest mb-6">{p.hook}</p>
-                              <p className="text-slate-500 font-medium text-sm leading-relaxed">{p.desc}</p>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-          </section>
-
-          {/* FINAL CALL TO ACTION */}
-          <section className="py-48 px-4 text-center relative overflow-hidden bg-white">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-indigo-500/5 rounded-full blur-[120px] -z-10"></div>
-              <div className="max-w-3xl mx-auto">
-                  <h2 className="text-4xl md:text-7xl font-black mb-12 tracking-tighter text-slate-900">Ready to fire <br/> your designer?</h2>
-                  <button 
-                      onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                      className={styles.primaryButton}
-                  >
-                      <span className="relative z-10 flex items-center gap-3">
-                        Join 5,000+ Teams <ArrowRightIcon className="w-5 h-5"/>
-                      </span>
-                      <div className={styles.buttonGlow}></div>
-                  </button>
-                  <p className="mt-8 text-slate-400 font-bold text-xs uppercase tracking-[0.3em]">No Retainers • No Contracts • No Prompts</p>
-              </div>
-          </section>
-
-        </main>
-        
-        <Footer navigateTo={navigateTo} />
-      </div>
-    </>
+      </main>
+      
+      <Footer navigateTo={navigateTo} />
+    </div>
   );
 };
 
