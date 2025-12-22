@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -204,7 +205,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     >
                         Start Creating for Free
                     </button>
-                    <p className="text-sm text-gray-500 mt-4">Get 10 free credits on sign up!</p>
+                    <p className="text-sm text-gray-500 mt-4">Get 50 free credits on sign up!</p>
                 </div>
             </div>
         </section>

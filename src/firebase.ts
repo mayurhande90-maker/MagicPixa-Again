@@ -1,3 +1,4 @@
+
 // ... existing imports
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -103,8 +104,8 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             name,
             email: email || '',
             avatar: initials, 
-            credits: 10,
-            totalCreditsAcquired: 10,
+            credits: 50,
+            totalCreditsAcquired: 50,
             lifetimeGenerations: 0, // Explicit initialization
             plan: 'Free',
             signUpDate: firebase.firestore.FieldValue.serverTimestamp() as any,
