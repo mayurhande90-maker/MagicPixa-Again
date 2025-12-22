@@ -87,7 +87,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                   
                   <h1 className={styles.heroTitle}>
                       Ship Commercial Art <br/>
-                      <span className="text-white/20">Without the Agency.</span>
+                      <span className="text-slate-300">Without the Agency.</span>
                   </h1>
                   
                   <p className={styles.heroSubtitle}>
@@ -121,24 +121,24 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                           
                           {/* Image Placeholder Layer */}
                           <div className="flex h-full w-full">
-                              <div className="flex-1 bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center grayscale border-r border-white/10 relative">
-                                  <div className="absolute inset-0 bg-black/40"></div>
+                              <div className="flex-1 bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center grayscale border-r border-slate-100 relative">
+                                  <div className="absolute inset-0 bg-white/20"></div>
                               </div>
-                              <div className="flex-1 bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center relative">
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                              <div className="flex-1 bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center relative text-white">
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                                   <div className="absolute bottom-8 left-8 text-left">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-1">Pixa AI Engine</p>
+                                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300 mb-1">Pixa AI Engine</p>
                                       <p className="text-xl font-black leading-none">NIKE AIR MAX • SERIES 2025</p>
                                   </div>
                               </div>
                           </div>
                           
                           {/* Slider Handle (Visual only) */}
-                          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-white/50 z-30">
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-2xl">
+                          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-slate-300 z-30">
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full border border-slate-200 shadow-2xl flex items-center justify-center">
                                   <div className="flex gap-1">
-                                      <div className="w-1 h-3 bg-gray-900 rounded-full"></div>
-                                      <div className="w-1 h-3 bg-gray-900 rounded-full"></div>
+                                      <div className="w-1 h-3 bg-slate-900 rounded-full"></div>
+                                      <div className="w-1 h-3 bg-slate-900 rounded-full"></div>
                                   </div>
                               </div>
                           </div>
@@ -147,7 +147,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
               </div>
           </section>
 
-          {/* ROI SECTION (BENTO GRID) */}
+          {/* ROI SECTION (BENTO GRID - Preserved Dark Boxes for expensive look) */}
           <section id="roi" className={styles.sectionPadding}>
               <div className={styles.contentWrapper}>
                   <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-16 px-4">
@@ -155,10 +155,10 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                           <h2 className={styles.sectionTitle}>Kill the Overhead.</h2>
                           <p className={styles.sectionSubtitle}>Why wait for designers to finish their morning coffee when Pixa is already rendering your campaign?</p>
                       </div>
-                      <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                      <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
                           <span>Trusted by 5,000+ Founders</span>
                           <div className="flex -space-x-2">
-                              {[1,2,3,4].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-[#0A0A0B] bg-gray-800"></div>)}
+                              {[1,2,3,4].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-[#F8F9FB] bg-slate-200 shadow-sm"></div>)}
                           </div>
                       </div>
                   </div>
@@ -205,9 +205,9 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
               </div>
           </section>
 
-          {/* DEPARTMENTS SECTION */}
+          {/* DEPARTMENTS SECTION (Dark boxes on light textured background) */}
           <section className={styles.sectionPadding}>
-              <div className="absolute inset-0 bg-[#141417]/30 border-y border-white/5"></div>
+              <div className="absolute inset-0 bg-slate-100/50 border-y border-slate-200"></div>
               <div className={styles.contentWrapper + " relative"}>
                   <div className="text-center mb-24">
                       <h2 className={styles.sectionTitle}>The Full Agency Suite</h2>
@@ -244,7 +244,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
               </div>
           </section>
 
-          {/* PERSONAS SECTION */}
+          {/* PERSONAS SECTION (Light cards) */}
           <section className={styles.sectionPadding}>
               <div className={styles.contentWrapper}>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -253,9 +253,9 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                               <div className={styles.personaIcon}>
                                   {p.icon}
                               </div>
-                              <h3 className="text-2xl font-black mb-2">{p.title}</h3>
-                              <p className="text-indigo-400 font-bold text-xs uppercase tracking-widest mb-6">{p.hook}</p>
-                              <p className="text-gray-500 font-medium text-sm leading-relaxed">{p.desc}</p>
+                              <h3 className="text-2xl font-black mb-2 text-slate-900">{p.title}</h3>
+                              <p className="text-indigo-600 font-bold text-xs uppercase tracking-widest mb-6">{p.hook}</p>
+                              <p className="text-slate-500 font-medium text-sm leading-relaxed">{p.desc}</p>
                           </div>
                       ))}
                   </div>
@@ -263,10 +263,10 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
           </section>
 
           {/* FINAL CALL TO ACTION */}
-          <section className="py-48 px-4 text-center relative overflow-hidden">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-indigo-500/10 rounded-full blur-[120px] -z-10"></div>
+          <section className="py-48 px-4 text-center relative overflow-hidden bg-white">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-indigo-500/5 rounded-full blur-[120px] -z-10"></div>
               <div className="max-w-3xl mx-auto">
-                  <h2 className="text-4xl md:text-7xl font-black mb-12 tracking-tighter">Ready to fire <br/> your designer?</h2>
+                  <h2 className="text-4xl md:text-7xl font-black mb-12 tracking-tighter text-slate-900">Ready to fire <br/> your designer?</h2>
                   <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
                       className={styles.primaryButton}
@@ -276,7 +276,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                       </span>
                       <div className={styles.buttonGlow}></div>
                   </button>
-                  <p className="mt-8 text-gray-500 font-bold text-xs uppercase tracking-[0.3em]">No Retainers • No Contracts • No Prompts</p>
+                  <p className="mt-8 text-slate-400 font-bold text-xs uppercase tracking-[0.3em]">No Retainers • No Contracts • No Prompts</p>
               </div>
           </section>
 
