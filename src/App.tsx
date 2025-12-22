@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
+import ProfessionalHome from './ProfessionalHome'; // New Staging Home
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import AuthModal from './components/AuthModal';
@@ -73,6 +75,13 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [currentView, setCurrentView] = useState<View>('home_dashboard'); // Default view
   
+  // STAGING MODE: Toggle between standard and professional home
+  // Accessible via ?staging=true in URL
+  const [isStagingMode, setIsStagingMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('staging') === 'true';
+  });
+
   // User State
   const [user, setUser] = useState<User | null>(null); // The logged-in user
   const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // Admin impersonation target
@@ -290,11 +299,19 @@ function App() {
       )}
 
       {currentPage === 'home' && (
-        <HomePage 
-            navigateTo={navigateTo} 
-            auth={authProps} 
-            appConfig={appConfig}
-        />
+        isStagingMode ? (
+          <ProfessionalHome 
+              navigateTo={navigateTo} 
+              auth={authProps} 
+              appConfig={appConfig}
+          />
+        ) : (
+          <HomePage 
+              navigateTo={navigateTo} 
+              auth={authProps} 
+              appConfig={appConfig}
+          />
+        )
       )}
 
       {currentPage === 'about' && (
