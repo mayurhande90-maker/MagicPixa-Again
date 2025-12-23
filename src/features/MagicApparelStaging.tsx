@@ -269,7 +269,23 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
                         <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${!isLiveMode && !personImage ? 'opacity-40 pointer-events-none select-none filter grayscale-[0.3]' : ''}`}>
-                            <div><div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>2</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label></div><div className="grid grid-cols-2 gap-4"><CompactUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-44" /><CompactUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-44" /></div></div>
+                            <div>
+                                <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>2</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CompactUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-44" />
+                                    <CompactUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-44" />
+                                </div>
+                                <div className="mt-4 px-1 space-y-1.5 animate-fadeIn">
+                                    <p className="text-[10px] text-gray-400 font-medium leading-tight flex items-start gap-2">
+                                        <span className="w-1 h-1 bg-indigo-300 rounded-full mt-1.5 shrink-0"></span>
+                                        Upload at least one garment to proceed.
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 font-medium leading-tight flex items-start gap-2">
+                                        <span className="w-1 h-1 bg-indigo-300 rounded-full mt-1.5 shrink-0"></span>
+                                        To transfer a full outfit, upload the same image to both slots.
+                                    </p>
+                                </div>
+                            </div>
                             <div className="border-t border-gray-100 pt-6 space-y-4">
                                 <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4">
                                     <span className={ApparelStyles.stepBadge}>3</span>
