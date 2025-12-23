@@ -24,7 +24,8 @@ import {
     CreativeDirectorIcon,
     MedicalProIcon,
     LegalFinanceIcon,
-    RealtorSalesIcon
+    RealtorSalesIcon,
+    LocationIcon
 } from '../components/icons/headshotIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
@@ -284,7 +285,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
                                 {/* 3. Background Selector */}
                                 <div>
-                                    <div className="flex items-center gap-2 mb-3 px-1"><BuildingIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Location</label></div>
+                                    <div className="flex items-center gap-2 mb-3 px-1"><LocationIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Location</label></div>
                                     <div className="flex flex-wrap gap-2">
                                         {BACKGROUNDS.map((bg) => (
                                             <button 
