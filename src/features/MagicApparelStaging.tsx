@@ -31,6 +31,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
     const [accessories, setAccessories] = useState('');
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
@@ -48,6 +49,20 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        let interval: any;
+        if (loading) {
+            const steps = ["Scanning model biometrics...", "Analyzing garment texture...", "Simulating fabric drape...", "Aligning seams & shadows...", "Finalizing fashion render..."];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 2000);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
 
     // --- CAMERA HANDLERS ---
     
@@ -170,7 +185,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">Tailoring Fit...</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
                         )}
 
@@ -263,12 +278,13 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                             .animate-flash { animation: flash 0.3s ease-out forwards; }
                             @keyframes ghost-shimmer { 0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.2)); } 50% { transform: translateY(-5px) scale(1.02); filter: drop-shadow(0 0 25px rgba(79, 70, 229, 0.5)); } }
                             .animate-ghost-shimmer { animation: ghost-shimmer 3s ease-in-out infinite; }
+                            @keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }
                         `}</style>
                     </div>
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${!isLiveMode && !personImage ? 'opacity-40 pointer-events-none select-none filter grayscale-[0.3]' : ''}`}>
+                        <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${(!isLiveMode && !personImage) || loading ? 'opacity-40 pointer-events-none select-none filter grayscale-[0.3]' : ''}`}>
                             <div>
                                 <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>2</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Garments</label></div>
                                 <div className="grid grid-cols-2 gap-4">
