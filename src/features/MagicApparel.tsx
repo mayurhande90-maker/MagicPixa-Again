@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon } from '../components/icons';
-import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -15,7 +16,7 @@ import { ApparelStyles } from '../styles/features/MagicApparel.styles';
 const CompactUpload: React.FC<{ label: string; subLabel?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, subLabel, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
-        <div className={ApparelStyles.compactUpload}><div className="flex justify-between items-baseline mb-2 ml-1"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>{subLabel && <span className="text-[10px] text-gray-400 font-medium">{subLabel}</span>}</div>{image ? (<div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}><img src={image.url} className="max-w-full max-h-full object-contain" alt={label} /><button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"><XIcon className="w-4 h-4"/></button></div>) : (<div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}><div className="p-3 bg-white rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">{icon}</div><p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p><p className="text-[9px] text-gray-300 mt-1">Best: Flat lay / White BG</p></div>)}<input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} /></div>
+        <div className={ApparelStyles.compactUpload}><div className="flex justify-between items-baseline mb-2 ml-1"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</label>{subLabel && <span className="text-[10px] text-gray-400 font-medium">{subLabel}</span>}</div>{image ? (<div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-all`}><img src={image.url} className="max-w-full max-h-full object-contain" alt={label} /><button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"><XIcon className="w-4 h-4"/></button></div>) : (<div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}><div className="p-3 bg-white rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">{icon}</div><p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p><p className="text-[9px] text-gray-300 mt-1">Best: Flat lay / White BG</p></div>)}<input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} /></div>
     );
 };
 
@@ -26,6 +27,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [tuck, setTuck] = useState('');
     const [sleeve, setSleeve] = useState('');
     const [fit, setFit] = useState('');
+    const [accessories, setAccessories] = useState('');
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
@@ -50,7 +52,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const handleGenerate = async () => {
         if (!personImage || !auth.user) return; if (!topGarment && !bottomGarment) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
-        try { const res = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, topGarment ? topGarment.base64 : null, bottomGarment ? bottomGarment.base64 : null, undefined, { tuck, sleeve, fit }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+        try { const res = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, topGarment ? topGarment.base64 : null, bottomGarment ? bottomGarment.base64 : null, undefined, { tuck, sleeve, fit, accessories }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
 
     const handleClaimBonus = async () => {
@@ -60,7 +62,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Virtual Try-On", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck(''); setSleeve(''); setFit(''); };
+    const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck(''); setSleeve(''); setFit(''); setAccessories(''); };
     
     const handleEditorSave = async (newUrl: string) => { 
         setResultImage(newUrl); 
@@ -112,7 +114,29 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                             
                             </div>
-                            <div className="border-t border-gray-100 pt-6 space-y-4"><div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4"><span className={ApparelStyles.stepBadge}>3</span><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling Preferences</label></div><SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In']} value={tuck} onChange={setTuck} /><SelectionGrid label="Sleeve" options={['Long', 'Rolled Up']} value={sleeve} onChange={setSleeve} /><SelectionGrid label="Fit" options={['Regular', 'Slim Fit', 'Oversized']} value={fit} onChange={setFit} /></div>
+                            <div className="border-t border-gray-100 pt-6 space-y-4">
+                                <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4">
+                                    <span className={ApparelStyles.stepBadge}>3</span>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling Preferences</label>
+                                </div>
+                                <SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In']} value={tuck} onChange={setTuck} />
+                                <SelectionGrid label="Sleeve" options={['Long', 'Rolled Up']} value={sleeve} onChange={setSleeve} />
+                                <SelectionGrid label="Fit" options={['Regular', 'Slim Fit', 'Oversized']} value={fit} onChange={setFit} />
+                                
+                                <div className="relative pt-2">
+                                    <InputField 
+                                        label="Accessories & Additional Styling (Optional)" 
+                                        placeholder="e.g. wearing a gold watch, holding a black leather bag, add sunglasses" 
+                                        value={accessories} 
+                                        onChange={(e: any) => setAccessories(e.target.value)} 
+                                    />
+                                    <div className="flex items-center gap-1.5 absolute top-2 right-1">
+                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Smart Stylist Active</span>
+                                    </div>
+                                    <p className="text-[9px] text-gray-400 px-1 -mt-4 italic">Pixa will intelligently anchor these items to your model.</p>
+                                </div>
+                            </div>
                         </div>
                     )
                 }

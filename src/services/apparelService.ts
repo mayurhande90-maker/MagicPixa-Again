@@ -1,3 +1,4 @@
+
 import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -7,6 +8,7 @@ export interface ApparelStylingOptions {
     tuck?: string;
     fit?: string;
     sleeve?: string;
+    accessories?: string; // New field for text-based accessories
 }
 
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -56,11 +58,24 @@ export const generateApparelTryOn = async (
         if (optBottom) { parts.push({ text: "BOTTOM:" }, { inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } }); }
     }
 
+    let stylingDirectives = "";
     if (stylingOptions) {
-        let styleText = "STYLING: ";
-        if (stylingOptions.tuck) styleText += `${stylingOptions.tuck}. `;
-        if (stylingOptions.fit) styleText += `${stylingOptions.fit}. `;
-        parts.push({ text: styleText });
+        if (stylingOptions.tuck) stylingDirectives += `Fit Style: ${stylingOptions.tuck}. `;
+        if (stylingOptions.fit) stylingDirectives += `Fit Type: ${stylingOptions.fit}. `;
+        if (stylingOptions.sleeve) stylingDirectives += `Sleeve Style: ${stylingOptions.sleeve}. `;
+        
+        if (stylingOptions.accessories) {
+            stylingDirectives += `
+            *** ACCESSORIES PROTOCOL (HIGH PRIORITY) ***
+            - Add items: ${stylingOptions.accessories}
+            - Execution: Physically ground these items to the model. (e.g. If bag, place in hand. If watch, place on wrist). 
+            - Physics: Ensure contact shadows and lighting match the overall scene.
+            `;
+        }
+    }
+
+    if (stylingDirectives) {
+        parts.push({ text: stylingDirectives });
     }
 
     const response = await ai.models.generateContent({
