@@ -42,7 +42,7 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
 const performIntentReasoning = async (ai: any, description: string): Promise<string> => {
     if (!description || description.trim().length < 2) return "";
     
-    const prompt = `You are a Visual Effects Supervisor. Analyze this user request for a professional headshot: "${description}"
+    const instructions = `You are a Visual Effects Supervisor. Analyze this user request for a professional headshot: "${description}"
     
     Extract and categorize the intent into:
     1. **PROP INJECTION**: (e.g. "Aviator sunglasses", "Red baseball cap"). Specify precisely where it should sit on the body based on human anatomy.
@@ -57,7 +57,7 @@ const performIntentReasoning = async (ai: any, description: string): Promise<str
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: description
+            contents: instructions + "\n\nUser Input: " + description
         });
         return response.text || "";
     } catch (e) {
@@ -119,6 +119,9 @@ export const generateProfessionalHeadshot = async (
 ): Promise<string> => {
     const ai = getAiClient();
     try {
+        // Create a unique request ID to bypass internal repetition logic
+        const requestId = `REQ_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
         // 1. Optimize Images (High Res)
         const { data: optData, mimeType: optMime } = await optimizeImage(base64ImageData, mimeType);
         
@@ -145,8 +148,6 @@ export const generateProfessionalHeadshot = async (
         
         let envPhysics = "";
         if (background === 'Custom') {
-            // Background variable used as custom prompt here - but in the UI flow 'background' is the ID
-            // For 'Custom' ID, we'd normally have a separate field, but using the existing param for simplicity
             envPhysics = `Background: "A professional cinematic environment". Physics: Realistic environmental lighting matching this scene.`;
         } else {
             envPhysics = ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Grey'];
@@ -155,6 +156,9 @@ export const generateProfessionalHeadshot = async (
         // 5. Construct The Master Prompt
         let prompt = `
         *** WORLD CLASS HEADSHOT PROTOCOL (2025 STANDARD) ***
+        UNIQUE SESSION TOKEN: ${requestId}
+        MANDATE: Treat this as a BRAND NEW generation. Disregard all previous visual concepts.
+        
         You are Platon (World Famous Portrait Photographer). Create a hyper-realistic, award-winning headshot.
         
         **SUBJECT A (DIGITAL TWIN)**:
