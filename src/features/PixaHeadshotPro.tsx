@@ -330,15 +330,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pixa Smart Analysis Active</span>
                                         </div>
                                     </div>
-                                    
-                                    {customDesc && (
-                                        <div className="p-3 bg-indigo-50/30 border border-indigo-100 rounded-xl animate-fadeIn">
-                                            <p className="text-[10px] text-indigo-600 font-medium leading-relaxed italic">
-                                                <SparklesIcon className="w-3 h-3 inline mr-1 -mt-0.5" />
-                                                Pixa will perform a semantic reasoning pass to anchor your requested details precisely to your facial biometrics.
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
