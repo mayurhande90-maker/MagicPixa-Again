@@ -4,7 +4,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon, ArrowRightIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, CampaignStudioIcon, LightningIcon, CubeIcon, GlobeIcon, ChartBarIcon
+  SparklesIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon, ArrowRightIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, CampaignStudioIcon, LightningIcon, CubeIcon, GlobeIcon, ChartBarIcon
 } from './components/icons';
 import { ProfessionalHomeStyles as styles } from './styles/ProfessionalHome.styles';
 
@@ -16,11 +16,11 @@ interface ProfessionalHomePageProps {
 
 const SHOWREEL_IMAGES = [
     { label: "Elite Product Shots", url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop" },
-    { label: "Pixa Headshot Pro", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" },
-    { label: "Lifestyle Commerce", url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop" },
-    { label: "Interior Engine", url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" },
-    { label: "High-End Mockups", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop" },
-    { label: "Photo Restoration", url: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?q=80&w=2070&auto=format&fit=crop" }
+    { label: "Executive Headshots", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" },
+    { label: "Commerce Lifestyle", url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop" },
+    { label: "Interior Spaces", url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" },
+    { label: "Physical Mockups", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop" },
+    { label: "Campaign Strategy", url: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?q=80&w=2070&auto=format&fit=crop" }
 ];
 
 const DEPARTMENTS = [
@@ -80,12 +80,12 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
             <div className={styles.heroContainer}>
                 <div className={styles.heroBadge}>
                     <SparklesIcon className="w-3 h-3 animate-pulse" />
-                    <span>The Design Department for High-Growth Brands</span>
+                    <span>Generative Creative Agency for Scale</span>
                 </div>
                 
                 <h1 className={styles.heroTitle}>
-                    Design at the Speed <br/>
-                    <span className="text-indigo-600">of Thought.</span>
+                    High-End Design <br/>
+                    <span className="text-indigo-600">at Infinite Scale.</span>
                 </h1>
                 
                 <p className={styles.heroSubtitle}>
@@ -99,7 +99,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                         className={styles.primaryButton}
                     >
                         <span className="relative z-10 flex items-center gap-3 font-black">
-                          Start Creating (50 Free Credits) <ArrowRightIcon className="w-5 h-5"/>
+                          Enter The Studio (50 Free Credits) <ArrowRightIcon className="w-5 h-5"/>
                         </span>
                         <div className={styles.buttonGlow}></div>
                     </button>
@@ -107,7 +107,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                         onClick={() => navigateTo('home', undefined, 'showreel')}
                         className={styles.secondaryButton}
                     >
-                        Explore Showreel
+                        View Showreel
                     </button>
                 </div>
             </div>
@@ -116,7 +116,7 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
             <div id="showreel" className={styles.showreelGrid}>
                 {SHOWREEL_IMAGES.map((img, i) => (
                     <div key={i} className={styles.showreelItem} style={{ animationDelay: `${i * 100}ms` }}>
-                        <img src={img.url} className="w-full h-full object-cover" alt={img.label} />
+                        <img src={img.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={img.label} />
                         <div className={styles.showreelLabel}>{img.label}</div>
                     </div>
                 ))}
@@ -127,43 +127,43 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
         <section className={styles.sectionPadding}>
             <div className={styles.contentWrapper}>
                 <div className="text-center mb-20">
-                    <h2 className={styles.sectionTitle}>Kill the Overhead.</h2>
-                    <p className={styles.sectionSubtitle}>Why wait for designers to finish their morning coffee when Pixa is already rendering your campaign?</p>
+                    <h2 className={styles.sectionTitle}>Commercial Audit.</h2>
+                    <p className={styles.sectionSubtitle}>Why wait for designers to finish their morning coffee when Pixa is already rendering your entire campaign?</p>
                 </div>
 
                 <div className={styles.comparisonTable}>
                     <div className={styles.compRow}>
                         <div className={styles.compCell + " border-r border-slate-100"}>
-                            <span className={styles.compHeader}>Standard Design Firm</span>
+                            <span className={styles.compHeader}>Old-School Agency</span>
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end border-b border-slate-100 pb-3">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Wait Time</p>
-                                    <p className="text-lg font-black text-rose-500">48-72 Hours</p>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Turnaround</p>
+                                    <p className="text-lg font-black text-rose-500 italic">48-72 Hours</p>
                                 </div>
                                 <div className="flex justify-between items-end border-b border-slate-100 pb-3">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost Per Asset</p>
-                                    <p className="text-lg font-black text-rose-500">₹2,500+</p>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost / Asset</p>
+                                    <p className="text-lg font-black text-rose-500 italic">₹2,500+</p>
                                 </div>
                                 <div className="flex justify-between items-end">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Process</p>
-                                    <p className="text-sm font-bold text-slate-600">Manual Emails</p>
+                                    <p className="text-sm font-bold text-slate-600">Manual Feedback Loops</p>
                                 </div>
                             </div>
                         </div>
                         <div className={styles.compCell + " bg-indigo-50/20"}>
-                            <span className={styles.compHeader + " text-indigo-600"}>Pixa Agency Suite</span>
+                            <span className={styles.compHeader + " text-indigo-600"}>Pixa Generative Engine</span>
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end border-b border-indigo-100/50 pb-3">
-                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Wait Time</p>
-                                    <p className="text-xl font-black text-indigo-600">10 Seconds</p>
+                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Turnaround</p>
+                                    <p className="text-xl font-black text-indigo-600 tracking-tighter">10 Seconds</p>
                                 </div>
                                 <div className="flex justify-between items-end border-b border-indigo-100/50 pb-3">
-                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Cost Per Asset</p>
-                                    <p className="text-xl font-black text-indigo-600">₹10</p>
+                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Cost / Asset</p>
+                                    <p className="text-xl font-black text-indigo-600 tracking-tighter">₹10</p>
                                 </div>
                                 <div className="flex justify-between items-end">
                                     <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Process</p>
-                                    <p className="text-sm font-bold text-indigo-900 flex items-center gap-1"><LightningIcon className="w-3 h-3"/> One-Click Production</p>
+                                    <p className="text-sm font-bold text-indigo-900 flex items-center gap-1"><LightningIcon className="w-3 h-3"/> 1-Click Production</p>
                                 </div>
                             </div>
                         </div>
@@ -176,8 +176,8 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
         <section className={styles.sectionPadding}>
             <div className={styles.contentWrapper}>
                 <div className="text-center mb-24">
-                    <h2 className={styles.sectionTitle}>Everything In-House.</h2>
-                    <p className={styles.sectionSubtitle}>A full suite of creative departments, integrated with your Brand Kit.</p>
+                    <h2 className={styles.sectionTitle}>Creative Departments.</h2>
+                    <p className={styles.sectionSubtitle}>A full-stack design department living inside your dashboard, optimized for 2025 performance standards.</p>
                 </div>
 
                 <div className={styles.bentoGrid}>
@@ -211,14 +211,14 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
             </div>
         </section>
 
-        {/* PERSOANAS: BUILT FOR THE SHAKERS */}
+        {/* PERSOANAS: BUILT FOR SHAKERS */}
         <section className={styles.sectionPadding}>
             <div className={styles.contentWrapper}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {[
-                        { title: "Founders", hook: "Go to Market in Hours.", desc: "Save ₹50,000+ on design retainers. Launch with world-class visuals from raw prototype photos.", icon: <LightningIcon className="w-6 h-6"/> },
-                        { title: "Agencies", hook: "Output at Scale.", desc: "White-label quality for a fraction of the cost. Handle 5x more clients without hiring more staff.", icon: <BuildingIcon className="w-6 h-6"/> },
-                        { title: "Freelancers", hook: "Capacity Unlocked.", desc: "Automate the tedious 48-hour design cycle. Focus on strategy, not clicking pen tools.", icon: <UserIcon className="w-6 h-6"/> }
+                        { title: "Founders", hook: "Time to Market.", desc: "Save ₹50,000+ on design retainers. Launch with world-class visuals from raw smartphone prototype photos.", icon: <LightningIcon className="w-6 h-6"/> },
+                        { title: "Agencies", hook: "Capacity Unlocked.", desc: "White-label quality for a fraction of the cost. Handle 5x more clients without hiring more creative staff.", icon: <BuildingIcon className="w-6 h-6"/> },
+                        { title: "Marketers", hook: "Performance First.", desc: "Automate the tedious 48-hour design cycle. Focus on strategy and ROAS, not clicking pen tools.", icon: <ChartBarIcon className="w-6 h-6"/> }
                     ].map((p, i) => (
                         <div key={i} className={styles.glassCard + " p-12 text-center"}>
                             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-8 mx-auto shadow-inner text-slate-400 group-hover:text-indigo-600 transition-colors">
@@ -238,18 +238,18 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-full bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="max-w-3xl mx-auto relative z-10">
                 <h2 className="text-5xl md:text-[84px] font-black mb-12 tracking-tighter text-slate-950 leading-[0.9]">
-                    Fire your <br/> designer.
+                    Upgrade your <br/> production.
                 </h2>
                 <button 
                     onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
                     className={styles.primaryButton}
                 >
                     <span className="relative z-10 flex items-center gap-3 font-black">
-                      Join 5,000+ High-Growth Teams <ArrowRightIcon className="w-5 h-5"/>
+                      Start Your Campaign Today <ArrowRightIcon className="w-5 h-5"/>
                     </span>
                     <div className={styles.buttonGlow}></div>
                 </button>
-                <p className="mt-10 text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">No Retainers • No Contracts • No Prompts</p>
+                <p className="mt-10 text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">No Retainers • No Contracts • Just Magic</p>
             </div>
         </section>
 
