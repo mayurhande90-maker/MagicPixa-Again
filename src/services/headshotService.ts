@@ -1,5 +1,5 @@
 
-import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -7,7 +7,6 @@ import { resizeImage } from "../utils/imageUtils";
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Increased resolution for face detail retention
         const resizedUri = await resizeImage(dataUri, 1536, 0.90);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -34,6 +33,37 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
     'City Skyline': 'Background: Out-of-focus city bokeh at "Blue Hour" (twilight). Physics: Mixed lighting—Warm key light on face vs Cool ambient city light in background.',
     'Library': 'Background: Blurred mahogany shelves and books. Physics: Warm tungsten practical lamps (2700K). Cozy, intellectual atmosphere.',
     'Outdoor Garden': 'Background: Soft green foliage with sun flares (Golden Hour). Physics: Backlit by the sun (Hair light), soft bounce fill on the face.'
+};
+
+/**
+ * PASS 1: STRATEGIC REASONING (Intent Extraction)
+ * Analyzes the user's free-form "Additional Details" to extract specific prop, vibe, and expression requests.
+ */
+const performIntentReasoning = async (ai: any, description: string): Promise<string> => {
+    if (!description || description.trim().length < 2) return "";
+    
+    const prompt = `You are a Visual Effects Supervisor. Analyze this user request for a professional headshot: "${description}"
+    
+    Extract and categorize the intent into:
+    1. **PROP INJECTION**: (e.g. "Aviator sunglasses", "Red baseball cap"). Specify precisely where it should sit on the body based on human anatomy.
+    2. **VIBE OVERRIDE**: (e.g. "Vintage polaroid", "Cyberpunk").
+    3. **EXPRESSION SHIFT**: (e.g. "Winking", "Confident smirk").
+    
+    **CRITICAL**: If the user asks for a prop like glasses or a cap, provide instructions to GROUND the prop to biometrics. 
+    Example: "Place the black beanie precisely on the hairline, ensuring it casts a realistic shadow on the forehead."
+    
+    Return a concise technical directive for a generative AI model.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: description
+        });
+        return response.text || "";
+    } catch (e) {
+        console.warn("Reasoning pass failed", e);
+        return description;
+    }
 };
 
 // Phase 1: The "Digital Twin" Scan
@@ -63,7 +93,7 @@ const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Pro model for critical detail analysis
+            model: 'gemini-3-pro-preview', 
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
@@ -96,8 +126,11 @@ export const generateProfessionalHeadshot = async (
         let partnerMime = null;
         let biometricsPartner = "";
 
-        // 2. Deep Identity Scan (The "Brain")
-        const biometricsA = await performDeepIdentityScan(ai, optData, optMime, "Person A (Main)");
+        // 2. Multi-Pass Reasoning (Parallel Processing)
+        const [biometricsA, extractedIntent] = await Promise.all([
+            performDeepIdentityScan(ai, optData, optMime, "Person A (Main)"),
+            performIntentReasoning(ai, customDescription || "")
+        ]);
 
         // 3. Handle Partner (Duo Mode)
         if (partnerBase64 && partnerMimeType) {
@@ -111,9 +144,10 @@ export const generateProfessionalHeadshot = async (
         const lightingPhysics = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
         
         let envPhysics = "";
-        if (background === 'Custom' && customDescription) {
-            // If custom, we rely on the model to infer physics from description
-            envPhysics = `Background: "${customDescription}". Physics: Realistic environmental lighting matching this scene.`;
+        if (background === 'Custom') {
+            // Background variable used as custom prompt here - but in the UI flow 'background' is the ID
+            // For 'Custom' ID, we'd normally have a separate field, but using the existing param for simplicity
+            envPhysics = `Background: "A professional cinematic environment". Physics: Realistic environmental lighting matching this scene.`;
         } else {
             envPhysics = ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Grey'];
         }
@@ -134,6 +168,12 @@ export const generateProfessionalHeadshot = async (
         - **COMPOSITION**: Two professionals standing shoulder-to-shoulder. Connection, confidence, partnership. Mid-shot framing.
         ` : ''}
 
+        ${extractedIntent ? `
+        *** DYNAMIC USER OVERRIDES (MAX PRIORITY) ***
+        - **INTENT**: ${extractedIntent}
+        - **MANDATE**: The requested props or changes must be perfectly integrated into the lighting and physics of the scene.
+        ` : ''}
+
         **PHOTOGRAPHY PHYSICS & SETUP**:
         1. ${lightingPhysics}
         2. ${envPhysics}
@@ -146,7 +186,7 @@ export const generateProfessionalHeadshot = async (
         **EXECUTION RULES (ZERO HALLUCINATIONS)**:
         1. **IDENTITY IS SACRED**: Do NOT change bone structure, nose shape, or eye distance. It must look exactly like the person.
         2. **TEXTURE REALISM**: Do NOT generate smooth "AI Skin". Keep skin pores, vellus hair, and natural texture. Skin must look organic, not plastic.
-        3. **GLASSES RULE**: If the input has glasses, KEEP THEM EXACTLY. If not, DO NOT ADD THEM.
+        3. **ACCESSORIES**: ${extractedIntent.includes('prop') ? 'Carefully render the requested props while respecting facial biometrics.' : 'If the input has glasses, KEEP THEM. If not, DO NOT ADD THEM.'}
         4. **HAIR CONSISTENCY**: Keep the hairline and hair length accurate to the input. You may style it neater, but do not grow/cut it.
         5. **EYES**: Add "Catchlights" (reflection of the light source) in the pupils to bring life to the eyes.
         

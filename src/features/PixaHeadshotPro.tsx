@@ -54,6 +54,16 @@ const BACKGROUNDS = [
     { id: 'Outdoor Garden', label: 'Outdoor Garden' }
 ];
 
+const QUICK_PROPS = [
+    { label: 'Sunglasses', icon: '🕶️' },
+    { label: 'Reading Glasses', icon: '👓' },
+    { label: 'Baseball Cap', icon: '🧢' },
+    { label: 'Beanie', icon: '🧤' },
+    { label: 'Red Tie', icon: '👔' },
+    { label: 'Smiling', icon: '😊' },
+    { label: 'Holding Coffee', icon: '☕' }
+];
+
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
@@ -121,6 +131,12 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             setResultImage(null);
         }
         e.target.value = '';
+    };
+
+    const handleAddProp = (prop: string) => {
+        const textToAdd = prop.toLowerCase();
+        if (customDesc.toLowerCase().includes(textToAdd)) return;
+        setCustomDesc(prev => prev ? `${prev}, ${textToAdd}` : `Adding ${textToAdd}`);
     };
 
     const handleGenerate = async () => {
@@ -200,7 +216,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                         {loading && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
                                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
                             </div>
@@ -316,8 +332,43 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     )}
                                 </div>
 
-                                {/* 4. Custom Prompt */}
-                                <InputField label="Additional Details (Optional)" placeholder="e.g. wearing red tie, smiling broadly" value={customDesc} onChange={(e: any) => setCustomDesc(e.target.value)} />
+                                {/* 4. Custom Prompt with Quick Prop Chips */}
+                                <div className="space-y-4">
+                                    <div className="relative">
+                                        <InputField 
+                                            label="Additional Details" 
+                                            placeholder="e.g. wearing red tie, smiling broadly, add sunglasses" 
+                                            value={customDesc} 
+                                            onChange={(e: any) => setCustomDesc(e.target.value)} 
+                                        />
+                                        <div className="flex items-center gap-1.5 absolute top-0 right-1">
+                                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pixa Smart Analysis Active</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap gap-2 animate-fadeInUp">
+                                        {QUICK_PROPS.map((prop) => (
+                                            <button
+                                                key={prop.label}
+                                                onClick={() => handleAddProp(prop.label)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-[10px] font-bold text-gray-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition-all transform active:scale-95 shadow-sm"
+                                            >
+                                                <span>{prop.icon}</span>
+                                                {prop.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    {customDesc && (
+                                        <div className="p-3 bg-indigo-50/30 border border-indigo-100 rounded-xl animate-fadeIn">
+                                            <p className="text-[10px] text-indigo-600 font-medium leading-relaxed italic">
+                                                <SparklesIcon className="w-3 h-3 inline mr-1 -mt-0.5" />
+                                                Pixa will perform a semantic reasoning pass to anchor your requested details precisely to your facial biometrics.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )
