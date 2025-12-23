@@ -54,16 +54,6 @@ const BACKGROUNDS = [
     { id: 'Outdoor Garden', label: 'Outdoor Garden' }
 ];
 
-const QUICK_PROPS = [
-    { label: 'Sunglasses', icon: '🕶️' },
-    { label: 'Reading Glasses', icon: '👓' },
-    { label: 'Baseball Cap', icon: '🧢' },
-    { label: 'Beanie', icon: '🧤' },
-    { label: 'Red Tie', icon: '👔' },
-    { label: 'Smiling', icon: '😊' },
-    { label: 'Holding Coffee', icon: '☕' }
-];
-
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
@@ -131,12 +121,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             setResultImage(null);
         }
         e.target.value = '';
-    };
-
-    const handleAddProp = (prop: string) => {
-        const textToAdd = prop.toLowerCase();
-        if (customDesc.toLowerCase().includes(textToAdd)) return;
-        setCustomDesc(prev => prev ? `${prev}, ${textToAdd}` : `Adding ${textToAdd}`);
     };
 
     const handleGenerate = async () => {
@@ -332,11 +316,11 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     )}
                                 </div>
 
-                                {/* 4. Custom Prompt with Quick Prop Chips */}
+                                {/* 4. Custom Prompt */}
                                 <div className="space-y-4">
                                     <div className="relative">
                                         <InputField 
-                                            label="Additional Details" 
+                                            label="Additional Details (Optional)" 
                                             placeholder="e.g. wearing red tie, smiling broadly, add sunglasses" 
                                             value={customDesc} 
                                             onChange={(e: any) => setCustomDesc(e.target.value)} 
@@ -345,19 +329,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                             <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
                                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pixa Smart Analysis Active</span>
                                         </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap gap-2 animate-fadeInUp">
-                                        {QUICK_PROPS.map((prop) => (
-                                            <button
-                                                key={prop.label}
-                                                onClick={() => handleAddProp(prop.label)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-[10px] font-bold text-gray-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition-all transform active:scale-95 shadow-sm"
-                                            >
-                                                <span>{prop.icon}</span>
-                                                {prop.label}
-                                            </button>
-                                        ))}
                                     </div>
                                     
                                     {customDesc && (
