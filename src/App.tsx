@@ -72,8 +72,22 @@ function App() {
   const [missingKeys] = useState<string[]>(getMissingConfigKeys());
   
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [currentView, setCurrentView] = useState<View>('home_dashboard'); // Default view
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') ? 'dashboard' : 'home';
+  });
+
+  // Deep Link & Staging View Initialization
+  const [currentView, setCurrentView] = useState<View>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view') as View;
+    // Simple whitelist check
+    const validViews: View[] = ['dashboard', 'studio', 'interior', 'creations', 'billing', 'colour', 'soul', 'apparel', 'mockup', 'profile', 'caption', 'home_dashboard', 'brand_kit', 'brand_stylist', 'admin', 'thumbnail_studio', 'daily_mission', 'magic_realty', 'brand_manager', 'support_center', 'headshot', 'campaign_studio', 'mockup_staging'];
+    if (viewParam && validViews.includes(viewParam)) {
+        return viewParam;
+    }
+    return 'home_dashboard'; 
+  });
   
   // STAGING MODE: Toggle between standard and professional home
   // Accessible via ?staging=true in URL
@@ -183,6 +197,13 @@ function App() {
     setCurrentPage(page);
     if (view) setCurrentView(view);
     
+    // Sync URL for staging deep links
+    const params = new URLSearchParams(window.location.search);
+    if (page === 'dashboard' && view) {
+        params.set('view', view);
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    }
+
     // Handle scrolling for home page sections
     if (page === 'home' && sectionId) {
         setTimeout(() => {

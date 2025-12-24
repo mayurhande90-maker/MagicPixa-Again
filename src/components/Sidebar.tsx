@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CalendarIcon, CampaignStudioIcon } from './icons';
+import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CalendarIcon, CampaignStudioIcon, SparklesIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -15,7 +15,7 @@ interface SidebarProps {
 }
 
 const NavButton: React.FC<{
-    item: { id: string; label: string; icon: React.FC<{ className?: string }>; disabled: boolean; badge?: string };
+    item: { id: string; label: string; icon: React.FC<{ className?: string }>; disabled: boolean; badge?: string; isStaging?: boolean };
     activeView: View;
     onClick: () => void;
 }> = ({ item, activeView, onClick }) => (
@@ -28,13 +28,15 @@ const NavButton: React.FC<{
                 ? 'bg-[#4D7CFF]/15 text-[#4D7CFF]'
                 : item.disabled
                 ? 'text-gray-400 cursor-not-allowed'
+                : item.isStaging 
+                ? 'text-indigo-600 hover:bg-indigo-50 hover:shadow-sm'
                 : 'text-[#5F6368] hover:bg-white hover:text-[#4D7CFF] hover:shadow-sm hover:translate-x-1'
         }`}
     >
         <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${activeView === item.id ? '' : 'group-hover:scale-110'}`} />
         <span className="truncate">{item.label}</span>
         {item.badge && (
-            <span className="ml-auto text-[9px] bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+            <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse ${item.isStaging ? 'bg-indigo-600 text-white' : 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'}`}>
                 {item.badge}
             </span>
         )}
@@ -49,6 +51,11 @@ const NavButton: React.FC<{
 
 const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveView, navigateTo, appConfig, openReferralModal }) => {
   const [isClaiming, setIsClaiming] = useState(false);
+  
+  const isStagingMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('staging') === 'true';
+  }, []);
 
   const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
@@ -56,6 +63,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
     { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, disabled: false, badge: 'NEW' },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
+    
+    // STAGING ONLY SECTION
+    ...(isStagingMode ? [
+        { type: 'divider', label: 'Staging Lab' },
+        { id: 'mockup_staging', label: 'PRO Mockup Lab', icon: SparklesIcon, disabled: false, badge: 'STAGING', isStaging: true }
+    ] : []),
+
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
@@ -84,6 +98,11 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
 
   const handleNavClick = (view: View) => {
     setActiveView(view);
+    
+    // Sync URL
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', view);
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   const hasClaimedToday = () => {

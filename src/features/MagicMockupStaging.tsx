@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-// FIX: Added missing icon imports DocumentTextIcon, BuildingIcon, and CloudUploadIcon
 import { 
     PixaMockupIcon, UploadIcon, XIcon, SparklesIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, 
     BrandKitIcon, HomeIcon, LightbulbIcon, MagicWandIcon, TrashIcon, UserIcon, ApparelIcon, 
@@ -18,7 +17,6 @@ import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MockupStagingStyles as styles } from '../styles/features/MagicMockupStaging.styles';
-import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
 // --- MOCK DATA FOR MATERIAL PREVIEWS ---
 const MATERIAL_PREVIEWS = [
@@ -128,7 +126,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
-            // Include placement in the prompt logic
             const placementText = PLACEMENT_PRESETS.find(p => p.id === placement)?.label || 'Center';
             const res = await generateMagicMockup(
                 designImage.base64.base64, 
@@ -164,7 +161,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
         setPlacement('chest');
     };
 
-    // FIX: Added missing handleEditorSave to handle Magic Editor results
     const handleEditorSave = async (newUrl: string) => { 
         setResultImage(newUrl); 
         if (lastCreationId && auth.user) {
@@ -173,6 +169,14 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
             const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Mockup Staging');
             setLastCreationId(id);
         }
+    };
+
+    // FIX: Defined handleDeductEditCredit to resolve ReferenceError
+    const handleDeductEditCredit = async () => { 
+        if(auth.user) { 
+            const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser (Mockup Editor)'); 
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
+        } 
     };
 
     const canGenerate = !!designImage && !!targetObject && !!material && !isLowCredits;
@@ -216,7 +220,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
 
                         {designImage ? (
                             <div className="relative w-full h-full flex items-center justify-center animate-fadeIn">
-                                {/* BACKGROUND BLURRED SILHOUETTE */}
                                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
                                     <MockupIcon className="w-[80%] h-[80%]" />
                                 </div>
@@ -224,7 +227,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                                 <div className="relative max-w-[80%] max-h-[80%] flex items-center justify-center">
                                     <img src={designImage.url} className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" alt="Uploaded Design" />
                                     
-                                    {/* INTERACTIVE PLACEMENT SYSTEM */}
                                     <div className={styles.silhouetteOverlay}>
                                         {PLACEMENT_PRESETS.map(p => (
                                             <button 
@@ -240,7 +242,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                                     </div>
                                 </div>
 
-                                {/* Identity Lock Indicator */}
                                 <div className="absolute top-6 left-6 z-40">
                                     <div className={styles.statusBadge}>
                                         <div className={styles.statusDot}></div>
@@ -265,7 +266,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 }
                 rightContent={
                     <div className={styles.container}>
-                        {/* MAGIC SUGGEST BUTTON */}
                         {designImage && !suggestions.length && (
                             <button 
                                 onClick={handleAutoSuggest}
@@ -277,7 +277,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                             </button>
                         )}
 
-                        {/* AI SUGGESTION FEED */}
                         {suggestions.length > 0 && (
                             <div className="animate-fadeIn mb-8">
                                 <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 block px-1">AI Recommendation (Blueprints)</label>
@@ -301,7 +300,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                             </div>
                         )}
 
-                        {/* 1. SELECT OBJECT BENTO */}
                         <div>
                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block px-1">1. Choose Product Silhouette</label>
                              <div className={styles.objectGrid}>
@@ -323,7 +321,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                              </div>
                         </div>
 
-                        {/* 2. MATERIAL VISUAL GALLERY */}
                         <div>
                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block px-1">2. Physic Material Selection</label>
                              <div className={styles.materialGrid}>
@@ -351,7 +348,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                              </div>
                         </div>
 
-                        {/* 3. SCENE SETTINGS */}
                         <div className="pt-4 border-t border-gray-100 space-y-6">
                             <SelectionGrid label="3. Environment Lighting" options={['Studio Clean', 'Lifestyle', 'Cinematic', 'Nature', 'Urban']} value={sceneVibe} onChange={setSceneVibe} />
                             
@@ -374,7 +370,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 }
             />
             
-            {/* SUCCESS MODAL */}
             {lastCreationId && resultImage && (
                 <ToastNotification message="Mockup engineered successfully! Saved to your lab." type="success" onClose={() => {}} />
             )}
@@ -384,7 +379,7 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                     imageUrl={resultImage} 
                     onClose={() => setShowMagicEditor(false)} 
                     onSave={handleEditorSave}
-                    deductCredit={async () => {}}
+                    deductCredit={handleDeductEditCredit}
                 />
             )}
 
