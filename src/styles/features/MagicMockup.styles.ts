@@ -1,15 +1,28 @@
 
 export const MockupStyles = {
-  // Color Swatches
-  colorGrid: "grid grid-cols-6 sm:grid-cols-8 gap-2.5 mb-4",
+  // Color Selection Container
+  colorGrid: "flex flex-wrap items-start gap-3 mb-4",
+  
+  // Base Item Wrapper (Swatch + Label)
+  colorItem: "flex flex-col items-center gap-1.5",
+  
+  // Swatch Buttons
   colorSwatch: "group relative w-8 h-8 rounded-xl border-2 transition-all duration-300 transform cursor-pointer overflow-hidden flex items-center justify-center shadow-sm",
   colorSwatchActive: "border-indigo-600 ring-4 ring-indigo-500/10 scale-110 z-10 shadow-lg",
-  colorSwatchInactive: "border-gray-100 hover:border-gray-300 hover:-translate-y-1",
+  colorSwatchInactive: "border-gray-100 hover:border-gray-300 hover:-translate-y-0.5",
   
-  // Custom Color Trigger
-  customColorBtn: "relative w-8 h-8 rounded-xl border-2 border-gray-100 bg-white flex flex-col items-center justify-center transition-all hover:border-indigo-300 hover:shadow-md hover:-translate-y-1 group active:scale-95 overflow-hidden",
+  // Custom Color Square
+  customColorBtn: "relative w-8 h-8 rounded-xl border-2 border-gray-100 bg-white flex flex-col items-center justify-center transition-all hover:border-indigo-300 hover:shadow-md group active:scale-95 overflow-hidden",
   customColorPreview: "w-full h-full shadow-inner transition-transform group-hover:scale-110",
-  customLabel: "absolute inset-0 flex items-center justify-center text-[7px] font-black text-white drop-shadow-md uppercase tracking-tighter pointer-events-none",
+  
+  // Labels
+  colorLabel: "text-[8px] font-bold text-gray-400 uppercase tracking-tighter transition-colors",
+  colorLabelActive: "text-indigo-600",
+  
+  // Hex Input Field
+  hexInputWrapper: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-500/5 transition-all w-32",
+  hexPrefix: "text-xs font-black text-gray-400",
+  hexField: "bg-transparent border-none p-0 text-xs font-mono font-bold text-gray-700 uppercase outline-none w-full",
   
   // Active Indicator
   checkIcon: "text-white drop-shadow-md animate-scaleIn w-3 h-3",
