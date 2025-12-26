@@ -27,30 +27,31 @@ import { ShieldCheckIcon } from './components/icons';
 // --- Routing Configuration ---
 
 const VIEW_TO_PATH: Record<string, string> = {
-    'home_dashboard': '/dashboard',
-    'dashboard': '/dashboard',
-    'studio': '/pixaproductshots',
-    'headshot': '/pixaheadshotpro',
-    'brand_kit': '/pixaecommercekit',
-    'brand_stylist': '/pixaadmaker',
-    'thumbnail_studio': '/pixathumbnailpro',
-    'soul': '/pixatogether',
-    'colour': '/pixaphotorestore',
-    'caption': '/pixacaptionpro',
-    'interior': '/pixainteriordesign',
-    'apparel': '/pixatryon',
-    'mockup': '/pixamockups',
-    'billing': '/billing',
-    'creations': '/mycreations',
-    'brand_manager': '/mybrandkit',
-    'support_center': '/helpandsupport',
-    'admin': '/admin',
-    'campaign_studio': '/campaignstudio',
-    'mockup_staging': '/mockupstaging',
+    'home_dashboard': '/Dashboard',
+    'dashboard': '/Dashboard',
+    'studio': '/PixaProductShots',
+    'headshot': '/PixaHeadshotPro',
+    'brand_kit': '/PixaEcommerceKit',
+    'brand_stylist': '/PixaAdMaker',
+    'thumbnail_studio': '/PixaThumbnailPro',
+    'soul': '/PixaTogether',
+    'colour': '/PixaPhotoRestore',
+    'caption': '/PixaCaptionPro',
+    'interior': '/PixaInteriorDesign',
+    'apparel': '/PixaTryOn',
+    'mockup': '/PixaMockups',
+    'billing': '/Billing',
+    'creations': '/MyCreations',
+    'brand_manager': '/MyBrandKit',
+    'support_center': '/HelpAndSupport',
+    'admin': '/Admin',
+    'campaign_studio': '/CampaignStudio',
+    'mockup_staging': '/MockupStaging',
 };
 
+// Create a case-insensitive map for detection
 const PATH_TO_VIEW: Record<string, View> = Object.entries(VIEW_TO_PATH).reduce((acc, [view, path]) => {
-    acc[path] = view as View;
+    acc[path.toLowerCase()] = view as View;
     return acc;
 }, {} as Record<string, View>);
 
@@ -101,11 +102,18 @@ function App() {
   // Config Validation
   const [missingKeys] = useState<string[]>(getMissingConfigKeys());
   
+  // Helper to get view from current path
+  const getViewFromPath = (path: string): View | null => {
+      return PATH_TO_VIEW[path.toLowerCase()] || null;
+  };
+
   // Navigation State
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     const path = window.location.pathname;
-    if (path === '/about') return 'about';
-    if (PATH_TO_VIEW[path]) return 'dashboard';
+    if (path.toLowerCase() === '/about') return 'about';
+    if (getViewFromPath(path)) return 'dashboard';
+    
+    // Check for legacy param but we will clean it up in the first effect
     const params = new URLSearchParams(window.location.search);
     return params.get('view') ? 'dashboard' : 'home';
   });
@@ -113,7 +121,8 @@ function App() {
   // Deep Link & Staging View Initialization
   const [currentView, setCurrentView] = useState<View>(() => {
     const path = window.location.pathname;
-    if (PATH_TO_VIEW[path]) return PATH_TO_VIEW[path];
+    const viewFromPath = getViewFromPath(path);
+    if (viewFromPath) return viewFromPath;
     
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') as View;
@@ -156,6 +165,18 @@ function App() {
   const activeUser = impersonatedUser || user;
 
   // --- Effects ---
+
+  // Cleanup Legacy URL params on load if they exist
+  useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('view')) {
+          const view = params.get('view') as View;
+          const cleanPath = VIEW_TO_PATH[view] || '/Dashboard';
+          params.delete('view');
+          const search = params.toString() ? `?${params.toString()}` : '';
+          window.history.replaceState({}, '', `${cleanPath}${search}`);
+      }
+  }, []);
 
   // 1. App Config Subscription
   useEffect(() => {
@@ -228,11 +249,14 @@ function App() {
 
       if (path === '/' || path === '/index.html') {
           setCurrentPage('home');
-      } else if (path === '/about') {
+      } else if (path.toLowerCase() === '/about') {
           setCurrentPage('about');
-      } else if (PATH_TO_VIEW[path]) {
-          setCurrentPage('dashboard');
-          setCurrentView(PATH_TO_VIEW[path]);
+      } else {
+          const view = getViewFromPath(path);
+          if (view) {
+              setCurrentPage('dashboard');
+              setCurrentView(view);
+          }
       }
     };
 
@@ -270,12 +294,15 @@ function App() {
     
     // Sync URL using Clean Paths
     let path = '/';
-    if (page === 'about') path = '/about';
+    if (page === 'about') path = '/About';
     else if (page === 'dashboard') {
-        path = VIEW_TO_PATH[view || currentView] || '/dashboard';
+        path = VIEW_TO_PATH[view || currentView] || '/Dashboard';
     }
 
     const params = new URLSearchParams(window.location.search);
+    // STALENESS PREVENTION: Explicitly delete the legacy ?view= param if it re-appears
+    params.delete('view'); 
+    
     const search = params.toString() ? `?${params.toString()}` : '';
     window.history.pushState({}, '', `${path}${search}`);
 
@@ -294,8 +321,11 @@ function App() {
 
   const handleSetActiveView = useCallback((view: View) => {
       setCurrentView(view);
-      const path = VIEW_TO_PATH[view] || '/dashboard';
+      const path = VIEW_TO_PATH[view] || '/Dashboard';
       const params = new URLSearchParams(window.location.search);
+      // STALENESS PREVENTION: Explicitly delete the legacy ?view= param if it re-appears
+      params.delete('view'); 
+      
       const search = params.toString() ? `?${params.toString()}` : '';
       window.history.pushState({}, '', `${path}${search}`);
   }, []);
