@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
-import { MockupIcon, UploadIcon, XIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, TrashIcon, PaletteIcon, ArrowUpCircleIcon, PixaMockupIcon } from '../components/icons';
+import { MockupIcon, UploadIcon, XIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, TrashIcon, PaletteIcon, ArrowUpCircleIcon, PixaMockupIcon, CheckIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -41,7 +42,17 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const objectOptions = ['T-Shirt', 'Hoodie', 'iPhone 15', 'MacBook', 'Coffee Mug', 'Water Bottle', 'Tote Bag', 'Notebook', 'Business Card', 'Packaging Box', 'Neon Sign', 'Wall Sign', 'Other / Custom'];
     const materialOptions = ['Standard Ink', 'Embroidery', 'Gold Foil', 'Silver Foil', 'Deboss', 'Emboss', 'Laser Etch', 'Smart Object'];
     const vibeOptions = ['Studio Clean', 'Lifestyle', 'Cinematic', 'Nature', 'Urban'];
-    const commonColors = [{ name: 'White', value: '#FFFFFF', border: 'border-gray-200' }, { name: 'Black', value: '#000000', border: 'border-transparent' }, { name: 'Navy', value: '#000080', border: 'border-transparent' }, { name: 'Red', value: '#FF0000', border: 'border-transparent' }, { name: 'Grey', value: '#808080', border: 'border-transparent' }, { name: 'Beige', value: '#F5F5DC', border: 'border-gray-200' },];
+    
+    // Premium Color Palette with meaningful naming
+    const premiumColors = [
+        { name: 'White', hex: '#FFFFFF', isLight: true },
+        { name: 'Black', hex: '#1A1A1E', isLight: false },
+        { name: 'Slate', hex: '#475569', isLight: false },
+        { name: 'Navy', hex: '#1E3A8A', isLight: false },
+        { name: 'Forest', hex: '#14532D', isLight: false },
+        { name: 'Burgundy', hex: '#7F1D1D', isLight: false },
+        { name: 'Cream', hex: '#F5F5DC', isLight: true },
+    ];
 
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa is mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
@@ -68,17 +79,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Mockup Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setDesignImage(null); setResultImage(null); setTargetObject(''); setCustomObject(''); setMaterial(''); setSceneVibe(''); setObjectColor(''); setLastCreationId(null); };
-    
-    const handleEditorSave = async (newUrl: string) => { 
-        setResultImage(newUrl); 
-        if (lastCreationId && auth.user) {
-            await updateCreation(auth.user.uid, lastCreationId, newUrl);
-        } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Mockups');
-            setLastCreationId(id);
-        }
-    };
-    
+    const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
     const canGenerate = !!designImage && !!finalTarget && !!material && !!sceneVibe && !isLowCredits;
@@ -118,15 +119,54 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             <div><div className="flex items-center justify-between mb-3 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Item</label></div><div className="flex flex-wrap gap-2">{objectOptions.map(opt => (<button key={opt} onClick={() => { setTargetObject(opt); if(opt !== 'Other / Custom') autoScroll(); }} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform active:scale-95 ${targetObject === opt ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'}`}>{opt}</button>))}</div>{targetObject === 'Other / Custom' && (<div className="mt-3 animate-fadeIn"><InputField placeholder="Describe object (e.g. Vintage Hat)" value={customObject} onChange={(e: any) => setCustomObject(e.target.value)} /></div>)}</div>
                             <SelectionGrid label="2. Material Physics" options={materialOptions} value={material} onChange={(val) => { setMaterial(val); autoScroll(); }} />
                             <SelectionGrid label="3. Scene Vibe" options={vibeOptions} value={sceneVibe} onChange={setSceneVibe} />
-                            <div>
-                                <div className="flex items-center justify-between mb-3 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">4. Object Color (Optional)</label></div>
-                                <div className="flex gap-3 items-center">
-                                    {commonColors.map(c => (<button key={c.name} onClick={() => setObjectColor(c.name)} className={`${MockupStyles.colorSwatch} ${objectColor === c.name ? MockupStyles.colorSwatchActive : 'hover:scale-110'} ${c.border}`} style={{ backgroundColor: c.value }} title={c.name}></button>))} 
-                                    {objectColor && !commonColors.find(c => c.name === objectColor) && <div className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">{objectColor}</div>}
-                                    <input type="color" ref={colorInputRef} className="hidden" onChange={(e) => setObjectColor(e.target.value)} />
-                                    <button onClick={() => colorInputRef.current?.click()} className={MockupStyles.customColorBtn} title="Custom Color"><PaletteIcon className="w-4 h-4"/></button>
-                                    {objectColor && <button onClick={() => setObjectColor('')} className="text-[10px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded ml-auto">Clear</button>}
+                            
+                            <div className="animate-fadeIn">
+                                <div className="flex items-center justify-between mb-4 ml-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">4. Object Coloration</label>
+                                    {objectColor && (
+                                        <button onClick={() => setObjectColor('')} className="text-[10px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors">
+                                            Reset
+                                        </button>
+                                    )}
                                 </div>
+                                <div className={MockupStyles.colorGrid}>
+                                    {premiumColors.map(c => {
+                                        const isSelected = objectColor === c.name || objectColor === c.hex;
+                                        return (
+                                            <button 
+                                                key={c.name} 
+                                                onClick={() => setObjectColor(c.name)} 
+                                                className={`${MockupStyles.colorSwatch} ${isSelected ? MockupStyles.colorSwatchActive : MockupStyles.colorSwatchInactive}`} 
+                                                style={{ backgroundColor: c.hex }} 
+                                                title={c.name}
+                                            >
+                                                {isSelected && (
+                                                    <CheckIcon className={c.isLight ? MockupStyles.checkIconDark : MockupStyles.checkIcon} />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                    
+                                    {/* Custom Color Button */}
+                                    <button 
+                                        onClick={() => colorInputRef.current?.click()} 
+                                        className={MockupStyles.customColorBtn}
+                                        title="Pick Custom Color"
+                                    >
+                                        <div 
+                                            className={MockupStyles.customColorPreview} 
+                                            style={{ backgroundColor: objectColor && !premiumColors.find(c => c.name === objectColor) ? objectColor : '#f3f4f6', backgroundImage: !objectColor || premiumColors.find(c => c.name === objectColor) ? 'linear-gradient(45deg, #f87171, #60a5fa, #34d399)' : 'none' }}
+                                        ></div>
+                                        <span className={MockupStyles.customLabel}>Custom</span>
+                                    </button>
+                                    <input type="color" ref={colorInputRef} className="hidden" value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} onChange={(e) => setObjectColor(e.target.value)} />
+                                </div>
+                                {objectColor && (
+                                    <div className="mt-2 px-1 flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Active:</span>
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">{objectColor}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )
