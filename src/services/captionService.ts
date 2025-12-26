@@ -5,8 +5,8 @@ import { BrandKit } from "../types";
 /**
  * Pixa Caption Pro - Advanced Social Media Copywriting Engine
  * 
- * This service implements the "Human-Touch Protocol" to generate captions that 
- * sound like real humans, optimized for viral reach and SEO.
+ * This service implements the "Human-Touch Protocol" and "First-Person Narrative"
+ * to generate captions that sound like real humans, optimized for viral reach.
  */
 export const generateCaptions = async (
   base64ImageData: string,
@@ -19,11 +19,11 @@ export const generateCaptions = async (
   try {
     let lengthConstraint = "";
     if (lengthType === 'SEO Friendly') {
-        lengthConstraint = "Structure: High-impact hook (first 5 words) + context + engagement trigger.";
+        lengthConstraint = "Structure: High-impact hook (first 5 words) + authentic commentary + engagement question.";
     } else if (lengthType === 'Long Caption') {
-        lengthConstraint = "Structure: Storytelling format. Start with a relatable thought/vulnerability and end with a value-add.";
+        lengthConstraint = "Structure: Storytelling format. Start with a relatable thought or a 'behind the scenes' confession.";
     } else if (lengthType === 'Short Caption') {
-        lengthConstraint = "Structure: Single punchy line or witty observation.";
+        lengthConstraint = "Structure: Single punchy line, witty observation, or a simple mood statement.";
     }
 
     const brandContext = brand ? `
@@ -33,19 +33,22 @@ export const generateCaptions = async (
     - Vibe: Align with the '${brand.industry}' aesthetic.
     ` : "";
 
-    const prompt = `You are Pixa, a Viral Content Creator and Social Media Strategist.
+    const prompt = `You are Pixa, a Viral Content Creator and authentic Social Media Storyteller.
     
-    *** THE HUMAN-TOUCH PROTOCOL (STRICT MANDATE) ***
-    1. **NO AI-SPEAK**: Absolutely FORBIDDEN to use words like "Delve", "Unleash", "Embark", "Tapestry", "Elevate", "Discover", "Captivating", or "In the realm of".
-    2. **DAILY LANGUAGE**: Use words people actually say to friends. Use natural contractions (can't, it's, don't).
-    3. **FIRST-LINE HOOKS**: The first 5 words MUST stop the scroll. No generic "Look at this..."
-    4. **ENGAGEMENT TRIGGERS**: Every caption must end with a natural question or a nudge to save/comment that doesn't feel forced.
-    5. **HUMOR/RELATABILITY**: Include one option that is a funny "shower thought" or a relatable "confession" about the subject.
+    *** THE DEEP ANALYSIS MANDATE ***
+    1. **VISUAL EMPATHY**: Look closely at the photo. What is the subject doing? If it's a kid in a mirror, talk about the dress, the 'pose' they are trying to nail, or the confidence in the reflection. 
+    2. **SPECIFICITY**: Mention specific details you see (e.g., "this blue floral print," "the messy hair vibe," "this lighting is doing everything").
+    3. **FIRST-PERSON POV**: Write at least 3 of the options in the FIRST PERSON (using "I," "me," "my"). Act as if you are the person in the photo or a very close friend posting for them.
 
-    *** STEP 1: REAL-TIME TREND RESEARCH (Use Google Search) ***
-    - Research what's currently viral on Instagram and TikTok for this image subject.
-    - Identify trending "Audio Vibes" or aesthetic keywords used by top creators in ${language} right now.
-    - Find the highest velocity SEO keywords for this specific subject to ensure organic reach.
+    *** THE HUMAN-TOUCH PROTOCOL (STRICT) ***
+    1. **NO AI-SPEAK**: Absolutely FORBIDDEN to use: "Delve", "Unleash", "Embark", "Tapestry", "Elevate", "Discover", "Captivating", "In the realm of", "Masterpiece", or "Testament".
+    2. **SIMPLE LANGUAGE**: Use words we use in day-to-day life. Use natural contractions (can't, it's, don't). Use lowercase for a 'chill' aesthetic where appropriate.
+    3. **AUTHENTICITY**: Don't be too perfect. Real people make typos (occasionally), use slang, and talk about their feelings/insecurities/excitement simply.
+    4. **ENGAGEMENT**: End with a natural question that people actually want to answer (e.g., "Rate the fit 1-10?" or "Is it just me or is mirror lighting better than sun?").
+
+    *** STEP 1: TREND & SEO RESEARCH (Use Google Search) ***
+    - Research current viral Instagram/TikTok hooks for this specific photo subject (e.g., "Mirror selfie hooks", "Outfit check captions").
+    - Find trending SEO keywords and hashtags in ${language} for 2025 reach.
 
     *** STEP 2: GENERATION ***
     ${brandContext}
@@ -54,10 +57,10 @@ export const generateCaptions = async (
     ${lengthConstraint}
 
     YOUR GOAL: Write 6 distinct, high-reach caption options. 
-    Make them feel human, slightly opinionated, and highly shareable.
+    At least 2 should be 'POV' style (Point of View).
 
     *** OUTPUT ARCHITECTURE ***
-    - Hashtags: 12-15 highly specific, high-reach hashtags in English only. 
+    - Hashtags: 12-15 specific, trending hashtags in English only. 
     - Formatting: Return strictly a JSON array of objects.
 
     \`\`\`json
@@ -68,11 +71,11 @@ export const generateCaptions = async (
     \`\`\``;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview', // Upgraded to Pro for complex cultural reasoning
+      model: 'gemini-3-pro-preview',
       contents: { parts: [{ inlineData: { data: base64ImageData, mimeType: mimeType } }, { text: prompt }] },
       config: { 
         tools: [{ googleSearch: {} }],
-        temperature: 0.8, // Slightly higher for more "human" creative variance
+        temperature: 0.9, // Higher temperature for more creative, human-like variance
       },
     });
 
@@ -88,8 +91,8 @@ export const generateCaptions = async (
     } catch (e) {
         console.error("Caption parsing error:", e);
         return [{ 
-            caption: "Captured this moment perfectly. ✨ What do you think of this vibe?", 
-            hashtags: "#photography #vibe #trending #contentcreator" 
+            caption: "Feeling this look today. ✨ What do you think?", 
+            hashtags: "#ootd #vibes #trending" 
         }];
     }
   } catch (error) { 
