@@ -92,7 +92,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
-                resultHeightClass="h-[800px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Render Reality" }} scrollRef={scrollRef}
+                resultHeightClass="h-[800px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Mockup" }} scrollRef={scrollRef}
                 leftContent={
                     designImage ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -122,7 +122,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             
                             <div className="animate-fadeIn">
                                 <div className="flex items-center justify-between mb-4 ml-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">4. Object Coloration</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">4. Object Colour</label>
                                     {objectColor && (
                                         <button onClick={() => setObjectColor('')} className="text-[10px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors">
                                             Reset
@@ -147,9 +147,8 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         );
                                     })}
                                     
-                                    {/* Custom Color Button */}
+                                    {/* Custom Color Button with embedded input for localized picker popup */}
                                     <button 
-                                        onClick={() => colorInputRef.current?.click()} 
                                         className={MockupStyles.customColorBtn}
                                         title="Pick Custom Color"
                                     >
@@ -158,8 +157,13 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             style={{ backgroundColor: objectColor && !premiumColors.find(c => c.name === objectColor) ? objectColor : '#f3f4f6', backgroundImage: !objectColor || premiumColors.find(c => c.name === objectColor) ? 'linear-gradient(45deg, #f87171, #60a5fa, #34d399)' : 'none' }}
                                         ></div>
                                         <span className={MockupStyles.customLabel}>Custom</span>
+                                        <input 
+                                            type="color" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                                            value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} 
+                                            onChange={(e) => setObjectColor(e.target.value)} 
+                                        />
                                     </button>
-                                    <input type="color" ref={colorInputRef} className="hidden" value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} onChange={(e) => setObjectColor(e.target.value)} />
                                 </div>
                                 {objectColor && (
                                     <div className="mt-2 px-1 flex items-center gap-2">
