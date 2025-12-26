@@ -82,6 +82,10 @@ export const analyzeMockupSuggestions = async (
     }
 };
 
+/**
+ * Generates a photorealistic mockup with optional design placement.
+ * Fix: Added 8th parameter 'placement' to resolve "Expected 5-7 arguments, but got 8" error in MagicMockup.tsx.
+ */
 export const generateMagicMockup = async (
     designBase64: string,
     designMime: string,
@@ -89,33 +93,39 @@ export const generateMagicMockup = async (
     material: string,
     sceneVibe: string,
     objectColor?: string,
-    brand?: BrandKit | null
+    brand?: BrandKit | null,
+    placement?: { ymin: number; xmin: number; ymax: number; xmax: number }
 ): Promise<string> => {
-    const ai = getAiClient();
-    try {
-        const { data, mimeType: optimizedMime } = await optimizeImage(designBase64, designMime);
-        const physics = MATERIAL_PHYSICS[material] || 'realistic texture';
-        const vibe = VIBE_SETTINGS[sceneVibe] || 'pro lighting';
-        
-        const brandDNA = brand ? `
-        *** BRAND MOCKUP RULES ***
-        Client: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Professional'}.
-        Visual Vibe: Align the environment with their '${brand.industry}' industry standards.
-        ` : "";
+  const ai = getAiClient();
+  try {
+    const { data, mimeType: optimizedMime } = await optimizeImage(designBase64, designMime);
+    const physics = MATERIAL_PHYSICS[material] || 'realistic texture';
+    const vibe = VIBE_SETTINGS[sceneVibe] || 'pro lighting';
+    
+    const brandDNA = brand ? `
+    *** BRAND MOCKUP RULES ***
+    Client: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Professional'}.
+    Visual Vibe: Align the environment with their '${brand.industry}' industry standards.
+    ` : "";
 
-        const prompt = `You are a Visualization Engine. ${brandDNA}
-        TASK: Generate photorealistic mockup of ${objectColor ? objectColor + ' ' : ''}${targetObject}.
-        STYLE: ${vibe}.
-        APPLICATION: Design using ${material} (${physics}). Wrap around object curvature.
-        OUTPUT: High-res single image.`;
+    // Incorporate placement into the prompt if provided
+    const placementDirective = placement 
+        ? `\nPLACEMENT: Center the design within the following normalized coordinates on the object: [ymin: ${placement.ymin}, xmin: ${placement.xmin}, ymax: ${placement.ymax}, xmax: ${placement.xmax}]. Ensure accurate perspective distortion.`
+        : "";
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
-            contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
-            config: { responseModalities: [Modality.IMAGE] },
-        });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("No image generated.");
-    } catch (error) { throw error; }
+    const prompt = `You are a Visualization Engine. ${brandDNA}
+    TASK: Generate photorealistic mockup of ${objectColor ? objectColor + ' ' : ''}${targetObject}.
+    STYLE: ${vibe}.
+    APPLICATION: Design using ${material} (${physics}). Wrap around object curvature.${placementDirective}
+    OUTPUT: High-res single image.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-image-preview',
+      contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
+      config: { responseModalities: [Modality.IMAGE] },
+    });
+    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    throw new Error("No image generated.");
+  } catch (error) { throw error; }
 };
