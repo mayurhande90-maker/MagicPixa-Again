@@ -169,6 +169,18 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // 4. Impersonated User Profile Listener (Ensures admin sees live target user updates)
+  useEffect(() => {
+    if (user?.isAdmin && impersonatedUser?.uid) {
+        const unsubscribe = subscribeToUserProfile(impersonatedUser.uid, (profile) => {
+            if (profile) {
+                setImpersonatedUser(profile);
+            }
+        });
+        return () => unsubscribe();
+    }
+  }, [impersonatedUser?.uid, user?.isAdmin]);
+
   // --- Handlers ---
 
   const handleGoogleSignIn = async () => {
@@ -219,6 +231,8 @@ function App() {
 
   const handleImpersonate = (targetUser: User | null) => {
       if (user?.isAdmin) {
+          // Clear active brand kit whenever identity switches to avoid context mixing
+          setActiveBrandKit(null);
           setImpersonatedUser(targetUser);
           if (targetUser) {
               navigateTo('dashboard', 'dashboard');
@@ -344,6 +358,7 @@ function App() {
 
       {currentPage === 'dashboard' && (
         <DashboardPage 
+            key={activeUser?.uid} // CRITICAL: Force remount of whole dashboard when identity switches
             navigateTo={navigateTo} 
             auth={authProps} 
             activeView={currentView}
