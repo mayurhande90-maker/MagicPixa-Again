@@ -1,4 +1,3 @@
-
 import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -90,8 +89,7 @@ export const generateMagicMockup = async (
     material: string,
     sceneVibe: string,
     objectColor?: string,
-    brand?: BrandKit | null,
-    placement?: { ymin: number; xmin: number; ymax: number; xmax: number }
+    brand?: BrandKit | null
 ): Promise<string> => {
     const ai = getAiClient();
     try {
@@ -105,13 +103,9 @@ export const generateMagicMockup = async (
         Visual Vibe: Align the environment with their '${brand.industry}' industry standards.
         ` : "";
 
-        const placementInstruction = placement 
-            ? `\nPLACEMENT: The design MUST be precisely positioned and scaled at normalized coordinates [${placement.ymin}, ${placement.xmin}, ${placement.ymax}, ${placement.xmax}] relative to the product's main surface area. Ensure perfect perspective mapping.`
-            : "";
-
         const prompt = `You are a Visualization Engine. ${brandDNA}
         TASK: Generate photorealistic mockup of ${objectColor ? objectColor + ' ' : ''}${targetObject}.
-        STYLE: ${vibe}.${placementInstruction}
+        STYLE: ${vibe}.
         APPLICATION: Design using ${material} (${physics}). Wrap around object curvature.
         OUTPUT: High-res single image.`;
 
