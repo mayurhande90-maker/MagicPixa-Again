@@ -33,7 +33,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const hexInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa Mockups'] || appConfig?.featureCosts['Magic Mockup'] || 8;
     const userCredits = auth.user?.credits || 0;
@@ -82,12 +81,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
     const canGenerate = !!designImage && !!finalTarget && !!material && !!sceneVibe && !isLowCredits;
-
-    const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/[^0-9A-Fa-f]/g, '');
-        if (val.length > 6) val = val.substring(0, 6);
-        setObjectColor(val ? `#${val}` : '');
-    };
 
     const isCustomActive = objectColor && !premiumColors.find(c => c.name === objectColor || c.hex.toLowerCase() === objectColor.toLowerCase());
 
@@ -155,36 +148,30 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         );
                                     })}
                                     
-                                    {/* Integrated Custom Control (Hex Input + Picker) */}
+                                    {/* Custom Color Button - Hex picker is internal to the browser color input */}
                                     <div className={MockupStyles.colorItem}>
-                                        <div className={`${MockupStyles.customGroup} ${isCustomActive ? 'border-indigo-400 bg-indigo-50/30' : ''}`}>
+                                        <button className={`${MockupStyles.customColorBtn} ${isCustomActive ? MockupStyles.colorSwatchActive : ''}`} title="Pick Custom Color">
                                             <div 
-                                                className={MockupStyles.customPicker} 
-                                                style={{ backgroundColor: isCustomActive ? objectColor : '#fff', backgroundImage: !isCustomActive ? 'linear-gradient(45deg, #f87171, #60a5fa, #34d399)' : 'none' }}
-                                            >
-                                                <input 
-                                                    type="color" 
-                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                                    value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} 
-                                                    onChange={(e) => { setObjectColor(e.target.value); hexInputRef.current?.focus(); }} 
-                                                />
-                                                {!isCustomActive && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><PaletteIcon className="w-3 h-3 text-white drop-shadow-sm" /></div>}
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-[10px] font-bold text-gray-400 ml-1.5 mr-0.5">#</span>
-                                                <input 
-                                                    ref={hexInputRef}
-                                                    type="text" 
-                                                    className={MockupStyles.customHexInput}
-                                                    placeholder="Hex"
-                                                    value={objectColor && objectColor.startsWith('#') ? objectColor.replace('#', '') : ''}
-                                                    onChange={handleHexChange}
-                                                />
-                                            </div>
-                                        </div>
+                                                className={MockupStyles.customColorPreview} 
+                                                style={{ backgroundColor: isCustomActive ? objectColor : '#f3f4f6', backgroundImage: !isCustomActive ? 'linear-gradient(45deg, #f87171, #60a5fa, #34d399)' : 'none' }}
+                                            ></div>
+                                            <input 
+                                                type="color" 
+                                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                                                value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} 
+                                                onChange={(e) => setObjectColor(e.target.value)} 
+                                            />
+                                        </button>
                                         <span className={`${MockupStyles.colorLabel} ${isCustomActive ? MockupStyles.colorLabelActive : ''}`}>Custom</span>
                                     </div>
                                 </div>
+
+                                {objectColor && (
+                                    <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm w-fit animate-fadeIn">
+                                        <div className="w-2 h-2 rounded-full border border-white" style={{ backgroundColor: objectColor.startsWith('#') ? objectColor : premiumColors.find(c => c.name === objectColor)?.hex }}></div>
+                                        <span className="text-[10px] font-black text-indigo-700 uppercase">{objectColor}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )
