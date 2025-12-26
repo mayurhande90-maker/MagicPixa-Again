@@ -14,6 +14,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const [loadingText, setLoadingText] = useState("");
     const [captions, setCaptions] = useState<{caption: string; hashtags: string}[]>([]);
     const [language, setLanguage] = useState('');
+    const [tone, setTone] = useState('');
     const [captionType, setCaptionType] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -27,7 +28,17 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const cost = appConfig?.featureCosts['Pixa Caption Pro'] || appConfig?.featureCosts['CaptionAI'] || 2;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < cost;
+    
     const captionTypes = ['SEO Friendly', 'Long Caption', 'Short Caption'];
+    const toneOptions = [
+        'Friendly', 
+        'Funny', 
+        'Chill', 
+        'Emotional/Heartfelt', 
+        'Hype/Exciting', 
+        'Professional', 
+        'Marketing'
+    ];
 
     useEffect(() => { 
         let interval: any; 
@@ -61,10 +72,17 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } };
 
     const handleGenerate = async () => {
-        if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; } if (!language || !captionType) return;
+        if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; } if (!language || !tone || !captionType) return;
         setLoading(true); setIsAnalyzing(true); setCaptions([]);
         try { 
-            const res = await generateCaptions(image.base64.base64, image.base64.mimeType, language || 'English', (captionType as any) || 'SEO Friendly', auth.activeBrandKit); 
+            const res = await generateCaptions(
+                image.base64.base64, 
+                image.base64.mimeType, 
+                language || 'English', 
+                tone || 'Friendly',
+                (captionType as any) || 'SEO Friendly', 
+                auth.activeBrandKit
+            ); 
             setCaptions(res); 
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro'); 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
@@ -78,9 +96,9 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
         }
     };
 
-    const handleNewSession = () => { setImage(null); setCaptions([]); setLanguage(''); setCaptionType(''); setCopiedIndex(null); };
+    const handleNewSession = () => { setImage(null); setCaptions([]); setLanguage(''); setTone(''); setCaptionType(''); setCopiedIndex(null); };
     const handleCopy = (text: string, index: number) => { navigator.clipboard.writeText(text); setCopiedIndex(index); setTimeout(() => setCopiedIndex(null), 2000); };
-    const canGenerate = !!image && !isLowCredits && !!language && !!captionType;
+    const canGenerate = !!image && !isLowCredits && !!language && !!tone && !!captionType;
 
     return (
         <>
@@ -108,7 +126,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                         <div>
                             <div className="flex items-center justify-between mb-3 ml-1">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Language</label>
-                                {language && (<button onClick={() => { setLanguage(''); setCaptionType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>)}
+                                {language && (<button onClick={() => { setLanguage(''); setTone(''); setCaptionType(''); }} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>)}
                             </div>
                             <div className="flex gap-3">
                                 {['English', 'Hindi', 'Marathi'].map(lang => (
@@ -116,7 +134,20 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                                 ))}
                             </div>
                         </div>
-                        {language && (<div className="animate-fadeIn"><SelectionGrid label="2. Caption Style (Deep Research)" options={captionTypes} value={captionType} onChange={(val) => { setCaptionType(val); if (val) autoScroll(); }} /><p className="text-[10px] text-gray-400 px-1 -mt-4 mb-4 italic">AI will research current internet trends for the best results.</p></div>)}
+                        
+                        {language && (
+                            <div className="animate-fadeIn">
+                                <SelectionGrid label="2. Select Tone" options={toneOptions} value={tone} onChange={(val) => { setTone(val); if (val) autoScroll(); }} />
+                            </div>
+                        )}
+
+                        {tone && (
+                            <div className="animate-fadeIn">
+                                <SelectionGrid label="3. Caption Style" options={captionTypes} value={captionType} onChange={(val) => { setCaptionType(val); if (val) autoScroll(); }} />
+                                <p className="text-[10px] text-gray-400 px-1 -mt-4 mb-4 italic">AI will research current internet trends for the best results.</p>
+                            </div>
+                        )}
+
                         {captions.length > 0 && (<div className="mt-6 animate-fadeIn" ref={resultsRef}><div className="flex items-center justify-between mb-4 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Research-Driven Captions</label><span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Viral Mix Ready</span></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{captions.map((c, i) => (<div key={i} className={CaptionStyles.resultCard} style={{ animationDelay: `${i * 100}ms` }}><div><p className="text-sm font-medium text-gray-800 mb-3 leading-relaxed whitespace-pre-line">{c.caption}</p><p className="text-xs text-indigo-600 font-semibold leading-snug opacity-80">{c.hashtags}</p></div><button onClick={() => handleCopy(`${c.caption}\n\n${c.hashtags}`, i)} className={`${CaptionStyles.copyButton} ${copiedIndex === i ? CaptionStyles.copyActive : CaptionStyles.copyInactive}`}>{copiedIndex === i ? (<><CheckIcon className="w-3 h-3"/> Copied</>) : (<><CopyIcon className="w-3 h-3"/> Copy Caption</>)}</button></div>))}</div></div>)}
                     </div>
                 }

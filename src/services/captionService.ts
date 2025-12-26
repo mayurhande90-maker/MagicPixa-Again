@@ -5,13 +5,14 @@ import { BrandKit } from "../types";
 /**
  * Pixa Caption Pro - Advanced Social Media Copywriting Engine
  * 
- * This service implements the "Human-Touch Protocol" and "First-Person Narrative"
+ * This service implements the "Human-Touch Protocol" and "Tone-Specific Logic"
  * to generate captions that sound like real humans, optimized for viral reach.
  */
 export const generateCaptions = async (
   base64ImageData: string,
   mimeType: string,
   language: string = 'English',
+  tone: string = 'Friendly',
   lengthType: 'SEO Friendly' | 'Long Caption' | 'Short Caption' = 'SEO Friendly',
   brand?: BrandKit | null
 ): Promise<{ caption: string; hashtags: string }[]> => {
@@ -33,22 +34,39 @@ export const generateCaptions = async (
     - Vibe: Align with the '${brand.industry}' aesthetic.
     ` : "";
 
-    const prompt = `You are Pixa, a Viral Content Creator and authentic Social Media Storyteller.
+    const toneInstructions: Record<string, string> = {
+        'Friendly': "Tone: Relatable, warm, and conversational. Like a friend chatting in a group chat.",
+        'Funny': "Tone: Witty, sarcastic, or pun-heavy. Look for a 'shower thought' or a funny observation in the photo.",
+        'Chill': "Tone: Minimalist and aesthetic. Use lowercase where appropriate. Very relaxed 'vibe' focus.",
+        'Emotional/Heartfelt': "Tone: Deep, vulnerable, and sincere. Focus on the 'feeling' or memory of the moment.",
+        'Hype/Exciting': "Tone: High-energy, bold, and enthusiastic. Lots of 'main character' energy.",
+        'Professional': "Tone: Polished, authoritative, and clean. Suitable for LinkedIn or a curated business portfolio.",
+        'Marketing': `Tone: Persuasive, strategic, and benefit-driven. 
+                      **MARKETING MANDATE**: 
+                      1. Deeply analyze the PRODUCT or SERVICE in the photo. 
+                      2. Use Google Search to find current consumer pain points or trends related to this item.
+                      3. Write copy that emphasizes VALUE and DESIRE. 
+                      4. Every caption must have a high-converting Call-to-Action (CTA).`
+    };
+
+    const prompt = `You are Pixa, a Viral Content Creator and Social Media Growth Specialist.
     
     *** THE DEEP ANALYSIS MANDATE ***
-    1. **VISUAL EMPATHY**: Look closely at the photo. What is the subject doing? If it's a kid in a mirror, talk about the dress, the 'pose' they are trying to nail, or the confidence in the reflection. 
-    2. **SPECIFICITY**: Mention specific details you see (e.g., "this blue floral print," "the messy hair vibe," "this lighting is doing everything").
-    3. **FIRST-PERSON POV**: Write at least 3 of the options in the FIRST PERSON (using "I," "me," "my"). Act as if you are the person in the photo or a very close friend posting for them.
+    1. **VISUAL EMPATHY**: Look closely at the photo. Identify the subject, the mood, and specific details (e.g., textures, facial expressions, background elements).
+    2. **SPECIFICITY**: Mention specific details you see to prove this isn't a generic AI caption.
+    
+    *** TARGET VIBE ***
+    ${toneInstructions[tone] || toneInstructions['Friendly']}
 
     *** THE HUMAN-TOUCH PROTOCOL (STRICT) ***
     1. **NO AI-SPEAK**: Absolutely FORBIDDEN to use: "Delve", "Unleash", "Embark", "Tapestry", "Elevate", "Discover", "Captivating", "In the realm of", "Masterpiece", or "Testament".
-    2. **SIMPLE LANGUAGE**: Use words we use in day-to-day life. Use natural contractions (can't, it's, don't). Use lowercase for a 'chill' aesthetic where appropriate.
-    3. **AUTHENTICITY**: Don't be too perfect. Real people make typos (occasionally), use slang, and talk about their feelings/insecurities/excitement simply.
-    4. **ENGAGEMENT**: End with a natural question that people actually want to answer (e.g., "Rate the fit 1-10?" or "Is it just me or is mirror lighting better than sun?").
+    2. **SIMPLE LANGUAGE**: Use words we use in day-to-day life. Use natural contractions (can't, it's, don't). 
+    3. **AUTHENTICITY**: Don't be too perfect. Real people use slang and talk about their feelings simply.
+    4. **ENGAGEMENT**: Unless it's a 'Short' caption, end with a natural question or a nudge to save/share.
 
     *** STEP 1: TREND & SEO RESEARCH (Use Google Search) ***
-    - Research current viral Instagram/TikTok hooks for this specific photo subject (e.g., "Mirror selfie hooks", "Outfit check captions").
-    - Find trending SEO keywords and hashtags in ${language} for 2025 reach.
+    - Research current viral Instagram/TikTok hooks for this specific photo subject and the selected tone "${tone}".
+    - Find the highest velocity hashtags in ${language} for 2025 reach.
 
     *** STEP 2: GENERATION ***
     ${brandContext}
@@ -57,7 +75,6 @@ export const generateCaptions = async (
     ${lengthConstraint}
 
     YOUR GOAL: Write 6 distinct, high-reach caption options. 
-    At least 2 should be 'POV' style (Point of View).
 
     *** OUTPUT ARCHITECTURE ***
     - Hashtags: 12-15 specific, trending hashtags in English only. 
@@ -75,7 +92,7 @@ export const generateCaptions = async (
       contents: { parts: [{ inlineData: { data: base64ImageData, mimeType: mimeType } }, { text: prompt }] },
       config: { 
         tools: [{ googleSearch: {} }],
-        temperature: 0.9, // Higher temperature for more creative, human-like variance
+        temperature: 0.9, 
       },
     });
 
@@ -91,8 +108,8 @@ export const generateCaptions = async (
     } catch (e) {
         console.error("Caption parsing error:", e);
         return [{ 
-            caption: "Feeling this look today. ✨ What do you think?", 
-            hashtags: "#ootd #vibes #trending" 
+            caption: "This photo is giving all the right vibes. ✨ What do you think?", 
+            hashtags: "#vibes #trending #moments" 
         }];
     }
   } catch (error) { 
