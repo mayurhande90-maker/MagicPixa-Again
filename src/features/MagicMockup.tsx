@@ -82,18 +82,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
     const canGenerate = !!designImage && !!finalTarget && !!material && !!sceneVibe && !isLowCredits;
 
-    const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/[^0-9A-Fa-f]/g, '');
-        if (val.length > 6) val = val.substring(0, 6);
-        if (val.length === 6 || val.length === 3) {
-            setObjectColor(`#${val}`);
-        } else {
-            // Keep typing but don't set color yet if partial
-            // Wait, to allow typing we need a local state or handle it carefully
-            setObjectColor(`#${val}`);
-        }
-    };
-
     const isCustomActive = objectColor && !premiumColors.find(c => c.name === objectColor || c.hex.toLowerCase() === objectColor.toLowerCase());
 
     return (
@@ -141,64 +129,49 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </button>
                                     )}
                                 </div>
-                                <div className="flex flex-col gap-5">
-                                    <div className={MockupStyles.colorGrid}>
-                                        {premiumColors.map(c => {
-                                            const isSelected = objectColor === c.name || objectColor === c.hex;
-                                            return (
-                                                <div key={c.name} className={MockupStyles.colorItem}>
-                                                    <button 
-                                                        onClick={() => setObjectColor(c.name)} 
-                                                        className={`${MockupStyles.colorSwatch} ${isSelected ? MockupStyles.colorSwatchActive : MockupStyles.colorSwatchInactive}`} 
-                                                        style={{ backgroundColor: c.hex }} 
-                                                        title={c.name}
-                                                    >
-                                                        {isSelected && (
-                                                            <CheckIcon className={c.isLight ? MockupStyles.checkIconDark : MockupStyles.checkIcon} />
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                        
-                                        {/* Custom Color Button with Label Below */}
-                                        <div className={MockupStyles.colorItem}>
-                                            <button className={`${MockupStyles.customColorBtn} ${isCustomActive ? MockupStyles.colorSwatchActive : ''}`} title="Pick Custom Color">
-                                                <div 
-                                                    className={MockupStyles.customColorPreview} 
-                                                    style={{ backgroundColor: isCustomActive ? objectColor : '#f3f4f6', backgroundImage: !isCustomActive ? 'linear-gradient(45deg, #f87171, #60a5fa, #34d399)' : 'none' }}
-                                                ></div>
-                                                <input 
-                                                    type="color" 
-                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                                                    value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} 
-                                                    onChange={(e) => setObjectColor(e.target.value)} 
-                                                />
-                                            </button>
-                                            <span className={`${MockupStyles.colorLabel} ${isCustomActive ? MockupStyles.colorLabelActive : ''}`}>Custom</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Hex Input Space */}
-                                    <div className="flex items-center gap-3 animate-fadeIn">
-                                        <div className={MockupStyles.hexInputWrapper}>
-                                            <span className={MockupStyles.hexPrefix}>#</span>
-                                            <input 
-                                                type="text" 
-                                                className={MockupStyles.hexField}
-                                                placeholder="FFFFFF"
-                                                value={objectColor && objectColor.startsWith('#') ? objectColor.replace('#', '') : ''}
-                                                onChange={handleHexChange}
-                                            />
-                                        </div>
-                                        {objectColor && (
-                                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100 shadow-sm">
-                                                <div className="w-2.5 h-2.5 rounded-full border border-white" style={{ backgroundColor: objectColor.startsWith('#') ? objectColor : premiumColors.find(c => c.name === objectColor)?.hex }}></div>
-                                                <span className="text-[10px] font-black text-indigo-700 uppercase">{objectColor}</span>
+                                <div className={MockupStyles.colorGrid}>
+                                    {premiumColors.map(c => {
+                                        const isSelected = objectColor === c.name || objectColor === c.hex;
+                                        return (
+                                            <div key={c.name} className={MockupStyles.colorItem}>
+                                                <button 
+                                                    onClick={() => setObjectColor(c.name)} 
+                                                    className={`${MockupStyles.colorSwatch} ${isSelected ? MockupStyles.colorSwatchActive : MockupStyles.colorSwatchInactive}`} 
+                                                    style={{ backgroundColor: c.hex }} 
+                                                    title={c.name}
+                                                >
+                                                    {isSelected && (
+                                                        <CheckIcon className={c.isLight ? MockupStyles.checkIconDark : MockupStyles.checkIcon} />
+                                                    )}
+                                                </button>
                                             </div>
-                                        )}
+                                        );
+                                    })}
+                                    
+                                    {/* Custom Color Button - Hex picker is internal to the browser color input */}
+                                    <div className={MockupStyles.colorItem}>
+                                        <button className={`${MockupStyles.customColorBtn} ${isCustomActive ? MockupStyles.colorSwatchActive : ''}`} title="Pick Custom Color">
+                                            <div 
+                                                className={MockupStyles.customColorPreview} 
+                                                style={{ backgroundColor: isCustomActive ? objectColor : '#f3f4f6', backgroundImage: !isCustomActive ? 'linear-gradient(45deg, #f87171, #60a5fa, #34d399)' : 'none' }}
+                                            ></div>
+                                            <input 
+                                                type="color" 
+                                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                                                value={objectColor && objectColor.startsWith('#') ? objectColor : '#4d7cff'} 
+                                                onChange={(e) => setObjectColor(e.target.value)} 
+                                            />
+                                        </button>
+                                        <span className={`${MockupStyles.colorLabel} ${isCustomActive ? MockupStyles.colorLabelActive : ''}`}>Custom</span>
                                     </div>
                                 </div>
+
+                                {objectColor && (
+                                    <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm w-fit animate-fadeIn">
+                                        <div className="w-2 h-2 rounded-full border border-white" style={{ backgroundColor: objectColor.startsWith('#') ? objectColor : premiumColors.find(c => c.name === objectColor)?.hex }}></div>
+                                        <span className="text-[10px] font-black text-indigo-700 uppercase">{objectColor}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )
