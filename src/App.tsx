@@ -153,6 +153,9 @@ function App() {
   const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // Admin impersonation target
   const [loading, setLoading] = useState(true);
 
+  // DEEP LINK PERSISTENCE: Store intended destination when bounced to login
+  const [pendingDestination, setPendingDestination] = useState<{ page: Page, view?: View } | null>(null);
+
   // SESSION-BASED BRAND KIT (Option A: Reset on login/refresh)
   const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   
@@ -170,6 +173,94 @@ function App() {
 
   // Computed Active User (Impersonated or Real)
   const activeUser = impersonatedUser || user;
+
+  // --- Handlers ---
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setAuthError(null);
+      await signInWithGoogle();
+      setIsAuthModalOpen(false);
+    } catch (error: any) {
+      console.error("Sign in error", error);
+      setAuthError(error.message);
+      throw error; 
+    }
+  };
+
+  const handleLogout = async () => {
+    if (firebaseAuth) {
+        await firebaseAuth.signOut();
+        setUser(null);
+        setImpersonatedUser(null);
+        setActiveBrandKit(null);
+        navigateTo('home');
+    }
+  };
+
+  const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
+    // AUTH GUARD: If trying to navigate to dashboard while not authenticated
+    if (page === 'dashboard' && !firebaseAuth?.currentUser) {
+        // Capture where the user wanted to go
+        if (view) {
+            setPendingDestination({ page, view });
+        }
+        setIsAuthModalOpen(true);
+        // Force stay on current page or redirect to home
+        if (currentPage === 'dashboard') {
+             setCurrentPage('home');
+             window.history.pushState({}, '', '/');
+        }
+        return;
+    }
+
+    setCurrentPage(page);
+    if (view) setCurrentView(view);
+    
+    // Sync URL using Clean Paths
+    let path = '/';
+    if (page === 'about') path = '/About';
+    else if (page === 'dashboard') {
+        path = VIEW_TO_PATH[view || currentView] || '/Dashboard';
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    // STALENESS PREVENTION: Explicitly delete the legacy ?view= param if it re-appears
+    params.delete('view'); 
+    
+    const search = params.toString() ? `?${params.toString()}` : '';
+    window.history.pushState({}, '', `${path}${search}`);
+
+    // Handle scrolling for home page sections
+    if (page === 'home' && sectionId) {
+        setTimeout(() => {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
+    } else {
+        window.scrollTo(0, 0);
+    }
+  }, [currentView, currentPage]);
+
+  const handleSetActiveView = useCallback((view: View) => {
+      // AUTH GUARD
+      if (!firebaseAuth?.currentUser) {
+          setPendingDestination({ page: 'dashboard', view });
+          setIsAuthModalOpen(true);
+          return;
+      }
+
+      setCurrentView(view);
+      const path = VIEW_TO_PATH[view] || '/Dashboard';
+      const params = new URLSearchParams(window.location.search);
+      // STALENESS PREVENTION: Explicitly delete the legacy ?view= param if it re-appears
+      params.delete('view'); 
+      
+      const search = params.toString() ? `?${params.toString()}` : '';
+      window.history.pushState({}, '', `${path}${search}`);
+  }, []);
 
   // --- Effects ---
 
@@ -226,6 +317,11 @@ function App() {
         // AUTH GUARD: If user is logged out and trying to access a private path
         const currentPath = window.location.pathname;
         if (isPathPrivate(currentPath)) {
+            // Capture destination before bounce
+            const view = getViewFromPath(currentPath);
+            if (view) {
+                setPendingDestination({ page: 'dashboard', view });
+            }
             // Redirect to Home
             window.history.replaceState({}, '', '/');
             setCurrentPage('home');
@@ -272,6 +368,7 @@ function App() {
           if (view) {
               // AUTH GUARD: check if allowed to enter dashboard view via popstate
               if (!firebaseAuth?.currentUser) {
+                  setPendingDestination({ page: 'dashboard', view });
                   window.history.replaceState({}, '', '/');
                   setCurrentPage('home');
                   setIsAuthModalOpen(true);
@@ -287,88 +384,15 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // --- Handlers ---
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setAuthError(null);
-      await signInWithGoogle();
-      setIsAuthModalOpen(false);
-    } catch (error: any) {
-      console.error("Sign in error", error);
-      setAuthError(error.message);
-      throw error; 
+  // 6. Deep Link Persistence: Effect to handle pending redirects after login success
+  useEffect(() => {
+    if (user && pendingDestination) {
+      const { page, view } = pendingDestination;
+      // We clear state BEFORE navigating to prevent race conditions or loops
+      setPendingDestination(null);
+      navigateTo(page, view);
     }
-  };
-
-  const handleLogout = async () => {
-    if (firebaseAuth) {
-        await firebaseAuth.signOut();
-        setUser(null);
-        setImpersonatedUser(null);
-        setActiveBrandKit(null);
-        navigateTo('home');
-    }
-  };
-
-  const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
-    // AUTH GUARD: If trying to navigate to dashboard while not authenticated
-    if (page === 'dashboard' && !firebaseAuth?.currentUser) {
-        setIsAuthModalOpen(true);
-        // Force stay on current page or redirect to home
-        if (currentPage === 'dashboard') {
-             setCurrentPage('home');
-             window.history.pushState({}, '', '/');
-        }
-        return;
-    }
-
-    setCurrentPage(page);
-    if (view) setCurrentView(view);
-    
-    // Sync URL using Clean Paths
-    let path = '/';
-    if (page === 'about') path = '/About';
-    else if (page === 'dashboard') {
-        path = VIEW_TO_PATH[view || currentView] || '/Dashboard';
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    // STALENESS PREVENTION: Explicitly delete the legacy ?view= param if it re-appears
-    params.delete('view'); 
-    
-    const search = params.toString() ? `?${params.toString()}` : '';
-    window.history.pushState({}, '', `${path}${search}`);
-
-    // Handle scrolling for home page sections
-    if (page === 'home' && sectionId) {
-        setTimeout(() => {
-            const element = document.getElementById(sectionId);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-            }
-        }, 100);
-    } else {
-        window.scrollTo(0, 0);
-    }
-  }, [currentView, currentPage]);
-
-  const handleSetActiveView = useCallback((view: View) => {
-      // AUTH GUARD
-      if (!firebaseAuth?.currentUser) {
-          setIsAuthModalOpen(true);
-          return;
-      }
-
-      setCurrentView(view);
-      const path = VIEW_TO_PATH[view] || '/Dashboard';
-      const params = new URLSearchParams(window.location.search);
-      // STALENESS PREVENTION: Explicitly delete the legacy ?view= param if it re-appears
-      params.delete('view'); 
-      
-      const search = params.toString() ? `?${params.toString()}` : '';
-      window.history.pushState({}, '', `${path}${search}`);
-  }, []);
+  }, [user, pendingDestination, navigateTo]);
 
   const handleImpersonate = (targetUser: User | null) => {
       if (user?.isAdmin) {
