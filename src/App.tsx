@@ -55,6 +55,13 @@ const PATH_TO_VIEW: Record<string, View> = Object.entries(VIEW_TO_PATH).reduce((
     return acc;
 }, {} as Record<string, View>);
 
+// --- Helper: Auth Guard ---
+const isPathPrivate = (path: string): boolean => {
+    const p = path.toLowerCase();
+    // If it's in our view map, it's a private dashboard route
+    return !!PATH_TO_VIEW[p];
+};
+
 // --- Inline Components for Admin Features ---
 
 const ImpersonationBanner: React.FC<{ originalUser: User; targetUser: User; onExit: () => void }> = ({ originalUser, targetUser, onExit }) => (
@@ -195,7 +202,7 @@ function App() {
       return () => unsubscribe();
   }, []);
 
-  // 3. Auth Listener & Active Status
+  // 3. Auth Listener & Active Status + Hard Guard
   useEffect(() => {
     if (!firebaseAuth) {
         setLoading(false);
@@ -216,6 +223,15 @@ function App() {
             setLoading(false);
         });
       } else {
+        // AUTH GUARD: If user is logged out and trying to access a private path
+        const currentPath = window.location.pathname;
+        if (isPathPrivate(currentPath)) {
+            // Redirect to Home
+            window.history.replaceState({}, '', '/');
+            setCurrentPage('home');
+            setIsAuthModalOpen(true); // Open modal on bounce
+        }
+
         setUser(null);
         setImpersonatedUser(null);
         setActiveBrandKit(null); // Clear session brand kit on logout
@@ -254,6 +270,13 @@ function App() {
       } else {
           const view = getViewFromPath(path);
           if (view) {
+              // AUTH GUARD: check if allowed to enter dashboard view via popstate
+              if (!firebaseAuth?.currentUser) {
+                  window.history.replaceState({}, '', '/');
+                  setCurrentPage('home');
+                  setIsAuthModalOpen(true);
+                  return;
+              }
               setCurrentPage('dashboard');
               setCurrentView(view);
           }
@@ -289,6 +312,17 @@ function App() {
   };
 
   const navigateTo = useCallback((page: Page, view?: View, sectionId?: string) => {
+    // AUTH GUARD: If trying to navigate to dashboard while not authenticated
+    if (page === 'dashboard' && !firebaseAuth?.currentUser) {
+        setIsAuthModalOpen(true);
+        // Force stay on current page or redirect to home
+        if (currentPage === 'dashboard') {
+             setCurrentPage('home');
+             window.history.pushState({}, '', '/');
+        }
+        return;
+    }
+
     setCurrentPage(page);
     if (view) setCurrentView(view);
     
@@ -317,9 +351,15 @@ function App() {
     } else {
         window.scrollTo(0, 0);
     }
-  }, [currentView]);
+  }, [currentView, currentPage]);
 
   const handleSetActiveView = useCallback((view: View) => {
+      // AUTH GUARD
+      if (!firebaseAuth?.currentUser) {
+          setIsAuthModalOpen(true);
+          return;
+      }
+
       setCurrentView(view);
       const path = VIEW_TO_PATH[view] || '/Dashboard';
       const params = new URLSearchParams(window.location.search);
