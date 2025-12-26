@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { generateCaptions } from '../services/captionService';
@@ -28,7 +29,27 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const isLowCredits = image && userCredits < cost;
     const captionTypes = ['SEO Friendly', 'Long Caption', 'Short Caption'];
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Scanning Image...", "Researching Trends...", "Analyzing Keywords...", "Drafting Content...", "Finalizing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
+    useEffect(() => { 
+        let interval: any; 
+        if (loading) { 
+            const steps = [
+                "Scanning Image Details...", 
+                "Researching Global Trends...", 
+                "Analyzing High-Reach Keywords...", 
+                "Applying Human-Touch Protocol...", 
+                "Drafting Viral Hooks...",
+                "Engineering SEO Hashtags...",
+                "Polishing Day-to-Day Phrasing..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 1800); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading]);
 
     const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
     const scrollToResults = () => { if (scrollRef.current && resultsRef.current) setTimeout(() => { const element = resultsRef.current; const container = scrollRef.current; if (element && container) container.scrollTo({ top: element.offsetTop - 20, behavior: 'smooth' }); }, 100); };
@@ -42,7 +63,19 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const handleGenerate = async () => {
         if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; } if (!language || !captionType) return;
         setLoading(true); setIsAnalyzing(true); setCaptions([]);
-        try { const res = await generateCaptions(image.base64.base64, image.base64.mimeType, language || 'English', (captionType as any) || 'SEO Friendly', auth.activeBrandKit); setCaptions(res); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); scrollToResults(); } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); setIsAnalyzing(false); }
+        try { 
+            const res = await generateCaptions(image.base64.base64, image.base64.mimeType, language || 'English', (captionType as any) || 'SEO Friendly', auth.activeBrandKit); 
+            setCaptions(res); 
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro'); 
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
+            scrollToResults(); 
+        } catch (e) { 
+            console.error(e); 
+            alert("Generation failed. Please try again."); 
+        } finally { 
+            setLoading(false); 
+            setIsAnalyzing(false); 
+        }
     };
 
     const handleNewSession = () => { setImage(null); setCaptions([]); setLanguage(''); setCaptionType(''); setCopiedIndex(null); };
@@ -84,7 +117,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                             </div>
                         </div>
                         {language && (<div className="animate-fadeIn"><SelectionGrid label="2. Caption Style (Deep Research)" options={captionTypes} value={captionType} onChange={(val) => { setCaptionType(val); if (val) autoScroll(); }} /><p className="text-[10px] text-gray-400 px-1 -mt-4 mb-4 italic">AI will research current internet trends for the best results.</p></div>)}
-                        {captions.length > 0 && (<div className="mt-6 animate-fadeIn" ref={resultsRef}><div className="flex items-center justify-between mb-4 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Generated Captions</label><span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">6 OPTIONS</span></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{captions.map((c, i) => (<div key={i} className={CaptionStyles.resultCard} style={{ animationDelay: `${i * 100}ms` }}><div><p className="text-sm font-medium text-gray-800 mb-3 leading-relaxed whitespace-pre-line">{c.caption}</p><p className="text-xs text-indigo-600 font-semibold leading-snug opacity-80">{c.hashtags}</p></div><button onClick={() => handleCopy(`${c.caption}\n\n${c.hashtags}`, i)} className={`${CaptionStyles.copyButton} ${copiedIndex === i ? CaptionStyles.copyActive : CaptionStyles.copyInactive}`}>{copiedIndex === i ? (<><CheckIcon className="w-3 h-3"/> Copied</>) : (<><CopyIcon className="w-3 h-3"/> Copy Caption</>)}</button></div>))}</div></div>)}
+                        {captions.length > 0 && (<div className="mt-6 animate-fadeIn" ref={resultsRef}><div className="flex items-center justify-between mb-4 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Research-Driven Captions</label><span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Viral Mix Ready</span></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{captions.map((c, i) => (<div key={i} className={CaptionStyles.resultCard} style={{ animationDelay: `${i * 100}ms` }}><div><p className="text-sm font-medium text-gray-800 mb-3 leading-relaxed whitespace-pre-line">{c.caption}</p><p className="text-xs text-indigo-600 font-semibold leading-snug opacity-80">{c.hashtags}</p></div><button onClick={() => handleCopy(`${c.caption}\n\n${c.hashtags}`, i)} className={`${CaptionStyles.copyButton} ${copiedIndex === i ? CaptionStyles.copyActive : CaptionStyles.copyInactive}`}>{copiedIndex === i ? (<><CheckIcon className="w-3 h-3"/> Copied</>) : (<><CopyIcon className="w-3 h-3"/> Copy Caption</>)}</button></div>))}</div></div>)}
                     </div>
                 }
             />
