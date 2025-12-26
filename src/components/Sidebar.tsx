@@ -98,11 +98,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
 
   const handleNavClick = (view: View) => {
     setActiveView(view);
-    
-    // Sync URL
-    const params = new URLSearchParams(window.location.search);
-    params.set('view', view);
-    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   const hasClaimedToday = () => {

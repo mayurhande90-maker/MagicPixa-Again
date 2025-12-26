@@ -24,6 +24,36 @@ import {
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from './types';
 import { ShieldCheckIcon } from './components/icons';
 
+// --- Routing Configuration ---
+
+const VIEW_TO_PATH: Record<string, string> = {
+    'home_dashboard': '/dashboard',
+    'dashboard': '/dashboard',
+    'studio': '/pixaproductshots',
+    'headshot': '/pixaheadshotpro',
+    'brand_kit': '/pixaecommercekit',
+    'brand_stylist': '/pixaadmaker',
+    'thumbnail_studio': '/pixathumbnailpro',
+    'soul': '/pixatogether',
+    'colour': '/pixaphotorestore',
+    'caption': '/pixacaptionpro',
+    'interior': '/pixainteriordesign',
+    'apparel': '/pixatryon',
+    'mockup': '/pixamockups',
+    'billing': '/billing',
+    'creations': '/mycreations',
+    'brand_manager': '/mybrandkit',
+    'support_center': '/helpandsupport',
+    'admin': '/admin',
+    'campaign_studio': '/campaignstudio',
+    'mockup_staging': '/mockupstaging',
+};
+
+const PATH_TO_VIEW: Record<string, View> = Object.entries(VIEW_TO_PATH).reduce((acc, [view, path]) => {
+    acc[path] = view as View;
+    return acc;
+}, {} as Record<string, View>);
+
 // --- Inline Components for Admin Features ---
 
 const ImpersonationBanner: React.FC<{ originalUser: User; targetUser: User; onExit: () => void }> = ({ originalUser, targetUser, onExit }) => (
@@ -73,12 +103,18 @@ function App() {
   
   // Navigation State
   const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const path = window.location.pathname;
+    if (path === '/about') return 'about';
+    if (PATH_TO_VIEW[path]) return 'dashboard';
     const params = new URLSearchParams(window.location.search);
     return params.get('view') ? 'dashboard' : 'home';
   });
 
   // Deep Link & Staging View Initialization
   const [currentView, setCurrentView] = useState<View>(() => {
+    const path = window.location.pathname;
+    if (PATH_TO_VIEW[path]) return PATH_TO_VIEW[path];
+    
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') as View;
     // Simple whitelist check
@@ -181,6 +217,29 @@ function App() {
     }
   }, [impersonatedUser?.uid, user?.isAdmin]);
 
+  // 5. Back/Forward Navigation Listener
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
+      
+      // Update Staging mode if param changed
+      setIsStagingMode(params.get('staging') === 'true');
+
+      if (path === '/' || path === '/index.html') {
+          setCurrentPage('home');
+      } else if (path === '/about') {
+          setCurrentPage('about');
+      } else if (PATH_TO_VIEW[path]) {
+          setCurrentPage('dashboard');
+          setCurrentView(PATH_TO_VIEW[path]);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // --- Handlers ---
 
   const handleGoogleSignIn = async () => {
@@ -201,7 +260,7 @@ function App() {
         setUser(null);
         setImpersonatedUser(null);
         setActiveBrandKit(null);
-        setCurrentPage('home');
+        navigateTo('home');
     }
   };
 
@@ -209,12 +268,16 @@ function App() {
     setCurrentPage(page);
     if (view) setCurrentView(view);
     
-    // Sync URL for staging deep links
-    const params = new URLSearchParams(window.location.search);
-    if (page === 'dashboard' && view) {
-        params.set('view', view);
-        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    // Sync URL using Clean Paths
+    let path = '/';
+    if (page === 'about') path = '/about';
+    else if (page === 'dashboard') {
+        path = VIEW_TO_PATH[view || currentView] || '/dashboard';
     }
+
+    const params = new URLSearchParams(window.location.search);
+    const search = params.toString() ? `?${params.toString()}` : '';
+    window.history.pushState({}, '', `${path}${search}`);
 
     // Handle scrolling for home page sections
     if (page === 'home' && sectionId) {
@@ -227,6 +290,14 @@ function App() {
     } else {
         window.scrollTo(0, 0);
     }
+  }, [currentView]);
+
+  const handleSetActiveView = useCallback((view: View) => {
+      setCurrentView(view);
+      const path = VIEW_TO_PATH[view] || '/dashboard';
+      const params = new URLSearchParams(window.location.search);
+      const search = params.toString() ? `?${params.toString()}` : '';
+      window.history.pushState({}, '', `${path}${search}`);
   }, []);
 
   const handleImpersonate = (targetUser: User | null) => {
@@ -362,7 +433,7 @@ function App() {
             navigateTo={navigateTo} 
             auth={authProps} 
             activeView={currentView}
-            setActiveView={setCurrentView}
+            setActiveView={handleSetActiveView}
             openEditProfileModal={() => {}} // Placeholder if needed
             isConversationOpen={isConversationOpen}
             setIsConversationOpen={setIsConversationOpen}
