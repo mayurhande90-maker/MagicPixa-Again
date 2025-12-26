@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
-import { MockupIcon, UploadIcon, XIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, TrashIcon, PaletteIcon, ArrowUpCircleIcon, PixaMockupIcon, CheckIcon, ApparelIcon, CubeIcon, MockupIcon as TechIcon, BuildingIcon, DocumentTextIcon, ChevronLeftRightIcon } from '../components/icons';
+import { PixaMockupIcon, UploadIcon, XIcon, CheckIcon, PaletteIcon, CreditCoinIcon, MagicWandIcon, TrashIcon } from '../components/icons';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateMagicMockup } from '../services/mockupService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -12,49 +11,6 @@ import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MockupStyles } from '../styles/features/MagicMockup.styles';
-
-// Silhouettes mapping
-const SILHOUETTES: Record<string, React.ReactNode> = {
-    'T-Shirt': <ApparelIcon className="w-64 h-64" />,
-    'Hoodie': <ApparelIcon className="w-64 h-64" />,
-    'iPhone 15': <TechIcon className="w-48 h-64" />,
-    'MacBook': <TechIcon className="w-80 h-64" />,
-    'Coffee Mug': <CubeIcon className="w-48 h-48" />,
-    'Water Bottle': <CubeIcon className="w-32 h-64" />,
-    'Tote Bag': <ApparelIcon className="w-64 h-64" />,
-    'Notebook': <DocumentTextIcon className="w-48 h-64" />,
-    'Packaging Box': <CubeIcon className="w-64 h-64" />,
-    'Wall Sign': <BuildingIcon className="w-80 h-48" />,
-    'Default': <PixaMockupIcon className="w-64 h-64" />
-};
-
-// Placement Presets Helper
-const getPresetsForObject = (obj: string) => {
-    if (obj.includes('T-Shirt') || obj.includes('Hoodie') || obj.includes('Tote Bag')) {
-        return [
-            { label: 'Center Chest', config: { x: 350, y: 250, w: 300, h: 300 } },
-            { label: 'Left Pocket', config: { x: 280, y: 280, w: 120, h: 120 } },
-            { label: 'Large Print', config: { x: 250, y: 200, w: 500, h: 500 } },
-        ];
-    }
-    if (obj.includes('Mug') || obj.includes('Bottle')) {
-        return [
-            { label: 'Front Center', config: { x: 300, y: 300, w: 400, h: 400 } },
-            { label: 'Minimalist', config: { x: 425, y: 425, w: 150, h: 150 } },
-            { label: 'High Badge', config: { x: 400, y: 150, w: 200, h: 200 } },
-        ];
-    }
-    if (obj.includes('iPhone') || obj.includes('MacBook') || obj.includes('Notebook')) {
-        return [
-            { label: 'Full Center', config: { x: 250, y: 250, w: 500, h: 500 } },
-            { label: 'Corner Sticker', config: { x: 750, y: 150, w: 150, h: 150 } },
-            { label: 'Bottom Logo', config: { x: 400, y: 700, w: 200, h: 200 } },
-        ];
-    }
-    return [
-        { label: 'Standard Center', config: { x: 350, y: 250, w: 300, h: 300 } },
-    ];
-};
 
 export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [designImage, setDesignImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -74,13 +30,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    // Placement State (Normalized 0-1000)
-    const [placement, setPlacement] = useState({ x: 350, y: 250, w: 300, h: 300 });
-    const [activePreset, setActivePreset] = useState('');
-    const [isMoving, setIsMoving] = useState(false);
-    const [isResizing, setIsResizing] = useState<string | null>(null);
-    const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-    const canvasRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hexInputRef = useRef<HTMLInputElement>(null);
@@ -113,8 +62,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const base64 = await fileToBase64(file); 
             setDesignImage({ url: URL.createObjectURL(file), base64 }); 
             setResultImage(null); 
-            setPlacement({ x: 350, y: 250, w: 300, h: 300 });
-            setActivePreset('');
         } 
         e.target.value = ''; 
     };
@@ -125,11 +72,6 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
 
-        const ymin = Math.round(placement.y);
-        const xmin = Math.round(placement.x);
-        const ymax = Math.round(placement.y + placement.h);
-        const xmax = Math.round(placement.x + placement.w);
-
         try { 
             const res = await generateMagicMockup(
                 designImage.base64.base64, 
@@ -138,8 +80,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 material, 
                 sceneVibe, 
                 objectColor, 
-                auth.activeBrandKit,
-                { ymin, xmin, ymax, xmax }
+                auth.activeBrandKit
             ); 
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); 
             const dataUri = `data:image/png;base64,${res}`; 
@@ -165,7 +106,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Mockup Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setDesignImage(null); setResultImage(null); setTargetObject(''); setCustomObject(''); setMaterial(''); setSceneVibe(''); setObjectColor(''); setLastCreationId(null); setPlacement({ x: 350, y: 250, w: 300, h: 300 }); setActivePreset(''); };
+    const handleNewSession = () => { setDesignImage(null); setResultImage(null); setTargetObject(''); setCustomObject(''); setMaterial(''); setSceneVibe(''); setObjectColor(''); setLastCreationId(null); };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
@@ -175,60 +116,9 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setObjectColor(val ? `#${val}` : '');
     };
 
-    // --- INTERACTIVE PLACEMENT LOGIC ---
-
-    const handleMouseDown = (e: React.MouseEvent, type: 'move' | string) => {
-        if (loading) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (type === 'move') setIsMoving(true);
-        else setIsResizing(type);
-        setStartPos({ x: e.clientX, y: e.clientY });
-        setActivePreset(''); // User manually moved, clear preset selection
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isMoving && !isResizing) return;
-        if (!canvasRef.current) return;
-
-        const rect = canvasRef.current.getBoundingClientRect();
-        const dx = (e.clientX - startPos.x) * (1000 / rect.width);
-        const dy = (e.clientY - startPos.y) * (1000 / rect.height);
-
-        setPlacement(prev => {
-            let next = { ...prev };
-            if (isMoving) {
-                next.x = Math.max(0, Math.min(1000 - prev.w, prev.x + dx));
-                next.y = Math.max(0, Math.min(1000 - prev.h, prev.y + dy));
-            } else if (isResizing) {
-                const minSize = 50;
-                if (isResizing.includes('S')) next.h = Math.max(minSize, Math.min(1000 - prev.y, prev.h + dy));
-                if (isResizing.includes('E')) next.w = Math.max(minSize, Math.min(1000 - prev.x, prev.w + dx));
-                if (isResizing.includes('N')) {
-                    const newH = Math.max(minSize, prev.h - dy);
-                    if (newH !== prev.h) { next.y = prev.y + (prev.h - newH); next.h = newH; }
-                }
-                if (isResizing.includes('W')) {
-                    const newW = Math.max(minSize, prev.w - dx);
-                    if (newW !== prev.w) { next.x = prev.x + (prev.w - newW); next.w = newW; }
-                }
-            }
-            return next;
-        });
-        setStartPos({ x: e.clientX, y: e.clientY });
-    };
-
-    const handleMouseUp = () => {
-        setIsMoving(false);
-        setIsResizing(null);
-    };
-
     const finalTarget = targetObject === 'Other / Custom' ? customObject : targetObject;
     const canGenerate = !!designImage && !!finalTarget && !!material && !!sceneVibe && !isLowCredits;
     const isCustomActive = objectColor && !premiumColors.find(c => c.name === objectColor || c.hex.toLowerCase() === objectColor.toLowerCase());
-
-    const activeSilhouette = SILHOUETTES[targetObject] || SILHOUETTES['Default'];
-    const currentPresets = getPresetsForObject(targetObject);
 
     return (
         <>
@@ -238,51 +128,19 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
-                resultHeightClass="h-[800px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Mockup" }} scrollRef={scrollRef}
+                resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Mockup" }} scrollRef={scrollRef}
                 leftContent={
                     designImage ? (
-                        <div 
-                            ref={canvasRef}
-                            className={MockupStyles.placementCanvas}
-                            onMouseMove={handleMouseMove}
-                            onMouseUp={handleMouseUp}
-                            onMouseLeave={handleMouseUp}
-                        >
-                            {/* SILHOUETTE LAYER */}
-                            <div className={MockupStyles.silhouetteLayer}>
-                                {activeSilhouette}
-                            </div>
-
-                            {/* LOGO PROXY */}
-                            <div 
-                                className={`${MockupStyles.logoProxy} ${(isMoving || isResizing) ? MockupStyles.logoProxyActive : ''}`}
-                                style={{
-                                    left: `${placement.x / 10}%`,
-                                    top: `${placement.y / 10}%`,
-                                    width: `${placement.w / 10}%`,
-                                    height: `${placement.h / 10}%`
-                                }}
-                                onMouseDown={(e) => handleMouseDown(e, 'move')}
-                            >
-                                <img src={designImage.url} className={MockupStyles.logoPreview} alt="Design Proxy" />
-                                
-                                {/* Resizers */}
-                                <div className={`${MockupStyles.handle} ${MockupStyles.handleNW}`} onMouseDown={(e) => handleMouseDown(e, 'NW')} />
-                                <div className={`${MockupStyles.handle} ${MockupStyles.handleNE}`} onMouseDown={(e) => handleMouseDown(e, 'NE')} />
-                                <div className={`${MockupStyles.handle} ${MockupStyles.handleSW}`} onMouseDown={(e) => handleMouseDown(e, 'SW')} />
-                                <div className={`${MockupStyles.handle} ${MockupStyles.handleSE}`} onMouseDown={(e) => handleMouseDown(e, 'SE')} />
-                            </div>
-
-                            {/* INFO HUD */}
-                            <div className={MockupStyles.coordBadge}>
-                                <p className={MockupStyles.coordText}>X: {Math.round(placement.x)} Y: {Math.round(placement.y)} | SCALE: {Math.round((placement.w/1000)*100)}%</p>
-                            </div>
-
-                            <div className={MockupStyles.instructionPill}>
-                                <ChevronLeftRightIcon className="w-3 h-3 text-indigo-500 animate-pulse" />
-                                <span className={MockupStyles.instructionText}>Drag to position • Corners to resize</span>
-                            </div>
-
+                        <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                            {loading && (
+                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                    <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    </div>
+                                    <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                                </div>
+                            )}
+                            <img src={designImage.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} alt="Design" />
                             {!loading && (
                                 <button onClick={() => setDesignImage(null)} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all z-40">
                                     <XIcon className="w-5 h-5"/>
@@ -290,7 +148,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             )}
                         </div>
                     ) : (
-                        <div onClick={() => fileInputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={async (e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files?.[0]) { const file = e.dataTransfer.files[0]; const b64 = await fileToBase64(file); setDesignImage({ url: URL.createObjectURL(file), base64: b64 }); } }} className={`h-full w-full border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${isDragging ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'}`}>
+                        <div onClick={() => fileInputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={async (e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files?.[0]) { const file = e.dataTransfer.files[0]; const b64 = await fileToBase64(file); setDesignImage({ url: URL.createObjectURL(file), base64: b64 }); } }} className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${isDragging ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'}`}>
                             <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300"><PixaMockupIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" /></div>
                             <div className="relative z-10 mt-6 text-center space-y-2 px-6">
                                 <p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Design / Logo</p>
@@ -305,7 +163,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <div>
                             <div className="flex items-center justify-between mb-3 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Select Item</label></div>
                             <div className="flex flex-wrap gap-2">
-                                {objectOptions.map(opt => (<button key={opt} onClick={() => { setTargetObject(opt); setActivePreset(''); if(opt !== 'Other / Custom') autoScroll(); }} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform active:scale-95 ${targetObject === opt ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'}`}>{opt}</button>))}
+                                {objectOptions.map(opt => (<button key={opt} onClick={() => { setTargetObject(opt); if(opt !== 'Other / Custom') autoScroll(); }} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all duration-300 transform active:scale-95 ${targetObject === opt ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900 hover:shadow-sm'}`}>{opt}</button>))}
                             </div>
                             {targetObject === 'Other / Custom' && (
                                 <div className="mt-3 animate-fadeIn">
@@ -314,28 +172,12 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             )}
                         </div>
 
-                        {/* PREDEFINED PLACEMENT PRESETS */}
-                        <div className="animate-fadeIn">
-                            <SelectionGrid 
-                                label="2. Quick Placement" 
-                                options={currentPresets.map(p => p.label)} 
-                                value={activePreset} 
-                                onChange={(label) => {
-                                    const preset = currentPresets.find(p => p.label === label);
-                                    if (preset) {
-                                        setPlacement(preset.config);
-                                        setActivePreset(label);
-                                    }
-                                }} 
-                            />
-                        </div>
-                        
-                        <SelectionGrid label="3. Material Physics" options={materialOptions} value={material} onChange={(val) => { setMaterial(val); autoScroll(); }} />
-                        <SelectionGrid label="4. Scene Vibe" options={vibeOptions} value={sceneVibe} onChange={setSceneVibe} />
+                        <SelectionGrid label="2. Material Physics" options={materialOptions} value={material} onChange={(val) => { setMaterial(val); autoScroll(); }} />
+                        <SelectionGrid label="3. Scene Vibe" options={vibeOptions} value={sceneVibe} onChange={setSceneVibe} />
                         
                         <div className="animate-fadeIn">
                             <div className="flex items-center justify-between mb-4 ml-1">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">5. Object Colour</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">4. Object Colour</label>
                                 {objectColor && <button onClick={() => setObjectColor('')} className="text-[10px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors">Reset</button>}
                             </div>
                             <div className={MockupStyles.colorGrid}>

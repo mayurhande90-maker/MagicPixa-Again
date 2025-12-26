@@ -83,8 +83,7 @@ export const analyzeMockupSuggestions = async (
 };
 
 /**
- * Generates a photorealistic mockup with optional design placement.
- * Fix: Added 8th parameter 'placement' to resolve "Expected 5-7 arguments, but got 8" error in MagicMockup.tsx.
+ * Generates a photorealistic mockup.
  */
 export const generateMagicMockup = async (
     designBase64: string,
@@ -93,8 +92,7 @@ export const generateMagicMockup = async (
     material: string,
     sceneVibe: string,
     objectColor?: string,
-    brand?: BrandKit | null,
-    placement?: { ymin: number; xmin: number; ymax: number; xmax: number }
+    brand?: BrandKit | null
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -108,15 +106,10 @@ export const generateMagicMockup = async (
     Visual Vibe: Align the environment with their '${brand.industry}' industry standards.
     ` : "";
 
-    // Incorporate placement into the prompt if provided
-    const placementDirective = placement 
-        ? `\nPLACEMENT: Center the design within the following normalized coordinates on the object: [ymin: ${placement.ymin}, xmin: ${placement.xmin}, ymax: ${placement.ymax}, xmax: ${placement.xmax}]. Ensure accurate perspective distortion.`
-        : "";
-
     const prompt = `You are a Visualization Engine. ${brandDNA}
     TASK: Generate photorealistic mockup of ${objectColor ? objectColor + ' ' : ''}${targetObject}.
     STYLE: ${vibe}.
-    APPLICATION: Design using ${material} (${physics}). Wrap around object curvature.${placementDirective}
+    APPLICATION: Design using ${material} (${physics}). Wrap around object curvature and maintain perfect perspective.
     OUTPUT: High-res single image.`;
 
     const response = await ai.models.generateContent({
