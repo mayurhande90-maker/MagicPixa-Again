@@ -228,9 +228,32 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
     
     return await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists) throw new Error("User profile not found.");
+        let userData: User;
+
+        if (!userDoc.exists) {
+            // LAZY INITIALIZATION: Create the profile on the fly if it's missing during the first generation
+            userData = {
+                uid,
+                name: 'New Creator',
+                email: '',
+                avatar: 'U',
+                credits: 50,
+                totalCreditsAcquired: 50,
+                lifetimeGenerations: 0,
+                plan: 'Free',
+                signUpDate: firebase.firestore.FieldValue.serverTimestamp() as any,
+                lastActive: firebase.firestore.FieldValue.serverTimestamp() as any,
+                storageTier: 'limited',
+                referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                referralCount: 0,
+                isAdmin: false,
+                isBanned: false,
+            } as User;
+            transaction.set(userRef, userData);
+        } else {
+            userData = userDoc.data() as User;
+        }
         
-        const userData = userDoc.data() as User;
         const currentCredits = userData.credits || 0;
         
         if (currentCredits < amount) {
@@ -240,7 +263,6 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
         const newCredits = currentCredits - amount;
         const newGens = (userData.lifetimeGenerations || 0) + 1;
         
-        // Ensure the data object we send is clean
         transaction.update(userRef, { 
             credits: newCredits,
             lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
