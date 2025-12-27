@@ -499,13 +499,25 @@ const BrandCreationWizard: React.FC<{
 
                         <button 
                             onClick={() => setStep(1)}
-                            className="absolute bottom-5 right-5 z-30 bg-white border border-gray-100 hover:border-gray-300 hover:shadow-md text-gray-500 hover:text-black px-4 py-2 rounded-full text-[clamp(8px,1vh,9.5px)] font-bold transition-all flex items-center gap-2 group shadow-sm"
+                            className="absolute bottom-5 right-5 z-30 bg-white border border-gray-200 hover:border-gray-400 text-gray-600 hover:text-black px-4 py-2 rounded-full text-[clamp(8px,1vh,9.5px)] font-black transition-all flex items-center gap-2 group shadow-xl hover:shadow-indigo-500/20 animate-[breathing-glow_4s_ease-in-out_infinite]"
                         >
                             Or Build from Scratch
-                            <div className="w-5 h-5 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors">
-                                <ArrowRightIcon className="w-3 h-3" />
+                            <div className="w-5 h-5 rounded-full bg-gray-100 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-colors">
+                                <ArrowRightIcon className="w-2.5 h-2.5" />
                             </div>
                         </button>
+                        <style>{`
+                            @keyframes breathing-glow {
+                                0%, 100% { 
+                                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); 
+                                    border-color: #e5e7eb;
+                                }
+                                50% { 
+                                    box-shadow: 0 0 20px 2px rgba(99, 102, 241, 0.25); 
+                                    border-color: #a5b4fc;
+                                }
+                            }
+                        `}</style>
                     </div>
                 );
 
