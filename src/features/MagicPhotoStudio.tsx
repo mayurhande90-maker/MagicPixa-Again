@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
@@ -8,7 +9,7 @@ import {
 } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
-import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, logApiError } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
@@ -144,7 +145,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const handleGenerate = async () => {
         if (!image || !auth.user) return;
         if (userCredits < currentCost) { alert("Insufficient credits."); return; }
-        setResult(null); setLoading(true); setLastCreationId(null);
+        
+        setResult(null); 
+        setLoading(true); 
+        setLastCreationId(null);
+        
         try {
             let res;
             if (studioMode === 'model') {
@@ -153,16 +158,38 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 let generationDirection = selectedPrompt || (category ? `${visualType || 'Professional'} shot of ${category} product. Style: ${brandStyle || 'Clean'}.` : "Professional studio lighting");
                 res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit);
             }
+            
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;
             const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
-            const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
-            setLastCreationId(creationId);
-            const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
-            if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        } catch (e) { console.error(e); alert('Generation failed. Please try again.'); } finally { setLoading(false); }
+            
+            // EXECUTE DATABASE SYNC
+            try {
+                // 1. Deduct Credits first (The gatekeeper)
+                const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+                
+                // 2. Save image to gallery
+                const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
+                setLastCreationId(creationId);
+                
+                if (updatedUser.lifetimeGenerations) { 
+                    const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
+                    if (bonus !== false) setMilestoneBonus(bonus); 
+                }
+            } catch (dbError: any) {
+                console.error("Database sync failed", dbError);
+                logApiError("DB Sync", dbError.message, auth.user.uid);
+                setNotification({ msg: "Image generated but database sync failed. Credits may not have been deducted correctly.", type: 'error' });
+            }
+        } catch (e: any) { 
+            console.error(e); 
+            logApiError("Studio Generation", e.message, auth.user.uid);
+            alert('Generation failed. The AI might be busy or your image contains sensitive content.'); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const handleClaimBonus = async () => {
@@ -183,7 +210,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const handleEditorSave = async (newUrl: string) => { 
         setResult(newUrl); 
         if (lastCreationId && auth.user) {
-            // Update existing instead of creating new
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
         } else if (auth.user) {
             const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
@@ -434,6 +460,7 @@ const IndustryCard: React.FC<{
             <h3 className={PhotoStudioStyles.title}>{title}</h3>
             <p className={PhotoStudioStyles.desc}>{desc}</p>
         </div>
+        {/* FIX: Replaced AdMakerStyles with PhotoStudioStyles to resolve ReferenceError */}
         <div className={PhotoStudioStyles.actionBtn}>
             <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
         </div>

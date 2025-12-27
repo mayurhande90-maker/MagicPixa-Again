@@ -6,7 +6,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'mayurhande90@gmail.com' || 
-        request.auth.uid == 'qDkHqG6p3zT9p5O9K9O9Y9o9Y9o9' // Bulletproof UID check
+        request.auth.uid == 'qDkHqG6p3zT9p5O9K9O9Y9o9Y9o9'
       );
     }
 
@@ -18,19 +18,22 @@ service cloud.firestore {
     // --- USERS & SUBCOLLECTIONS ---
     match /users/{userId} {
       
-      // Profile Level
-      allow get: if request.auth != null; 
-      allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow delete: if isAdmin();
+      // Profile Document Rules
+      // 1. Owners and Admins can do EVERYTHING. No restrictions.
+      allow read, write: if isOwner(userId) || isAdmin();
       
-      // Update: Owners and Admins are UNRESTRICTED.
-      // Third parties (referrals) are restricted to credit/referral fields.
-      allow update: if isOwner(userId) || isAdmin() || 
-                   (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'lifetimeGenerations', 'lastActive', 'systemNotification', 'lastAttendanceClaim', 'dailyMission', 'lastAutomatedRefund', 'creditGrantNotification']));
+      // 2. Public Read for referrals (checking if code exists)
+      allow get: if request.auth != null;
 
-      // Recursive Subcollections (Creations, Transactions, Brands, Support Chat)
-      // Master Admin gets absolute read/write access to all user data for support/impersonation.
+      // 3. Restricted update for THIRD PARTIES (Referral system)
+      // This only triggers if the requester is NOT the owner/admin.
+      allow update: if request.auth != null && 
+                   !isOwner(userId) && 
+                   !isAdmin() &&
+                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'creditGrantNotification']);
+
+      // Recursive Subcollections (Creations, Transactions, Brands, Support Chat, etc.)
+      // These are strictly private to the Owner and the Admin.
       match /{allPaths=**} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
@@ -38,26 +41,31 @@ service cloud.firestore {
 
     // --- GLOBAL COLLECTIONS ---
 
+    // Config: Public Read, Admin Write
     match /config/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
+    // Support Tickets: Created by anyone auth, read/updated by Owner or Admin
     match /support_tickets/{ticketId} {
       allow create: if request.auth != null;
       allow read, update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // Feedback: Create by user, read by Admin
     match /feedbacks/{feedbackId} {
       allow create: if request.auth != null;
       allow read: if isAdmin();
     }
 
+    // Purchases: Create by user, read by Admin or Owner
     match /purchases/{purchaseId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
     }
 
+    // Error & Audit Logs
     match /api_errors/{logId} {
       allow create: if true;
       allow read: if isAdmin();
@@ -68,6 +76,7 @@ service cloud.firestore {
       allow write: if false; 
     }
 
+    // Default catch-all
     match /{allPaths=**} {
       allow read, write: if false;
     }
