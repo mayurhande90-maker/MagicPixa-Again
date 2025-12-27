@@ -207,6 +207,18 @@ export interface Creation {
     lastEditedAt?: Timestamp; // Added for editor tracking
 }
 
+export interface VaultReference {
+    id: string;
+    imageUrl: string;
+    addedAt: Timestamp;
+}
+
+export interface VaultFolderConfig {
+    featureId: string;
+    dna: string; // The "Visual DNA" instructions for AI
+    lastUpdated: Timestamp;
+}
+
 export interface CreditPack {
     name: string;
     price: number;

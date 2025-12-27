@@ -1,7 +1,9 @@
+
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
+import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
 // Optimize images to 1024px
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -24,7 +26,7 @@ export interface Blueprint {
     prompt: string;
 }
 
-// 1. Group A: Retail & Lifestyle (E-commerce, Fashion, FMCG)
+// Blueprints defined for manual selection if no vault exists or user chooses manual
 const RETAIL_BLUEPRINTS: Blueprint[] = [
     { id: 'modern_studio', label: 'Modern Studio', desc: 'Clean white background, soft shadows.', prompt: 'High-end studio photography style, clean white background, soft diffused lighting, minimalist composition, commercial product focus.' },
     { id: 'luxury_dark', label: 'Luxury Dark', desc: 'Black textures, gold accents.', prompt: 'Luxury dark mode aesthetic, matte black textures, elegant gold accents, dramatic rim lighting, premium sophisticated atmosphere.' },
@@ -33,7 +35,6 @@ const RETAIL_BLUEPRINTS: Blueprint[] = [
     { id: 'nature_organic', label: 'Nature/Organic', desc: 'Sunlight, leaves, wood textures.', prompt: 'Organic nature theme, natural sunlight, botanical shadows, wooden textures, earth tones, fresh and sustainable look.' }
 ];
 
-// 2. Group B: Food & Dining
 const FOOD_BLUEPRINTS: Blueprint[] = [
     { id: 'rustic_table', label: 'Rustic Table', desc: 'Wooden textures, warm lighting.', prompt: 'Rustic farm-to-table aesthetic, textured wooden surface, warm ambient lighting, fresh ingredients in background, cozy atmosphere.' },
     { id: 'dark_moody', label: 'Dark Moody', desc: 'Slate backgrounds, spotlight.', prompt: 'Dark moody food photography, slate stone background, dramatic spotlight on the dish, rich shadows, high-end steakhouse vibe.' },
@@ -41,7 +42,6 @@ const FOOD_BLUEPRINTS: Blueprint[] = [
     { id: 'neon_diner', label: 'Neon Diner', desc: 'Vibrant colors, hard shadows.', prompt: 'Retro diner aesthetic, vibrant neon colors, hard flash photography shadows, energetic fast-food vibe, bold and colorful.' }
 ];
 
-// 3. Group C: Real Estate
 const REALTY_BLUEPRINTS: Blueprint[] = [
     { id: 'bright_airy', label: 'Bright Airy', desc: 'Daylight, blue sky, open.', prompt: 'Bright and airy architectural photography, natural daylight, blue sky view, open windows, spacious and welcoming atmosphere.' },
     { id: 'golden_hour', label: 'Golden Hour', desc: 'Warm sunset glow, long shadows.', prompt: 'Golden hour real estate photography, warm sunset light, long dramatic shadows, emotional and inviting glow, exterior curb appeal.' },
@@ -49,7 +49,6 @@ const REALTY_BLUEPRINTS: Blueprint[] = [
     { id: 'modern_clean', label: 'Modern Clean', desc: 'Architectural lines, desaturated.', prompt: 'Modern architectural style, clean lines, desaturated cool tones, sharp focus, professional portfolio look.' }
 ];
 
-// 4. Group D: Professional (SaaS, Education, Services)
 const PROFESSIONAL_BLUEPRINTS: Blueprint[] = [
     { id: 'corporate_clean', label: 'Corporate Clean', desc: 'White/Blue palette, structured.', prompt: 'Corporate business aesthetic, clean white and blue color palette, structured grid layout, trustworthy and professional, banking/consulting vibe.' },
     { id: 'dark_mode_tech', label: 'Dark Mode Tech', desc: 'Sleek dark interfaces, glowing.', prompt: 'Modern SaaS dark mode aesthetic, sleek dark gradients, glowing tech accents, futuristic interface elements, premium software vibe.' },
@@ -57,30 +56,19 @@ const PROFESSIONAL_BLUEPRINTS: Blueprint[] = [
     { id: 'minimalist_grey', label: 'Minimalist Grey', desc: 'Serious, legal/financial.', prompt: 'Minimalist professional aesthetic, shades of grey and white, serious and authoritative, legal or financial firm look, clean typography.' }
 ];
 
-// Helper to get all blueprints for lookup
-const ALL_BLUEPRINTS = [
-    ...RETAIL_BLUEPRINTS,
-    ...FOOD_BLUEPRINTS,
-    ...REALTY_BLUEPRINTS,
-    ...PROFESSIONAL_BLUEPRINTS
-];
+const ALL_BLUEPRINTS = [...RETAIL_BLUEPRINTS, ...FOOD_BLUEPRINTS, ...REALTY_BLUEPRINTS, ...PROFESSIONAL_BLUEPRINTS];
 
 export const getBlueprintsForIndustry = (industry: string): Blueprint[] => {
     switch (industry) {
         case 'ecommerce':
         case 'fashion':
-        case 'fmcg':
-            return RETAIL_BLUEPRINTS;
-        case 'food':
-            return FOOD_BLUEPRINTS;
-        case 'realty':
-            return REALTY_BLUEPRINTS;
+        case 'fmcg': return RETAIL_BLUEPRINTS;
+        case 'food': return FOOD_BLUEPRINTS;
+        case 'realty': return REALTY_BLUEPRINTS;
         case 'saas':
         case 'education':
-        case 'services':
-            return PROFESSIONAL_BLUEPRINTS;
-        default:
-            return RETAIL_BLUEPRINTS;
+        case 'services': return PROFESSIONAL_BLUEPRINTS;
+        default: return RETAIL_BLUEPRINTS;
     }
 };
 
@@ -88,211 +76,105 @@ export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
     visualFocus?: 'product' | 'lifestyle' | 'conceptual'; 
     aspectRatio?: '1:1' | '4:5' | '9:16';
-    // Common
     mainImage: { base64: string; mimeType: string };
     logoImage?: { base64: string; mimeType: string } | null;
     tone: string;
-    // Style Source
-    blueprintId?: string; // Optional: If no reference image
-    // E-commerce & FMCG
+    blueprintId?: string; 
     productName?: string;
     offer?: string;
     description?: string;
-    // Realty
     project?: string;
     location?: string;
     config?: string;
     features?: string[];
-    // Food
     dishName?: string;
     restaurant?: string;
-    // SaaS / Education / Services
     headline?: string;
     cta?: string;
     subheadline?: string;
 }
 
-const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null) => {
+const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string) => {
     const ratio = inputs.aspectRatio || '1:1';
     
-    // 1. SAFE ZONES & FORMAT LOGIC
     let layoutRules = "";
     if (ratio === '9:16') {
-        layoutRules = `
-        *** TECHNICAL SPEC: INSTAGRAM STORIES/REELS (9:16) ***
-        - **Safe Zones**: CRITICAL. Leave top 14% and bottom 20% completely CLEAR of text and logos to avoid UI overlap.
-        - **Center Focus**: Place the core message and visual in the middle 60% of the screen.
-        - **Mobile-First**: Typography must be large, legible, and scannable in < 2 seconds.
-        `;
+        layoutRules = `*** TECHNICAL SPEC: INSTAGRAM STORIES/REELS (9:16) ***\n- Safe Zones: Top 14% and Bottom 20% clear. Center 60% focus.`;
     } else if (ratio === '4:5') {
-        layoutRules = `
-        *** TECHNICAL SPEC: INSTAGRAM FEED (4:5) ***
-        - **Vertical Feed**: Maximize screen real estate.
-        - **Composition**: Center-weighted. Ensure nothing important is at the very edges.
-        `;
+        layoutRules = `*** TECHNICAL SPEC: INSTAGRAM FEED (4:5) ***\n- Maximize real estate. Center-weighted.`;
     } else {
-        layoutRules = `
-        *** TECHNICAL SPEC: SQUARE FEED (1:1) ***
-        - **Standard Feed**: Balanced grid composition.
-        - **Rule of Thirds**: Place key elements on intersection points.
-        `;
+        layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced grid. Rule of thirds.`;
     }
 
-    // 2. BRAND DNA INTEGRATION
     const brandDNA = brand ? `
-    *** BRAND DNA (STRICT ADHERENCE) ***
-    - **Client**: '${brand.companyName || brand.name}'
-    - **Visual Tone**: ${brand.toneOfVoice || inputs.tone}.
-    - **Color Palette**: Use ${brand.colors.primary} as the dominant theme or accent color.
-    - **Audience**: Target visuals for ${brand.targetAudience || 'General'}.
-    - **Negative Prompts**: ${brand.negativePrompts || 'None'}.
-    ` : `*** BRAND TONE ***
-    - Tone: ${inputs.tone || 'Modern'}`;
+    *** BRAND DNA (STRICT) ***
+    - Client: '${brand.companyName || brand.name}'
+    - Visual Tone: ${brand.toneOfVoice || inputs.tone}.
+    - Color Palette: Dominant Primary=${brand.colors.primary}.
+    - Negative Prompts: ${brand.negativePrompts || 'None'}.
+    ` : `*** BRAND TONE ***\n- Tone: ${inputs.tone || 'Modern'}`;
 
-    // 3. VISUAL FOCUS STRATEGY
-    let visualStrategy = "";
-    const focus = inputs.visualFocus || 'product';
+    // --- GLOBAL VAULT STRATEGY (80/20 RULE) ---
+    const vaultProtocol = vaultDna ? `
+    *** GLOBAL STYLE VAULT PROTOCOL (THE PIXA SIGNATURE) ***
+    - **Instruction**: ${vaultDna}
+    - **80/20 INNOVATION RULE**: 
+      1. (80%) Follow the lighting, shadows, and composition depth of the attached VAULT REFERENCES exactly.
+      2. (20%) Innovate on secondary visual elements. Use creative reasoning to add new trending textures (from 2025) or background props that weren't in the reference to prevent monotony.
+    ` : "";
 
-    if (focus === 'product') {
-        visualStrategy = `
-        *** STRATEGY: PRODUCT FOCUS (HYPER-REALISM) ***
-        - **Goal**: Show the product's quality, texture, and details.
-        - **Visuals**: Hyper-realistic 8K render. Studio lighting (Softbox or Rim light).
-        - **Background**: Clean, non-distracting studio environment or simple podium.
-        - **Depth**: Sharp focus on the product, slight fall-off on background.
-        `;
-    } else if (focus === 'lifestyle') {
-        visualStrategy = `
-        *** STRATEGY: LIFESTYLE (AUTHENTICITY) ***
-        - **Goal**: Show the product in use. "Sound-off" visual storytelling.
-        - **Visuals**: Candid, authentic, "User Generated Content" vibe but pro quality.
-        - **Lighting**: Natural window light or golden hour.
-        - **Atmosphere**: Warm, relatable, human presence (hands, blurred figures).
-        `;
-    } else if (focus === 'conceptual') {
-        visualStrategy = `
-        *** STRATEGY: CONCEPTUAL (METAPHOR) ***
-        - **Goal**: Illustrate the BENEFIT or FEELING.
-        - **Visuals**: Creative visual metaphor, surreal elements, floating objects.
-        - **Style**: Editorial, dreamlike, high-end art direction.
-        `;
-    }
-
-    // 4. SMART MAPPING
     const smartMappingLogic = `
-    *** INTELLIGENT CONTENT ENGINE (COPYWRITING) ***
-    - **Analyze, Don't Copy**: You are a Creative Director. The "CONTEXT" sections below are raw data points. **DO NOT copy-paste the user's text blindly.**
-    - **Synthesize Value**: Analyze the product details to understand the core benefit. Generate your own high-impact, punchy headlines and micro-copy that is better than the input.
-    - **Language**: English, unless the input is clearly in another language.
-    
-    *** STRICT LOGO PROTOCOL (NO HALLUCINATIONS) ***
-    - **Sacred Asset**: The provided "BRAND LOGO" image is immutable. Include it exactly.
-    - **Smart Contrast**: Place the logo where it is 100% legible. Ensure high separation from background.
-
-    *** DESIGN PROTOCOL: WORLD CLASS & CLUTTER-FREE ***
-    - **Hierarchy**: 1. HERO IMAGE, 2. HEADLINE, 3. CTA.
-    - **Whitespace**: Use ample negative space.
+    *** INTELLIGENT CONTENT ENGINE ***
+    - Synthesize high-impact headlines better than the raw input.
+    - Sacred Logo: Use the provided BRAND LOGO exactly.
     `;
 
-    // 5. STYLE SOURCE
-    let styleInstruction = "";
-    if (inputs.blueprintId) {
-        const blueprint = ALL_BLUEPRINTS.find(b => b.id === inputs.blueprintId);
-        if (blueprint) {
-            styleInstruction = `
-            *** STYLE BLUEPRINT: ${blueprint.label.toUpperCase()} ***
-            - **Direction**: ${blueprint.prompt}
-            `;
-        }
-    } else {
-        styleInstruction = `
-        *** REFERENCE MATCHING ***
-        - **Visual Direction**: Copy the lighting, layout, and palette of the provided Reference Image.
-        `;
-    }
-
-    const commonRules = `
+    return `You are a World-Class Advertising Director for the ${inputs.industry} industry.
+    
+    ${vaultProtocol}
     ${layoutRules}
     ${brandDNA}
     ${smartMappingLogic}
-    ${visualStrategy}
-    ${styleInstruction}
-    `;
-
-    // INDUSTRY SPECIFIC CONTEXT
-    if (inputs.industry === 'realty') {
-        return `You are a Luxury Real Estate Designer.
-        TASK: Create a Premium Property Ad (${ratio}).
-        CONTEXT: 
-        - Project: "${inputs.project}"
-        - Loc: "${inputs.location}"
-        - Config: "${inputs.config}"
-        - Features: ${inputs.features?.join(', ')}
-        
-        EXECUTION:
-        - Must look expensive. Boost dynamic range (HDR).
-        ${commonRules}`;
-    }
-
-    if (inputs.industry === 'food') {
-        return `You are a Gourmet Food Ad Designer.
-        TASK: Create a Mouth-Watering Ad (${ratio}).
-        CONTEXT: 
-        - Dish: "${inputs.dishName}"
-        - Brand: "${inputs.restaurant}"
-        
-        EXECUTION:
-        - Macro shot or Top-down. edibility focus.
-        ${commonRules}`;
-    }
-
-    if (inputs.industry === 'fmcg') {
-        return `You are a CPG Ad Designer.
-        TASK: Create a High-Impact Product Ad (${ratio}).
-        CONTEXT: 
-        - Product: "${inputs.productName}"
-        - Offer: "${inputs.offer}"
-        - Desc: "${inputs.description}"
-        
-        EXECUTION:
-        - Focus on packaging pop. Bold text.
-        ${commonRules}`;
-    }
-
-    if (inputs.industry === 'saas') {
-        return `You are a Tech Ad Designer.
-        TASK: Create a B2B Ad Creative (${ratio}).
-        CONTEXT: 
-        - Headline: "${inputs.headline}"
-        - CTA: "${inputs.cta}"
-        
-        EXECUTION:
-        - Modern UI/Abstract tech visualization.
-        ${commonRules}`;
-    }
-
-    // Default
-    return `You are a Direct Response Ad Designer.
-    TASK: Create a High-CTR Ad (${ratio}).
-    CONTEXT: 
-    - Product: "${inputs.productName}"
-    - Offer: "${inputs.offer}"
     
-    EXECUTION:
-    - Punchy, bold, conversion-focused.
-    ${commonRules}`;
+    GOAL: Create a High-Conversion Ad Creative.
+    - Focus: ${inputs.visualFocus || 'product'}.
+    - Context: "${inputs.productName || inputs.project || inputs.dishName || inputs.headline}".
+    
+    OUTPUT: A high-resolution marketing asset designed to stop the scroll.`;
 };
 
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    // 1. Optimize
+    // 1. Fetch Global Vault references for 'brand_stylist' (Pixa AdMaker)
+    let vaultAssets: { data: string, mimeType: string }[] = [];
+    let vaultDna = "";
+    try {
+        const [refs, conf] = await Promise.all([
+            getVaultImages('brand_stylist'),
+            getVaultFolderConfig('brand_stylist')
+        ]);
+        if (conf) vaultDna = conf.dna;
+        
+        // Pick up to 2 random references for variety
+        const shuffled = refs.sort(() => 0.5 - Math.random());
+        const selectedRefs = shuffled.slice(0, 2);
+        
+        vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
+            const res = await urlToBase64(r.imageUrl);
+            return { data: res.base64, mimeType: res.mimeType };
+        }));
+    } catch (e) {
+        console.warn("Vault fetch failed, using original logic", e);
+    }
+
+    // 2. Optimize user images
     const optMain = await optimizeImage(inputs.mainImage.base64, inputs.mainImage.mimeType);
     const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType) : null;
 
-    // 2. Prepare Parts
+    // 3. Prepare Parts
     const parts: any[] = [];
-    parts.push({ text: "HERO ASSET:" });
+    parts.push({ text: "MAIN USER ASSET (Subject):" });
     parts.push({ inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
     
     if (optLogo) {
@@ -300,7 +182,14 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
-    const systemPrompt = getSystemPrompt(inputs, brand);
+    if (vaultAssets.length > 0) {
+        parts.push({ text: "GLOBAL STYLE REFERENCES (THE VAULT):" });
+        vaultAssets.forEach(v => {
+            parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } });
+        });
+    }
+
+    const systemPrompt = getSystemPrompt(inputs, brand, vaultDna);
     parts.push({ text: systemPrompt });
 
     // 4. Generate

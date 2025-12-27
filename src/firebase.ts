@@ -3,7 +3,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
-import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction } from './types';
+import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction, VaultReference, VaultFolderConfig } from './types';
 import { resizeImage } from './utils/imageUtils';
 
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -58,7 +58,6 @@ if (isConfigValid) {
 
 /**
  * Helper to strip undefined values from objects before Firestore writes.
- * Firestore throws a "Unsupported field value: undefined" error if any key has an undefined value.
  */
 const sanitizeData = (data: any) => {
     const clean: any = {};
@@ -92,7 +91,6 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     const userRef = db.collection('users').doc(uid);
     const doc = await userRef.get();
     
-    // Robust Initials Generator
     const initials = name && name.trim()
         ? name.trim().split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
         : email?.substring(0, 2).toUpperCase() || 'U';
@@ -127,10 +125,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     if (userData.lifetimeGenerations === undefined) updates.lifetimeGenerations = 0;
     if (userData.totalCreditsAcquired === undefined) updates.totalCreditsAcquired = userData.credits || 0;
     if (!userData.plan) updates.plan = 'Free';
-    
-    // Ensure avatar exists for existing users too
     if (!userData.avatar) updates.avatar = initials;
-    
     if (isSuperAdmin && userData.isAdmin !== true) updates.isAdmin = true;
 
     if (Object.keys(updates).length > 0) {
@@ -251,7 +246,6 @@ export const deductCredits = async (userId: string, amount: number, featureName:
         let userData: User;
 
         if (!userDoc.exists) {
-            // LAZY INITIALIZATION: Create the profile on the fly if missing.
             userData = {
                 uid: userId,
                 name: 'Creator',
@@ -275,7 +269,6 @@ export const deductCredits = async (userId: string, amount: number, featureName:
         }
         
         const currentCredits = userData.credits || 0;
-        
         if (currentCredits < amount) {
             throw new Error(`Insufficient credits. You need ${amount} but have ${currentCredits}.`);
         }
@@ -531,4 +524,62 @@ export const claimMilestoneBonus = async (uid: string, amount: number) => {
     }));
     const snap = await userRef.get();
     return { uid: snap.id, ...snap.data() } as User;
+};
+
+// --- GLOBAL STYLE VAULT FUNCTIONS ---
+
+export const getVaultImages = async (featureId: string): Promise<VaultReference[]> => {
+    if (!db) return [];
+    try {
+        const snap = await db.collection('global_vault').doc(featureId).collection('references')
+            .orderBy('addedAt', 'desc').get();
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as VaultReference));
+    } catch(e) {
+        console.warn("Vault fetch error", e);
+        return [];
+    }
+};
+
+export const uploadVaultImage = async (adminUid: string, featureId: string, dataUri: string): Promise<string> => {
+    if (!storage || !db) throw new Error("Init error");
+    
+    // 1. Upload to Storage
+    const response = await fetch(dataUri);
+    const blob = await response.blob();
+    const ext = blob.type.split('/')[1] || 'jpg';
+    const path = `global_vault/${featureId}/${Date.now()}.${ext}`;
+    const ref = storage.ref().child(path);
+    await ref.put(blob);
+    const url = await ref.getDownloadURL();
+
+    // 2. Add to Firestore
+    const docRef = await db.collection('global_vault').doc(featureId).collection('references').add({
+        imageUrl: url,
+        addedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await logAudit(adminUid, 'Vault Upload', `Feature: ${featureId}, ID: ${docRef.id}`);
+    return docRef.id;
+};
+
+export const deleteVaultImage = async (adminUid: string, featureId: string, imageId: string) => {
+    if (!db) return;
+    await db.collection('global_vault').doc(featureId).collection('references').doc(imageId).delete();
+    await logAudit(adminUid, 'Vault Delete', `Feature: ${featureId}, ID: ${imageId}`);
+};
+
+export const getVaultFolderConfig = async (featureId: string): Promise<VaultFolderConfig | null> => {
+    if (!db) return null;
+    const doc = await db.collection('global_vault').doc(featureId).get();
+    if (!doc.exists) return null;
+    return { featureId: doc.id, ...doc.data() } as VaultFolderConfig;
+};
+
+export const updateVaultFolderConfig = async (adminUid: string, featureId: string, dna: string) => {
+    if (!db) return;
+    await db.collection('global_vault').doc(featureId).set({
+        dna,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    await logAudit(adminUid, 'Vault Update DNA', `Feature: ${featureId}`);
 };

@@ -9,7 +9,8 @@ import {
     AudioWaveIcon,
     SystemIcon,
     StarIcon,
-    LifebuoyIcon
+    LifebuoyIcon,
+    CloudUploadIcon
 } from './icons';
 import { AdminStyles } from '../styles/Admin.styles';
 
@@ -21,6 +22,7 @@ import { AdminUsers } from './admin/AdminUsers';
 import { AdminComms } from './admin/AdminComms';
 import { AdminConfig } from './admin/AdminConfig';
 import { AdminSystem } from './admin/AdminSystem';
+import { AdminVault } from './admin/AdminVault';
 
 interface AdminPanelProps {
     auth: AuthProps;
@@ -29,8 +31,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    // Removed 'analytics' from state type
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'support' | 'comms' | 'system' | 'config' | 'feedback'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'vault' | 'users' | 'support' | 'comms' | 'system' | 'config' | 'feedback'>('overview');
 
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
@@ -48,9 +49,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 <h1 className={AdminStyles.title}><ShieldCheckIcon className="w-8 h-8 text-indigo-600" /> Admin Command</h1>
                 <div className={AdminStyles.tabsContainer}>
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
+                    <TabButton id="vault" label="Style Vault" icon={CloudUploadIcon} />
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
                     <TabButton id="support" label="Support" icon={LifebuoyIcon} />
-                    {/* Analytics Removed */}
                     <TabButton id="users" label="Users" icon={UsersIcon} />
                     <TabButton id="comms" label="Comms" icon={AudioWaveIcon} />
                     <TabButton id="config" label="Config" icon={CogIcon} />
@@ -59,9 +60,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             </div>
 
             {activeTab === 'overview' && <AdminOverview onNavigate={setActiveTab} />}
+            {activeTab === 'vault' && <AdminVault auth={auth} />}
             {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'support' && <AdminSupport auth={auth} />}
-            {/* Analytics Render Removed */}
             {activeTab === 'users' && <AdminUsers auth={auth} appConfig={appConfig} />}
             {activeTab === 'comms' && <AdminComms auth={auth} />}
             {activeTab === 'config' && <AdminConfig appConfig={appConfig} onConfigUpdate={onConfigUpdate} />}
