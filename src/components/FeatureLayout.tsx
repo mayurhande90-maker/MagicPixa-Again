@@ -353,7 +353,7 @@ export const FeatureLayout: React.FC<{
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className={FeatureStyles.titleRow}>
                         {rawIcon ? (
-                            <div className="w-[clamp(32px,6.5vh,64px)] h-[clamp(32px,6.5vh,64px)] flex items-center justify-center flex-none transition-transform hover:scale-105">
+                            <div className="transition-transform hover:scale-105">
                                 {icon}
                             </div>
                         ) : (

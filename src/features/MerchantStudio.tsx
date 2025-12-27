@@ -1,106 +1,456 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaEcommerceIcon, UploadIcon, XIcon, SparklesIcon, CreditCoinIcon, CheckIcon, CameraIcon, ApparelIcon, CubeIcon } from '../components/icons';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
+import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, ImageModal } from '../components/FeatureLayout';
+import { 
+    ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon,
+    BrandKitIcon
+} from '../components/icons';
+import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
-import { ResultToolbar } from '../components/ResultToolbar';
-import ToastNotification from '../components/ToastNotification';
+import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus } from '../firebase';
+import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
+// @ts-ignore
+import JSZip from 'jszip';
+
+const FeedbackSparkle = () => (
+  <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
+    <div className="absolute animate-[ping_0.5s_ease-out_forwards] text-yellow-300 opacity-90 scale-150">✨</div>
+    <div className="absolute -top-6 -right-6 text-yellow-200 w-4 h-4 animate-[bounce_0.6s_infinite]">✦</div>
+    <div className="absolute -bottom-4 -left-6 text-yellow-400 w-3 h-3 animate-[pulse_0.4s_infinite]">★</div>
+    <div className="absolute top-0 left-0 w-full h-full border-2 border-yellow-300 rounded-full animate-[ping_0.6s_ease-out_forwards] opacity-60"></div>
+  </div>
+);
+
+const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; cost: number; selected: boolean; onClick: () => void; isPopular?: boolean; }> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
+    <button onClick={onClick} className={`${MerchantStyles.packCard} ${selected ? MerchantStyles.packCardSelected : MerchantStyles.packCardInactive}`}>
+        {/* Animated Glow Orb */}
+        <div className={`${MerchantStyles.packOrb} ${selected ? MerchantStyles.packOrbSelected : MerchantStyles.packOrbInactive}`}></div>
+        
+        {/* Popular Badge (Top Right) */}
+        {isPopular && <div className={MerchantStyles.packPopular}>Best Value</div>}
+        
+        {/* Selection Checkmark - Moved to Bottom Right to avoid overlapping with Badge */}
+        {selected && (
+            <div className="absolute bottom-3 right-3 z-20">
+                <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-fadeIn ring-2 ring-white">
+                    <CheckIcon className="w-3 h-3 text-white"/>
+                </div>
+            </div>
+        )}
+
+        <div className={MerchantStyles.packContent}>
+            {/* Header */}
+            <div>
+                <span className={`${MerchantStyles.packLabel} ${selected ? MerchantStyles.packLabelSelected : MerchantStyles.packLabelInactive}`}>
+                    {label}
+                </span>
+                <div className={MerchantStyles.packCountContainer}>
+                    <span className={`${MerchantStyles.packCount} ${selected ? MerchantStyles.packCountSelected : MerchantStyles.packCountInactive}`}>
+                        {size}
+                    </span>
+                    <span className={MerchantStyles.packUnit}>Assets</span>
+                </div>
+            </div>
+            
+            {/* Footer / Cost */}
+            <div className={`${MerchantStyles.packCost} ${selected ? MerchantStyles.packCostSelected : MerchantStyles.packCostInactive}`}>
+                {selected ? <SparklesIcon className="w-3 h-3 text-yellow-300"/> : <CreditCoinIcon className="w-3 h-3 text-current opacity-70"/>} 
+                {cost} Credits
+            </div>
+        </div>
+    </button>
+);
+
+const CompactUpload: React.FC<{ label: string; subLabel?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, subLabel, image, onUpload, onClear, icon, heightClass = "h-32" }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+        <div className="relative w-full group h-full">
+            <div className="mb-2 ml-1 flex justify-between items-end"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</label>{subLabel && <span className="text-[10px] text-gray-400">{subLabel}</span>}</div>
+            {image ? (
+                <div className={`relative w-full ${heightClass} bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm group-hover:border-blue-300 transition-colors`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-2" alt={label} />
+                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-10 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                </div>
+            ) : (
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}>
+                    <div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">{icon}</div>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Click to Upload</p>
+                    <p className="text-[9px] text-gray-300 mt-1">Best: High Res, Clean BG</p>
+                </div>
+            )}
+            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
+        </div>
+    );
+};
 
 export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
-    const [type, setType] = useState<'apparel' | 'product'>('product');
+    const [mode, setMode] = useState<'apparel' | 'product' | null>(null);
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    
+    // Changed: Initialize as null so no box is pre-selected
+    const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
+    
+    // Removed Default Values - User must select
+    const [aiGender, setAiGender] = useState('');
+    const [aiEthnicity, setAiEthnicity] = useState('');
+    const [aiSkinTone, setAiSkinTone] = useState('');
+    const [aiBodyType, setAiBodyType] = useState('');
+    
+    const [productType, setProductType] = useState('');
+    const [productVibe, setProductVibe] = useState('');
     const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
-    const [results, setResults] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    const [loadingText, setLoadingText] = useState("");
+    const [results, setResults] = useState<string[]>([]);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    const [viewIndex, setViewIndex] = useState<number | null>(null);
+    const [isZipping, setIsZipping] = useState(false);
 
-    const costMap = { 5: 25, 7: 35, 10: 50 };
-    const cost = costMap[packSize];
+    // Feedback State
+    const [heroCreationId, setHeroCreationId] = useState<string | null>(null);
+    const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
+    const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
+    const [showThankYou, setShowThankYou] = useState(false);
+
+    const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || appConfig?.featureCosts['Merchant Studio'] || 25;
+    let cost = baseCost;
+    if (packSize === 5 && appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)']) cost = appConfig.featureCosts['Pixa Ecommerce Kit (5 Assets)'];
+    else if (packSize === 7) cost = appConfig?.featureCosts['Pixa Ecommerce Kit (7 Assets)'] || Math.ceil(baseCost * 1.4);
+    else if (packSize === 10) cost = appConfig?.featureCosts['Pixa Ecommerce Kit (10 Assets)'] || Math.ceil(baseCost * 2.0);
+
+    const costStandard = appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)'] || baseCost;
+    const costExtended = appConfig?.featureCosts['Pixa Ecommerce Kit (7 Assets)'] || Math.ceil(baseCost * 1.4);
+    const costUltimate = appConfig?.featureCosts['Pixa Ecommerce Kit (10 Assets)'] || Math.ceil(baseCost * 2.0);
+
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => { return () => { results.forEach(url => URL.revokeObjectURL(url)); }; }, [results]);
+    useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa Vision mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
+
+    const autoScroll = () => {
+        if (scrollRef.current) {
+            setTimeout(() => {
+                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+            }, 100);
+        }
+    };
+
+    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
-            setMainImage({ url: URL.createObjectURL(file), base64 });
-            setResults([]);
+            setter({ url: URL.createObjectURL(file), base64 });
         }
+        e.target.value = '';
     };
 
     const handleGenerate = async () => {
-        if (!mainImage || !auth.user) return;
+        if (!mainImage || !mode || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
-
-        setLoading(true);
-        setResults([]);
+        setLoading(true); results.forEach(url => URL.revokeObjectURL(url)); setResults([]); setHeroCreationId(null);
         try {
-            const resBatch = await generateMerchantBatch({
-                type,
-                mainImage: mainImage.base64,
-                packSize,
-            }, auth.user.brandKit);
+            const outputBase64Images = await generateMerchantBatch({
+                type: mode, mainImage: mainImage.base64, backImage: backImage?.base64, modelImage: modelSource === 'upload' ? modelImage?.base64 : undefined,
+                modelParams: modelSource === 'ai' ? { gender: aiGender, ethnicity: aiEthnicity, age: 'Young Adult', skinTone: aiSkinTone, bodyType: aiBodyType } : undefined,
+                productType: productType, productVibe: productVibe, packSize: packSize
+            }, auth.activeBrandKit); // Passed brand kit
+            if (!outputBase64Images || outputBase64Images.length === 0) throw new Error("Generation failed.");
             
-            const blobUrls = await Promise.all(resBatch.map(b64 => base64ToBlobUrl(b64, 'image/png')));
+            const blobUrls = await Promise.all(outputBase64Images.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
             setResults(blobUrls);
             
-            for (const b64 of resBatch) {
-                await saveCreation(auth.user.uid, `data:image/png;base64,${b64}`, 'Pixa Ecommerce Pack');
+            const creationIds = [];
+            for (let i = 0; i < outputBase64Images.length; i++) {
+                const label = getLabel(i, mode); 
+                const rawUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
+                const storedUri = await resizeImage(rawUri, 1024, 0.7);
+                const id = await saveCreation(auth.user.uid, storedUri, `Ecommerce Kit: ${label}`);
+                creationIds.push(id);
             }
-            
+            if (creationIds.length > 0) setHeroCreationId(creationIds[0]);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Ecommerce Kit');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            setNotification({ msg: `Successfully generated ${packSize} assets!`, type: 'success' });
-        } catch (e: any) {
-            console.error(e);
-            alert("Pack generation failed.");
+            if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
+        } catch (e: any) { console.error(e); logApiError('Pixa Ecommerce Kit UI', e.message || 'Generation Failed', auth.user?.uid); alert(`Generation failed: ${e.message}. No credits deducted.`); } finally { setLoading(false); }
+    };
+
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+    };
+
+    const handleNewSession = () => { 
+        results.forEach(url => URL.revokeObjectURL(url)); 
+        setMainImage(null); 
+        setBackImage(null); 
+        setModelImage(null); 
+        setResults([]); 
+        setMode(null); 
+        setViewIndex(null); 
+        setPackSize(5); 
+        setModelSource(null); 
+        setHeroCreationId(null);
+        setFeedbackGiven(null);
+        setAnimatingFeedback(null);
+        setShowThankYou(false);
+        setIsZipping(false);
+        
+        // Reset to empty
+        setAiGender(''); 
+        setAiEthnicity(''); 
+        setAiSkinTone(''); 
+        setAiBodyType(''); 
+        
+        setProductType(''); 
+        setProductVibe(''); 
+    };
+
+    const handleFeedback = async (type: 'up' | 'down') => {
+        if (animatingFeedback) return;
+        setAnimatingFeedback(type);
+        
+        if (auth.user && heroCreationId && results.length > 0) {
+            submitFeedback(auth.user.uid, heroCreationId, type, 'Pixa Ecommerce Kit', results[0], auth.user.email, auth.user.name);
+        }
+
+        setTimeout(() => {
+            setFeedbackGiven(type); 
+            setAnimatingFeedback(null); 
+            setShowThankYou(true);
+            setTimeout(() => setShowThankYou(false), 3000);
+        }, 1000);
+    };
+    
+    const handleDownloadAll = async () => {
+        if (results.length === 0 || !mode) return;
+        setIsZipping(true);
+        try {
+            const zip = new JSZip();
+            const promises = results.map(async (url, index) => {
+                const label = getLabel(index, mode);
+                const cleanLabel = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                const filename = `pixa_${cleanLabel}_${index + 1}.jpg`;
+                const response = await fetch(url);
+                const blob = await response.blob();
+                zip.file(filename, blob);
+            });
+            await Promise.all(promises);
+            const content = await zip.generateAsync({ type: "blob" });
+            const zipUrl = URL.createObjectURL(content);
+            const link = document.createElement('a');
+            link.href = zipUrl;
+            link.download = `pixa-ecommerce-pack-${new Date().toISOString().slice(0,10)}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(zipUrl);
+        } catch (e) {
+            console.error("Zip failed", e);
+            alert("Failed to create zip file. Downloading individually.");
+            for (let i = 0; i < results.length; i++) {
+                downloadImage(results[i], `merchant-asset-${i+1}.jpg`);
+                await new Promise(r => setTimeout(r, 500));
+            }
         } finally {
-            setLoading(false);
+            setIsZipping(false);
         }
     };
 
-    const handleNewSession = () => { setMainImage(null); setResults([]); };
-
-    const canGenerate = !!mainImage && !isLowCredits;
+    const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
+    
+    const canGenerate = !!mainImage && !isLowCredits && (
+        (mode === 'product' && !!productVibe) || 
+        (mode === 'apparel' && (
+            (modelSource === 'upload' && !!modelImage) || 
+            (modelSource === 'ai' && !!aiGender && !!aiEthnicity && !!aiSkinTone && !!aiBodyType)
+        ))
+    );
 
     return (
         <>
             <FeatureLayout
-                title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="size-full" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
+                title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
+                activeBrandKit={auth.activeBrandKit}
+                isBrandCritical={true}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: `Generate ${packSize} Assets` }} scrollRef={scrollRef}
                 leftContent={
-                    <div className="w-full h-full space-y-6">
-                        <div onClick={() => document.getElementById('merchant-upload')?.click()} className="relative aspect-square w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 cursor-pointer hover:border-indigo-400 overflow-hidden">
-                            {mainImage ? <img src={mainImage.url} className="max-w-full max-h-full object-contain" /> : <div className="text-center opacity-40"><CameraIcon className="w-16 h-16 mx-auto mb-2 text-gray-300" /><p className="text-xs font-bold">Upload Hero Shot</p></div>}
-                            <input id="merchant-upload" type="file" className="hidden" onChange={handleUpload} />
-                        </div>
-                        {results.length > 0 && (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pb-10">
-                                {results.map((url, idx) => (
-                                    <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
-                                        <img src={url} className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <button onClick={() => window.open(url, '_blank')} className="bg-white p-2 rounded-full shadow-lg"><SparklesIcon className="w-5 h-5 text-indigo-600"/></button>
-                                        </div>
+                    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
+                        {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
+                        {!loading && results.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60"><div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6"><PixaEcommerceIcon className="w-10 h-10 text-indigo-300" /></div><h3 className="text-xl font-bold text-gray-400">Ready to Create</h3><p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">Select a mode and pack size on the right to generate your assets.</p></div>)}
+                        {!loading && results.length > 0 && mode && (
+                            <div className="flex flex-col lg:flex-row h-full">
+                                <div className={MerchantStyles.heroResultContainer} onClick={() => setViewIndex(0)}>
+                                    <div className={MerchantStyles.heroLabel}>{getLabel(0, mode)}</div>
+                                    <img src={results[0]} className="w-full h-full object-contain p-6 transition-transform group-hover/hero:scale-[1.02]" alt="Hero" />
+                                    
+                                    {/* Feedback UI */}
+                                    <div className="absolute bottom-6 left-6 z-20 flex flex-col items-start gap-2 pointer-events-none">
+                                        {showThankYou && (
+                                            <div className="pointer-events-auto animate-[fadeInUp_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)] bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-2xl mb-1 flex items-center gap-2 transform origin-bottom">
+                                                <SparklesIcon className="w-4 h-4 text-yellow-300" /> 
+                                                <span>Thanks for feedback!</span>
+                                            </div>
+                                        )}
+                                        
+                                        {!feedbackGiven && heroCreationId && (
+                                            <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
+                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'up' ? 'bg-green-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Good Result">
+                                                    <ThumbUpIcon className="w-5 h-5" />
+                                                    {animatingFeedback === 'up' && <FeedbackSparkle />}
+                                                </button>
+                                                <div className="w-px bg-white/10 my-1"></div>
+                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'down' ? 'bg-red-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Bad Result">
+                                                    <ThumbDownIcon className="w-5 h-5" />
+                                                    {animatingFeedback === 'down' && <FeedbackSparkle />}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                ))}
+
+                                    <div className="absolute bottom-6 right-6 pointer-events-none"><button onClick={(e) => { e.stopPropagation(); downloadImage(results[0], 'merchant-hero.png'); }} className={MerchantStyles.heroDownloadBtn}><DownloadIcon className="w-4 h-4"/> Download</button></div>
+                                </div>
+                                <div className={MerchantStyles.resultGridContainer}>
+                                    <div className="p-4 space-y-4 pb-20">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asset Pack ({results.length})</span>
+                                            {results.length > 0 && (
+                                                <button onClick={handleDownloadAll} disabled={isZipping} className="text-[10px] font-bold text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-wait">
+                                                    {isZipping ? 'Zipping...' : 'Download All (ZIP)'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {results.slice(1).map((res, idx) => (<div key={idx} className={MerchantStyles.resultThumbnail} onClick={() => setViewIndex(idx + 1)}><div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">{getLabel(idx + 1, mode)}</div><div className="aspect-[4/3]"><img src={res} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={`Variant ${idx+1}`} /></div><div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => { e.stopPropagation(); downloadImage(res, `merchant-variant-${idx+1}.png`); }} className="bg-white p-1.5 rounded-full shadow-md text-gray-700 hover:text-blue-600"><DownloadIcon className="w-4 h-4"/></button></div></div>))}
+                                    </div>
+                                    <div className={MerchantStyles.scrollCue}><div className={MerchantStyles.scrollCueBadge}>Scroll for more</div></div>
+                                </div>
                             </div>
                         )}
+                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
-                    <div className="space-y-6">
-                        <SelectionGrid label="Category" options={['product', 'apparel']} value={type} onChange={(v: any) => setType(v)} />
-                        <SelectionGrid label="Pack Size" options={[5, 7, 10] as any} value={packSize as any} onChange={(v: any) => setPackSize(parseInt(v) as any)} />
-                        <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                             <p className="text-xs text-indigo-800 leading-relaxed"><strong>Auto-Production</strong>: We will generate Hero Shots, Side Profiles, Lifestyle Mockups, and Macro Detail shots in one automated batch.</p>
+                    isLowCredits ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">The selected pack requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge</button></div>
+                    ) : (
+                        <div className="space-y-8 p-1 animate-fadeIn">
+                            {!mode && (
+                                <div className={MerchantStyles.modeGrid}>
+                                    {/* Apparel Card */}
+                                    <button onClick={() => setMode('apparel')} className={`${MerchantStyles.modeCard} ${MerchantStyles.modeCardApparel}`}>
+                                        <div className={`${MerchantStyles.orb} ${MerchantStyles.orbApparel}`}></div>
+                                        <div className={MerchantStyles.iconGlass}>
+                                            <ApparelIcon className="w-6 h-6 text-purple-600" />
+                                        </div>
+                                        <div className={MerchantStyles.contentWrapper}>
+                                            <h3 className={MerchantStyles.title}>Apparel</h3>
+                                            <p className={MerchantStyles.desc}>Virtual Model Shoot</p>
+                                        </div>
+                                        <div className={MerchantStyles.actionBtn}>
+                                            <ArrowRightIcon className={MerchantStyles.actionIcon} />
+                                        </div>
+                                    </button>
+
+                                    {/* Product Card */}
+                                    <button onClick={() => setMode('product')} className={`${MerchantStyles.modeCard} ${MerchantStyles.modeCardProduct}`}>
+                                        <div className={`${MerchantStyles.orb} ${MerchantStyles.orbProduct}`}></div>
+                                        <div className={MerchantStyles.iconGlass}>
+                                            <CubeIcon className="w-6 h-6 text-blue-600" />
+                                        </div>
+                                        <div className={MerchantStyles.contentWrapper}>
+                                            <h3 className={MerchantStyles.title}>Product</h3>
+                                            <p className={MerchantStyles.desc}>E-com Pack</p>
+                                        </div>
+                                        <div className={MerchantStyles.actionBtn}>
+                                            <ArrowRightIcon className={MerchantStyles.actionIcon} />
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
+                            {mode && (
+                                <div className="animate-fadeIn space-y-6">
+                                    <div className="flex items-center justify-between"><button onClick={handleNewSession} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">← BACK TO MODE</button><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{mode} Mode</span></div>
+                                    
+                                    {/* Pack Selection */}
+                                    <div className="mb-4">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block ml-1">Pack Size</label>
+                                        <div className={MerchantStyles.packGrid}>
+                                            <PackCard size={5} label="Standard" subLabel="Essentials" cost={costStandard} selected={packSize === 5} onClick={() => setPackSize(5)} />
+                                            <PackCard size={7} label="Extended" subLabel="+ Creative" cost={costExtended} selected={packSize === 7} onClick={() => setPackSize(7)} />
+                                            <PackCard size={10} label="Ultimate" subLabel="Complete Kit" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} />
+                                        </div>
+                                    </div>
+
+                                    {/* BRAND KIT ACTIVE PILL - Pill handled by FeatureLayout, but we need isBrandCritical */}
+
+                                    <CompactUpload label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
+                                    {mode === 'apparel' && (
+                                        <>
+                                            <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-gray-400"/>} heightClass="h-24" />
+                                            
+                                            {/* Model Selection - Updated to Bento Style */}
+                                            <div className="border-t border-gray-100 pt-6">
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label>
+                                                <div className={MerchantStyles.modelSelectionGrid}>
+                                                    <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'ai' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                            <SparklesIcon className="w-5 h-5"/>
+                                                        </div>
+                                                        <span className={`text-xs font-bold ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Pixa Model</span>
+                                                        {modelSource === 'ai' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </button>
+                                                    
+                                                    <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'upload' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                            <UserIcon className="w-5 h-5"/>
+                                                        </div>
+                                                        <span className={`text-xs font-bold ${modelSource === 'upload' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>My Model</span>
+                                                        {modelSource === 'upload' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </button>
+                                                </div>
+
+                                                {/* CONDITIONAL RENDERING BASED ON SELECTION */}
+                                                {modelSource === 'ai' && (
+                                                    <div className="space-y-4 animate-fadeIn">
+                                                        <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
+                                                        <SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} />
+                                                        <SelectionGrid label="Skin Tone" options={['Fair Tone', 'Wheatish Tone', 'Dusky Tone']} value={aiSkinTone} onChange={setAiSkinTone} />
+                                                        <SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} />
+                                                    </div>
+                                                )}
+                                                
+                                                {modelSource === 'upload' && (
+                                                    <div className="animate-fadeIn">
+                                                        <CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                    {mode === 'product' && (
+                                        <>
+                                            <CompactUpload label="Back View" subLabel="Optional (Recommended)" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>} heightClass="h-24" />
+                                            <div className="border-t border-gray-100 pt-6 space-y-4 mb-4">
+                                                <div className="mb-6"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Product Type</label><input type="text" placeholder="e.g. Headphones, Serum Bottle" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E]" /></div>
+                                                <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    )
                 }
             />
-            {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            {viewIndex !== null && results.length > 0 && (<ImageModal imageUrl={results[viewIndex]} onClose={() => setViewIndex(null)} onDownload={() => downloadImage(results[viewIndex], 'merchant-asset.png')} hasNext={viewIndex < results.length - 1} hasPrev={viewIndex > 0} onNext={() => setViewIndex(viewIndex + 1)} onPrev={() => setViewIndex(viewIndex - 1)} />)}
         </>
     );
 };

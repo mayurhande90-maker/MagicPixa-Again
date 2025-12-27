@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
+
+import React, { useState, useRef, Suspense, lazy, useEffect } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -26,8 +27,6 @@ import {
 } from './components/icons';
 
 // --- LAZY LOADED FEATURES ---
-// Fix: Use default exports for features where named exports are missing or mismatched
-// Updated to explicitly map named exports to the default property for compatibility with React.lazy
 const MagicPhotoStudio = lazy(() => import('./features/MagicPhotoStudio').then(module => ({ default: module.MagicPhotoStudio })));
 const MagicInterior = lazy(() => import('./features/MagicInterior').then(module => ({ default: module.MagicInterior })));
 const MagicApparel = lazy(() => import('./features/MagicApparel').then(module => ({ default: module.MagicApparel })));
@@ -39,8 +38,7 @@ const CaptionAI = lazy(() => import('./features/CaptionAI').then(module => ({ de
 const DailyMissionStudio = lazy(() => import('./features/DailyMissionStudio').then(module => ({ default: module.DailyMissionStudio })));
 const ThumbnailStudio = lazy(() => import('./features/ThumbnailStudio').then(module => ({ default: module.ThumbnailStudio })));
 const MerchantStudio = lazy(() => import('./features/MerchantStudio').then(module => ({ default: module.MerchantStudio })));
-// Fix: PixaAdMaker.tsx exports 'BrandStylistAI' instead of 'PixaAdMaker'
-const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.BrandStylistAI })));
+const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.PixaAdMaker }))); // Updated Import
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
