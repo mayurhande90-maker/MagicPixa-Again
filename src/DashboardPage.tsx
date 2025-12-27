@@ -198,6 +198,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
 
+    // Standard list views that still need outer scrolling
+    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'billing', 'admin'];
+    const isStandardView = standardViews.includes(activeView);
+
     return (
         <div className="flex flex-col h-screen bg-white">
              <Header 
@@ -220,7 +224,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 />
                 
                 {/* Main Content Area - Supports Multi-Session Rendering */}
-                <main className={`flex-1 bg-white custom-scrollbar relative ${activeView === 'support_center' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                <main className={`flex-1 bg-white custom-scrollbar relative ${isStandardView ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                     <Suspense fallback={<PageLoader />}>
                         {/* Map over all active sessions and render them. Only the active one is visible. */}
                         {Array.from(activeSessions).map(viewId => (

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     SparklesIcon, 
@@ -295,8 +296,6 @@ export const FeatureLayout: React.FC<{
     
     // New ref for the canvas/left column to enable auto-scroll
     const canvasRef = useRef<HTMLDivElement>(null);
-    
-    const contentHeightClass = resultHeightClass || 'h-[560px]';
 
     useEffect(() => {
         // Reset Feedback UI when a new image is loaded
@@ -374,7 +373,7 @@ export const FeatureLayout: React.FC<{
             <div className={FeatureStyles.gridContainer}>
                 
                 {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
-                <div ref={canvasRef} className={`${FeatureStyles.canvasContainer} ${contentHeightClass} scroll-mt-24`}>
+                <div ref={canvasRef} className={`${FeatureStyles.canvasContainer} scroll-mt-24`}>
                     {resultImage ? (
                         <div className={FeatureStyles.resultContainer}>
                              <div className={FeatureStyles.resultOverlay}></div>
@@ -481,7 +480,7 @@ export const FeatureLayout: React.FC<{
                 </div>
 
                 {/* RIGHT COLUMN: Control Deck */}
-                <div className={`${FeatureStyles.controlsContainer} ${contentHeightClass}`}>
+                <div className={`${FeatureStyles.controlsContainer}`}>
                     <div className={FeatureStyles.controlsBox}>
                         <div className={FeatureStyles.controlsHeader}>
                             <h3 className={FeatureStyles.controlsTitle}>Configuration</h3>
@@ -489,7 +488,7 @@ export const FeatureLayout: React.FC<{
                         </div>
                         
                         <div ref={scrollRef} className={`${FeatureStyles.controlsScrollArea} ${disableScroll ? 'overflow-hidden' : ''}`}>
-                            <div className={`flex flex-col h-full justify-start ${disableScroll ? '' : 'pb-48'}`}>
+                            <div className={`flex flex-col h-full justify-start ${disableScroll ? '' : 'pb-12'}`}>
                                 <div className={`flex-col ${disableScroll ? 'flex h-full' : 'space-y-2'}`}>
                                     {rightContent}
                                 </div>
