@@ -8,7 +8,7 @@ export const FeatureStyles = {
   // Header
   header: "flex-none mb-[min(1.5vh,16px)] border-b border-gray-100 pb-[min(1.2vh,12px)]",
   titleRow: "flex items-center gap-[min(1.5vh,16px)] mb-0.5",
-  iconContainer: "p-[min(0.8vh,10px)] bg-gray-50 rounded-xl border border-gray-100 shadow-sm",
+  iconContainer: "w-[clamp(32px,6.5vh,64px)] h-[clamp(32px,6.5vh,64px)] p-[min(1vh,12px)] bg-gray-50 rounded-xl border border-gray-100 shadow-sm flex items-center justify-center flex-none",
   titleText: `text-[clamp(16px,2.5vh,24px)] font-bold ${Theme.colors.textPrimary}`,
   description: "text-[clamp(9px,1.3vh,14px)] text-gray-500 font-medium max-w-3xl leading-snug",
   

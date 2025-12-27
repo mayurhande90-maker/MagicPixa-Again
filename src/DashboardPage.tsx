@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, Suspense, lazy, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -27,23 +26,25 @@ import {
 } from './components/icons';
 
 // --- LAZY LOADED FEATURES ---
-const MagicPhotoStudio = lazy(() => import('./features/MagicPhotoStudio').then(module => ({ default: module.MagicPhotoStudio })));
-const MagicInterior = lazy(() => import('./features/MagicInterior').then(module => ({ default: module.MagicInterior })));
-const MagicApparel = lazy(() => import('./features/MagicApparel').then(module => ({ default: module.MagicApparel })));
-const MagicMockup = lazy(() => import('./features/MagicMockup').then(module => ({ default: module.MagicMockup })));
+// Fix: Use default exports for features where named exports are missing or mismatched
+const MagicPhotoStudio = lazy(() => import('./features/MagicPhotoStudio'));
+const MagicInterior = lazy(() => import('./features/MagicInterior'));
+const MagicApparel = lazy(() => import('./features/MagicApparel'));
+const MagicMockup = lazy(() => import('./features/MagicMockup'));
 const MagicMockupStaging = lazy(() => import('./features/MagicMockupStaging').then(module => ({ default: module.MagicMockupStaging })));
 const DashboardHome = lazy(() => import('./features/DashboardHome').then(module => ({ default: module.DashboardHome })));
 const Creations = lazy(() => import('./features/Creations').then(module => ({ default: module.Creations })));
-const CaptionAI = lazy(() => import('./features/CaptionAI').then(module => ({ default: module.CaptionAI })));
+const CaptionAI = lazy(() => import('./features/CaptionAI'));
 const DailyMissionStudio = lazy(() => import('./features/DailyMissionStudio').then(module => ({ default: module.DailyMissionStudio })));
-const ThumbnailStudio = lazy(() => import('./features/ThumbnailStudio').then(module => ({ default: module.ThumbnailStudio })));
-const MerchantStudio = lazy(() => import('./features/MerchantStudio').then(module => ({ default: module.MerchantStudio })));
-const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.PixaAdMaker }))); // Updated Import
+const ThumbnailStudio = lazy(() => import('./features/ThumbnailStudio'));
+const MerchantStudio = lazy(() => import('./features/MerchantStudio'));
+// Fix: PixaAdMaker.tsx exports 'BrandStylistAI' instead of 'PixaAdMaker'
+const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.BrandStylistAI })));
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
-const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
-const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(module => ({ default: module.PixaPhotoRestore })));
-const PixaHeadshotPro = lazy(() => import('./features/PixaHeadshotPro').then(module => ({ default: module.PixaHeadshotPro })));
+const PixaTogether = lazy(() => import('./features/PixaTogether'));
+const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore'));
+const PixaHeadshotPro = lazy(() => import('./features/PixaHeadshotPro'));
 const CampaignStudio = lazy(() => import('./features/PixaPlanner').then(module => ({ default: module.PixaPlanner })));
 
 // Loading Spinner for Suspense Fallback
