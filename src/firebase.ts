@@ -101,7 +101,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
 
     if (!doc.exists) {
         const newUser: User = {
-            uid: uid || '', // Force string
+            uid: uid || '', 
             name: name || 'User',
             email: email || '',
             avatar: initials, 
@@ -131,9 +131,9 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
 
     if (Object.keys(updates).length > 0) {
         await userRef.update(updates);
-        return { ...userData, ...updates };
+        return { uid: doc.id, ...userData, ...updates } as User;
     }
-    return userData;
+    return { uid: doc.id, ...userData } as User;
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
@@ -144,7 +144,7 @@ export const updateUserProfile = async (uid: string, data: Partial<User>) => {
 export const subscribeToUserProfile = (uid: string, callback: (user: User | null) => void) => {
     if (!db) return () => {};
     return db.collection('users').doc(uid).onSnapshot((doc) => {
-        if (doc.exists) callback(doc.data() as User);
+        if (doc.exists) callback({ uid: doc.id, ...doc.data() } as User);
         else callback(null);
     }, () => callback(null));
 };
@@ -248,7 +248,6 @@ export const deductCredits = async (userId: string, amount: number, featureName:
 
         if (!userDoc.exists) {
             // LAZY INITIALIZATION: Create the profile on the fly if missing.
-            // Explicitly set every field to avoid shorthand issues.
             userData = {
                 uid: userId,
                 name: 'New Creator',
@@ -266,10 +265,9 @@ export const deductCredits = async (userId: string, amount: number, featureName:
                 isAdmin: false,
                 isBanned: false,
             };
-            // Use sanitizeData to ensure NO undefined values are passed to set()
             transaction.set(userRef, sanitizeData(userData));
         } else {
-            userData = userDoc.data() as User;
+            userData = { uid: userDoc.id, ...userDoc.data() } as User;
         }
         
         const currentCredits = userData.credits || 0;
@@ -281,7 +279,6 @@ export const deductCredits = async (userId: string, amount: number, featureName:
         const newCredits = currentCredits - amount;
         const newGens = (userData.lifetimeGenerations || 0) + 1;
         
-        // Sanitize update data as well
         transaction.update(userRef, sanitizeData({ 
             credits: newCredits,
             lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
@@ -295,7 +292,7 @@ export const deductCredits = async (userId: string, amount: number, featureName:
             date: firebase.firestore.FieldValue.serverTimestamp()
         }));
         
-        return { ...userData, credits: newCredits, lifetimeGenerations: newGens };
+        return { ...userData, credits: newCredits, lifetimeGenerations: newGens } as User;
     });
 };
 
@@ -346,7 +343,7 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
         purchaseDate: firebase.firestore.FieldValue.serverTimestamp()
     }));
     const userSnap = await userRef.get();
-    return userSnap.data() as User;
+    return { uid: userSnap.id, ...userSnap.data() } as User;
 };
 
 export const purchaseCreditRefill = async (uid: string, credits: number, price: number) => {
@@ -365,7 +362,7 @@ export const purchaseCreditRefill = async (uid: string, credits: number, price: 
         pricePaid: price
     }));
     const userSnap = await userRef.get();
-    return userSnap.data() as User;
+    return { uid: userSnap.id, ...userSnap.data() } as User;
 };
 
 export const claimDailyAttendance = async (uid: string) => {
@@ -382,7 +379,7 @@ export const claimDailyAttendance = async (uid: string) => {
         date: firebase.firestore.FieldValue.serverTimestamp()
     }));
     const snap = await userRef.get();
-    return snap.data();
+    return { uid: snap.id, ...snap.data() } as User;
 };
 
 export const completeDailyMission = async (uid: string, reward: number, missionId: string) => {
@@ -404,7 +401,7 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
         date: firebase.firestore.FieldValue.serverTimestamp()
     }));
     const snap = await userRef.get();
-    return snap.data() as User;
+    return { uid: snap.id, ...snap.data() } as User;
 };
 
 export const claimReferralCode = async (uid: string, code: string) => {
@@ -440,7 +437,8 @@ export const claimReferralCode = async (uid: string, code: string) => {
             date: firebase.firestore.FieldValue.serverTimestamp()
         }));
     });
-    return (await userRef.get()).data();
+    const updatedSnap = await userRef.get();
+    return { uid: updatedSnap.id, ...updatedSnap.data() } as User;
 };
 
 export const getUserBrands = async (uid: string) => {
@@ -528,5 +526,5 @@ export const claimMilestoneBonus = async (uid: string, amount: number) => {
         date: firebase.firestore.FieldValue.serverTimestamp()
     }));
     const snap = await userRef.get();
-    return snap.data() as User;
+    return { uid: snap.id, ...snap.data() } as User;
 };
