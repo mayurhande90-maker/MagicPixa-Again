@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -431,31 +432,31 @@ const BrandCreationWizard: React.FC<{
         switch (step) {
             case 0: 
                 return (
-                    <div className="h-full flex flex-col items-center justify-center p-8 relative">
+                    <div className="h-full flex flex-col items-center justify-center p-[min(4vh,40px)] relative">
                         <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
                             <XIcon className="w-6 h-6" />
                         </button>
 
                         <div className="w-full max-w-lg text-center animate-fadeInUp relative z-10">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                                <BrandKitIcon className="w-10 h-10 text-indigo-600" />
+                            <div className="w-[clamp(60px,10vh,80px)] h-[clamp(60px,10vh,80px)] bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-[min(3vh,24px)] shadow-sm border border-indigo-100 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                                <BrandKitIcon className="w-[45%] h-[45%] text-indigo-600" />
                             </div>
                             
-                            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 tracking-tight">Setup Your Brand Kit</h1>
-                            <p className="text-gray-500 mb-10 text-sm md:text-base leading-relaxed max-w-md mx-auto">
+                            <h1 className="text-[clamp(24px,4.5vh,40px)] font-black text-gray-900 mb-2 tracking-tight leading-tight">Setup Your Brand Kit</h1>
+                            <p className="text-gray-500 mb-[min(5vh,40px)] text-[clamp(11px,1.6vh,16px)] leading-relaxed max-w-md mx-auto font-medium">
                                 Auto-fill with <span className="text-indigo-600 font-bold">Pixa AI</span>. Our agents will scan your website and build your visual identity instantly.
                             </p>
 
-                            <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 relative z-20">
-                                <div className="space-y-5 text-left">
+                            <div className="bg-white p-[min(3vh,32px)] rounded-3xl shadow-xl border border-gray-100 relative z-20">
+                                <div className="space-y-[min(2vh,20px)] text-left">
                                     <div className="group">
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">Website URL (Required)</label>
+                                        <label className="block text-[clamp(8px,1.2vh,10px)] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">Website URL (Required)</label>
                                         <div className="relative">
-                                            <div className="absolute left-4 top-4 text-gray-400">
+                                            <div className="absolute left-4 top-[min(1.8vh,16px)] text-gray-400">
                                                 <GlobeIcon className="w-5 h-5"/>
                                             </div>
                                             <input 
-                                                className={`w-full pl-12 pr-4 py-4 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 outline-none transition-all placeholder-gray-400 ${
+                                                className={`w-full pl-12 pr-4 py-[min(2vh,16px)] bg-gray-50 border rounded-2xl text-[clamp(12px,1.8vh,15px)] font-bold text-gray-900 focus:ring-4 outline-none transition-all placeholder-gray-400 ${
                                                     magicUrl && !isValidUrl(magicUrl) 
                                                     ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' 
                                                     : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/10'
@@ -472,9 +473,9 @@ const BrandCreationWizard: React.FC<{
                                     </div>
                                     
                                     <div className="group">
-                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">About the Brand (Optional)</label>
+                                         <label className="block text-[clamp(8px,1.2vh,10px)] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-500 transition-colors">About the Brand (Optional)</label>
                                          <textarea 
-                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400 resize-none h-24 leading-relaxed"
+                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-[clamp(11px,1.5vh,14px)] font-medium text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder-gray-400 resize-none h-[clamp(70px,12vh,96px)] leading-relaxed"
                                             placeholder="Describe your products, vibe, and audience..."
                                             value={magicDesc}
                                             onChange={e => setMagicDesc(e.target.value)}
@@ -484,11 +485,11 @@ const BrandCreationWizard: React.FC<{
                                     <button 
                                         onClick={handleMagicGenerate}
                                         disabled={isGenerating || !isValidUrl(magicUrl)}
-                                        className={`w-full py-4 rounded-2xl font-bold transition-all shadow-lg ${
+                                        className={`w-full py-[min(2.2vh,18px)] rounded-2xl text-[clamp(12px,1.8vh,16px)] font-bold transition-all shadow-lg ${
                                             isValidUrl(magicUrl) 
                                             ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:scale-[1.02] active:scale-95' 
                                             : 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
-                                        } flex items-center justify-center gap-2.5 mt-2`}
+                                        } flex items-center justify-center gap-2.5 mt-1`}
                                     >
                                         {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Generate Identity"}
                                     </button>
@@ -498,7 +499,7 @@ const BrandCreationWizard: React.FC<{
 
                         <button 
                             onClick={() => setStep(1)}
-                            className="absolute bottom-8 right-8 z-30 bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg text-gray-600 hover:text-black px-6 py-3 rounded-full text-xs font-bold transition-all flex items-center gap-3 group"
+                            className="absolute bottom-8 right-8 z-30 bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg text-gray-600 hover:text-black px-6 py-3 rounded-full text-[clamp(9px,1.2vh,11px)] font-bold transition-all flex items-center gap-3 group"
                         >
                             Or Build from Scratch
                             <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors">
@@ -510,16 +511,16 @@ const BrandCreationWizard: React.FC<{
 
             case 1: // IDENTITY
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Brand Identity</h2>
-                            <p className="text-gray-500">Let's start with the basics.</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Brand Identity</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Let's start with the basics.</p>
                         </div>
                         <div className="space-y-6 max-w-2xl mx-auto">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Brand Name <span className="text-red-500">*</span></label>
+                                <label className="block text-[clamp(10px,1.5vh,14px)] font-bold text-gray-700 mb-2">Brand Name <span className="text-red-500">*</span></label>
                                 <input 
-                                    className="w-full text-3xl font-black p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 placeholder-gray-300 text-center"
+                                    className="w-full text-[clamp(20px,4vh,32px)] font-black p-[min(2vh,16px)] bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 placeholder-gray-300 text-center"
                                     placeholder="e.g. Acme Corp"
                                     value={kit.companyName}
                                     onChange={e => setKit({...kit, companyName: e.target.value})}
@@ -527,18 +528,18 @@ const BrandCreationWizard: React.FC<{
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-4 text-center">Industry / Niche</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <label className="block text-[clamp(10px,1.5vh,14px)] font-bold text-gray-700 mb-4 text-center">Industry / Niche</label>
+                                <div className={BrandKitManagerStyles.industryGrid}>
                                     {Object.entries(INDUSTRY_CONFIG).map(([k, conf]) => (
                                         <button
                                             key={k}
                                             onClick={() => setKit({...kit, industry: k as IndustryType})}
-                                            className={`p-4 rounded-2xl border-2 text-left transition-all ${kit.industry === k ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20' : 'border-gray-100 bg-white hover:border-gray-300'}`}
+                                            className={`${BrandKitManagerStyles.industryCard} ${kit.industry === k ? BrandKitManagerStyles.industryCardSelected : BrandKitManagerStyles.industryCardInactive}`}
                                         >
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${kit.industry === k ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                <conf.icon className="w-4 h-4" />
+                                            <div className={`${BrandKitManagerStyles.industryIconBox} ${kit.industry === k ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                <conf.icon className="w-[50%] h-[50%]" />
                                             </div>
-                                            <p className={`text-xs font-bold ${kit.industry === k ? 'text-indigo-900' : 'text-gray-700'}`}>{conf.label}</p>
+                                            <p className={BrandKitManagerStyles.industryLabel}>{conf.label}</p>
                                         </button>
                                     ))}
                                 </div>
@@ -549,16 +550,16 @@ const BrandCreationWizard: React.FC<{
 
             case 2: // STRATEGY
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Digital Presence</h2>
-                            <p className="text-gray-500">Where does your brand live?</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Digital Presence</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Where does your brand live?</p>
                         </div>
                         <div className="max-w-xl mx-auto space-y-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Website URL <span className="text-red-500">*</span></label>
                                 <input 
-                                    className={`w-full p-4 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${kit.website && !isValidUrl(kit.website) ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'}`}
+                                    className={`w-full p-[min(2vh,16px)] bg-gray-50 border rounded-xl focus:outline-none transition-colors ${kit.website && !isValidUrl(kit.website) ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'}`}
                                     placeholder="www.yourbrand.com"
                                     value={kit.website}
                                     onChange={e => setKit({...kit, website: e.target.value})}
@@ -574,7 +575,7 @@ const BrandCreationWizard: React.FC<{
                                         <button
                                             key={t}
                                             onClick={() => setKit({...kit, toneOfVoice: t})}
-                                            className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${kit.toneOfVoice === t ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                            className={`px-[min(2.5vh,20px)] py-[min(1.2vh,10px)] rounded-full text-[clamp(10px,1.4vh,13px)] font-bold border transition-all ${kit.toneOfVoice === t ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
                                         >
                                             {t}
                                         </button>
@@ -587,26 +588,26 @@ const BrandCreationWizard: React.FC<{
             
             case 3: // AUDIENCE
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Target Audience</h2>
-                            <p className="text-gray-500">Who are we talking to?</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Target Audience</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Who are we talking to?</p>
                         </div>
                         <div className="max-w-xl mx-auto space-y-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Primary Customer <span className="text-red-500">*</span></label>
                                 <input 
-                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none"
+                                    className="w-full p-[min(2vh,16px)] bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none"
                                     placeholder="e.g. Gen-Z Gamers, Busy Moms, Tech CEOs"
                                     value={kit.targetAudience}
                                     onChange={e => setKit({...kit, targetAudience: e.target.value})}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Negative Constraints</label>
-                                <p className="text-xs text-gray-400 mb-2">Things AI should NEVER generate (e.g. cartoons, neon colors)</p>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Negative Constraints</label>
+                                <p className="text-[10px] text-gray-400 mb-2">Things AI should NEVER generate (e.g. cartoons, neon colors)</p>
                                 <input 
-                                    className="w-full p-4 bg-white border border-red-300 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-100 outline-none text-gray-800 placeholder-gray-400 transition-all shadow-sm"
+                                    className="w-full p-[min(2vh,16px)] bg-white border border-red-300 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-100 outline-none text-gray-800 placeholder-gray-400 transition-all shadow-sm"
                                     placeholder="e.g. blurry, distorted, low quality, cartoon"
                                     value={kit.negativePrompts}
                                     onChange={e => setKit({...kit, negativePrompts: e.target.value})}
@@ -618,41 +619,41 @@ const BrandCreationWizard: React.FC<{
 
             case 4: // VISUALS
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Visual DNA</h2>
-                            <p className="text-gray-500">Define the look and feel.</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Visual DNA</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Define the look and feel.</p>
                         </div>
-                        <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Color Palette</h3>
-                                <div className="space-y-4">
+                        <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-[min(4vh,32px)]">
+                            <div className="bg-gray-50 p-[min(2.5vh,24px)] rounded-2xl border border-gray-100">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Color Palette</h3>
+                                <div className="space-y-[min(1.5vh,16px)]">
                                     <div className="flex items-center gap-3">
-                                        <input type="color" value={kit.colors.primary} onChange={e => setKit({...kit, colors: {...kit.colors, primary: e.target.value}})} className="w-12 h-12 rounded-lg cursor-pointer border-none bg-transparent"/>
-                                        <div><p className="text-xs font-bold text-gray-700">Primary</p><p className="text-[10px] text-gray-400 uppercase">{kit.colors.primary}</p></div>
+                                        <input type="color" value={kit.colors.primary} onChange={e => setKit({...kit, colors: {...kit.colors, primary: e.target.value}})} className="w-[clamp(32px,5vh,48px)] h-[clamp(32px,5vh,48px)] rounded-lg cursor-pointer border-none bg-transparent"/>
+                                        <div><p className="text-[clamp(10px,1.4vh,13px)] font-bold text-gray-700">Primary</p><p className="text-[9px] text-gray-400 uppercase">{kit.colors.primary}</p></div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <input type="color" value={kit.colors.secondary} onChange={e => setKit({...kit, colors: {...kit.colors, secondary: e.target.value}})} className="w-12 h-12 rounded-lg cursor-pointer border-none bg-transparent"/>
-                                        <div><p className="text-xs font-bold text-gray-700">Secondary</p><p className="text-[10px] text-gray-400 uppercase">{kit.colors.secondary}</p></div>
+                                        <input type="color" value={kit.colors.secondary} onChange={e => setKit({...kit, colors: {...kit.colors, secondary: e.target.value}})} className="w-[clamp(32px,5vh,48px)] h-[clamp(32px,5vh,48px)] rounded-lg cursor-pointer border-none bg-transparent"/>
+                                        <div><p className="text-[clamp(10px,1.4vh,13px)] font-bold text-gray-700">Secondary</p><p className="text-[9px] text-gray-400 uppercase">{kit.colors.secondary}</p></div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <input type="color" value={kit.colors.accent} onChange={e => setKit({...kit, colors: {...kit.colors, accent: e.target.value}})} className="w-12 h-12 rounded-lg cursor-pointer border-none bg-transparent"/>
-                                        <div><p className="text-xs font-bold text-gray-700">Accent</p><p className="text-[10px] text-gray-400 uppercase">{kit.colors.accent}</p></div>
+                                        <input type="color" value={kit.colors.accent} onChange={e => setKit({...kit, colors: {...kit.colors, accent: e.target.value}})} className="w-[clamp(32px,5vh,48px)] h-[clamp(32px,5vh,48px)] rounded-lg cursor-pointer border-none bg-transparent"/>
+                                        <div><p className="text-[clamp(10px,1.4vh,13px)] font-bold text-gray-700">Accent</p><p className="text-[9px] text-gray-400 uppercase">{kit.colors.accent}</p></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Typography</h3>
-                                <div className="space-y-4">
+                            <div className="bg-gray-50 p-[min(2.5vh,24px)] rounded-2xl border border-gray-100">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Typography</h3>
+                                <div className="space-y-[min(2vh,20px)]">
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Headings</label>
+                                        <label className="text-[11px] font-bold text-gray-500 mb-1 block">Headings</label>
                                         <select value={kit.fonts.heading} onChange={e => setKit({...kit, fonts: {...kit.fonts, heading: e.target.value}})} className="w-full p-2 bg-white rounded-lg border border-gray-200 text-sm font-bold outline-none">
                                             <option>Modern Sans</option><option>Classic Serif</option><option>Bold Display</option><option>Elegant Script</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Body</label>
+                                        <label className="text-[11px] font-bold text-gray-500 mb-1 block">Body</label>
                                         <select value={kit.fonts.body} onChange={e => setKit({...kit, fonts: {...kit.fonts, body: e.target.value}})} className="w-full p-2 bg-white rounded-lg border border-gray-200 text-sm outline-none">
                                             <option>Clean Sans</option><option>Readable Serif</option><option>System Default</option>
                                         </select>
@@ -666,17 +667,17 @@ const BrandCreationWizard: React.FC<{
             case 5: // PRODUCTS
                 const uploadingProductsCount = uploadingState['products'] || 0;
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">{industryConf.catalogTitle}</h2>
-                            <p className="text-gray-500">{industryConf.catalogDesc}</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">{industryConf.catalogTitle}</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">{industryConf.catalogDesc}</p>
                         </div>
-                        <div className="max-w-3xl mx-auto">
+                        <div className="max-w-4xl mx-auto">
                             <div className="flex justify-between items-center mb-4">
-                                <button onClick={() => wizardProductRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
+                                <button onClick={() => wizardProductRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                     {uploadingProductsCount > 0 ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Item</>}
                                 </button>
-                                <span className="text-xs text-gray-400 font-medium">{kit.products?.length || 0} items added</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase">{kit.products?.length || 0} items added</span>
                                 <input ref={wizardProductRef} type="file" className="hidden" accept="image/*" multiple onChange={handleProductUpload} />
                             </div>
                             
@@ -686,7 +687,7 @@ const BrandCreationWizard: React.FC<{
                                         {Array.from({ length: uploadingProductsCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                      </div>
                                 ) : (
-                                    <div onClick={() => wizardProductRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
+                                    <div onClick={() => wizardProductRef.current?.click()} className="h-[clamp(120px,20vh,180px)] border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
                                             <UploadIcon className="w-6 h-6" />
                                         </div>
@@ -695,7 +696,7 @@ const BrandCreationWizard: React.FC<{
                                     </div>
                                 )
                             ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[clamp(250px,40vh,400px)] overflow-y-auto pr-1 custom-scrollbar">
                                     {kit.products.map(product => (
                                         <ProductItem key={product.id} item={product} placeholder={industryConf.itemLabel} onDelete={() => deleteProduct(product.id)} onNameChange={(name) => updateProductName(product.id, name)} />
                                     ))}
@@ -709,17 +710,17 @@ const BrandCreationWizard: React.FC<{
             case 6: // MOOD BOARD
                 const uploadingMoodCount = uploadingState['mood'] || 0;
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                         <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Inspiration Board</h2>
-                            <p className="text-gray-500">Upload examples of the style you want.</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                         <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Inspiration Board</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Upload examples of the style you want.</p>
                         </div>
-                        <div className="max-w-3xl mx-auto">
+                        <div className="max-w-4xl mx-auto">
                             <div className="flex justify-between items-center mb-4">
-                                <button onClick={() => wizardMoodRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
+                                <button onClick={() => wizardMoodRef.current?.click()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                     {uploadingMoodCount > 0 ? 'Uploading...' : <><PlusIcon className="w-4 h-4"/> Add Image</>}
                                 </button>
-                                <span className="text-xs text-gray-400 font-medium">{kit.moodBoard?.length || 0} images added</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase">{kit.moodBoard?.length || 0} images added</span>
                                 <input ref={wizardMoodRef} type="file" className="hidden" accept="image/*" multiple onChange={handleMoodUpload} />
                             </div>
                             
@@ -729,7 +730,7 @@ const BrandCreationWizard: React.FC<{
                                         {Array.from({ length: uploadingMoodCount }).map((_, i) => <UploadSkeleton key={i} />)}
                                     </div>
                                 ) : (
-                                    <div onClick={() => wizardMoodRef.current?.click()} className="h-48 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
+                                    <div onClick={() => wizardMoodRef.current?.click()} className="h-[clamp(120px,20vh,180px)] border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-300 hover:bg-gray-50 transition-all">
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
                                             <UploadIcon className="w-6 h-6" />
                                         </div>
@@ -738,7 +739,7 @@ const BrandCreationWizard: React.FC<{
                                     </div>
                                 )
                             ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[clamp(250px,40vh,400px)] overflow-y-auto pr-1 custom-scrollbar">
                                     {kit.moodBoard.map(item => (
                                         <MoodItem key={item.id} item={item} onDelete={() => deleteMoodItem(item.id)} />
                                     ))}
@@ -752,33 +753,33 @@ const BrandCreationWizard: React.FC<{
             case 7: // COMPETITOR
                 const uploadingCompCount = uploadingState['competitor'] || 0;
                 return (
-                     <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Competitor Intel</h2>
-                            <p className="text-gray-500">Who are you up against?</p>
+                     <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Competitor Intel</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Who are you up against?</p>
                         </div>
-                        <div className="max-w-xl mx-auto space-y-6">
+                        <div className="max-w-xl mx-auto space-y-[min(2vh,20px)]">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Competitor Website <span className="text-red-500">*</span></label>
+                                <label className="block text-xs font-bold text-gray-700 mb-2">Competitor Website <span className="text-red-500">*</span></label>
                                 <input 
-                                    className={`w-full p-4 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${kit.competitor?.website && !isValidUrl(kit.competitor.website) ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-amber-500'}`}
+                                    className={`w-full p-[min(2vh,16px)] bg-gray-50 border rounded-xl focus:outline-none transition-colors ${kit.competitor?.website && !isValidUrl(kit.competitor.website) ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-amber-500'}`}
                                     placeholder="e.g. www.competitor.com"
                                     value={kit.competitor?.website || ''}
                                     onChange={(e) => setKit(prev => ({ ...prev, competitor: { ...prev.competitor || { adScreenshots: [] }, website: e.target.value } }))}
                                 />
                                 {kit.competitor?.website && !isValidUrl(kit.competitor.website) && (
-                                    <p className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g. example.com)</p>
+                                    <p className="text-[10px] text-red-500 mt-1">Please enter a valid URL (e.g. example.com)</p>
                                 )}
                             </div>
                             <div>
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-sm font-bold text-gray-700">Ad Screenshots</label>
-                                    <span className="text-[10px] text-gray-400 font-medium">{kit.competitor?.adScreenshots?.length || 0} added</span>
+                                    <label className="block text-xs font-bold text-gray-700">Ad Screenshots</label>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">{kit.competitor?.adScreenshots?.length || 0} added</span>
                                     <input ref={wizardCompRef} type="file" className="hidden" accept="image/*" multiple onChange={handleCompUpload} />
                                 </div>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {kit.competitor?.adScreenshots.map(ad => (
-                                        <div key={ad.id} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                                        <div key={ad.id} className="relative group w-[clamp(40px,7vh,64px)] h-[clamp(40px,7vh,64px)] rounded-lg overflow-hidden border border-gray-200">
                                             <img src={ad.imageUrl} className="w-full h-full object-cover" />
                                             <button onClick={() => deleteCompItem(ad.id)} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
                                                 <XIcon className="w-4 h-4"/>
@@ -786,17 +787,17 @@ const BrandCreationWizard: React.FC<{
                                         </div>
                                     ))}
                                     {uploadingCompCount > 0 && Array.from({ length: uploadingCompCount }).map((_, i) => (
-                                        <div key={i} className="w-20 h-20 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center animate-pulse">
-                                            <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
+                                        <div key={i} className="w-[clamp(40px,7vh,64px)] h-[clamp(40px,7vh,64px)] bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center animate-pulse">
+                                            <div className="w-4 h-4 border-2 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
                                         </div>
                                     ))}
                                     {(uploadingCompCount === 0) && (
-                                        <div onClick={() => wizardCompRef.current?.click()} className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-amber-400 hover:text-amber-500 transition-all cursor-pointer">
-                                            <PlusIcon className="w-6 h-6"/>
+                                        <div onClick={() => wizardCompRef.current?.click()} className="w-[clamp(40px,7vh,64px)] h-[clamp(40px,7vh,64px)] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-amber-400 hover:text-amber-500 transition-all cursor-pointer">
+                                            <PlusIcon className="w-5 h-5"/>
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-400">Upload screenshots of their ads or social posts for AI analysis.</p>
+                                <p className="text-[10px] text-gray-400 italic leading-tight">Upload screenshots of their ads or social posts for AI strategy extraction.</p>
                             </div>
                         </div>
                     </div>
@@ -804,29 +805,29 @@ const BrandCreationWizard: React.FC<{
 
             case 8: // ASSETS (LOGO)
                 return (
-                    <div className="space-y-8 animate-[slideIn_0.5s_ease-out]">
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Final Asset</h2>
-                            <p className="text-gray-500">Upload your logo to finalize the identity.</p>
+                    <div className="space-y-[min(4vh,32px)] animate-[slideIn_0.5s_ease-out]">
+                        <div className="text-center">
+                            <h2 className="text-[clamp(18px,3vh,24px)] font-bold text-gray-900">Final Asset</h2>
+                            <p className="text-gray-500 text-[clamp(10px,1.5vh,14px)]">Upload your logo to finalize the identity.</p>
                         </div>
                         <div className="max-w-md mx-auto">
-                            <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-indigo-100 hover:border-indigo-300 transition-colors text-center relative group">
+                            <div className="bg-white p-[min(4vh,32px)] rounded-3xl border-2 border-dashed border-indigo-100 hover:border-indigo-300 transition-colors text-center relative group">
                                 {kit.logos.primary ? (
                                     <div className="relative">
-                                        <img src={kit.logos.primary} className="max-h-40 mx-auto object-contain" />
+                                        <img src={kit.logos.primary} className="max-h-[clamp(120px,25vh,200px)] mx-auto object-contain" />
                                         <button onClick={() => setKit({...kit, logos: {...kit.logos, primary: null}})} className="absolute -top-2 -right-2 bg-gray-100 text-gray-500 p-1.5 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"><XIcon className="w-4 h-4"/></button>
                                     </div>
                                 ) : (
-                                    <div onClick={() => document.getElementById('wizard-logo-upload')?.click()} className="cursor-pointer py-10">
-                                        <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                            <UploadIcon className="w-8 h-8" />
+                                    <div onClick={() => document.getElementById('wizard-logo-upload')?.click()} className="cursor-pointer py-[min(4vh,32px)]">
+                                        <div className="w-[clamp(48px,8vh,64px)] h-[clamp(48px,8vh,64px)] bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                            <UploadIcon className="w-[50%] h-[50%]" />
                                         </div>
-                                        <p className="font-bold text-indigo-900">Upload Main Logo</p>
-                                        <p className="text-xs text-gray-400 mt-1">PNG (Transparent) Recommended</p>
+                                        <p className="font-bold text-indigo-900 text-sm">Upload Main Logo</p>
+                                        <p className="text-[10px] text-gray-400 mt-1">PNG (Transparent) Recommended</p>
                                     </div>
                                 )}
                                 <input id="wizard-logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                                {uploadingState['primary'] > 0 && <div className="absolute inset-0 bg-white/80 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}
+                                {uploadingState['primary'] > 0 && <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-3xl"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}
                             </div>
                         </div>
                     </div>
@@ -836,21 +837,21 @@ const BrandCreationWizard: React.FC<{
 
     return (
         <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-            <div className="w-full max-w-4xl h-[85vh] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
+            <div className="w-full max-w-4xl h-[clamp(450px,85vh,700px)] bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col relative">
                 
                 {step > 0 && (
-                    <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                    <div className="px-[min(4vh,32px)] py-[min(1.8vh,16px)] border-b border-gray-100 flex justify-between items-center bg-white shrink-0 z-10">
                         <div className="flex items-center gap-4">
                             <div className="flex items-center justify-center text-indigo-600">
-                                <BrandKitIcon className="w-10 h-10" />
+                                <BrandKitIcon className="w-[clamp(24px,4vh,32px)] h-[clamp(24px,4vh,32px)]" />
                             </div>
                             <div>
-                                <h1 className="text-lg font-black text-gray-900 leading-none">Brand Wizard</h1>
+                                <h1 className="text-[clamp(14px,2.2vh,18px)] font-black text-gray-900 leading-none">Brand Wizard</h1>
                                 <div className="flex items-center gap-2 mt-1.5">
-                                     <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                     <div className="w-[clamp(64px,10vh,128px)] h-1 bg-gray-100 rounded-full overflow-hidden">
                                          <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-500 ease-out" style={{ width: `${(step / 8) * 100}%` }}></div>
                                      </div>
-                                     <p className="text-[10px] text-gray-500 font-bold">Step {step} of 8</p>
+                                     <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Step {step}/8</p>
                                 </div>
                             </div>
                         </div>
@@ -860,22 +861,22 @@ const BrandCreationWizard: React.FC<{
                     </div>
                 )}
 
-                <div className={`flex-1 overflow-y-auto relative ${step === 0 ? 'p-0' : 'p-8 md:p-12'}`}>
+                <div className={`flex-1 overflow-y-auto relative ${step === 0 ? 'p-0' : 'p-[min(4vh,32px)] lg:p-[min(6vh,48px)]'}`}>
                     {renderStepContent()}
                 </div>
 
                 {step > 0 && (
-                    <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0">
+                    <div className="px-[min(4vh,32px)] py-[min(1.8vh,16px)] border-t border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0 z-10">
                         <button 
                             onClick={handleBack}
-                            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-colors flex items-center gap-2"
+                            className="px-6 py-[min(1.5vh,12px)] rounded-xl font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-colors flex items-center gap-2 text-xs"
                         >
                             <ArrowLeftIcon className="w-4 h-4" /> Back
                         </button>
                         
                         <div className="flex items-center gap-4">
                              {step >= 3 && step < 8 && (
-                                 <button onClick={handleSkip} className="text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors">
+                                 <button onClick={handleSkip} className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 transition-colors">
                                      Skip for now
                                  </button>
                              )}
@@ -883,7 +884,7 @@ const BrandCreationWizard: React.FC<{
                              <button 
                                 onClick={handleFinish}
                                 disabled={isSaving || (step === 8 && !kit.logos.primary)}
-                                className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
+                                className={`px-8 py-[min(1.8vh,14px)] rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 ${
                                     step === 8 
                                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-105 hover:shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed' 
                                     : 'bg-white border border-gray-200 text-gray-400 cursor-not-allowed hidden' 
@@ -896,7 +897,7 @@ const BrandCreationWizard: React.FC<{
                                 <button 
                                     onClick={handleNext}
                                     disabled={!isStepValid()} 
-                                    className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
+                                    className={`px-8 py-[min(1.8vh,14px)] rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 ${
                                         isStepValid()
                                         ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/20'
                                         : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
