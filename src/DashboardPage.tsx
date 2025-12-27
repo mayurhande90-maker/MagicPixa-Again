@@ -199,7 +199,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     };
 
     // Standard list views that still need outer scrolling
-    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'billing', 'admin'];
+    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'billing', 'admin'];
     const isStandardView = standardViews.includes(activeView);
 
     return (
@@ -227,18 +227,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 <main className={`flex-1 bg-white custom-scrollbar relative ${isStandardView ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                     <Suspense fallback={<PageLoader />}>
                         {/* Map over all active sessions and render them. Only the active one is visible. */}
-                        {Array.from(activeSessions).map(viewId => (
-                            <div 
-                                key={viewId} 
-                                style={{ 
-                                    display: activeView === viewId ? 'block' : 'none',
-                                    height: '100%',
-                                    width: '100%' 
-                                }}
-                            >
-                                {renderFeatureComponent(viewId)}
-                            </div>
-                        ))}
+                        {Array.from(activeSessions).map(viewId => {
+                            const isViewStandard = standardViews.includes(viewId);
+                            return (
+                                <div 
+                                    key={viewId} 
+                                    style={{ 
+                                        display: activeView === viewId ? 'block' : 'none',
+                                        height: isViewStandard ? 'auto' : '100%',
+                                        width: '100%' 
+                                    }}
+                                >
+                                    {renderFeatureComponent(viewId)}
+                                </div>
+                            );
+                        })}
                     </Suspense>
                 </main>
             </div>
