@@ -240,17 +240,17 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-screen pb-32">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div className="p-[min(3.5vh,24px)] md:p-[min(5vh,40px)] max-w-7xl mx-auto min-h-screen pb-32">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-[min(3.5vh,32px)] gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-[#1A1A1E]">My Creations</h2>
-                    <p className="text-gray-500 mt-1">Manage and view your generated masterpieces.</p>
+                    <h2 className="text-[clamp(24px,4vh,32px)] font-bold text-[#1A1A1E]">My Creations</h2>
+                    <p className="text-gray-500 mt-1 text-[clamp(11px,1.5vh,14px)]">Manage and view your generated masterpieces.</p>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
                     <button
                         onClick={toggleSelectMode}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                        className={`px-4 py-[min(1.2vh,10px)] rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                             isSelectMode 
                             ? 'bg-blue-100 text-blue-700 border border-blue-200' 
                             : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
@@ -276,7 +276,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                         <select 
                             value={selectedFeature}
                             onChange={(e) => setSelectedFeature(e.target.value)}
-                            className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] appearance-none hover:bg-gray-50 transition-colors cursor-pointer min-w-[180px]"
+                            className="pl-9 pr-4 py-[min(1.2vh,10px)] bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] appearance-none hover:bg-gray-50 transition-colors cursor-pointer min-w-[180px]"
                         >
                             <option value="">All Features</option>
                             {FILTER_CATEGORIES.map(cat => (
@@ -290,14 +290,14 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                             type="date" 
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
-                            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] hover:bg-gray-50 transition-colors cursor-pointer"
+                            className="px-4 py-[min(1.2vh,10px)] bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:border-[#4D7CFF] focus:ring-1 focus:ring-[#4D7CFF] hover:bg-gray-50 transition-colors cursor-pointer"
                          />
                     </div>
 
                     {(selectedFeature || selectedDate) && (
                         <button 
                             onClick={() => { setSelectedFeature(''); setSelectedDate(''); }}
-                            className="px-4 py-2 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                            className="px-4 py-[min(1.2vh,10px)] text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
                         >
                             Reset
                         </button>
@@ -305,7 +305,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 </div>
             </div>
 
-            <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+            <div className="mb-[min(3.5vh,32px)] bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-[min(2.5vh,20px)] rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-full text-blue-500 shadow-sm">
                         <InformationCircleIcon className="w-5 h-5" />
@@ -322,14 +322,14 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                     <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-[#4D7CFF] rounded-full"></div>
                 </div>
             ) : groupedCreations.length > 0 ? (
-                <div className="space-y-10">
+                <div className="space-y-[min(6vh,48px)]">
                     {groupedCreations.map((group) => (
                         <div key={group.title} className="animate-fadeIn">
-                            <div className="flex items-center gap-4 mb-6">
-                                <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">{group.title}</h3>
+                            <div className="flex items-center gap-4 mb-[min(3vh,24px)]">
+                                <h3 className="text-[clamp(14px,2vh,18px)] font-bold text-gray-800 whitespace-nowrap">{group.title}</h3>
                                 <div className="h-px bg-gray-200 w-full"></div>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-[min(3vh,24px)]">
                                 {group.items.map(c => {
                                     const isSelected = selectedIds.has(c.id);
                                     const daysOld = getDaysOld(c);
@@ -398,7 +398,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                             )}
                                             
                                             <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
-                                                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm">
+                                                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg inline-block shadow-sm max-w-full">
                                                     <p className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{featureLabel}</p>
                                                 </div>
                                             </div>

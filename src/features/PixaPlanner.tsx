@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
@@ -144,8 +145,8 @@ const OptionCard: React.FC<{
             {icon}
         </div>
         <div className="text-left">
-            <span className={`text-sm font-bold block ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</span>
-            {description && <span className="text-[10px] text-gray-400 font-medium leading-tight block mt-1">{description}</span>}
+            <span className={`text-[clamp(12px,1.6vh,14px)] font-bold block ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{title}</span>
+            {description && <span className="text-[clamp(9px,1.2vh,11px)] text-gray-400 font-medium leading-tight block mt-1">{description}</span>}
         </div>
         {selected && <div className="absolute top-3 right-3 text-indigo-600"><CheckIcon className="w-4 h-4"/></div>}
     </button>
@@ -194,18 +195,18 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
 const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: number }> = ({ loadingText, logs, progress }) => {
     return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,64px)] max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight" onClick={e => e.stopPropagation()}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
-                <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
-                <h2 className="text-2xl font-black text-gray-900 mb-2">Agency processing active.</h2>
-                <p className="text-sm text-gray-500 font-medium mb-8 h-10">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
+                <div className="w-[clamp(48px,10vh,80px)] h-[clamp(48px,10vh,80px)] border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-[min(4vh,32px)]"></div>
+                <h2 className="text-[clamp(18px,3vh,24px)] font-black text-gray-900 mb-2">Agency processing active.</h2>
+                <p className="text-[clamp(12px,1.6vh,14px)] text-gray-500 font-medium mb-[min(4vh,32px)] h-10">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
                 
                 <ThinkingLog logs={logs} />
 
-                <div className={PlannerStyles.progressBar + " mt-8 w-full h-2 bg-gray-100 rounded-full overflow-hidden"}>
+                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-2 bg-gray-100 rounded-full overflow-hidden"}>
                     <div className={PlannerStyles.progressFill + " h-full bg-indigo-600 transition-all duration-300"} style={{ width: `${progress}%` }}></div>
                 </div>
-                <p className="text-[10px] font-black text-gray-400 mt-4 tracking-widest uppercase">{Math.round(progress)}% COMPLETE</p>
+                <p className="text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 mt-4 tracking-widest uppercase">{Math.round(progress)}% COMPLETE</p>
             </div>
         </div>,
         document.body
@@ -246,33 +247,33 @@ const SettingsModal: React.FC<{
 
     return createPortal(
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-10 max-w-3xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh] animate-bounce-slight" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+            <div className="bg-white rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,48px)] max-w-3xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh] animate-bounce-slight" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-[min(4vh,32px)] border-b border-gray-100 pb-4">
                     <div className="flex items-center gap-3 text-indigo-600">
-                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Refine Strategy</h2>
+                        <h2 className="text-[clamp(18px,2.5vh,24px)] font-black text-gray-900 uppercase tracking-tight">Refine Strategy</h2>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-[min(4vh,32px)]">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Month</label>
+                            <label className="block text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 uppercase tracking-widest mb-2">Target Month</label>
                             <select value={localConfig.month} onChange={e => setLocalConfig({...localConfig, month: e.target.value})} className="w-full p-3.5 bg-gray-50 border-none rounded-xl font-bold focus:ring-2 focus:ring-indigo-500 appearance-none">
                                 <option value="" disabled>Select Month</option>
                                 {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Market</label>
+                            <label className="block text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 uppercase tracking-widest mb-2">Target Market</label>
                             <input value={localConfig.country} onChange={e => setLocalConfig({...localConfig, country: e.target.value})} className="w-full p-3.5 bg-gray-50 border-none rounded-xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, India" />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Posting Frequency</label>
+                        <label className="block text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 uppercase tracking-widest mb-3">Posting Frequency</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {[
                                 { label: 'Every Day (30 Posts)', desc: 'Organic Dominance' },
@@ -293,7 +294,7 @@ const SettingsModal: React.FC<{
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Strategy Algorithm</label>
+                        <label className="block text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 uppercase tracking-widest mb-3">Strategy Algorithm</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             {[
                                 { label: 'Balanced', desc: '70/20/10 Hybrid Mix' },
@@ -313,7 +314,7 @@ const SettingsModal: React.FC<{
                     </div>
                 </div>
 
-                <div className="flex gap-4 mt-10 border-t border-gray-100 pt-6">
+                <div className="flex gap-4 mt-[min(6vh,48px)] border-t border-gray-100 pt-6">
                     <button 
                         onClick={onClose}
                         className="flex-1 py-4 text-gray-500 font-bold text-sm hover:bg-gray-50 rounded-2xl transition-all"
@@ -719,14 +720,14 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto pb-32 animate-fadeIn relative">
+        <div className="p-[min(3.5vh,24px)] max-w-7xl mx-auto pb-32 animate-fadeIn relative">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-[min(4vh,32px)] gap-4">
                 <div className="flex items-center gap-4">
                     <div className="text-indigo-600"><CampaignStudioIcon className="w-14 h-14" /></div>
                     <div>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Campaign Studio</h1>
-                        <p className="text-sm text-gray-500">Agency Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
+                        <h1 className="text-[clamp(24px,3.5vh,30px)] font-black text-gray-900 tracking-tight">Campaign Studio</h1>
+                        <p className="text-[clamp(11px,1.5vh,14px)] text-gray-500">Agency Strategy for <span className="font-bold text-indigo-600">{activeBrand.companyName}</span></p>
                     </div>
                 </div>
                 {step === 'config' && (
@@ -738,25 +739,25 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             {/* Step 1: Config */}
             {step === 'config' && (
-                <div className="space-y-8 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                <div className="space-y-[min(4vh,32px)] bg-white p-[min(5vh,32px)] rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Month</label>
+                            <label className="block text-[clamp(8px,1.1vh,10px)] font-bold text-gray-400 uppercase mb-2">Target Month</label>
                             <select value={config.month} onChange={e => setConfig({...config, month: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500 appearance-none">
                                 <option value="" disabled>Select Month</option>
                                 {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Target Market</label>
+                            <label className="block text-[clamp(8px,1.1vh,10px)] font-bold text-gray-400 uppercase mb-2">Target Market</label>
                             <input value={config.country} onChange={e => setConfig({...config, country: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Pune, India or Bangalore" />
                         </div>
                     </div>
 
                     <div className="relative z-10">
-                        <label className="block text-xs font-bold text-gray-400 uppercase mb-3">Posting Frequency</label>
+                        <label className="block text-[clamp(8px,1.1vh,10px)] font-bold text-gray-400 uppercase mb-3">Posting Frequency</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {[
                                 { label: 'Every Day (30 Posts)', desc: 'Organic Dominance' },
@@ -777,7 +778,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="relative z-10">
-                        <label className="block text-xs font-bold text-gray-400 uppercase mb-3">Strategy Algorithm</label>
+                        <label className="block text-[clamp(8px,1.1vh,10px)] font-bold text-gray-400 uppercase mb-3">Strategy Algorithm</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
                                 { label: 'Balanced', desc: '70/20/10 Hybrid Mix' },
@@ -810,12 +811,12 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             {/* Step 2: Review */}
             {step === 'review' && (
-                <div className="space-y-6 animate-fadeIn">
-                    <div className="bg-indigo-600 rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+                <div className="space-y-[min(4vh,24px)] animate-fadeIn">
+                    <div className="bg-indigo-600 rounded-3xl p-[min(5vh,32px)] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                         <div className="relative z-10">
-                            <h2 className="text-3xl font-black mb-2 flex items-center gap-3"><CheckIcon className="w-8 h-8 p-1 bg-white/20 rounded-full"/> Strategy Engineered</h2>
-                            <p className="text-indigo-100 font-medium">Verified {plan.length} entries for {activeBrand.companyName}. Each post is designed to maximize engagement and ROI.</p>
+                            <h2 className="text-[clamp(20px,3.5vh,28px)] font-black mb-2 flex items-center gap-3"><CheckIcon className="w-8 h-8 p-1 bg-white/20 rounded-full"/> Strategy Engineered</h2>
+                            <p className="text-indigo-100 font-medium text-[clamp(11px,1.5vh,15px)]">Verified {plan.length} entries for {activeBrand.companyName}. Each post is designed to maximize engagement and ROI.</p>
                         </div>
                         <button 
                             onClick={handleRefineSettings} 
@@ -830,15 +831,15 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             const product = activeBrand.products?.find(p => p.id === post.selectedProductId) || activeBrand.products?.[0];
                             const isCopied = copiedIds.has(post.id);
                             return (
-                                <div key={post.id} className="bg-white rounded-[2.5rem] border border-gray-100 p-7 shadow-sm hover:shadow-xl transition-all flex flex-col gap-6 group relative">
+                                <div key={post.id} className="bg-white rounded-[2.5rem] border border-gray-100 p-[min(4vh,28px)] shadow-sm hover:shadow-xl transition-all flex flex-col gap-[min(3vh,24px)] group relative">
                                     {/* Card Top: Date and Meta */}
                                     <div className="flex justify-between items-center">
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{post.date}</span>
-                                            <span className="text-sm font-black text-indigo-600 uppercase tracking-tight">{post.dayLabel}</span>
+                                            <span className="text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 uppercase tracking-widest">{post.date}</span>
+                                            <span className="text-[clamp(12px,1.6vh,14px)] font-black text-indigo-600 uppercase tracking-tight">{post.dayLabel}</span>
                                         </div>
                                         <div className="flex gap-1.5">
-                                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide ${post.postType === 'Ad' ? 'bg-purple-600 text-white shadow-sm' : 'bg-green-600 text-white shadow-sm'}`}>{post.postType}</span>
+                                            <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wide ${post.postType === 'Ad' ? 'bg-purple-600 text-white shadow-sm' : 'bg-green-600 text-white shadow-sm'}`}>{post.postType}</span>
                                         </div>
                                     </div>
                                     
@@ -855,7 +856,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                     {/* Post Content Box (Smart Caption) */}
                                     <div className="flex-1 flex flex-col gap-4">
-                                        <div className="bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-inner relative group-hover:border-indigo-100 transition-colors">
+                                        <div className="bg-white border-2 border-gray-100 rounded-3xl p-[min(3vh,20px)] shadow-inner relative group-hover:border-indigo-100 transition-colors">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2">
                                                     <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><CaptionIcon className="w-4 h-4"/></div>
@@ -925,7 +926,6 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
 
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
-                        {/* FIX: Complete truncated button and fix handleStart to handleStartGeneration */}
                         <button 
                             onClick={handleStartGeneration}
                             className="bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold shadow-2xl hover:bg-black transition-all transform hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-3"
