@@ -1,4 +1,3 @@
-
 // ... existing imports
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -7,7 +6,6 @@ import 'firebase/compat/storage';
 import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction } from './types';
 import { resizeImage } from './utils/imageUtils';
 
-// ... (keep existing configuration code up to getUserBrands) ...
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
 
@@ -60,7 +58,6 @@ if (isConfigValid) {
   console.error("Configuration is missing or incomplete. Please check your environment variables. Missing:", missingKeys.join(', '));
 }
 
-// ... existing Auth Helpers ...
 export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -73,7 +70,6 @@ export const signInWithGoogle = async () => {
     }
 };
 
-// Explicit function to update last active timestamp cheaply
 export const updateUserLastActive = async (uid: string) => {
     if (!db) return;
     try {
@@ -81,7 +77,6 @@ export const updateUserLastActive = async (uid: string) => {
             lastActive: firebase.firestore.FieldValue.serverTimestamp()
         });
     } catch (e) {
-        // Ignore errors (e.g., if user doc doesn't exist yet, getOrCreate will handle it)
         console.warn("Could not update lastActive", e);
     }
 };
@@ -106,7 +101,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             avatar: initials, 
             credits: 50,
             totalCreditsAcquired: 50,
-            lifetimeGenerations: 0, // Explicit initialization
+            lifetimeGenerations: 0,
             plan: 'Free',
             signUpDate: firebase.firestore.FieldValue.serverTimestamp() as any,
             lastActive: firebase.firestore.FieldValue.serverTimestamp() as any,
@@ -120,27 +115,14 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         return newUser;
     }
     
-    // Fallback update if this function is called explicitly
-    try {
-        await userRef.update({
-            lastActive: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    } catch (e) { console.error("Error updating lastActive:", e); }
-    
     const userData = doc.data() as User;
     const updates: any = {};
 
-    // DATA BACKFILL / NORMALIZATION
-    // Ensures old users don't see "NaN" or missing stats
     if (userData.lifetimeGenerations === undefined) updates.lifetimeGenerations = 0;
     if (userData.totalCreditsAcquired === undefined) updates.totalCreditsAcquired = userData.credits || 0;
     if (!userData.plan) updates.plan = 'Free';
     if (!userData.avatar) updates.avatar = initials;
-    
-    // Promote Super Admin if needed
-    if (isSuperAdmin && userData.isAdmin !== true) {
-        updates.isAdmin = true;
-    }
+    if (isSuperAdmin && userData.isAdmin !== true) updates.isAdmin = true;
 
     if (Object.keys(updates).length > 0) {
         await userRef.update(updates);
@@ -171,8 +153,6 @@ export const subscribeToUserProfile = (uid: string, callback: (user: User | null
         callback(null);
     });
 };
-
-// ... Config & System ...
 
 export const subscribeToAppConfig = (callback: (config: AppConfig | null) => void) => {
     if (!db) {
@@ -215,7 +195,6 @@ export const subscribeToAnnouncement = (callback: (announcement: Announcement | 
 
 export const updateAnnouncement = async (uid: string, announcement: Announcement) => {
     if (!db) return;
-    
     const cleanPayload = {
         title: announcement.title || "",
         message: announcement.message || "",
@@ -224,18 +203,11 @@ export const updateAnnouncement = async (uid: string, announcement: Announcement
         link: announcement.link || "",
         style: announcement.style || "banner"
     };
-
     try {
         await db.collection('config').doc('announcement').set(cleanPayload);
-        try {
-            await logAudit(uid, 'Update Announcement', `Updated: ${cleanPayload.title}`);
-        } catch (e) { console.warn("Audit log failed (non-fatal)", e); }
-
+        await logAudit(uid, 'Update Announcement', `Updated: ${cleanPayload.title}`);
     } catch (error: any) {
         console.error("Update Announcement FAILED:", error);
-        if (error.code === 'permission-denied') {
-            throw new Error(`Permission Denied. Ensure your email matches the rule 'mayurhande90@gmail.com'.`);
-        }
         throw error;
     }
 };
@@ -246,22 +218,16 @@ export const getAnnouncement = async () => {
     return doc.exists ? (doc.data() as Announcement) : null;
 };
 
-// ... Creations & Credits ...
 export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
-    
     let finalImage = imageUrl;
-    
-    // Firestore limit is 1MB. Safety check: Compress if > 800KB
     if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
         try {
-            // Compress to HD (1024px) JPEG @ 70% quality to fit in Firestore
             finalImage = await resizeImage(finalImage, 1024, 0.7);
         } catch (e) {
-            console.warn("Image compression failed, attempting save with original...", e);
+            console.warn("Image compression failed", e);
         }
     }
-
     const docRef = await db.collection('users').doc(uid).collection('creations').add({
         imageUrl: finalImage,
         feature,
@@ -271,24 +237,16 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
     return docRef.id;
 };
 
-/**
- * Updates an existing creation with a new image.
- * Primarily used by the Magic Editor to avoid duplicate entries in the gallery.
- */
 export const updateCreation = async (uid: string, creationId: string, imageUrl: string): Promise<void> => {
     if (!db) throw new Error("DB not initialized");
-    
     let finalImage = imageUrl;
-    
-    // Firestore limit is 1MB. Safety check: Compress if > 800KB
     if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
         try {
             finalImage = await resizeImage(finalImage, 1024, 0.7);
         } catch (e) {
-            console.warn("Image compression failed, using original for update...", e);
+            console.warn("Image compression failed", e);
         }
     }
-
     await db.collection('users').doc(uid).collection('creations').doc(creationId).update({
         imageUrl: finalImage,
         lastEditedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -315,29 +273,35 @@ export const deleteCreation = async (uid: string, creation: Creation) => {
     await db.collection('users').doc(uid).collection('creations').doc(creation.id).delete();
 };
 
+/**
+ * Robust Credit Deduction Transaction
+ */
 export const deductCredits = async (uid: string, amount: number, featureName: string) => {
-    if (!db) throw new Error("DB not initialized");
+    if (!db) throw new Error("Database not initialized. Please refresh.");
     const userRef = db.collection('users').doc(uid);
     
     return await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists) throw new Error("User does not exist!");
+        if (!userDoc.exists) throw new Error("User profile not found. Try signing in again.");
         
         const userData = userDoc.data() as User;
         const currentCredits = userData.credits || 0;
         
         if (currentCredits < amount) {
-            throw new Error("Insufficient credits!");
+            throw new Error(`Insufficient credits. You need ${amount} but only have ${currentCredits}.`);
         }
         
         const newCredits = currentCredits - amount;
+        const newGens = (userData.lifetimeGenerations || 0) + 1;
         
+        // Update user stats
         transaction.update(userRef, { 
             credits: newCredits,
             lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
             lastActive: firebase.firestore.FieldValue.serverTimestamp()
         });
         
+        // Record the transaction history
         const transactionRef = userRef.collection('transactions').doc();
         transaction.set(transactionRef, {
             feature: featureName,
@@ -345,20 +309,17 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
             date: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // Return updated object with assumed increment
-        return { ...userData, credits: newCredits, lifetimeGenerations: (userData.lifetimeGenerations || 0) + 1 };
+        return { ...userData, credits: newCredits, lifetimeGenerations: newGens };
     });
 };
 
 export const claimMilestoneBonus = async (uid: string, amount: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-    
     await db.runTransaction(async (t) => {
         t.update(userRef, {
             credits: firebase.firestore.FieldValue.increment(amount)
         });
-        
         const txRef = userRef.collection('transactions').doc();
         t.set(txRef, {
             feature: 'Milestone Reward',
@@ -367,38 +328,38 @@ export const claimMilestoneBonus = async (uid: string, amount: number) => {
             date: firebase.firestore.FieldValue.serverTimestamp()
         });
     });
-    
     const snap = await userRef.get();
     return snap.data() as User;
 };
 
 export const getCreditHistory = async (uid: string) => {
     if (!db) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('transactions')
-        .orderBy('date', 'desc')
-        .limit(50)
-        .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const snapshot = await db.collection('users').doc(uid).collection('transactions')
+            .orderBy('date', 'desc')
+            .limit(50)
+            .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error("History fetch failed", e);
+        return [];
+    }
 };
 
-// Purchase TopUp: Updates Plan AND Credits
 export const purchaseTopUp = async (uid: string, packName: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
         totalSpent: firebase.firestore.FieldValue.increment(price),
         plan: packName,
-        // Upgrade storage tier if Studio or Agency
         ...(packName.includes('Studio') || packName.includes('Agency') ? { 
             storageTier: 'unlimited', 
             basePlan: packName,
             lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() 
         } : {})
     });
-
     await userRef.collection('transactions').add({
         feature: `Purchase: ${packName}`,
         cost: 0,
@@ -406,7 +367,6 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
         date: firebase.firestore.FieldValue.serverTimestamp(),
         pricePaid: price
     });
-
     await db.collection('purchases').add({
         userId: uid,
         packName,
@@ -414,24 +374,18 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
         amountPaid: price,
         purchaseDate: firebase.firestore.FieldValue.serverTimestamp()
     });
-
     const userSnap = await userRef.get();
     return userSnap.data() as User;
 };
 
-// Pure Credit Refill: Updates Credits ONLY (Does not touch Plan or Storage Tier)
 export const purchaseCreditRefill = async (uid: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
         totalSpent: firebase.firestore.FieldValue.increment(price),
-        // CRITICAL: We do NOT update the plan here. 
-        // This preserves "Agency" or "Studio" status if they are just buying more credits.
     });
-
     await userRef.collection('transactions').add({
         feature: `Credit Refill`,
         cost: 0,
@@ -439,36 +393,23 @@ export const purchaseCreditRefill = async (uid: string, credits: number, price: 
         date: firebase.firestore.FieldValue.serverTimestamp(),
         pricePaid: price
     });
-
-    await db.collection('purchases').add({
-        userId: uid,
-        packName: 'Credit Refill',
-        creditsAdded: credits,
-        amountPaid: price,
-        purchaseDate: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
     const userSnap = await userRef.get();
     return userSnap.data() as User;
 };
 
-// ... Daily Mission & Attendance ...
 export const claimDailyAttendance = async (uid: string) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-    
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(1),
         lastAttendanceClaim: firebase.firestore.FieldValue.serverTimestamp()
     });
-    
     await userRef.collection('transactions').add({
         feature: 'Daily Check-in',
         creditChange: '+1',
         cost: 0,
         date: firebase.firestore.FieldValue.serverTimestamp()
     });
-
     const snap = await userRef.get();
     return snap.data();
 };
@@ -476,9 +417,7 @@ export const claimDailyAttendance = async (uid: string) => {
 export const completeDailyMission = async (uid: string, reward: number, missionId: string) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-    
     const nextUnlock = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(reward),
         dailyMission: {
@@ -487,35 +426,26 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
             lastMissionId: missionId
         }
     });
-
     await userRef.collection('transactions').add({
         feature: 'Daily Mission Reward',
         creditChange: `+${reward}`,
         cost: 0,
         date: firebase.firestore.FieldValue.serverTimestamp()
     });
-
     const snap = await userRef.get();
     return snap.data() as User;
 };
 
-// ... Referrals ...
 export const claimReferralCode = async (uid: string, code: string) => {
     if (!db) throw new Error("DB not initialized");
-    
     const snapshot = await db.collection('users').where('referralCode', '==', code).get();
-    if (snapshot.empty) {
-        throw new Error("Invalid referral code.");
-    }
+    if (snapshot.empty) throw new Error("Invalid referral code.");
     const referrerDoc = snapshot.docs[0];
     const referrerId = referrerDoc.id;
-
     if (referrerId === uid) throw new Error("Cannot refer yourself.");
-
     const userRef = db.collection('users').doc(uid);
     const userSnap = await userRef.get();
     if (userSnap.data()?.referredBy) throw new Error("You have already claimed a referral.");
-
     await db.runTransaction(async (t) => {
         t.update(userRef, {
             referredBy: code,
@@ -527,7 +457,6 @@ export const claimReferralCode = async (uid: string, code: string) => {
             creditChange: '+10',
             date: firebase.firestore.FieldValue.serverTimestamp()
         });
-
         const refUserRef = db.collection('users').doc(referrerId);
         t.update(refUserRef, {
             referralCount: firebase.firestore.FieldValue.increment(1),
@@ -540,11 +469,9 @@ export const claimReferralCode = async (uid: string, code: string) => {
             date: firebase.firestore.FieldValue.serverTimestamp()
         });
     });
-
     return (await userRef.get()).data();
 };
 
-// ... Brand Kit ...
 export const getUserBrands = async (uid: string) => {
     if (!db) return [];
     const snapshot = await db.collection('users').doc(uid).collection('brands').get();
@@ -568,7 +495,6 @@ export const subscribeToUserBrands = (uid: string, callback: (brands: BrandKit[]
 export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
     if (!db) return;
     const collectionRef = db.collection('users').doc(uid).collection('brands');
-    
     if (brand.id) {
         await collectionRef.doc(brand.id).set(brand, { merge: true });
         return brand.id;
@@ -578,23 +504,14 @@ export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
     }
 };
 
-/**
- * OPTION A: SESSION-BASED SELECTION
- * Fetch the brand data but do NOT persist it to the User profile document.
- * The selection will reset on login or refresh.
- */
 export const activateBrand = async (uid: string, brandId: string) => {
     if (!db) return;
     const brandSnap = await db.collection('users').doc(uid).collection('brands').doc(brandId).get();
     if (!brandSnap.exists) throw new Error("Brand not found");
-    const brandData = { id: brandSnap.id, ...brandSnap.data() } as BrandKit;
-    // Persist removed as per Option A
-    return brandData;
+    return { id: brandSnap.id, ...brandSnap.data() } as BrandKit;
 };
 
-// Deactivates the brand kit locally (Session Reset)
 export const deactivateBrand = async (uid: string) => {
-    // No database action needed for session-based deactivation
     return null;
 };
 
@@ -606,9 +523,7 @@ export const deleteBrandFromCollection = async (uid: string, brandId: string) =>
 export const saveUserBrandKit = async (uid: string, brandKit: BrandKit) => {
     if (!db) return;
     const brandId = await saveBrandToCollection(uid, brandKit);
-    const activeKit = { ...brandKit, id: brandId }; 
-    // Persist removed as per Option A
-    return activeKit;
+    return { ...brandKit, id: brandId }; 
 };
 
 export const uploadBrandAsset = async (uid: string, dataUri: string, type: string) => {
@@ -623,31 +538,25 @@ export const uploadBrandAsset = async (uid: string, dataUri: string, type: strin
     return await ref.getDownloadURL();
 };
 
-// ... remaining existing functions ...
 export const saveSupportMessage = async (uid: string, message: any) => { if (!db) return; await db.collection('users').doc(uid).collection('support_chat').doc(message.id).set(message); };
 export const getSupportHistory = async (uid: string) => { if (!db) return []; const snap = await db.collection('users').doc(uid).collection('support_chat').orderBy('timestamp', 'asc').get(); return snap.docs.map(d => d.data()); };
-export const cleanupSupportHistory = async (uid: string) => { if (!db) return; const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); const snap = await db.collection('users').doc(uid).collection('support_chat').where('timestamp', '<', cutoff).get(); if (snap.empty) return; const batch = db.batch(); snap.docs.forEach(doc => batch.delete(doc.ref)); await batch.commit(); };
 export const clearSupportChat = async (uid: string) => { if (!db) return; const ref = db.collection('users').doc(uid).collection('support_chat'); const snapshot = await ref.get(); if (snapshot.size === 0) return; const batch = db.batch(); snapshot.docs.forEach((doc) => { batch.delete(doc.ref); }); await batch.commit(); };
 export const submitFeedback = async (uid: string, creationId: string | null, feedback: 'up' | 'down', feature: string = 'Unknown', imageUrl: string | null = null, userEmail: string = '', userName: string = '') => { if (!db) return; await db.collection('feedbacks').add({ userId: uid, creationId: creationId, feedback: feedback, feature: feature, imageUrl: imageUrl, userEmail: userEmail, userName: userName, timestamp: firebase.firestore.Timestamp.now() }); };
 export const getRecentFeedbacks = async (limit = 100) => { if (!db) return []; const snap = await db.collection('feedbacks').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); };
 export const getAllUsers = async (limit = 100) => { if (!db) return []; const snapshot = await db.collection('users').limit(limit).get(); return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User)); };
-// FIX: Use uid instead of id to match User interface and cast via unknown to satisfy TS
 export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => { if (!db) { callback([]); return () => {}; } return db.collection('users').orderBy('lastActive', 'desc').limit(limit).onSnapshot((snapshot) => { const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as unknown as User)); callback(users); }, (error) => { console.error("Error subscribing to active users:", error); }); };
-export const getUser = async (uid: string) => { if (!db) return null; const doc = await db.collection('users').doc(uid).get(); return doc.exists ? ({ uid: doc.id, ...doc.data() } as User) : null; };
 export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(amount), creditGrantNotification: { amount: amount, message: reason || 'Admin Grant', type: 'credit', timestamp: firebase.firestore.Timestamp.now() } }); await userRef.collection('transactions').add({ feature: 'Admin Grant', reason, creditChange: `+${amount}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() }); await logAudit(adminUid, 'Grant Credits', `Granted ${amount} to ${targetUid}. Reason: ${reason}`); };
 export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } }); await userRef.collection('transactions').add({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() }); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };
 export const toggleUserBan = async (adminUid: string, targetUid: string, isBanned: boolean) => { if (!db) return; await db.collection('users').doc(targetUid).update({ isBanned }); await logAudit(adminUid, isBanned ? 'Ban User' : 'Unban User', `Target: ${targetUid}`); };
-export const updateUserPlan = async (uid: string, plan: string) => { if (!db) return; await db.collection('users').doc(uid).update({ plan }); };
 export const getRecentSignups = async (limit = 10) => { if (!db) return []; const snap = await db.collection('users').orderBy('signUpDate', 'desc').limit(limit).get(); return snap.docs.map(d => ({ uid: d.id, ...d.data() } as User)); };
 export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => { if (!db) return []; const snap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)); };
-export const getDashboardStats = async () => { if (!db) return { revenue: 0, totalUsers: 0 }; try { const purchasesAgg = await (db.collection('purchases') as any).aggregate({ total: (firebase.firestore as any).AggregateField.sum('amountPaid') }).get(); const revenue = purchasesAgg.data().total || 0; const usersAgg = await (db.collection('users') as any).count().get(); const totalUsers = usersAgg.data().count; return { revenue, totalUsers }; } catch (e) { console.warn("Aggregation failed", e); const pSnap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(500).get(); const revenue = pSnap.docs.reduce((acc, doc) => acc + (doc.data().amountPaid || 0), 0); const uSnap = await db.collection('users').limit(100).get(); const totalUsers = uSnap.size; return { revenue, totalUsers }; } };
-export const getTotalRevenue = async (startDate?: Date, endDate?: Date) => { if (!db) return 0; let query = db.collection('purchases'); let snapshot; if (startDate && endDate) { snapshot = await query.where('purchaseDate', '>=', startDate).where('purchaseDate', '<=', endDate).get(); return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0); } else { try { const agg = await (query as any).aggregate({ total: (firebase.firestore as any).AggregateField.sum('amountPaid') }).get(); return agg.data().total || 0; } catch(e) { snapshot = await query.limit(1000).get(); return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0); } } };
+export const getDashboardStats = async () => { if (!db) return { revenue: 0, totalUsers: 0 }; try { const purchasesAgg = await (db.collection('purchases') as any).aggregate({ total: (firebase.firestore as any).AggregateField.sum('amountPaid') }).get(); const revenue = purchasesAgg.data().total || 0; const usersAgg = await (db.collection('users') as any).count().get(); const totalUsers = usersAgg.data().count; return { revenue, totalUsers }; } catch (e) { const pSnap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(500).get(); const revenue = pSnap.docs.reduce((acc, doc) => acc + (doc.data().amountPaid || 0), 0); const uSnap = await db.collection('users').limit(100).get(); const totalUsers = uSnap.size; return { revenue, totalUsers }; } };
+export const getTotalRevenue = async (startDate?: Date, endDate?: Date) => { if (!db) return 0; let query = db.collection('purchases'); if (startDate && endDate) { const snapshot = await query.where('purchaseDate', '>=', startDate).where('purchaseDate', '<=', endDate).get(); return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0); } else { try { const agg = await (query as any).aggregate({ total: (firebase.firestore as any).AggregateField.sum('amountPaid') }).get(); return agg.data().total || 0; } catch(e) { const snapshot = await query.limit(1000).get(); return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amountPaid || 0), 0); } } };
 export const getRevenueStats = async (days = 7) => { return []; };
-export const get24HourCreditBurn = async () => { return 0; };
-export const getGlobalFeatureUsage = async () => { if (!db) return []; const doc = await db.collection('config').doc('stats').get(); if (doc.exists && doc.data()?.featureUsage) { return Object.entries(doc.data()!.featureUsage).map(([k, v]) => ({ feature: k, count: v as number })); } return []; };
 export const logAudit = async (adminUid: string, action: string, details: string) => { if (!db) return; await db.collection('audit_logs').add({ adminEmail: auth?.currentUser?.email || adminUid, action, details, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); };
 export const getAuditLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as AuditLog)); };
 export const logApiError = async (endpoint: string, error: string, userId?: string) => { if (!db) return; await db.collection('api_errors').add({ endpoint, error, userId: userId || 'anonymous', timestamp: firebase.firestore.FieldValue.serverTimestamp() }); };
 export const getApiErrorLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('api_errors').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApiErrorLog)); };
-export const sendSystemNotification = async (adminUid: string, targetUid: string, title: string, message: string, type: string, style: string, link?: string) => { if (!db) return; await db.collection('users').doc(targetUid).update({ systemNotification: { title, message, type, style, link: link || null, read: false, timestamp: firebase.firestore.Timestamp.now() } }); await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title} ${link ? `(Link: ${link})` : ''}`); };
+export const sendSystemNotification = async (adminUid: string, targetUid: string, title: string, message: string, type: string, style: string, link?: string) => { if (!db) return; await db.collection('users').doc(targetUid).update({ systemNotification: { title, message, type, style, link: link || null, read: false, timestamp: firebase.firestore.Timestamp.now() } }); await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title}`); };
 export const clearCreditGrantNotification = async (uid: string) => { if (!db) return; await db.collection('users').doc(uid).update({ creditGrantNotification: null }); };
+export const getGlobalFeatureUsage = async () => { return []; };
