@@ -56,6 +56,20 @@ if (isConfigValid) {
   }
 }
 
+/**
+ * Helper to strip undefined values from objects before Firestore writes.
+ * Firestore throws a "Unsupported field value: undefined" error if any key has an undefined value.
+ */
+const sanitizeData = (data: any) => {
+    const clean: any = {};
+    Object.keys(data).forEach(key => {
+        if (data[key] !== undefined) {
+            clean[key] = data[key];
+        }
+    });
+    return clean;
+};
+
 export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -86,9 +100,9 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     const isSuperAdmin = email === SUPER_ADMIN_EMAIL;
 
     if (!doc.exists) {
-        const newUser: Partial<User> = {
-            uid,
-            name,
+        const newUser: User = {
+            uid: uid || '', // Force string
+            name: name || 'User',
             email: email || '',
             avatar: initials, 
             credits: 50,
@@ -103,7 +117,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             isAdmin: isSuperAdmin, 
             isBanned: false,
         };
-        await userRef.set(newUser);
+        await userRef.set(sanitizeData(newUser));
         return newUser;
     }
     
@@ -124,7 +138,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
     if (!db) return;
-    await db.collection('users').doc(uid).update(data);
+    await db.collection('users').doc(uid).update(sanitizeData(data));
 };
 
 export const subscribeToUserProfile = (uid: string, callback: (user: User | null) => void) => {
@@ -222,18 +236,21 @@ export const deleteCreation = async (uid: string, creation: Creation) => {
     await db.collection('users').doc(uid).collection('creations').doc(creation.id).delete();
 };
 
-export const deductCredits = async (uid: string, amount: number, featureName: string) => {
+export const deductCredits = async (userId: string, amount: number, featureName: string) => {
     if (!db) throw new Error("Database not initialized.");
-    const userRef = db.collection('users').doc(uid);
+    if (!userId) throw new Error("User ID is missing.");
+    
+    const userRef = db.collection('users').doc(userId);
     
     return await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userRef);
         let userData: User;
 
         if (!userDoc.exists) {
-            // LAZY INITIALIZATION: Create the profile on the fly if it's missing during the first generation
+            // LAZY INITIALIZATION: Create the profile on the fly if missing.
+            // Explicitly set every field to avoid shorthand issues.
             userData = {
-                uid,
+                uid: userId,
                 name: 'New Creator',
                 email: '',
                 avatar: 'U',
@@ -248,8 +265,9 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
                 referralCount: 0,
                 isAdmin: false,
                 isBanned: false,
-            } as User;
-            transaction.set(userRef, userData);
+            };
+            // Use sanitizeData to ensure NO undefined values are passed to set()
+            transaction.set(userRef, sanitizeData(userData));
         } else {
             userData = userDoc.data() as User;
         }
@@ -263,18 +281,19 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
         const newCredits = currentCredits - amount;
         const newGens = (userData.lifetimeGenerations || 0) + 1;
         
-        transaction.update(userRef, { 
+        // Sanitize update data as well
+        transaction.update(userRef, sanitizeData({ 
             credits: newCredits,
             lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
             lastActive: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }));
         
         const transactionRef = userRef.collection('transactions').doc();
-        transaction.set(transactionRef, {
+        transaction.set(transactionRef, sanitizeData({
             feature: featureName,
             cost: amount,
             date: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }));
         
         return { ...userData, credits: newCredits, lifetimeGenerations: newGens };
     });
@@ -301,7 +320,7 @@ export const getCreditHistory = async (uid: string) => {
 export const purchaseTopUp = async (uid: string, packName: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-    await userRef.update({
+    await userRef.update(sanitizeData({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
         totalSpent: firebase.firestore.FieldValue.increment(price),
@@ -311,21 +330,21 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
             basePlan: packName,
             lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() 
         } : {})
-    });
-    await userRef.collection('transactions').add({
+    }));
+    await userRef.collection('transactions').add(sanitizeData({
         feature: `Purchase: ${packName}`,
         cost: 0,
         creditChange: `+${credits}`,
         date: firebase.firestore.FieldValue.serverTimestamp(),
         pricePaid: price
-    });
-    await db.collection('purchases').add({
+    }));
+    await db.collection('purchases').add(sanitizeData({
         userId: uid,
         packName,
         creditsAdded: credits,
         amountPaid: price,
         purchaseDate: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }));
     const userSnap = await userRef.get();
     return userSnap.data() as User;
 };
@@ -333,18 +352,18 @@ export const purchaseTopUp = async (uid: string, packName: string, credits: numb
 export const purchaseCreditRefill = async (uid: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-    await userRef.update({
+    await userRef.update(sanitizeData({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
         totalSpent: firebase.firestore.FieldValue.increment(price),
-    });
-    await userRef.collection('transactions').add({
+    }));
+    await userRef.collection('transactions').add(sanitizeData({
         feature: `Credit Refill`,
         cost: 0,
         creditChange: `+${credits}`,
         date: firebase.firestore.FieldValue.serverTimestamp(),
         pricePaid: price
-    });
+    }));
     const userSnap = await userRef.get();
     return userSnap.data() as User;
 };
@@ -356,12 +375,12 @@ export const claimDailyAttendance = async (uid: string) => {
         credits: firebase.firestore.FieldValue.increment(1),
         lastAttendanceClaim: firebase.firestore.FieldValue.serverTimestamp()
     });
-    await userRef.collection('transactions').add({
+    await userRef.collection('transactions').add(sanitizeData({
         feature: 'Daily Check-in',
         creditChange: '+1',
         cost: 0,
         date: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }));
     const snap = await userRef.get();
     return snap.data();
 };
@@ -370,20 +389,20 @@ export const completeDailyMission = async (uid: string, reward: number, missionI
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
     const nextUnlock = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await userRef.update({
+    await userRef.update(sanitizeData({
         credits: firebase.firestore.FieldValue.increment(reward),
         dailyMission: {
             completedAt: new Date().toISOString(),
             nextUnlock: nextUnlock,
             lastMissionId: missionId
         }
-    });
-    await userRef.collection('transactions').add({
+    }));
+    await userRef.collection('transactions').add(sanitizeData({
         feature: 'Daily Mission Reward',
         creditChange: `+${reward}`,
         cost: 0,
         date: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }));
     const snap = await userRef.get();
     return snap.data() as User;
 };
@@ -404,22 +423,22 @@ export const claimReferralCode = async (uid: string, code: string) => {
             credits: firebase.firestore.FieldValue.increment(10)
         });
         const userTx = userRef.collection('transactions').doc();
-        t.set(userTx, {
+        t.set(userTx, sanitizeData({
             feature: 'Referral Bonus (Claimed)',
             creditChange: '+10',
             date: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }));
         const refUserRef = db.collection('users').doc(referrerId);
         t.update(refUserRef, {
             referralCount: firebase.firestore.FieldValue.increment(1),
             credits: firebase.firestore.FieldValue.increment(10)
         });
         const refTx = refUserRef.collection('transactions').doc();
-        t.set(refTx, {
+        t.set(refTx, sanitizeData({
             feature: 'Referral Bonus (Friend Joined)',
             creditChange: '+10',
             date: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }));
     });
     return (await userRef.get()).data();
 };
@@ -443,10 +462,10 @@ export const saveBrandToCollection = async (uid: string, brand: BrandKit) => {
     if (!db) return;
     const collectionRef = db.collection('users').doc(uid).collection('brands');
     if (brand.id) {
-        await collectionRef.doc(brand.id).set(brand, { merge: true });
+        await collectionRef.doc(brand.id).set(sanitizeData(brand), { merge: true });
         return brand.id;
     } else {
-        const docRef = await collectionRef.add(brand);
+        const docRef = await collectionRef.add(sanitizeData(brand));
         return docRef.id;
     }
 };
@@ -474,26 +493,26 @@ export const uploadBrandAsset = async (uid: string, dataUri: string, type: strin
     return await ref.getDownloadURL();
 };
 
-export const saveSupportMessage = async (uid: string, message: any) => { if (!db) return; await db.collection('users').doc(uid).collection('support_chat').doc(message.id).set(message); };
+export const saveSupportMessage = async (uid: string, message: any) => { if (!db) return; await db.collection('users').doc(uid).collection('support_chat').doc(message.id).set(sanitizeData(message)); };
 export const getSupportHistory = async (uid: string) => { if (!db) return []; const snap = await db.collection('users').doc(uid).collection('support_chat').orderBy('timestamp', 'asc').get(); return snap.docs.map(d => d.data()); };
 export const clearSupportChat = async (uid: string) => { if (!db) return; const ref = db.collection('users').doc(uid).collection('support_chat'); const snapshot = await ref.get(); if (snapshot.size === 0) return; const batch = db.batch(); snapshot.docs.forEach((doc) => { batch.delete(doc.ref); }); await batch.commit(); };
-export const submitFeedback = async (uid: string, creationId: string | null, feedback: 'up' | 'down', feature: string = 'Unknown', imageUrl: string | null = null, userEmail: string = '', userName: string = '') => { if (!db) return; await db.collection('feedbacks').add({ userId: uid, creationId: creationId, feedback: feedback, feature: feature, imageUrl: imageUrl, userEmail: userEmail, userName: userName, timestamp: firebase.firestore.Timestamp.now() }); };
+export const submitFeedback = async (uid: string, creationId: string | null, feedback: 'up' | 'down', feature: string = 'Unknown', imageUrl: string | null = null, userEmail: string = '', userName: string = '') => { if (!db) return; await db.collection('feedbacks').add(sanitizeData({ userId: uid, creationId: creationId, feedback: feedback, feature: feature, imageUrl: imageUrl, userEmail: userEmail, userName: userName, timestamp: firebase.firestore.Timestamp.now() })); };
 export const getRecentFeedbacks = async (limit = 100) => { if (!db) return []; const snap = await db.collection('feedbacks').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); };
 export const getAllUsers = async (limit = 100) => { if (!db) return []; const snapshot = await db.collection('users').limit(limit).get(); return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User)); };
 export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => { if (!db) return () => {}; return db.collection('users').orderBy('lastActive', 'desc').limit(limit).onSnapshot((snapshot) => { const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as unknown as User)); callback(users); }); };
-export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(amount), creditGrantNotification: { amount: amount, message: reason || 'Admin Grant', type: 'credit', timestamp: firebase.firestore.Timestamp.now() } }); await userRef.collection('transactions').add({ feature: 'Admin Grant', reason, creditChange: `+${amount}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() }); await logAudit(adminUid, 'Grant Credits', `Granted ${amount} to ${targetUid}. Reason: ${reason}`); };
-export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } }); await userRef.collection('transactions').add({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() }); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };
+export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(amount), creditGrantNotification: sanitizeData({ amount: amount, message: reason || 'Admin Grant', type: 'credit', timestamp: firebase.firestore.Timestamp.now() }) }); await userRef.collection('transactions').add(sanitizeData({ feature: 'Admin Grant', reason, creditChange: `+${amount}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Credits', `Granted ${amount} to ${targetUid}. Reason: ${reason}`); };
+export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update(sanitizeData({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } })); await userRef.collection('transactions').add(sanitizeData({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };
 export const toggleUserBan = async (adminUid: string, targetUid: string, isBanned: boolean) => { if (!db) return; await db.collection('users').doc(targetUid).update({ isBanned }); await logAudit(adminUid, isBanned ? 'Ban User' : 'Unban User', `Target: ${targetUid}`); };
 export const getRecentSignups = async (limit = 10) => { if (!db) return []; const snap = await db.collection('users').orderBy('signUpDate', 'desc').limit(limit).get(); return snap.docs.map(d => ({ uid: d.id, ...d.data() } as User)); };
 export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => { if (!db) return []; const snap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)); };
 export const getDashboardStats = async () => { if (!db) return { revenue: 0, totalUsers: 0 }; try { const pSnap = await db.collection('purchases').get(); const revenue = pSnap.docs.reduce((acc, doc) => acc + (doc.data().amountPaid || 0), 0); const uSnap = await db.collection('users').get(); const totalUsers = uSnap.size; return { revenue, totalUsers }; } catch (e) { return { revenue: 0, totalUsers: 0 }; } };
 export const getTotalRevenue = async (start?: Date, end?: Date) => { if (!db) return 0; let q = db.collection('purchases') as any; if (start) q = q.where('purchaseDate', '>=', start); if (end) q = q.where('purchaseDate', '<=', end); const snap = await q.get(); return snap.docs.reduce((sum: number, doc: any) => sum + (doc.data().amountPaid || 0), 0); };
 export const getRevenueStats = async (days = 7) => { return []; };
-export const logAudit = async (adminUid: string, action: string, details: string) => { if (!db) return; await db.collection('audit_logs').add({ adminEmail: auth?.currentUser?.email || adminUid, action, details, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); };
+export const logAudit = async (adminUid: string, action: string, details: string) => { if (!db) return; await db.collection('audit_logs').add(sanitizeData({ adminEmail: auth?.currentUser?.email || adminUid, action, details, timestamp: firebase.firestore.Timestamp.now() })); };
 export const getAuditLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as AuditLog)); };
-export const logApiError = async (endpoint: string, error: string, userId?: string) => { if (!db) return; await db.collection('api_errors').add({ endpoint, error, userId: userId || 'anonymous', timestamp: firebase.firestore.Timestamp.now() }); };
+export const logApiError = async (endpoint: string, error: string, userId?: string) => { if (!db) return; await db.collection('api_errors').add(sanitizeData({ endpoint, error, userId: userId || 'anonymous', timestamp: firebase.firestore.Timestamp.now() })); };
 export const getApiErrorLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('api_errors').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApiErrorLog)); };
-export const sendSystemNotification = async (adminUid: string, targetUid: string, title: string, message: string, type: string, style: string, link?: string) => { if (!db) return; await db.collection('users').doc(targetUid).update({ systemNotification: { title, message, type, style, link: link || null, read: false, timestamp: firebase.firestore.Timestamp.now() } }); await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title}`); };
+export const sendSystemNotification = async (adminUid: string, targetUid: string, title: string, message: string, type: string, style: string, link?: string) => { if (!db) return; await db.collection('users').doc(targetUid).update({ systemNotification: sanitizeData({ title, message, type, style, link: link || null, read: false, timestamp: firebase.firestore.Timestamp.now() }) }); await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title}`); };
 export const clearCreditGrantNotification = async (uid: string) => { if (!db) return; await db.collection('users').doc(uid).update({ creditGrantNotification: null }); };
 export const getGlobalFeatureUsage = async () => { return []; };
 export const claimMilestoneBonus = async (uid: string, amount: number) => {
@@ -502,12 +521,12 @@ export const claimMilestoneBonus = async (uid: string, amount: number) => {
     await userRef.update({
         credits: firebase.firestore.FieldValue.increment(amount)
     });
-    await userRef.collection('transactions').add({
+    await userRef.collection('transactions').add(sanitizeData({
         feature: 'Milestone Bonus',
         creditChange: `+${amount}`,
         cost: 0,
         date: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }));
     const snap = await userRef.get();
     return snap.data() as User;
 };
