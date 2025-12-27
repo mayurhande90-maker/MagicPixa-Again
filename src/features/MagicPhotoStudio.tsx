@@ -167,10 +167,12 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             // EXECUTE DATABASE SYNC
             try {
                 // 1. Deduct Credits first (The gatekeeper)
+                console.log("Starting credit deduction transaction...");
                 const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
                 
                 // 2. Save image to gallery
+                console.log("Saving creation to user gallery...");
                 const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
                 setLastCreationId(creationId);
                 
@@ -179,13 +181,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                     if (bonus !== false) setMilestoneBonus(bonus); 
                 }
             } catch (dbError: any) {
-                console.error("Database sync failed", dbError);
-                logApiError("DB Sync", dbError.message, auth.user.uid);
-                setNotification({ msg: "Image generated but database sync failed. Credits may not have been deducted correctly.", type: 'error' });
+                console.error("CRITICAL: Database sync failed during post-generation processing", dbError);
+                logApiError("DB Sync Failure", dbError.message || "Unknown Firestore Error", auth.user.uid);
+                setNotification({ msg: `Sync Failed: ${dbError.message || 'Permissions issue'}. Check browser console for details.`, type: 'error' });
             }
         } catch (e: any) { 
-            console.error(e); 
-            logApiError("Studio Generation", e.message, auth.user.uid);
+            console.error("AI Generation Error:", e); 
+            logApiError("Studio AI Failure", e.message || "Unknown AI Error", auth.user.uid);
             alert('Generation failed. The AI might be busy or your image contains sensitive content.'); 
         } finally { 
             setLoading(false); 
@@ -460,7 +462,6 @@ const IndustryCard: React.FC<{
             <h3 className={PhotoStudioStyles.title}>{title}</h3>
             <p className={PhotoStudioStyles.desc}>{desc}</p>
         </div>
-        {/* FIX: Replaced AdMakerStyles with PhotoStudioStyles to resolve ReferenceError */}
         <div className={PhotoStudioStyles.actionBtn}>
             <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
         </div>

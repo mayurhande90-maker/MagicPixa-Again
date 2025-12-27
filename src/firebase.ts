@@ -197,10 +197,17 @@ export const updateCreation = async (uid: string, creationId: string, imageUrl: 
 
 export const getCreations = async (uid: string) => {
     if (!db) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('creations')
-        .orderBy('createdAt', 'desc')
-        .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const snapshot = await db.collection('users').doc(uid).collection('creations')
+            .orderBy('createdAt', 'desc')
+            .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.warn("Creations fetch ordered failed, falling back", e);
+        const snapshot = await db.collection('users').doc(uid).collection('creations').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }
 };
 
 export const getCreationById = async (uid: string, creationId: string): Promise<Creation | null> => {
@@ -233,6 +240,7 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
         const newCredits = currentCredits - amount;
         const newGens = (userData.lifetimeGenerations || 0) + 1;
         
+        // Ensure the data object we send is clean
         transaction.update(userRef, { 
             credits: newCredits,
             lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
@@ -253,15 +261,13 @@ export const deductCredits = async (uid: string, amount: number, featureName: st
 export const getCreditHistory = async (uid: string) => {
     if (!db) return [];
     try {
-        // Attempt ordered query first
         const snapshot = await db.collection('users').doc(uid).collection('transactions')
             .orderBy('date', 'desc')
             .limit(50)
             .get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e: any) {
-        // If index is missing or permission fails, fallback to unordered as safety
-        console.warn("Ordered fetch failed, falling back to unordered", e);
+        console.warn("Ordered history fetch failed, falling back", e);
         const snapshot = await db.collection('users').doc(uid).collection('transactions')
             .limit(50)
             .get();
@@ -461,15 +467,13 @@ export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => { i
 export const getDashboardStats = async () => { if (!db) return { revenue: 0, totalUsers: 0 }; try { const pSnap = await db.collection('purchases').get(); const revenue = pSnap.docs.reduce((acc, doc) => acc + (doc.data().amountPaid || 0), 0); const uSnap = await db.collection('users').get(); const totalUsers = uSnap.size; return { revenue, totalUsers }; } catch (e) { return { revenue: 0, totalUsers: 0 }; } };
 export const getTotalRevenue = async (start?: Date, end?: Date) => { if (!db) return 0; let q = db.collection('purchases') as any; if (start) q = q.where('purchaseDate', '>=', start); if (end) q = q.where('purchaseDate', '<=', end); const snap = await q.get(); return snap.docs.reduce((sum: number, doc: any) => sum + (doc.data().amountPaid || 0), 0); };
 export const getRevenueStats = async (days = 7) => { return []; };
-export const logAudit = async (adminUid: string, action: string, details: string) => { if (!db) return; await db.collection('audit_logs').add({ adminEmail: auth?.currentUser?.email || adminUid, action, details, timestamp: firebase.firestore.Timestamp.now() }); };
+export const logAudit = async (adminUid: string, action: string, details: string) => { if (!db) return; await db.collection('audit_logs').add({ adminEmail: auth?.currentUser?.email || adminUid, action, details, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); };
 export const getAuditLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as AuditLog)); };
 export const logApiError = async (endpoint: string, error: string, userId?: string) => { if (!db) return; await db.collection('api_errors').add({ endpoint, error, userId: userId || 'anonymous', timestamp: firebase.firestore.Timestamp.now() }); };
 export const getApiErrorLogs = async (limit = 50) => { if (!db) return []; const snap = await db.collection('api_errors').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApiErrorLog)); };
 export const sendSystemNotification = async (adminUid: string, targetUid: string, title: string, message: string, type: string, style: string, link?: string) => { if (!db) return; await db.collection('users').doc(targetUid).update({ systemNotification: { title, message, type, style, link: link || null, read: false, timestamp: firebase.firestore.Timestamp.now() } }); await logAudit(adminUid, 'Send Notification', `To ${targetUid}: ${title}`); };
 export const clearCreditGrantNotification = async (uid: string) => { if (!db) return; await db.collection('users').doc(uid).update({ creditGrantNotification: null }); };
 export const getGlobalFeatureUsage = async () => { return []; };
-
-// FIX: Added missing claimMilestoneBonus function.
 export const claimMilestoneBonus = async (uid: string, amount: number) => {
     if (!db) return;
     const userRef = db.collection('users').doc(uid);
