@@ -1,12 +1,17 @@
-
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // User Storage Area
-    // Matches /users/{userId}/* and ANY subdirectories (including brandKit)
+    // Helper: Check if user is admin
+    function isAdmin() {
+      return request.auth.token.email == 'mayurhande90@gmail.com';
+    }
+
+    // User-specific folders (UID based)
+    // This recursive rule covers brandKit, creations, and any other subdirectories
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Default deny for everything else
