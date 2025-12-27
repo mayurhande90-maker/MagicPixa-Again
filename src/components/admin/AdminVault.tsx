@@ -1,15 +1,17 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProps, VaultReference, VaultFolderConfig } from '../../types';
 import { 
     getVaultImages, uploadVaultImage, deleteVaultImage, 
     getVaultFolderConfig, updateVaultFolderConfig 
 } from '../../firebase';
+import { analyzeVaultDNA } from '../../services/adminService';
 import { 
     ArrowLeftIcon, PlusIcon, TrashIcon, CloudUploadIcon, 
     MagicAdsIcon, PixaProductIcon, ThumbnailIcon, BuildingIcon, 
     PixaInteriorIcon, ApparelIcon, PixaTogetherIcon, MagicWandIcon,
-    // Added ShieldCheckIcon to fix "Cannot find name 'ShieldCheckIcon'" error
-    CheckIcon, SparklesIcon, InformationCircleIcon, ShieldCheckIcon
+    CheckIcon, SparklesIcon, InformationCircleIcon, ShieldCheckIcon,
+    LightningIcon
 } from '../icons';
 import { VaultStyles as styles } from '../../styles/admin/AdminVault.styles';
 import { fileToBase64 } from '../../utils/imageUtils';
@@ -33,6 +35,7 @@ export const AdminVault: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [isSavingDNA, setIsSavingDNA] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +97,25 @@ export const AdminVault: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             alert("Save failed.");
         } finally {
             setIsSavingDNA(false);
+        }
+    };
+
+    const handleAutoAnalyze = async () => {
+        if (images.length === 0) {
+            alert("Upload some reference images first so Pixa can analyze them.");
+            return;
+        }
+        
+        const folderLabel = VAULT_FOLDERS.find(f => f.id === selectedFolder)?.label || 'Current Feature';
+        
+        setIsAnalyzing(true);
+        try {
+            const dnaReport = await analyzeVaultDNA(folderLabel, images.map(img => img.imageUrl));
+            setConfig(prev => prev ? { ...prev, dna: dnaReport } : null);
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
@@ -161,26 +183,49 @@ export const AdminVault: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                 </div>
                                 <h3 className="text-[11px] font-black text-gray-800 uppercase tracking-[0.2em]">Visual DNA</h3>
                             </div>
-                            <button 
-                                onClick={handleSaveDNA}
-                                disabled={isSavingDNA}
-                                className="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
-                            >
-                                {isSavingDNA ? 'Saving...' : 'Save DNA'}
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={handleAutoAnalyze}
+                                    disabled={isAnalyzing || images.length === 0}
+                                    className="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all disabled:opacity-50 flex items-center gap-2 border border-indigo-100"
+                                    title="Pixa AI will scan images and write the DNA for you"
+                                >
+                                    {isAnalyzing ? (
+                                        <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <LightningIcon className="w-3 h-3"/>
+                                    )}
+                                    {isAnalyzing ? 'Analyzing...' : 'Auto-DNA'}
+                                </button>
+                                <button 
+                                    onClick={handleSaveDNA}
+                                    disabled={isSavingDNA}
+                                    className="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+                                >
+                                    {isSavingDNA ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="flex-1 flex flex-col gap-4">
                             <p className="text-[10px] text-gray-400 font-medium leading-relaxed italic px-2">
                                 <InformationCircleIcon className="w-3 h-3 inline mr-1" />
-                                These instructions are injected into the AI's core logic for this feature. Define the "Pixa Look" here.
+                                These technical instructions define the signature "Pixa Look". Use <strong>Auto-DNA</strong> to let AI architect the rules based on your uploads.
                             </p>
-                            <textarea 
-                                value={config?.dna || ''}
-                                onChange={e => setConfig(prev => prev ? { ...prev, dna: e.target.value } : null)}
-                                className={styles.dnaInput}
-                                placeholder="e.g. Always use high-contrast rim lighting. Prioritize desaturated backgrounds with sharp subject focus..."
-                            />
+                            <div className="relative flex-1 group">
+                                {isAnalyzing && (
+                                    <div className="absolute inset-0 z-10 bg-black/5 rounded-3xl backdrop-blur-[2px] flex flex-col items-center justify-center animate-fadeIn">
+                                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] animate-pulse">Architecting Intelligence...</p>
+                                    </div>
+                                )}
+                                <textarea 
+                                    value={config?.dna || ''}
+                                    onChange={e => setConfig(prev => prev ? { ...prev, dna: e.target.value } : null)}
+                                    className={styles.dnaInput}
+                                    placeholder="e.g. Always use high-contrast rim lighting. Prioritize desaturated backgrounds with sharp subject focus..."
+                                />
+                            </div>
                             <div className="mt-auto pt-6 border-t border-gray-100 flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
                                     <ShieldCheckIcon className="w-5 h-5"/>
