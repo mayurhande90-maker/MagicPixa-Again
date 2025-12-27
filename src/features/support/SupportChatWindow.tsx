@@ -225,14 +225,14 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
         <div className="flex flex-col h-full w-full bg-white relative">
             
             {/* CONSOLE HEADER */}
-            <div className="flex-none px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-20">
+            <div className="flex-none px-6 py-[min(2vh,16px)] border-b border-gray-100 flex justify-between items-center bg-white z-20 shadow-sm">
                 <div className="flex items-center gap-3">
-                    <PixaSupportIcon className="w-8 h-8 text-indigo-600" />
+                    <PixaSupportIcon className="w-[clamp(24px,4vh,36px)] h-[clamp(24px,4vh,36px)] text-indigo-600" />
                     <div>
-                        <h2 className="text-sm font-bold text-gray-800">Support Chat</h2>
-                        <div className="flex items-center gap-1.5">
+                        <h2 className="text-[clamp(13px,1.8vh,16px)] font-black text-gray-800 tracking-tight leading-none">Support Chat</h2>
+                        <div className="flex items-center gap-1.5 mt-1">
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Pixa Agent Online</span>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Live Agent</span>
                         </div>
                     </div>
                 </div>
@@ -240,20 +240,20 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={handleNewChat}
-                        className="px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 flex items-center gap-1.5"
+                        className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100 flex items-center gap-2"
                     >
                         <PlusIcon className="w-3.5 h-3.5" />
-                        <span>New Session</span>
+                        <span>Reset</span>
                     </button>
                 </div>
             </div>
 
-            {/* MESSAGES AREA (ABSOLUTE POSITIONING FOR SCROLL FIX) */}
+            {/* MESSAGES AREA */}
             <div className="flex-1 relative bg-white">
                 <div 
                     ref={scrollContainerRef}
                     onScroll={handleScroll}
-                    className="absolute inset-0 overflow-y-auto px-4 sm:px-8 py-6 space-y-6 custom-scrollbar scroll-smooth"
+                    className="absolute inset-0 overflow-y-auto px-4 sm:px-10 py-[min(3vh,24px)] space-y-[min(2.5vh,20px)] custom-scrollbar scroll-smooth"
                 >
                     {loadingHistory ? (
                         <div className="h-full flex flex-col items-center justify-center">
@@ -271,19 +271,19 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                             
                                             {/* RENDER IMAGE ATTACHMENT */}
                                             {msg.attachment && (
-                                                <div className={`mb-1 p-1 bg-white rounded-xl border border-gray-200 shadow-sm inline-block ${msg.role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
+                                                <div className={`mb-1.5 p-1 bg-white rounded-2xl border border-gray-200 shadow-sm inline-block ${msg.role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
                                                     <img 
                                                         src={msg.attachment} 
                                                         alt="Upload" 
-                                                        className="max-h-32 w-auto object-cover rounded-lg cursor-zoom-in hover:opacity-90 transition-opacity" 
+                                                        className="max-h-[clamp(120px,25vh,200px)] w-auto object-cover rounded-xl cursor-zoom-in hover:opacity-90 transition-opacity" 
                                                         onClick={() => window.open(msg.attachment, '_blank')}
                                                     />
                                                 </div>
                                             )}
                                             
-                                            {/* RENDER TEXT CONTENT (If Exists) */}
+                                            {/* RENDER TEXT CONTENT */}
                                             {msg.content && (
-                                                <div className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed border shadow-sm ${
+                                                <div className={`px-[min(2vh,20px)] py-[min(1.5vh,14px)] rounded-2xl text-[clamp(12px,1.6vh,14px)] leading-relaxed border shadow-sm ${
                                                     msg.role === 'user' 
                                                     ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
                                                     : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
@@ -297,7 +297,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
 
                                             {/* Interactive Widgets */}
                                             {msg.type === 'proposal' && msg.ticketDraft && (
-                                                <div className="pl-2 w-full max-w-sm">
+                                                <div className="pl-2 w-full max-w-sm mt-2">
                                                     <TicketProposalCard 
                                                         draft={msg.ticketDraft} 
                                                         onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
@@ -308,14 +308,14 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                                 </div>
                                             )}
                                             
-                                            <span className={`text-[9px] font-bold text-gray-300 mt-1 px-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                                            <span className={`text-[9px] font-black text-gray-300 mt-1.5 px-2 uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                     </div>
 
                                     {!hasInteracted && index === messages.length - 1 && msg.role === 'model' && (
-                                        <div className="w-full mt-6 pl-0 sm:pl-14">
+                                        <div className="w-full mt-6 pl-0 sm:pl-16">
                                             <QuickActions onAction={handleQuickAction} className="justify-start" />
                                         </div>
                                     )}
@@ -328,7 +328,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     {isTyping && (
                         <div className="flex items-center gap-3 animate-fadeIn pl-2">
                             <PixaBotIcon />
-                            <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-tl-none flex gap-1.5 items-center w-16 h-10">
+                            <div className="bg-gray-100 px-5 py-4 rounded-3xl rounded-tl-none flex gap-1.5 items-center w-20 h-12 shadow-sm">
                                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
                                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100"></div>
                                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200"></div>
@@ -341,33 +341,33 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 {showScrollBtn && (
                     <button 
                         onClick={scrollToBottom}
-                        className="absolute bottom-4 right-6 z-30 bg-white shadow-lg border border-gray-100 p-2 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
+                        className="absolute bottom-6 right-10 z-30 bg-white shadow-xl border border-gray-100 p-2.5 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
                     >
-                        <ArrowDownIcon className="w-5 h-5" />
+                        <ArrowDownIcon className="w-6 h-6" />
                     </button>
                 )}
             </div>
 
             {/* INPUT AREA */}
-            <div className="flex-none p-4 bg-white border-t border-gray-100 relative z-30">
+            <div className="flex-none p-[min(2.5vh,20px)] bg-white border-t border-gray-100 relative z-30">
                 {hasInteracted && !loadingHistory && !isTyping && (
-                    <div className="mb-3 overflow-x-auto pb-1 no-scrollbar">
+                    <div className="mb-4 overflow-x-auto pb-1 no-scrollbar">
                         <QuickActions onAction={handleQuickAction} className="flex-nowrap" />
                     </div>
                 )}
                 
-                <div className="flex gap-3 items-end bg-gray-50 border border-gray-200 p-2 rounded-[1.5rem] focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                <div className="flex gap-4 items-end bg-gray-50 border border-gray-200 p-2.5 rounded-[2rem] focus-within:ring-4 focus-within:ring-indigo-500/5 focus-within:border-indigo-400 focus-within:bg-white transition-all shadow-inner">
                     <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-full transition-all shrink-0"
-                        title="Attach Screenshot"
+                        className="p-3.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-full transition-all shrink-0 hover:shadow-md"
+                        title="Attach Photo"
                     >
-                        <UploadIcon className="w-5 h-5" />
+                        <UploadIcon className="w-6 h-6" />
                     </button>
                     
                     <textarea 
                         ref={inputFocusRef}
-                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-gray-800 placeholder-gray-400 resize-none py-3 max-h-32"
+                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[clamp(12px,1.6vh,15px)] font-bold text-gray-800 placeholder-gray-400 resize-none py-3.5 max-h-32 leading-relaxed"
                         placeholder="Type your message..."
                         rows={1}
                         value={inputText}
@@ -383,13 +383,13 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     <button 
                         onClick={() => handleSendMessage()}
                         disabled={!inputText.trim() || isTyping}
-                        className={`p-2.5 rounded-full transition-all shrink-0 shadow-sm ${
+                        className={`p-3.5 rounded-full transition-all shrink-0 shadow-lg ${
                             inputText.trim() 
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105' 
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95' 
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed grayscale'
                         }`}
                     >
-                        <PaperAirplaneIcon className="w-5 h-5" />
+                        <PaperAirplaneIcon className="w-6 h-6" />
                     </button>
                 </div>
             </div>
