@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -10,7 +9,7 @@ import {
     BuildingIcon, ApparelIcon, UserIcon, MockupIcon,
     ArrowRightIcon, GlobeIcon
 } from '../components/icons';
-import { fileToBase64, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 
 // CORRECTED IMPORTS: Separated Database vs AI Service
 import { 
@@ -19,7 +18,8 @@ import {
     deleteBrandFromCollection, 
     subscribeToUserBrands,
     getUserBrands,      
-    saveBrandToCollection 
+    saveBrandToCollection,
+    activateBrand
 } from '../firebase';
 
 import { 
@@ -499,10 +499,10 @@ const BrandCreationWizard: React.FC<{
 
                         <button 
                             onClick={() => setStep(1)}
-                            className="absolute bottom-8 right-8 z-30 bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg text-gray-600 hover:text-black px-6 py-3 rounded-full text-[clamp(9px,1.2vh,11px)] font-bold transition-all flex items-center gap-3 group"
+                            className="absolute bottom-5 right-5 z-30 bg-white border border-gray-100 hover:border-gray-300 hover:shadow-md text-gray-500 hover:text-black px-4 py-2 rounded-full text-[clamp(8px,1vh,9.5px)] font-bold transition-all flex items-center gap-2 group shadow-sm"
                         >
                             Or Build from Scratch
-                            <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors">
+                            <div className="w-5 h-5 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors">
                                 <ArrowRightIcon className="w-3 h-3" />
                             </div>
                         </button>
