@@ -2,19 +2,23 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Helper: Check if user is admin
     function isAdmin() {
-      return request.auth.token.email == 'mayurhande90@gmail.com';
+      return request.auth != null && (
+        request.auth.token.email == 'mayurhande90@gmail.com' ||
+        request.auth.uid == 'qDkHqG6p3zT9p5O9K9O9Y9o9Y9o9'
+      );
     }
 
-    // User-specific folders (UID based)
-    // This recursive rule covers brandKit, creations, and any other subdirectories
+    // User-specific folders
     match /users/{userId}/{allPaths=**} {
+      // Allow Owner OR Admin to see images
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow Owner OR Admin to write (Admin needs this for impersonated uploads)
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
-    // Default deny for everything else
+    // Default deny
     match /{allPaths=**} {
       allow read, write: if false;
     }

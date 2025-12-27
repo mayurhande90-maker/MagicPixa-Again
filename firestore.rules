@@ -2,76 +2,74 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper: Check if user is admin
+    // Helper: Check if user is the master admin
     function isAdmin() {
-      return request.auth.token.email == 'mayurhande90@gmail.com';
+      return request.auth != null && (
+        request.auth.token.email == 'mayurhande90@gmail.com' || 
+        request.auth.uid == 'qDkHqG6p3zT9p5O9K9O9Y9o9Y9o9' // Bulletproof UID check
+      );
     }
 
-    // --- USERS COLLECTION ---
+    // Helper: Check if user is the owner of the specific profile
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- USERS & SUBCOLLECTIONS ---
     match /users/{userId} {
-      // Read: Required for profile loading and referral lookups
-      allow read: if request.auth != null;
       
-      // Create: Allow users to create their own profile
-      allow create: if request.auth.uid == userId;
-      
-      // Delete: Restricted to Admin
+      // Profile Level
+      allow get: if request.auth != null; 
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
       allow delete: if isAdmin();
       
-      // Update: Critical fix for credit deductions
-      // Allows self-updates OR Admin updates OR specific field updates for deductions/referrals
-      allow update: if request.auth.uid == userId || isAdmin() || 
-                   (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'lifetimeGenerations', 'lastActive']));
+      // Update: Owners and Admins are UNRESTRICTED.
+      // Third parties (referrals) are restricted to credit/referral fields.
+      allow update: if isOwner(userId) || isAdmin() || 
+                   (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'lifetimeGenerations', 'lastActive', 'systemNotification', 'lastAttendanceClaim', 'dailyMission', 'lastAutomatedRefund', 'creditGrantNotification']));
 
-      // Subcollections
-      match /creations/{creationId} {
-        allow read, write: if request.auth.uid == userId || isAdmin();
-      }
-      match /transactions/{txId} {
-        allow read: if request.auth.uid == userId || isAdmin();
-        // Allow creation for credit deductions (own) or referral bonuses (others)
-        allow create: if request.auth.uid == userId || isAdmin() || (request.auth != null && request.resource.data.feature.size() > 0);
-      }
-      match /support_chat/{msgId} {
-        allow read, write: if request.auth.uid == userId || isAdmin();
-      }
-      match /brands/{brandId} {
-        allow read, write: if request.auth.uid == userId || isAdmin();
+      // Recursive Subcollections (Creations, Transactions, Brands, Support Chat)
+      // Master Admin gets absolute read/write access to all user data for support/impersonation.
+      match /{allPaths=**} {
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
-    // --- CONFIGURATION ---
+    // --- GLOBAL COLLECTIONS ---
+
     match /config/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // --- PURCHASES ---
-    match /purchases/{purchaseId} {
-      allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-
-    // --- SUPPORT TICKETS ---
     match /support_tickets/{ticketId} {
       allow create: if request.auth != null;
       allow read, update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // --- FEEDBACK ---
     match /feedbacks/{feedbackId} {
       allow create: if request.auth != null;
       allow read: if isAdmin();
     }
 
-    // --- SYSTEM LOGS ---
+    match /purchases/{purchaseId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+    }
+
     match /api_errors/{logId} {
       allow create: if true;
       allow read: if isAdmin();
     }
+    
     match /audit_logs/{logId} {
       allow read: if isAdmin();
       allow write: if false; 
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

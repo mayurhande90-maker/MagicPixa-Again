@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
@@ -445,7 +444,8 @@ function App() {
   const authProps: AuthProps = {
     isAuthenticated: !!activeUser,
     user: activeUser,
-    setUser: impersonatedUser ? (() => {}) : setUser, // Disable local updates if impersonating
+    // FIX: Allow state updates to propagate to the correct user state (Impersonated vs Real)
+    setUser: impersonatedUser ? (setImpersonatedUser as any) : setUser, 
     activeBrandKit,
     setActiveBrandKit,
     handleLogout,
