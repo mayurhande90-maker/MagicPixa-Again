@@ -92,8 +92,9 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     const userRef = db.collection('users').doc(uid);
     const doc = await userRef.get();
     
-    const initials = name
-        ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+    // Robust Initials Generator
+    const initials = name && name.trim()
+        ? name.trim().split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
         : email?.substring(0, 2).toUpperCase() || 'U';
 
     const SUPER_ADMIN_EMAIL = 'mayurhande90@gmail.com';
@@ -102,7 +103,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     if (!doc.exists) {
         const newUser: User = {
             uid: uid || '', 
-            name: name || 'User',
+            name: name || 'Creator',
             email: email || '',
             avatar: initials, 
             credits: 50,
@@ -126,7 +127,10 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     if (userData.lifetimeGenerations === undefined) updates.lifetimeGenerations = 0;
     if (userData.totalCreditsAcquired === undefined) updates.totalCreditsAcquired = userData.credits || 0;
     if (!userData.plan) updates.plan = 'Free';
+    
+    // Ensure avatar exists for existing users too
     if (!userData.avatar) updates.avatar = initials;
+    
     if (isSuperAdmin && userData.isAdmin !== true) updates.isAdmin = true;
 
     if (Object.keys(updates).length > 0) {
@@ -250,9 +254,9 @@ export const deductCredits = async (userId: string, amount: number, featureName:
             // LAZY INITIALIZATION: Create the profile on the fly if missing.
             userData = {
                 uid: userId,
-                name: 'New Creator',
+                name: 'Creator',
                 email: '',
-                avatar: 'U',
+                avatar: 'C',
                 credits: 50,
                 totalCreditsAcquired: 50,
                 lifetimeGenerations: 0,

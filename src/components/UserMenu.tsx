@@ -18,6 +18,13 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
   const menuRef = useRef<HTMLDivElement>(null);
   const badge = getBadgeInfo(user.lifetimeGenerations);
 
+  // Dynamic Initials Fallback for new/third-party users with incomplete profiles
+  const displayAvatar = user.avatar || (
+    user.name 
+      ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() 
+      : (user.email ? user.email.charAt(0).toUpperCase() : 'U')
+  );
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -47,17 +54,14 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
     setIsOpen(false);
     
     // 2. Robust Polling for Scroll Target
-    // Polling ensures the element exists even if React takes a moment to render the view
     let attempts = 0;
-    const maxAttempts = 20; // 2 seconds (20 * 100ms)
+    const maxAttempts = 20; // 2 seconds
     
     const pollInterval = setInterval(() => {
         const element = document.getElementById('recharge-station');
         if (element) {
             clearInterval(pollInterval);
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Optional: Visual Highlight
             element.classList.add('ring-2', 'ring-yellow-400', 'transition-all', 'duration-500');
             setTimeout(() => element.classList.remove('ring-2', 'ring-yellow-400'), 2000);
         }
@@ -73,12 +77,12 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
     <div className="relative" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer text-[#0079F2] font-bold text-lg hover:ring-2 hover:ring-[#0079F2] transition-all"
+        className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer text-[#0079F2] font-bold text-lg hover:ring-2 hover:ring-[#0079F2] transition-all overflow-hidden"
         aria-haspopup="true"
         aria-expanded={isOpen}
         aria-label="User menu"
       >
-        {user.avatar}
+        {displayAvatar}
       </button>
 
       {isOpen && (
@@ -87,10 +91,9 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, navigateTo, setActi
           role="menu"
         >
           <div className="p-4 border-b border-gray-200/80 bg-gray-50/50 rounded-t-xl">
-            <p className="font-semibold text-[#1E1E1E] truncate" title={user.name}>{user.name}</p>
+            <p className="font-semibold text-[#1E1E1E] truncate" title={user.name}>{user.name || 'Account'}</p>
             <p className="text-sm text-[#5F6368] truncate mb-3" title={user.email}>{user.email}</p>
             
-            {/* Badge Display with Click Trigger */}
             <button 
                 onClick={() => {
                     setIsOpen(false);
