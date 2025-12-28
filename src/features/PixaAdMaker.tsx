@@ -383,14 +383,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* SECTION 4: AESTHETIC DESIGN */}
+                                    {/* SECTION 4: LOOK SELECTION */}
                                     {!referenceImage && (
                                         <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50 animate-fadeIn">
-                                            <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Aesthetic Design</label></div>
+                                            <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Choose Look</label></div>
                                             
                                             <div className="animate-fadeIn">
                                                 <SelectionGrid 
-                                                    label="Visual Blueprint" 
+                                                    label="Visual Style" 
                                                     options={blueprintLabels} 
                                                     value={currentBlueprintLabel} 
                                                     onChange={(label) => {
