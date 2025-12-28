@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, BrandKit, BRAND_LIMITS, Page, View, IndustryType } from '../types';
 import { 
@@ -10,6 +11,7 @@ import {
     ArrowRightIcon, GlobeIcon
 } from '../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { FoodIcon, FMCGIcon, EducationAdIcon } from '../components/icons/adMakerIcons';
 
 // CORRECTED IMPORTS: Separated Database vs AI Service
 import { 
@@ -50,6 +52,28 @@ const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; cat
         itemPlaceholder: 'e.g. Serum Bottle',
         btn: 'Add Product',
         icon: CubeIcon,
+        color: 'orange'
+    },
+    'fmcg': { 
+        label: 'FMCG / CPG', 
+        sub: 'Packaged Goods',
+        catalogTitle: 'Product Line', 
+        catalogDesc: 'Upload your packaged products.', 
+        itemLabel: 'Product', 
+        itemPlaceholder: 'e.g. Snack Pack',
+        btn: 'Add Product',
+        icon: FMCGIcon,
+        color: 'green'
+    },
+    'food': { 
+        label: 'Food & Dining', 
+        sub: 'Restaurants & Menus',
+        catalogTitle: 'Menu Items', 
+        catalogDesc: 'Upload your dishes and drinks.', 
+        itemLabel: 'Dish', 
+        itemPlaceholder: 'e.g. Gourmet Burger',
+        btn: 'Add Dish',
+        icon: FoodIcon,
         color: 'orange'
     },
     'digital': { 
@@ -95,6 +119,17 @@ const INDUSTRY_CONFIG: Record<string, { label: string; catalogTitle: string; cat
         btn: 'Add Persona',
         icon: UserIcon,
         color: 'indigo'
+    },
+    'education': { 
+        label: 'Education', 
+        sub: 'Schools & Courses',
+        catalogTitle: 'Academic Assets', 
+        catalogDesc: 'Upload facility shots or course materials.', 
+        itemLabel: 'Asset', 
+        itemPlaceholder: 'e.g. Classroom Shot',
+        btn: 'Add Asset',
+        icon: EducationAdIcon,
+        color: 'amber'
     }
 };
 

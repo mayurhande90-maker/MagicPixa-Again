@@ -23,6 +23,9 @@ const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
         case 'realty': return 'realty';
         case 'fashion': return 'fashion';
         case 'service': return 'services';
+        case 'food': return 'food';
+        case 'fmcg': return 'fmcg';
+        case 'education': return 'education';
         default: return null;
     }
 };
@@ -424,14 +427,28 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const hasBrandProducts = !!auth.activeBrandKit && auth.activeBrandKit.products && auth.activeBrandKit.products.length > 0;
     
-    // CONTEXT SHIELD: Check for Mismatch
+    // CONTEXT SHIELD: Check for Mismatch - Updated to be more robust
     const isIndustryMismatch = useMemo(() => {
         if (!auth.activeBrandKit || !industry) return false;
         const mappedIndustry = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry);
+        if (!mappedIndustry) return false;
+        
         // Special Case: physical goods can be ecommerce or fmcg
         if (mappedIndustry === 'ecommerce' && (industry === 'ecommerce' || industry === 'fmcg')) return false;
-        return mappedIndustry !== null && mappedIndustry !== industry;
-    }, [auth.activeBrandKit, industry]);
+        
+        return mappedIndustry !== industry;
+    }, [auth.activeBrandKit?.id, auth.activeBrandKit?.industry, industry]);
+
+    // AUTO-SWITCH: Sync industry to brand identity changes (Global listener)
+    useEffect(() => {
+        if (auth.activeBrandKit) {
+            const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry);
+            if (mapped) {
+                setIndustry(mapped);
+                console.log(`[AdMaker] Auto-switched to ${mapped} based on Brand Identity.`);
+            }
+        }
+    }, [auth.activeBrandKit?.id]); // Watch specifically for brand ID changes
 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
@@ -474,7 +491,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setLogoImage(null);
             setCta('');
         }
-    }, [auth.activeBrandKit, industry]);
+    }, [auth.activeBrandKit?.id, industry]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
@@ -483,7 +500,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleInventorySelect = async (url: string) => {
         setIsFetchingProduct(true);
         try {
-            // AUTO-SWITCH: Sync industry to brand on product selection
+            // AUTO-SWITCH: Local sync on selection
             if (auth.activeBrandKit) {
                 const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry);
                 if (mapped) setIndustry(mapped);
@@ -534,7 +551,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 const brandData = await activateBrand(auth.user.uid, brand.id);
                 auth.setActiveBrandKit(brandData || null);
                 
-                // AUTO-SWITCH: Set industry automatically
+                // AUTO-SWITCH: Set industry immediately
                 const mapped = MAP_KIT_TO_AD_INDUSTRY(brandData?.industry);
                 if (mapped) setIndustry(mapped);
 
@@ -658,14 +675,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* CONTEXT MISMATCH WARNING */}
+                                    {/* CONTEXT MISMATCH WARNING - Improved Visibility */}
                                     {isIndustryMismatch && (
-                                        <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl animate-pulse flex items-start gap-3 shadow-sm">
-                                            <InformationCircleIcon className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" />
+                                        <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-300 rounded-2xl animate-pulse flex items-start gap-3 shadow-md ring-2 ring-orange-100">
+                                            <div className="p-2 bg-orange-100 rounded-full text-orange-600 shadow-sm">
+                                                <InformationCircleIcon className="w-6 h-6 shrink-0" />
+                                            </div>
                                             <div>
-                                                <h4 className="text-xs font-black text-orange-800 uppercase tracking-tight">Context Conflict Detected</h4>
-                                                <p className="text-[10px] text-orange-700 font-medium leading-relaxed mt-0.5">
-                                                    Your brand is {auth.activeBrandKit?.industry} based, but you're creating a {INDUSTRY_CONFIG[industry!]?.label} ad. Pixa will intelligently adapt the product as a "Guest Feature" to avoid glitches.
+                                                <h4 className="text-[clamp(11px,1.5vh,13px)] font-black text-orange-800 uppercase tracking-tight">Context Conflict Detected</h4>
+                                                <p className="text-[clamp(9px,1.2vh,11px)] text-orange-700 font-bold leading-relaxed mt-0.5">
+                                                    Your active brand is {auth.activeBrandKit?.industry} based, but you're creating a {INDUSTRY_CONFIG[industry!]?.label} ad. Pixa will intelligently adapt the product as a "Guest Feature" to maintain realism.
                                                 </p>
                                             </div>
                                         </div>
@@ -674,6 +693,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
                                         
+                                        {/* SMART PRODUCT SHELF INTEGRATION */}
                                         {hasBrandProducts ? (
                                             <div className="mb-5 animate-fadeIn">
                                                 <SmartProductShelf 

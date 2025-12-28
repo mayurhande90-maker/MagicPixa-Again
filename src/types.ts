@@ -37,7 +37,7 @@ export interface ProductAnalysis {
     visualCues: string; // OCR text and visual markers
 }
 
-export type IndustryType = 'physical' | 'digital' | 'realty' | 'service' | 'fashion';
+export type IndustryType = 'physical' | 'digital' | 'realty' | 'service' | 'fashion' | 'food' | 'fmcg' | 'education';
 
 export interface BrandKit {
     id?: string; // Unique ID for the brand profile
