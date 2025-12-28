@@ -1,9 +1,9 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
+import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, getBlueprintsForIndustry } from '../services/adMakerService';
@@ -14,6 +14,18 @@ import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
+
+// --- HELPERS ---
+const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
+    switch (type) {
+        case 'physical': return 'ecommerce';
+        case 'digital': return 'saas';
+        case 'realty': return 'realty';
+        case 'fashion': return 'fashion';
+        case 'service': return 'services';
+        default: return null;
+    }
+};
 
 // --- CONFIGURATION FOR INDUSTRY DISPLAY ---
 const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
@@ -74,7 +86,6 @@ const BrandSelectionModal: React.FC<{
     const handleSelect = async (brand: BrandKit) => {
         if (!brand.id) return;
         setActivatingId(brand.id);
-        // Simulate slight delay for "activation" feel
         await new Promise(r => setTimeout(r, 500));
         try {
             await onSelect(brand);
@@ -84,9 +95,8 @@ const BrandSelectionModal: React.FC<{
         }
     };
 
-    // LOCK: Prevent closing if processing
     const handleBackdropClick = (e: React.MouseEvent) => {
-        if (activatingId) return; // Locked
+        if (activatingId) return; 
         onClose();
     };
 
@@ -101,8 +111,6 @@ const BrandSelectionModal: React.FC<{
                 className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100 relative" 
                 onClick={e => e.stopPropagation()}
             >
-                
-                {/* Header (Fixed) */}
                 <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 z-10 relative">
                     <div className="flex items-center gap-3">
                          <div className="flex items-center justify-center">
@@ -122,7 +130,6 @@ const BrandSelectionModal: React.FC<{
                     </button>
                 </div>
                 
-                {/* Grid Content (Scrollable) */}
                 <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1 relative">
                      {loading ? (
                         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
@@ -330,7 +337,6 @@ const SmartProductShelf: React.FC<{
             </div>
             
             <div className={AdMakerStyles.shelfContainer}>
-                {/* 1. New Product Button */}
                 <div 
                     onClick={() => !isProcessing && fileInputRef.current?.click()}
                     className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} ${AdMakerStyles.shelfAdd}`}
@@ -341,7 +347,6 @@ const SmartProductShelf: React.FC<{
                     <span className={AdMakerStyles.shelfAddText}>New</span>
                 </div>
                 
-                {/* 2. Product List */}
                 {products.map(p => {
                     const isSelected = selectedImageUrl === p.imageUrl;
                     return (
@@ -417,6 +422,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
+    const hasBrandProducts = !!auth.activeBrandKit && auth.activeBrandKit.products && auth.activeBrandKit.products.length > 0;
+    
+    // CONTEXT SHIELD: Check for Mismatch
+    const isIndustryMismatch = useMemo(() => {
+        if (!auth.activeBrandKit || !industry) return false;
+        const mappedIndustry = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry);
+        // Special Case: physical goods can be ecommerce or fmcg
+        if (mappedIndustry === 'ecommerce' && (industry === 'ecommerce' || industry === 'fmcg')) return false;
+        return mappedIndustry !== null && mappedIndustry !== industry;
+    }, [auth.activeBrandKit, industry]);
+
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     const getImageLabels = (ind: typeof industry) => {
@@ -467,6 +483,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleInventorySelect = async (url: string) => {
         setIsFetchingProduct(true);
         try {
+            // AUTO-SWITCH: Sync industry to brand on product selection
+            if (auth.activeBrandKit) {
+                const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry);
+                if (mapped) setIndustry(mapped);
+            }
+
             const base64 = await urlToBase64(url);
             setMainImage({ url, base64 });
             setResultImage(null);
@@ -511,7 +533,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             try {
                 const brandData = await activateBrand(auth.user.uid, brand.id);
                 auth.setActiveBrandKit(brandData || null);
-                setNotification({ msg: `Applied ${brand.companyName || brand.name} session strategy.`, type: 'success' });
+                
+                // AUTO-SWITCH: Set industry automatically
+                const mapped = MAP_KIT_TO_AD_INDUSTRY(brandData?.industry);
+                if (mapped) setIndustry(mapped);
+
+                setNotification({ msg: `Applied ${brand.companyName || brand.name} strategy and auto-switched category.`, type: 'success' });
                 setShowBrandModal(false);
             } catch (error) {
                 console.error("Brand switch failed", error);
@@ -572,8 +599,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const activeToneOptions = getToneOptions(industry);
     const currentBlueprints = industry ? getBlueprintsForIndustry(industry) : [];
 
-    const hasBrandProducts = !!auth.activeBrandKit && auth.activeBrandKit.products && auth.activeBrandKit.products.length > 0;
-
     return (
         <>
             <FeatureLayout
@@ -633,10 +658,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
+                                    {/* CONTEXT MISMATCH WARNING */}
+                                    {isIndustryMismatch && (
+                                        <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl animate-pulse flex items-start gap-3 shadow-sm">
+                                            <InformationCircleIcon className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <h4 className="text-xs font-black text-orange-800 uppercase tracking-tight">Context Conflict Detected</h4>
+                                                <p className="text-[10px] text-orange-700 font-medium leading-relaxed mt-0.5">
+                                                    Your brand is {auth.activeBrandKit?.industry} based, but you're creating a {INDUSTRY_CONFIG[industry!]?.label} ad. Pixa will intelligently adapt the product as a "Guest Feature" to avoid glitches.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
                                         
-                                        {/* SMART PRODUCT SHELF INTEGRATION */}
                                         {hasBrandProducts ? (
                                             <div className="mb-5 animate-fadeIn">
                                                 <SmartProductShelf 
@@ -655,7 +692,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                         )}
 
-                                        {/* Logo Upload if shelf is active (Logo isn't in shelf) */}
                                         {hasBrandProducts && (
                                              <div className="mb-5">
                                                 <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} heightClass="h-24" />

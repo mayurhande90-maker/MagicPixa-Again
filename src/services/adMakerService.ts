@@ -2,7 +2,7 @@
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
-import { BrandKit } from "../types";
+import { BrandKit, IndustryType } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
 // Optimize images to 1024px
@@ -26,7 +26,6 @@ export interface Blueprint {
     prompt: string;
 }
 
-// Blueprints defined for manual selection if no vault exists or user chooses manual
 const RETAIL_BLUEPRINTS: Blueprint[] = [
     { id: 'modern_studio', label: 'Modern Studio', desc: 'Clean white background, soft shadows.', prompt: 'High-end studio photography style, clean white background, soft diffused lighting, minimalist composition, commercial product focus.' },
     { id: 'luxury_dark', label: 'Luxury Dark', desc: 'Black textures, gold accents.', prompt: 'Luxury dark mode aesthetic, matte black textures, elegant gold accents, dramatic rim lighting, premium sophisticated atmosphere.' },
@@ -55,8 +54,6 @@ const PROFESSIONAL_BLUEPRINTS: Blueprint[] = [
     { id: 'warm_trust', label: 'Warm Trust', desc: 'Beige/Soft colors, approachable.', prompt: 'Warm and trustworthy professional style, beige and soft earth tones, human-centric, approachable and caring, healthcare/education vibe.' },
     { id: 'minimalist_grey', label: 'Minimalist Grey', desc: 'Serious, legal/financial.', prompt: 'Minimalist professional aesthetic, shades of grey and white, serious and authoritative, legal or financial firm look, clean typography.' }
 ];
-
-const ALL_BLUEPRINTS = [...RETAIL_BLUEPRINTS, ...FOOD_BLUEPRINTS, ...REALTY_BLUEPRINTS, ...PROFESSIONAL_BLUEPRINTS];
 
 export const getBlueprintsForIndustry = (industry: string): Blueprint[] => {
     switch (industry) {
@@ -106,6 +103,33 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
         layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced grid. Rule of thirds.`;
     }
 
+    // --- CONTEXT SHIELD: Handling Industry Mismatch ---
+    let contextShield = "";
+    if (brand && brand.industry) {
+        const brandIndustry = brand.industry.toLowerCase();
+        const targetIndustry = inputs.industry.toLowerCase();
+        
+        // Logical groups
+        const isBrandPhysical = ['physical', 'fashion'].includes(brandIndustry);
+        const isTargetRealEstate = targetIndustry === 'realty';
+        const isTargetFood = targetIndustry === 'food';
+
+        if (isBrandPhysical && isTargetRealEstate) {
+            contextShield = `
+            *** CONTEXT SHIELD: PRODUCT-IN-REALTY ***
+            - The product from ${brand.companyName} is being featured in a Real Estate setting.
+            - **CRITICAL**: Do NOT morph the product into architecture.
+            - **GUIDELINE**: Place the product as a luxury "Home Feature" (e.g. on a kitchen island, coffee table, or designer shelf) within the property.
+            `;
+        } else if (isBrandPhysical && isTargetFood) {
+             contextShield = `
+            *** CONTEXT SHIELD: PRODUCT-IN-DINING ***
+            - This is a ${brand.industry} product in a food environment.
+            - **GUIDELINE**: Treat the product as a "Sponsor" or "Table Setting" item. Do NOT make it look edible.
+            `;
+        }
+    }
+
     const brandDNA = brand ? `
     *** BRAND DNA (STRICT) ***
     - Client: '${brand.companyName || brand.name}'
@@ -114,13 +138,12 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     - Negative Prompts: ${brand.negativePrompts || 'None'}.
     ` : `*** BRAND TONE ***\n- Tone: ${inputs.tone || 'Modern'}`;
 
-    // --- GLOBAL VAULT STRATEGY (80/20 RULE) ---
     const vaultProtocol = vaultDna ? `
     *** GLOBAL STYLE VAULT PROTOCOL (THE PIXA SIGNATURE) ***
     - **Instruction**: ${vaultDna}
     - **80/20 INNOVATION RULE**: 
       1. (80%) Follow the lighting, shadows, and composition depth of the attached VAULT REFERENCES exactly.
-      2. (20%) Innovate on secondary visual elements. Use creative reasoning to add new trending textures (from 2025) or background props that weren't in the reference to prevent monotony.
+      2. (20%) Innovate on secondary visual elements.
     ` : "";
 
     const smartMappingLogic = `
@@ -132,6 +155,7 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     return `You are a World-Class Advertising Director for the ${inputs.industry} industry.
     
     ${vaultProtocol}
+    ${contextShield}
     ${layoutRules}
     ${brandDNA}
     ${smartMappingLogic}
@@ -146,7 +170,6 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    // 1. Fetch Global Vault references for 'brand_stylist' (Pixa AdMaker)
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
     try {
@@ -155,24 +178,19 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             getVaultFolderConfig('brand_stylist')
         ]);
         if (conf) vaultDna = conf.dna;
-        
-        // Pick up to 2 random references for variety
         const shuffled = refs.sort(() => 0.5 - Math.random());
         const selectedRefs = shuffled.slice(0, 2);
-        
         vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
             const res = await urlToBase64(r.imageUrl);
             return { data: res.base64, mimeType: res.mimeType };
         }));
     } catch (e) {
-        console.warn("Vault fetch failed, using original logic", e);
+        console.warn("Vault fetch failed", e);
     }
 
-    // 2. Optimize user images
     const optMain = await optimizeImage(inputs.mainImage.base64, inputs.mainImage.mimeType);
     const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType) : null;
 
-    // 3. Prepare Parts
     const parts: any[] = [];
     parts.push({ text: "MAIN USER ASSET (Subject):" });
     parts.push({ inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
@@ -192,7 +210,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     const systemPrompt = getSystemPrompt(inputs, brand, vaultDna);
     parts.push({ text: systemPrompt });
 
-    // 4. Generate
     try {
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
