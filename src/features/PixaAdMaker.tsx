@@ -477,10 +477,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {hasBrandProducts ? (
                                             <div className="mb-5 animate-fadeIn">
                                                 <div className="flex justify-between items-center mb-1.5 px-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{mainLabel}</label>
-                                                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 flex items-center gap-1">
-                                                        <InformationCircleIcon className="w-2.5 h-2.5" /> Select multiple {items.toLowerCase()} for Collection Mode
-                                                    </span>
+                                                    <label className={AdMakerStyles.sectionTitle}>
+                                                        {mainLabel} <span className="lowercase font-medium opacity-80"> (Select multiple {items.toLowerCase()} for Collection Mode)</span>
+                                                    </label>
                                                 </div>
                                                 <SmartProductShelf 
                                                     activeBrand={auth.activeBrandKit} 
@@ -495,10 +494,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         ) : (
                                             <div className="mb-5">
                                                 <div className="flex justify-between items-center mb-1.5 px-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{mainLabel}</label>
-                                                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 flex items-center gap-1">
-                                                        <InformationCircleIcon className="w-2.5 h-2.5" /> Upload multiple {items.toLowerCase()} for Collection Mode
-                                                    </span>
+                                                    <label className={AdMakerStyles.sectionTitle}>
+                                                        {mainLabel} <span className="lowercase font-medium opacity-80"> (Upload multiple {items.toLowerCase()} for Collection Mode)</span>
+                                                    </label>
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-3">
                                                     {[0, 1, 2].map(slot => (
