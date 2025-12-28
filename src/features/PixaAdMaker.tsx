@@ -272,7 +272,19 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return () => clearInterval(interval);
     }, [loading]);
 
-    const getImageLabels = (ind: typeof industry) => { switch(ind) { case 'ecommerce': return { label: 'Product Range', uploadText: 'Add Product Image' }; case 'realty': return { label: 'Property Portfolio', uploadText: 'Add Property Photo' }; case 'food': return { label: 'Menu Items', uploadText: 'Add Dish Photo' }; case 'fashion': return { label: 'Apparel Looks', uploadText: 'Add Clothing/Model' }; case 'saas': return { label: 'Feature Screenshots', uploadText: 'Add Screenshot' }; case 'fmcg': return { label: 'Package Variation', uploadText: 'Add Package' }; case 'education': return { label: 'Institution/Class', uploadText: 'Add Image' }; case 'services': return { label: 'Service Context', uploadText: 'Add Image' }; default: return { label: 'Main Assets', uploadText: 'Add Hero' }; } };
+    const getImageLabels = (ind: typeof industry) => { 
+        switch(ind) { 
+            case 'ecommerce': return { label: 'Product Range', uploadText: 'Add Product Image', item: 'Product', items: 'Products' }; 
+            case 'realty': return { label: 'Property Portfolio', uploadText: 'Add Property Photo', item: 'Elevation', items: 'Properties' }; 
+            case 'food': return { label: 'Menu Items', uploadText: 'Add Dish Photo', item: 'Dish', items: 'Dishes' }; 
+            case 'fashion': return { label: 'Apparel Looks', uploadText: 'Add Look', item: 'Look', items: 'Looks' }; 
+            case 'saas': return { label: 'Feature Screenshots', uploadText: 'Add Interface', item: 'Interface', items: 'Screens' }; 
+            case 'fmcg': return { label: 'Package Variation', uploadText: 'Add Package', item: 'Package', items: 'Products' }; 
+            case 'education': return { label: 'Institution Assets', uploadText: 'Add Image', item: 'Asset', items: 'Assets' }; 
+            case 'services': return { label: 'Service Portfolio', uploadText: 'Add Project', item: 'Work', items: 'Projects' }; 
+            default: return { label: 'Main Assets', uploadText: 'Add Hero', item: 'Asset', items: 'Assets' }; 
+        } 
+    };
 
     useEffect(() => { if (auth.activeBrandKit) { const kit = auth.activeBrandKit; if (kit.logos.primary) { urlToBase64(kit.logos.primary).then(base64 => { setLogoImage({ url: kit.logos.primary!, base64 }); }).catch(console.warn); } if (kit.website) setCta(`Visit ${kit.website}`); } else { setLogoImage(null); setCta(''); } }, [auth.activeBrandKit?.id, industry]);
 
@@ -329,7 +341,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         setTemplate('');
                     }
                 } else {
-                    setNotification({ msg: "Limit reached: Maximum 3 products.", type: 'info' });
+                    const { items } = getImageLabels(industry);
+                    setNotification({ msg: `Limit reached: Maximum 3 ${items.toLowerCase()}.`, type: 'info' });
                 }
             }
             setResultImage(null);
@@ -403,7 +416,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     );
     
     const getResultHeight = () => { if (aspectRatio === '9:16') return "h-[950px]"; if (aspectRatio === '4:5') return "h-[850px]"; return "h-[750px]"; };
-    const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
+    const { label: mainLabel, uploadText: mainText, item, items } = getImageLabels(industry);
     const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
     const currentBlueprints = industry ? getBlueprintsForIndustry(industry) : [];
     
@@ -431,49 +444,67 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                     {/* SECTION 1: VISUAL ASSETS */}
                                     <div>
-                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>1</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Visual Assets</label>
+                                            {isRangeMode && (
+                                                <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 rounded-full animate-fadeIn border border-green-200 shadow-sm">
+                                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest">{items} Mode Active</span>
+                                                </div>
+                                            )}
+                                        </div>
                                         
                                         {hasBrandProducts ? (
                                             <div className="mb-5 animate-fadeIn">
+                                                <div className="flex justify-between items-center mb-1.5 px-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{mainLabel}</label>
+                                                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 flex items-center gap-1">
+                                                        <InformationCircleIcon className="w-2.5 h-2.5" /> Select up to 3 for Collection Mode
+                                                    </span>
+                                                </div>
                                                 <SmartProductShelf 
                                                     activeBrand={auth.activeBrandKit} 
                                                     selectedImageUrls={mainImages.map(m => m.url)} 
                                                     onSelect={handleInventorySelect} 
                                                     onUpload={(e) => handleUploadMain(e, mainImages.length)} 
-                                                    label={mainLabel} 
+                                                    label="" 
                                                     isProcessing={isFetchingProduct}
                                                     maxSelections={3}
                                                 />
-                                                {isRangeMode && (
-                                                    <p className="text-[9px] text-indigo-500 font-black mt-2 ml-1 uppercase tracking-widest flex items-center gap-1 animate-fadeIn">
-                                                        <SparklesIcon className="w-3 h-3"/> Range Detected: {mainImages.length} Products
-                                                    </p>
-                                                )}
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-3 gap-3 mb-5">
-                                                {[0, 1, 2].map(slot => (
-                                                    <CompactUpload 
-                                                        key={slot}
-                                                        label={slot === 0 ? "Hero Asset" : slot === 1 ? "Asset 2" : "Asset 3"} 
-                                                        uploadText={slot === 0 ? "Upload" : "Add"}
-                                                        image={mainImages[slot] || null} 
-                                                        onUpload={(e) => handleUploadMain(e, slot)} 
-                                                        onClear={() => {
-                                                            const next = mainImages.filter((_, i) => i !== slot);
-                                                            setMainImages(next);
-                                                            if (next.length <= 1 && COLLECTION_TEMPLATES.includes(layoutTemplate)) setTemplate('');
-                                                        }} 
-                                                        icon={slot === 0 ? <CloudUploadIcon className="w-4 h-4 text-indigo-500"/> : <PlusIcon className="w-4 h-4 text-gray-400"/>} 
-                                                        heightClass="h-28" 
-                                                    />
-                                                ))}
+                                            <div className="mb-5">
+                                                <div className="flex justify-between items-center mb-1.5 px-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{mainLabel}</label>
+                                                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 flex items-center gap-1">
+                                                        <InformationCircleIcon className="w-2.5 h-2.5" /> Upload up to 3 for Collection Mode
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {[0, 1, 2].map(slot => (
+                                                        <CompactUpload 
+                                                            key={slot}
+                                                            label={slot === 0 ? `Hero ${item}` : `${item} ${slot + 1}`} 
+                                                            uploadText="Add"
+                                                            image={mainImages[slot] || null} 
+                                                            onUpload={(e) => handleUploadMain(e, slot)} 
+                                                            onClear={() => {
+                                                                const next = mainImages.filter((_, i) => i !== slot);
+                                                                setMainImages(next);
+                                                                if (next.length <= 1 && COLLECTION_TEMPLATES.includes(layoutTemplate)) setTemplate('');
+                                                            }} 
+                                                            icon={slot === 0 ? <CloudUploadIcon className="w-4 h-4 text-indigo-500"/> : <PlusIcon className="w-4 h-4 text-gray-400"/>} 
+                                                            heightClass="h-28" 
+                                                        />
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                         
                                         <div className="grid grid-cols-2 gap-3 mb-5">
                                             <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUploadLogo} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-4 h-4 text-indigo-500"/>} optional={true} heightClass="h-24" />
-                                            <CompactUpload label="Ad Reference" uploadText="Upload Reference Ad" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-4 h-4 text-pink-500"/>} optional={true} heightClass="h-24" isScanning={isRefScanning} />
+                                            <CompactUpload label="Ad Reference" uploadText="Upload Reference Ad" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<UploadIcon className="w-4 h-4 text-pink-500"/>} optional={true} heightClass="h-24" isScanning={isRefScanning} />
                                         </div>
                                     </div>
 
@@ -522,7 +553,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label><div className="grid grid-cols-3 gap-2"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} /></div></div>
-                                        <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title="Product" desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
+                                        <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title={item} desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
                                     </div>
 
                                     {/* SECTION 5: CAMPAIGN COPY */}
@@ -531,8 +562,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (
                                             <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                                                 <InputField 
-                                                    label={isRangeMode ? "Campaign Name" : "Product Name"} 
-                                                    placeholder={isRangeMode ? "e.g. Summer Collection" : "e.g. Pro Headphones"} 
+                                                    label={isRangeMode ? "Campaign Name" : `${item} Name`} 
+                                                    placeholder={isRangeMode ? "e.g. Summer Collection" : `e.g. Pro ${item}`} 
                                                     value={productName} 
                                                     onChange={(e:any) => setProductName(e.target.value)} 
                                                 />
