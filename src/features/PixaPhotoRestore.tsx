@@ -13,12 +13,56 @@ import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { RestoreStyles } from '../styles/features/PixaPhotoRestore.styles';
 
-const ModeCard: React.FC<{ title: string; description: string; icon: React.ReactNode; selected: boolean; onClick: () => void; accentColor: string; }> = ({ title, description, icon, selected, onClick, accentColor }) => {
+const ModeCard: React.FC<{ 
+    title: string; 
+    description: string; 
+    icon: React.ReactNode; 
+    selected: boolean; 
+    onClick: () => void; 
+    variant: 'restore' | 'color'; 
+}> = ({ title, description, icon, selected, onClick, variant }) => {
     return (
-        <button onClick={onClick} className={`${RestoreStyles.modeCard} ${selected ? RestoreStyles.modeCardSelected : RestoreStyles.modeCardInactive}`}>
-            <div className={`${RestoreStyles.iconBox} ${selected ? RestoreStyles.iconBoxSelected : `${RestoreStyles.iconBoxInactive} ${accentColor}`}`}>{icon}</div>
-            <div className="flex-1 min-w-0"><div className="flex justify-between items-center mb-1"><h3 className={`${RestoreStyles.title} ${selected ? RestoreStyles.titleSelected : RestoreStyles.titleInactive}`}>{title}</h3>{selected && <CheckIcon className="w-4 h-4 text-white" />}</div><p className={`${RestoreStyles.desc} ${selected ? RestoreStyles.descSelected : RestoreStyles.descInactive}`}>{description}</p>{selected && (<div className={RestoreStyles.identityBadge}><ShieldCheckIcon className="w-3 h-3 text-emerald-300" /><span className={RestoreStyles.identityText}>Identity Lock</span></div>)}</div>
-            {selected && <div className={RestoreStyles.decor}></div>}
+        <button 
+            onClick={onClick} 
+            className={`
+                ${RestoreStyles.modeCard} 
+                ${variant === 'restore' ? RestoreStyles.modeCardRestore : RestoreStyles.modeCardColor}
+                ${selected ? RestoreStyles.modeCardSelected : RestoreStyles.modeCardInactive}
+            `}
+        >
+            {/* Background Decoration */}
+            <div className={`
+                ${RestoreStyles.orb} 
+                ${variant === 'restore' ? RestoreStyles.orbRestore : RestoreStyles.orbColor}
+            `}></div>
+
+            {/* Glass Icon Container */}
+            <div className={RestoreStyles.iconGlass}>
+                <div className={`${selected ? 'text-indigo-600 scale-110' : 'text-gray-400'} transition-all duration-300`}>
+                    {icon}
+                </div>
+            </div>
+
+            {/* Selection Indicator */}
+            {selected && (
+                <div className={RestoreStyles.checkBadge}>
+                    <div className={RestoreStyles.checkIconBox}>
+                        <CheckIcon className="w-4 h-4 text-white" />
+                    </div>
+                </div>
+            )}
+
+            {/* Text Content */}
+            <div className={RestoreStyles.contentWrapper}>
+                <h3 className={RestoreStyles.title}>{title}</h3>
+                <p className={RestoreStyles.desc}>{description}</p>
+                {selected && (
+                    <div className={RestoreStyles.identityBadge}>
+                        <ShieldCheckIcon className="w-2.5 h-2.5 text-indigo-500" />
+                        <span className={RestoreStyles.identityText}>Forensic Anchor</span>
+                    </div>
+                )}
+            </div>
         </button>
     );
 };
@@ -129,9 +173,23 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                 <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg pointer-events-auto">Recharge Now</button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-4">
-                                <ModeCard title="Colour & Restore" description="Repairs damage + AI Colorization. Best for black & white photos needing full revitalization." icon={<PaletteIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_color'} onClick={() => setRestoreMode('restore_color')} accentColor="text-purple-500" />
-                                <ModeCard title="Restore Only" description="Repairs damage while preserving original colors. Ideal for keeping the vintage aesthetic." icon={<MagicWandIcon className="w-6 h-6"/>} selected={restoreMode === 'restore_only'} onClick={() => setRestoreMode('restore_only')} accentColor="text-blue-500" />
+                            <div className={RestoreStyles.modeGrid}>
+                                <ModeCard 
+                                    title="Colour & Restore" 
+                                    description="Repairs damage + AI Colorization" 
+                                    icon={<PaletteIcon className="w-6 h-6"/>} 
+                                    selected={restoreMode === 'restore_color'} 
+                                    onClick={() => setRestoreMode('restore_color')} 
+                                    variant="color"
+                                />
+                                <ModeCard 
+                                    title="Restore Only" 
+                                    description="Repairs damage while keeping original" 
+                                    icon={<MagicWandIcon className="w-6 h-6"/>} 
+                                    selected={restoreMode === 'restore_only'} 
+                                    onClick={() => setRestoreMode('restore_only')} 
+                                    variant="restore"
+                                />
                             </div>
                         )}
                         {!image && (
