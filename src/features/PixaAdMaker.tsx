@@ -178,11 +178,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [tone, setTone] = useState('');
     const [selectedBlueprint, setSelectedBlueprint] = useState<string | null>(null);
     const [occasion, setOccasion] = useState('');
     const [audience, setAudience] = useState('');
-    const [layoutTemplate, setLayoutTemplate] = useState('');
+    const [layoutTemplate, setTemplate] = useState('');
     const [isRefScanning, setIsRefScanning] = useState(false);
     const [refAnalysisDone, setRefAnalysisDone] = useState(false);
     const [isFetchingProduct, setIsFetchingProduct] = useState(false);
@@ -227,7 +226,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     const getImageLabels = (ind: typeof industry) => { switch(ind) { case 'ecommerce': return { label: 'Product Image', uploadText: 'Upload Product Image' }; case 'realty': return { label: 'Property Image', uploadText: 'Upload Property Photo' }; case 'food': return { label: 'Dish Image', uploadText: 'Upload Dish Photo' }; case 'fashion': return { label: 'Apparel Image', uploadText: 'Upload Clothing/Model' }; case 'saas': return { label: 'Software Interface', uploadText: 'Upload Screenshot' }; case 'fmcg': return { label: 'Product Package', uploadText: 'Upload Package' }; case 'education': return { label: 'Institution/Class', uploadText: 'Upload Image' }; case 'services': return { label: 'Service Context', uploadText: 'Upload Image' }; default: return { label: 'Main Image', uploadText: 'Upload Hero' }; } };
-    const getToneOptions = (ind: string | null) => { switch(ind) { case 'fashion': return ['Chic', 'Street', 'Luxury', 'Minimal', 'Vintage']; case 'food': return ['Spicy', 'Fresh', 'Sweet', 'Comfort', 'Gourmet']; case 'realty': return ['Luxury', 'Modern', 'Cozy', 'Classic', 'Rustic']; case 'saas': case 'education': case 'services': return ['Modern', 'Trustworthy', 'Creative', 'Clean', 'Corporate']; default: return ['Modern', 'Bold', 'Minimalist', 'Playful', 'Luxury']; } };
 
     useEffect(() => { if (auth.activeBrandKit) { const kit = auth.activeBrandKit; if (kit.logos.primary) { urlToBase64(kit.logos.primary).then(base64 => { setLogoImage({ url: kit.logos.primary!, base64 }); }).catch(console.warn); } if (kit.website) setCta(`Visit ${kit.website}`); } else { setLogoImage(null); setCta(''); } }, [auth.activeBrandKit?.id, industry]);
 
@@ -258,7 +256,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setLoading(true); setResultImage(null); setLastCreationId(null);
         setLoadingText("Constructing intelligent layout...");
         try {
-            const inputs: AdMakerInputs = { industry, visualFocus, aspectRatio, mainImage: mainImage.base64, logoImage: logoImage?.base64, tone: (referenceImage || selectedBlueprint) ? '' : tone, blueprintId: selectedBlueprint || undefined, productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, occasion, audience, layoutTemplate };
+            const inputs: AdMakerInputs = { 
+                industry, visualFocus, aspectRatio, mainImage: mainImage.base64, logoImage: logoImage?.base64, 
+                blueprintId: selectedBlueprint || undefined, 
+                productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
+                occasion, audience, 
+                layoutTemplate: referenceImage ? undefined : layoutTemplate 
+            };
             const assetUrl = await generateAdCreative(inputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
             const finalImageUrl = `data:image/png;base64,${assetUrl}`;
@@ -273,11 +277,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         const rand = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
         setOccasion(rand(OCCASIONS));
         setAudience(rand(AUDIENCES));
-        setLayoutTemplate(rand(LAYOUT_TEMPLATES));
+        setTemplate(rand(LAYOUT_TEMPLATES));
         setNotification({ msg: "Smart strategy filled! Pixa optimized your goals.", type: 'success' });
     };
 
-    const handleNewSession = () => { setIndustry(null); setMainImage(null); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setLayoutTemplate(''); setLastCreationId(null); };
+    const handleNewSession = () => { setIndustry(null); setMainImage(null); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setTemplate(''); setLastCreationId(null); };
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Ad Creative", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Error: " + e.message); } finally { setIsRefunding(false); } };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const u = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
@@ -289,7 +293,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const getResultHeight = () => { if (aspectRatio === '9:16') return "h-[950px]"; if (aspectRatio === '4:5') return "h-[850px]"; return "h-[750px]"; };
     const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
     const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
-    const activeToneOptions = getToneOptions(industry);
     const currentBlueprints = industry ? getBlueprintsForIndustry(industry) : [];
 
     return (
@@ -352,7 +355,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <SelectionGrid label="1. Selection Occasion" options={OCCASIONS} value={occasion} onChange={setOccasion} />
                                             <SelectionGrid label="2. Target Audience" options={AUDIENCES} value={audience} onChange={setAudience} />
                                             {!referenceImage && (
-                                                <SelectionGrid label="3. Layout Template" options={LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setLayoutTemplate} />
+                                                <SelectionGrid label="3. Layout Template" options={LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setTemplate} />
                                             )}
                                         </div>
                                     </div>
@@ -366,12 +369,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <div className="flex items-center justify-between mb-2 px-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Choose a Visual Blueprint</label>{selectedBlueprint && (<button onClick={() => setSelectedBlueprint(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>)}</div>
                                                 <div className={AdMakerStyles.blueprintGrid}>{currentBlueprints.map(bp => (<button key={bp.id} onClick={() => setSelectedBlueprint(bp.id)} className={`${AdMakerStyles.blueprintCard} ${selectedBlueprint === bp.id ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}><div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center"><BlueprintStarIcon className="w-5 h-5" /> </div><span className={`${AdMakerStyles.blueprintLabel} ${selectedBlueprint === bp.id ? 'text-indigo-700' : 'text-gray-600'}`}>{bp.label}</span>{selectedBlueprint === bp.id && (<div className={AdMakerStyles.blueprintCheck}><CheckIcon className="w-3 h-3"/></div>)}</button>))}</div>
                                             </div>
-
-                                            {!selectedBlueprint && (
-                                                <div className="mt-6 pt-4 border-t border-gray-100 animate-fadeIn">
-                                                    <SelectionGrid label={industry === 'food' ? "Taste Vibe" : "Campaign Vibe"} options={activeToneOptions} value={tone} onChange={setTone} />
-                                                </div>
-                                            )}
                                         </div>
                                     )}
 
