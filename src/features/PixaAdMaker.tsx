@@ -220,7 +220,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [cta, setCta] = useState('');
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState("Initializing...");
+    const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
@@ -245,6 +245,27 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     useEffect(() => { if (auth.activeBrandKit) { const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry); if (mapped) setIndustry(mapped); } }, [auth.activeBrandKit?.id, auth.activeBrandKit?.industry]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
+
+    // PRE-PRODUCTION LOADING CYCLE (Consistent with Product Shots)
+    useEffect(() => {
+        let interval: any;
+        if (loading) {
+            const steps = [
+                "Pixa is analyzing product geometry...",
+                "Pixa is researching market trends...",
+                "Pixa is drafting intelligent copy...",
+                "Pixa is harmonizing layout & light...",
+                "Pixa is polishing final creative..."
+            ];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 1500);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
 
     const getImageLabels = (ind: typeof industry) => { switch(ind) { case 'ecommerce': return { label: 'Product Image', uploadText: 'Upload Product Image' }; case 'realty': return { label: 'Property Image', uploadText: 'Upload Property Photo' }; case 'food': return { label: 'Dish Image', uploadText: 'Upload Dish Photo' }; case 'fashion': return { label: 'Apparel Image', uploadText: 'Upload Clothing/Model' }; case 'saas': return { label: 'Software Interface', uploadText: 'Upload Screenshot' }; case 'fmcg': return { label: 'Product Package', uploadText: 'Upload Package' }; case 'education': return { label: 'Institution/Class', uploadText: 'Upload Image' }; case 'services': return { label: 'Service Context', uploadText: 'Upload Image' }; default: return { label: 'Main Image', uploadText: 'Upload Hero' }; } };
 
@@ -274,7 +295,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (!mainImage || !industry || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
-        setLoadingText("Constructing intelligent layout...");
+        // Initial text before loop kicks in
+        setLoadingText("Initializing Intelligent Production...");
         try {
             const inputs: AdMakerInputs = { 
                 industry, visualFocus, aspectRatio, mainImage: mainImage.base64, logoImage: logoImage?.base64, 
