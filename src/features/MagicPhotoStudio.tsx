@@ -229,7 +229,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         <FeatureLayout 
             title="Pixa Product Shots"
             description="Transform simple photos into professional, studio-quality product shots or lifelike model images."
-            icon={<PixaProductIcon className="w-14 h-14"/>}
+            icon={<PixaProductIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>}
             rawIcon={true}
             creditCost={currentCost}
             isGenerating={loading}

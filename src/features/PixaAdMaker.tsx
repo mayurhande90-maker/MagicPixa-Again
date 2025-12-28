@@ -310,7 +310,7 @@ const CompactUpload: React.FC<{
                     )}
                 </div>
             ) : (
-                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm relative overflow-hidden`}>
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="p-2.5 bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-transform relative z-10 border border-gray-100">{icon}</div>
                     <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-wider text-center px-2 relative z-10">{uploadText || "Upload"}</p>
@@ -583,7 +583,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             <FeatureLayout
                 title="Pixa AdMaker" 
                 description="Intelligent ad creation. Supports Instagram Reels, Stories, and Feeds with safe-zone logic." 
-                icon={<MagicAdsIcon className="w-14 h-14" />} 
+                icon={<MagicAdsIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]" />} 
                 rawIcon={true} 
                 creditCost={cost} 
                 isGenerating={loading} 
@@ -839,84 +839,65 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className="mb-4">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label>
                                             <div className="flex gap-2">
+                                                {/* FIX: Added colorClass to FocusCard below */}
                                                 <FocusCard 
                                                     title="Product" 
                                                     desc="Studio lighting & clean background" 
                                                     icon={<CubeIcon className="w-5 h-5"/>}
                                                     selected={visualFocus === 'product'} 
                                                     onClick={() => setVisualFocus('product')} 
-                                                    colorClass="text-blue-600"
+                                                    colorClass={activeConfig?.color || "text-indigo-600"}
                                                 />
                                                 <FocusCard 
                                                     title="Lifestyle" 
-                                                    desc="Realistic real-world environment" 
+                                                    desc="Model using product in real scene" 
                                                     icon={<UserIcon className="w-5 h-5"/>}
                                                     selected={visualFocus === 'lifestyle'} 
                                                     onClick={() => setVisualFocus('lifestyle')} 
-                                                    colorClass="text-orange-600"
-                                                />
-                                                <FocusCard 
-                                                    title="Concept" 
-                                                    desc="Abstract, surreal & artistic" 
-                                                    icon={<SparklesIcon className="w-5 h-5"/>}
-                                                    selected={visualFocus === 'conceptual'} 
-                                                    onClick={() => setVisualFocus('conceptual')} 
-                                                    colorClass="text-purple-600"
+                                                    colorClass={activeConfig?.color || "text-indigo-600"}
                                                 />
                                             </div>
                                         </div>
 
-                                        {(industry === 'ecommerce' || industry === 'fmcg') && (
-                                            <div className="space-y-4">
-                                                <div className={AdMakerStyles.grid2}>
-                                                    <InputField placeholder="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                                                    <InputField placeholder="Offer / Discount" value={offer} onChange={(e: any) => setOffer(e.target.value)} />
-                                                </div>
-                                                <InputField label="Short Description / Vibe" placeholder="e.g. Organic, Summer Sale, Minimalist" value={desc} onChange={(e: any) => setDesc(e.target.value)} />
-                                            </div>
-                                        )}
-
-                                        {industry === 'fashion' && (
-                                            <div className="space-y-4">
-                                                <InputField placeholder="Brand / Product" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                                                <InputField placeholder="Collection / Offer" value={offer} onChange={(e: any) => setOffer(e.target.value)} />
-                                            </div>
-                                        )}
-
-                                        {industry === 'realty' && (
-                                            <div className="space-y-4">
-                                                <InputField placeholder="Project Name" value={project} onChange={(e: any) => setProject(e.target.value)} />
-                                                <div className={AdMakerStyles.grid2}>
-                                                    <InputField placeholder="Location" value={location} onChange={(e: any) => setLocation(e.target.value)} />
-                                                    <InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e: any) => setConfig(e.target.value)} />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1">Selling Points</label>
-                                                    <div className="flex gap-2 mb-2 flex-wrap">{features.map((f, i) => <span key={i} className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs border border-indigo-100">{f}</span>)}</div>
-                                                    <div className="flex gap-2">
-                                                        <input className="flex-1 px-3 py-2 bg-gray-50 border rounded-xl text-sm outline-none" placeholder="Add feature..." value={currentFeature} onChange={e => setCurrentFeature(e.target.value)} />
-                                                        <button onClick={addFeature} className="bg-indigo-100 text-indigo-600 px-3 rounded-xl font-bold">+</button>
+                                        {/* AD COPY DETAILS */}
+                                        <div className="space-y-4">
+                                            <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Campaign Copy</label></div>
+                                            
+                                            {industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (
+                                                <div className="grid grid-cols-2 gap-3 animate-fadeIn">
+                                                    <InputField placeholder="Product Name" value={productName} onChange={(e:any) => setProductName(e.target.value)} />
+                                                    <InputField placeholder="Special Offer (e.g. 50% OFF)" value={offer} onChange={(e:any) => setOffer(e.target.value)} />
+                                                    <div className="col-span-2">
+                                                        <InputField label="Context / Highlights" placeholder="e.g. Handmade, Organic, Great for gifts" value={desc} onChange={(e:any) => setDesc(e.target.value)} />
                                                     </div>
                                                 </div>
-                                            </div>
-                                        )}
-
-                                        {industry === 'food' && (
-                                            <div className="space-y-4">
-                                                <InputField placeholder="Dish Name" value={dishName} onChange={(e: any) => setDishName(e.target.value)} />
-                                                <InputField placeholder="Restaurant Name" value={restaurant} onChange={(e: any) => setRestaurant(e.target.value)} />
-                                            </div>
-                                        )}
-
-                                        {(industry === 'saas' || industry === 'education' || industry === 'services') && (
-                                            <div className="space-y-4">
-                                                <InputField placeholder="Main Headline" value={headline} onChange={(e: any) => setHeadline(e.target.value)} />
-                                                <InputField placeholder="Sub-headline / Value Prop" value={subheadline} onChange={(e: any) => setSubheadline(e.target.value)} />
-                                                <div className={AdMakerStyles.grid2}>
-                                                    <InputField placeholder="Call to Action" value={cta} onChange={(e: any) => setCta(e.target.value)} />
+                                            ) : industry === 'realty' ? (
+                                                <div className="grid grid-cols-2 gap-3 animate-fadeIn">
+                                                    <InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} />
+                                                    <InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} />
+                                                    <InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} />
+                                                    <div className="col-span-1">
+                                                        <div className="flex gap-2">
+                                                            <input className={AdMakerStyles.formContainer.replace('space-y-', '') + " flex-1 text-xs p-2 border rounded-lg"} placeholder="Add Feature (Max 4)" value={currentFeature} onChange={e => setCurrentFeature(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFeature()} />
+                                                            <button onClick={addFeature} className="bg-indigo-600 text-white p-2 rounded-lg"><CheckIcon className="w-4 h-4"/></button>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1 mt-2">{features.map((f, i) => <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">{f}<button onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><XIcon className="w-2 h-2"/></button></span>)}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            ) : industry === 'food' ? (
+                                                <div className="grid grid-cols-2 gap-3 animate-fadeIn">
+                                                    <InputField placeholder="Dish Name" value={dishName} onChange={(e:any) => setDishName(e.target.value)} />
+                                                    <InputField placeholder="Restaurant Name" value={restaurant} onChange={(e:any) => setRestaurant(e.target.value)} />
+                                                    <div className="col-span-2"><InputField placeholder="Special Offer (e.g. Free Delivery)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /></div>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 gap-3 animate-fadeIn">
+                                                    <InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} />
+                                                    <InputField placeholder="Sub-headline / Detail" value={subheadline} onChange={(e:any) => setSubheadline(e.target.value)} />
+                                                    <InputField placeholder="CTA Text (e.g. Book Now)" value={cta} onChange={(e:any) => setCta(e.target.value)} />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -928,18 +909,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
-            
             {showBrandModal && auth.user && (
                 <BrandSelectionModal 
-                    isOpen={showBrandModal}
-                    onClose={() => setShowBrandModal(false)}
-                    userId={auth.user.uid}
-                    currentBrandId={auth.activeBrandKit?.id}
-                    onSelect={handleBrandSelect}
-                    onCreateNew={() => {
-                        setShowBrandModal(false);
-                        navigateTo('dashboard', 'brand_manager');
-                    }}
+                    isOpen={showBrandModal} 
+                    onClose={() => setShowBrandModal(false)} 
+                    userId={auth.user.uid} 
+                    currentBrandId={auth.activeBrandKit?.id} 
+                    onSelect={handleBrandSelect} 
+                    onCreateNew={() => navigateTo('dashboard', 'brand_manager')} 
                 />
             )}
         </>
