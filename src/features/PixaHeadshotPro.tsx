@@ -90,7 +90,8 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
-    const [background, setBackground] = useState('Studio Photoshoot');
+    // Modified: Initialized to empty string for manual selection requirement
+    const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     
     const [customDesc, setCustomDesc] = useState('');
@@ -112,9 +113,9 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Check if required uploads are present to enable other controls
     const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
 
-    // AUTO-CORRECTION: Reset background when persona changes
+    // AUTO-CORRECTION: Reset background to EMPTY when persona changes
     useEffect(() => {
-        setBackground('Studio Photoshoot');
+        setBackground('');
         setCustomBackgroundPrompt('');
     }, [archetype]);
 
