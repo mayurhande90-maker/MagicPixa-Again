@@ -42,6 +42,11 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
     'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200' },
 };
 
+// --- STRATEGIC OPTIONS ---
+const OCCASIONS = ['New Launch', 'Flash Sale', 'Holiday Special', 'Brand Awareness', 'Seasonal Collection'];
+const AUDIENCES = ['Gen-Z', 'Corporate Professionals', 'Luxury High-End', 'Families / Parents', 'Students', 'Tech Enthusiasts'];
+const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
+
 // --- COMPONENT: INDUSTRY CARD ---
 const IndustryCard: React.FC<{ 
     title: string; 
@@ -387,12 +392,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [tone, setTone] = useState('');
     const [selectedBlueprint, setSelectedBlueprint] = useState<string | null>(null);
     
+    // 3. STRATEGIC LAYER STATE
+    const [occasion, setOccasion] = useState('');
+    const [audience, setAudience] = useState('');
+    const [layoutTemplate, setLayoutTemplate] = useState('');
+
     // Scan State
     const [isRefScanning, setIsRefScanning] = useState(false);
     const [refAnalysisDone, setRefAnalysisDone] = useState(false);
     const [isFetchingProduct, setIsFetchingProduct] = useState(false);
 
-    // 3. INDUSTRY SPECIFIC FIELDS
+    // 4. INDUSTRY SPECIFIC FIELDS
     const [productName, setProductName] = useState('');
     const [offer, setOffer] = useState('');
     const [desc, setDesc] = useState('');
@@ -407,7 +417,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [subheadline, setSubheadline] = useState('');
     const [cta, setCta] = useState('');
 
-    // 4. UI STATE
+    // 5. UI STATE
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("Initializing...");
@@ -576,7 +586,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 blueprintId: selectedBlueprint || undefined,
                 productName, offer, description: desc,
                 project, location, config, features,
-                dishName, restaurant, headline, cta, subheadline
+                dishName, restaurant, headline, cta, subheadline,
+                // Strategic inputs
+                occasion, audience, layoutTemplate
             };
             const assetUrl = await generateAdCreative(inputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
@@ -596,6 +608,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1');
         setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); 
         setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline('');
+        setOccasion(''); setAudience(''); setLayoutTemplate('');
         setLastCreationId(null);
     };
 
@@ -720,7 +733,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     </div>
 
                                     <div>
-                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>2</span><label className={AdMakerStyles.sectionTitle}>Style Intelligence</label></div>
+                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>2</span><label className={AdMakerStyles.sectionTitle}>Strategic Intelligence</label></div>
+                                        
+                                        {/* Occasion & Audience Layer */}
+                                        <div className="space-y-4 mb-4">
+                                            <SelectionGrid label="Campaign Occasion" options={OCCASIONS} value={occasion} onChange={setOccasion} />
+                                            <SelectionGrid label="Target Audience" options={AUDIENCES} value={audience} onChange={setAudience} />
+                                            <SelectionGrid label="Layout Template" options={LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setLayoutTemplate} />
+                                        </div>
+
                                         <div className="mb-4">
                                             <CompactUpload label="Style Reference (Optional)" uploadText="Upload Reference Image" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} heightClass="h-28" optional={false} isScanning={isRefScanning} />
                                             {refAnalysisDone && (<div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn"><CheckIcon className="w-3 h-3" /><span>Structure Analyzed! Layout will match this reference.</span></div>)}
@@ -737,7 +758,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label><div className="grid grid-cols-3 gap-2"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} /></div></div>
-                                        <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title="Product" desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
+                                        <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title="Product" desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product'} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
                                         <div className="space-y-4"><div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Campaign Copy</label></div>{industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Product Name" value={productName} onChange={(e:any) => setProductName(e.target.value)} /><InputField placeholder="Special Offer (e.g. 50% OFF)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /><div className="col-span-2"><InputField label="Context / Highlights" placeholder="e.g. Handmade, Organic, Great for gifts" value={desc} onChange={(e:any) => setDesc(e.target.value)} /></div></div>) : industry === 'realty' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} /><InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} /><InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} /><div className="col-span-1"><div className="flex gap-2"><input className={AdMakerStyles.formContainer.replace('space-y-', '') + " flex-1 text-xs p-2 border rounded-lg"} placeholder="Add Feature (Max 4)" value={currentFeature} onChange={e => setCurrentFeature(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFeature()} /><button onClick={addFeature} className="bg-indigo-600 text-white p-2 rounded-lg"><CheckIcon className="w-4 h-4"/></button></div><div className="flex flex-wrap gap-1 mt-2">{features.map((f, i) => <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">{f}<button onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><XIcon className="w-2 h-2"/></button></span>)}</div></div></div>) : industry === 'food' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Dish Name" value={dishName} onChange={(e:any) => setDishName(e.target.value)} /><InputField placeholder="Restaurant Name" value={restaurant} onChange={(e:any) => setRestaurant(e.target.value)} /><div className="col-span-2"><InputField placeholder="Special Offer (e.g. Free Delivery)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /></div></div>) : (<div className="grid grid-cols-1 gap-3 animate-fadeIn"><InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} /><InputField placeholder="Sub-headline / Detail" value={subheadline} onChange={(e:any) => setSubheadline(e.target.value)} /><InputField placeholder="CTA Text (e.g. Book Now)" value={cta} onChange={(e:any) => setCta(e.target.value)} /></div>)}</div>
                                     </div>
                                 </div>

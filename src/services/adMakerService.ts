@@ -89,6 +89,10 @@ export interface AdMakerInputs {
     headline?: string;
     cta?: string;
     subheadline?: string;
+    // Strategic Fields
+    occasion?: string;
+    audience?: string;
+    layoutTemplate?: string;
 }
 
 const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string) => {
@@ -101,6 +105,49 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
         layoutRules = `*** TECHNICAL SPEC: INSTAGRAM FEED (4:5) ***\n- Maximize real estate. Center-weighted.`;
     } else {
         layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced grid. Rule of thirds.`;
+    }
+
+    // --- STRATEGIC LAYOUT LOGIC ---
+    let templateDirectives = "";
+    switch(inputs.layoutTemplate) {
+        case 'Hero Focus':
+            templateDirectives = `**LAYOUT: HERO FOCUS** - Place the product large and dead-center. Background should be simple. Headlines must FLOAT in negative space above or below the subject.`;
+            break;
+        case 'Split Design':
+            templateDirectives = `**LAYOUT: SPLIT DESIGN** - Divide the canvas. Image occupies one half (Left/Right or Top/Bottom), Typography and Logo occupy a clean, solid-color or blurred-glass area on the other half.`;
+            break;
+        case 'Bottom Strip':
+            templateDirectives = `**LAYOUT: BOTTOM STRIP** - The image fills the entire background. Place a solid, high-contrast bar at the bottom containing the Product Name, CTA, and Website.`;
+            break;
+        case 'Social Proof':
+            templateDirectives = `**LAYOUT: SOCIAL PROOF** - Composition must leave a specific corner empty for a "Review Quote". Place the subject offset (Rule of Thirds). Add a realistic 'Testimonial Bubble' graphic.`;
+            break;
+    }
+
+    // --- AUDIENCE PSYCHOLOGY ---
+    let audienceDirectives = "";
+    switch(inputs.audience) {
+        case 'Gen-Z':
+            audienceDirectives = `**AUDIENCE: GEN-Z** - High visual noise, vibrant colors, "Handheld" camera feel, trendy textures (grain, liquid plastic). Use bold, expressive typography.`;
+            break;
+        case 'Corporate':
+            audienceDirectives = `**AUDIENCE: CORPORATE** - Clean, stable composition, neutral blues/greys, high-clarity. Use professional Sans-Serif fonts. Zero clutter.`;
+            break;
+        case 'Luxury':
+            audienceDirectives = `**AUDIENCE: LUXURY** - Maximum negative space, deep blacks or warm golds, soft cinematic shadows. Minimal text. Focus on material texture.`;
+            break;
+        case 'Families':
+            audienceDirectives = `**AUDIENCE: FAMILIES** - Warm lighting, soft focus backgrounds, organic shapes. Friendly, rounded typography. Approachable and trustworthy vibes.`;
+            break;
+    }
+
+    // --- OCCASION CONTEXT ---
+    let occasionDirectives = "";
+    if (inputs.occasion) {
+        occasionDirectives = `**CAMPAIGN GOAL: ${inputs.occasion}** - `;
+        if (inputs.occasion.includes('Sale')) occasionDirectives += "High urgency, use contrast to highlight the offer. Add a 'SALE' badge graphic.";
+        if (inputs.occasion.includes('Launch')) occasionDirectives += "Epic reveals, use rim lighting or a 'glow' effect to emphasize novelty.";
+        if (inputs.occasion.includes('Holiday')) occasionDirectives += "Infuse seasonal lighting and relevant background props subtly.";
     }
 
     // --- CONTEXT SHIELD: Handling Industry Mismatch ---
@@ -157,12 +204,14 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     ${vaultProtocol}
     ${contextShield}
     ${layoutRules}
+    ${templateDirectives}
+    ${audienceDirectives}
+    ${occasionDirectives}
     ${brandDNA}
     ${smartMappingLogic}
     
-    GOAL: Create a High-Conversion Ad Creative.
+    GOAL: Create a High-Conversion Ad Creative for "${inputs.productName || inputs.project || inputs.dishName || inputs.headline}".
     - Focus: ${inputs.visualFocus || 'product'}.
-    - Context: "${inputs.productName || inputs.project || inputs.dishName || inputs.headline}".
     
     OUTPUT: A high-resolution marketing asset designed to stop the scroll.`;
 };
