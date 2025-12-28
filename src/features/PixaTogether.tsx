@@ -339,9 +339,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <PremiumSelector label="Relationship" options={['Couple', 'Family', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
                                     
                                     <div className="mb-4 pb-4 border-b border-gray-100">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Magic Overrides</span>
-                                        </div>
                                         <div className="mb-4">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
                                             <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer transition-colors">
