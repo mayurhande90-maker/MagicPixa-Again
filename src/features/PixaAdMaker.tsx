@@ -494,7 +494,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         
                                         <div className="grid grid-cols-2 gap-3 mb-5">
                                             <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUploadLogo} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} heightClass="h-24" />
-                                            <CompactUpload label="Ad Reference" uploadText="Upload Ref" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<LightbulbIcon className="w-6 h-6 text-pink-500"/>} optional={true} heightClass="h-24" isScanning={isRefScanning} />
+                                            <CompactUpload label="Ad Reference" uploadText="Upload Reference Ad" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-4 h-4 text-pink-500"/>} optional={true} heightClass="h-24" isScanning={isRefScanning} />
                                         </div>
                                     </div>
 
