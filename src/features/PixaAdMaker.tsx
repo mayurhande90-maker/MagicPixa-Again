@@ -412,7 +412,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <IndustryCard title="Fashion" desc="Lifestyle & Apparel" icon={<ApparelIcon className={`w-8 h-8 text-pink-500`}/>} onClick={() => setIndustry('fashion')} styles={{ card: "bg-gradient-to-br from-[#FCE4EC] via-[#F8BBD0] to-[#F48FB1]", orb: "bg-gradient-to-tr from-pink-300 to-rose-200 -top-20 -right-20", icon: "text-pink-500" }} />
                                 <IndustryCard title="Real Estate" desc="Property flyers" icon={<RealtyAdIcon className={`w-8 h-8 ${AdMakerStyles.iconRealty}`}/>} onClick={() => setIndustry('realty')} styles={{ card: AdMakerStyles.cardRealty, orb: AdMakerStyles.orbRealty, icon: AdMakerStyles.iconRealty }} />
                                 <IndustryCard title="Food & Dining" desc="Menus, Promos" icon={<FoodIcon className={`w-8 h-8 ${AdMakerStyles.iconFood}`}/>} onClick={() => setIndustry('food')} styles={{ card: "bg-gradient-to-br from-[#FFF8E1] via-[#FFECB3] to-[#FFCC80]", orb: "bg-gradient-to-tr from-orange-400 to-yellow-300 -top-20 -right-20", icon: "text-orange-600" }} />
-                                <IndustryCard title="SaaS / Tech" desc="B2B, Software" icon={<SaaSRequestIcon className={`w-8 h-8 ${AdMakerStyles.iconSaaS}`}/>} onClick={() => setIndustry('saas')} styles={{ card: AdMakerStyles.cardSaaS, orb: AdMakerStyles.orbSaaS, icon: AdMakerStyles.iconSaaS }} />
+                                <IndustryCard title="SaaS / Tech" desc="B2B, Software" icon={<SaaSRequestIcon className={`w-8 h-8 ${AdMakerStyles.iconSaaS}`}/>} onClick={() => setIndustry('saas')} styles={{ card: "bg-gradient-to-br from-[#E0F2F1] via-[#B2DFDB] to-[#80CBC4]", orb: "bg-gradient-to-tr from-teal-400 to-emerald-300 -top-20 -right-20", icon: "text-teal-700" }} />
                                 <IndustryCard title="Education" desc="Courses, Schools" icon={<EducationAdIcon className={`w-8 h-8 text-amber-600`}/>} onClick={() => setIndustry('education')} styles={{ card: "bg-gradient-to-br from-[#FFF3E0] via-[#FFE0B2] to-[#FFCC80]", orb: "bg-gradient-to-tr from-amber-300 to-orange-200 -top-20 -right-20", icon: "text-amber-600" }} />
                                 <IndustryCard title="Services" desc="Consulting, Agency" icon={<ServicesAdIcon className={`w-8 h-8 text-indigo-600`}/>} onClick={() => setIndustry('services')} styles={{ card: "bg-gradient-to-br from-[#EDE7F6] via-[#D1C4E9] to-[#B39DDB]", orb: "bg-gradient-to-tr from-indigo-300 to-purple-200 -top-20 -right-20", icon: "text-indigo-600" }} />
                             </div>) : (
@@ -487,13 +487,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <CompactUpload label={mainLabel} uploadText={mainText} image={mainImages[0] || null} onUpload={(e) => handleUploadMain(e, 0)} onClear={() => setMainImages([])} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} />
+                                                    <CompactUpload label={mainLabel} uploadText={mainText} image={mainImages[0] || null} onUpload={(e) => handleUploadMain(e, 0)} onClear={() => setMainImages([])} icon={<CloudUploadIcon className="w-4 h-4 text-indigo-500"/>} />
                                                 )}
                                             </div>
                                         )}
                                         
                                         <div className="grid grid-cols-2 gap-3 mb-5">
-                                            <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUploadLogo} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} heightClass="h-24" />
+                                            <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUploadLogo} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-4 h-4 text-indigo-500"/>} optional={true} heightClass="h-24" />
                                             <CompactUpload label="Ad Reference" uploadText="Upload Reference Ad" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-4 h-4 text-pink-500"/>} optional={true} heightClass="h-24" isScanning={isRefScanning} />
                                         </div>
                                     </div>
