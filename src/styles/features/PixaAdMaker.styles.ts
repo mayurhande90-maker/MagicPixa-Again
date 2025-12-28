@@ -54,4 +54,17 @@ export const AdMakerStyles = {
   blueprintCardInactive: "border-gray-100 hover:border-indigo-200",
   blueprintLabel: "text-[clamp(8px,1.1vh,10px)] font-bold uppercase tracking-wider z-10 relative",
   blueprintCheck: "absolute top-1.5 right-1.5 w-3.5 h-3.5 lg:w-4 lg:h-4 bg-indigo-600 rounded-full flex items-center justify-center text-white z-10 animate-scaleIn",
+
+  // Smart Product Shelf Styles
+  shelfContainer: "flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1",
+  shelfCard: "relative shrink-0 w-[clamp(80px,12vh,110px)] h-[clamp(80px,12vh,110px)] rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden bg-white",
+  shelfCardSelected: "border-indigo-600 ring-4 ring-indigo-100 shadow-md",
+  shelfCardInactive: "border-gray-100 hover:border-indigo-300 hover:shadow-sm",
+  
+  shelfImage: "w-full h-full object-contain p-2",
+  shelfCheck: "absolute top-1.5 right-1.5 bg-indigo-600 text-white p-0.5 rounded-full shadow-sm animate-scaleIn",
+  
+  shelfAdd: "flex flex-col items-center justify-center gap-1 text-gray-400 group hover:text-indigo-600",
+  shelfAddIcon: "w-6 h-6 p-1.5 bg-gray-50 rounded-lg border border-gray-100 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-all",
+  shelfAddText: "text-[9px] font-black uppercase tracking-widest"
 };
