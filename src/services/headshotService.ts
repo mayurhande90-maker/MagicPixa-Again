@@ -1,6 +1,6 @@
 
 import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
 // Helper: Resize to 1536px (High Fidelity for Headshots)
@@ -22,9 +22,9 @@ const ARCHETYPE_LIGHTING: Record<string, string> = {
     'Executive': 'Lighting Setup: "Rembrandt Lighting". A key light at 45-degrees to create a triangle of light on the cheek. Dramatic, authoritative shadows. High contrast. Color Grade: Cool, desaturated blues and slate greys. Attire: Bespoke Italian wool suit.',
     'Tech': 'Lighting Setup: "Broad Softbox". Large, diffused light source directly in front. Minimal shadows, approachable and open. Color Grade: Clean whites, modern minimalism. Attire: Premium solid-color t-shirt/layering or smart casual blazer.',
     'Creative': 'Lighting Setup: "Loop Lighting" or "Rim Light". A strong backlight separating the subject from the background, creating a halo effect. Artistic and moody. Color Grade: Warm, cinematic tones. Attire: Trendy, textured fabrics, bold accessories allowed.',
-    'Medical': 'Lighting Setup: "High Key". Bright, even illumination. No dark shadows. Communicates cleanliness and trust. Color Grade: Sterile whites and soft cyans. Attire: Pristine white coat or scrubs.',
+    'Medical': 'Lighting Setup: "High Key / Clinical". Bright, even illumination to signify sterile, trustworthy professionalism. Minimize shadows. Color Grade: High-clarity, balanced whites. Attire: A high-quality white medical lab coat or designer scrubs. Optional stethoscope around neck.',
     'Legal': 'Lighting Setup: "Split Lighting" (Subtle). Side lighting to show strength and solidity, but filled in to remain professional. Color Grade: Traditional, rich wood tones or neutral greys. Attire: Formal business suit, tie/scarf.',
-    'Realtor': 'Lighting Setup: "Butterfly/Paramount". High frontal light (beauty dish) to highlight cheekbones and create a butterfly shadow under the nose. Flattering and friendly. Color Grade: Warm, inviting, vibrant. Attire: Smart business casual, approachable.'
+    'Realtor': 'Lighting Setup: "Paramount Lighting / Beauty Dish". High frontal light to highlight cheekbones and create a flattering, friendly appearance. Warm, vibrant color temperature. Attire: Sharp business-casual or semi-formal blazer. Polished and approachable look.'
 };
 
 const ENVIRONMENT_PHYSICS: Record<string, string> = {
@@ -36,7 +36,31 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
 };
 
 /**
- * PASS 1: STRATEGIC REASONING (Intent Extraction)
+ * PHASE 1: PERSONA RESEARCH (Grounding)
+ * Uses Google Search to find current 2025 standards for the specific persona.
+ */
+const performPersonaResearch = async (ai: any, archetype: string): Promise<string> => {
+    const prompt = `Research current 2025 professional standards for a "${archetype}" headshot. 
+    Look for: 1. Current trending attire. 2. Most professional-looking backgrounds. 3. Lighting styles used by top photographers for this industry.
+    Return a concise "Aesthetic Blueprint" for this industry.`;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                tools: [{ googleSearch: {} }]
+            }
+        });
+        return response.text || "";
+    } catch (e) {
+        console.warn("Persona research failed, using defaults", e);
+        return "";
+    }
+};
+
+/**
+ * PASS 2: STRATEGIC REASONING (Intent Extraction)
  * Analyzes the user's free-form "Additional Details" to extract specific prop, vibe, and expression requests.
  */
 const performIntentReasoning = async (ai: any, description: string): Promise<string> => {
@@ -45,12 +69,9 @@ const performIntentReasoning = async (ai: any, description: string): Promise<str
     const instructions = `You are a Visual Effects Supervisor. Analyze this user request for a professional headshot: "${description}"
     
     Extract and categorize the intent into:
-    1. **PROP INJECTION**: (e.g. "Aviator sunglasses", "Red baseball cap"). Specify precisely where it should sit on the body based on human anatomy.
+    1. **PROP INJECTION**: (e.g. "Aviator sunglasses", "Red baseball cap").
     2. **VIBE OVERRIDE**: (e.g. "Vintage polaroid", "Cyberpunk").
     3. **EXPRESSION SHIFT**: (e.g. "Winking", "Confident smirk").
-    
-    **CRITICAL**: If the user asks for a prop like glasses or a cap, provide instructions to GROUND the prop to biometrics. 
-    Example: "Place the black beanie precisely on the hairline, ensuring it casts a realistic shadow on the forehead."
     
     Return a concise technical directive for a generative AI model.`;
 
@@ -66,30 +87,14 @@ const performIntentReasoning = async (ai: any, description: string): Promise<str
     }
 };
 
-// Phase 1: The "Digital Twin" Scan
+// Phase 3: The "Digital Twin" Scan
 const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
-    const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST.
+    const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST. Target: ${label}.
+    Perform a "Digital Twin" scan. Identify: 
+    1. **IMMUTABLE GEOMETRY**: Jawline angle, chin width, cheekbone structure. Eye shape (eyelid type, canthal tilt). Nose topology (bridge, tip rotation).
+    2. **SURFACE DETAILS**: Skin undertone, specific textures (freckles, moles), hairline and hair texture.
     
-    Target: ${label}
-    
-    Perform a "Digital Twin" scan of this face. I need a precision map of Immutable vs Mutable features.
-    
-    1. **IMMUTABLE GEOMETRY (DO NOT CHANGE)**:
-       - **Face Shape**: Exact jawline angle, chin width, cheekbone prominence.
-       - **Eye Metrics**: Eye shape (hooded/almond/round), distance between eyes, canthal tilt.
-       - **Nose Topology**: Bridge width, tip rotation, nostril flare.
-       - **Mouth**: Lip fullness, cupid's bow shape.
-       
-    2. **SURFACE DETAILS (PRESERVE)**:
-       - **Skin**: Undertone (Cool/Warm/Olive), Texture (Freckles, Moles, Birthmarks - list specific locations). 
-       - **Age**: Estimate exact age range. Do NOT de-age.
-       
-    3. **GROOMING & STYLE (ADAPT)**:
-       - **Hair**: Current length, texture (curly/straight), hairline recession pattern.
-       - **Facial Hair**: Beard/stubble density and pattern.
-       - **Accessories**: Glasses (Shape/Rim). If present, they MUST remain.
-       
-    Output a concise, clinical paragraph describing these features to ensure a 1:1 likeness.`;
+    MANDATE: The output MUST be a strict 1:1 replica of these pixels. DO NOT modify the identity.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -119,23 +124,20 @@ export const generateProfessionalHeadshot = async (
 ): Promise<string> => {
     const ai = getAiClient();
     try {
-        // Create a unique request ID to bypass internal repetition logic
         const requestId = `REQ_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-        // 1. Optimize Images (High Res)
         const { data: optData, mimeType: optMime } = await optimizeImage(base64ImageData, mimeType);
         
         let partnerData = null;
         let partnerMime = null;
         let biometricsPartner = "";
 
-        // 2. Multi-Pass Reasoning (Parallel Processing)
-        const [biometricsA, extractedIntent] = await Promise.all([
+        // 1. Parallel Research & Analysis
+        const [biometricsA, extractedIntent, personaAesthetic] = await Promise.all([
             performDeepIdentityScan(ai, optData, optMime, "Person A (Main)"),
-            performIntentReasoning(ai, customDescription || "")
+            performIntentReasoning(ai, customDescription || ""),
+            performPersonaResearch(ai, archetype)
         ]);
 
-        // 3. Handle Partner (Duo Mode)
         if (partnerBase64 && partnerMimeType) {
             const optPartner = await optimizeImage(partnerBase64, partnerMimeType);
             partnerData = optPartner.data;
@@ -143,58 +145,34 @@ export const generateProfessionalHeadshot = async (
             biometricsPartner = await performDeepIdentityScan(ai, partnerData, partnerMime, "Person B (Partner)");
         }
 
-        // 4. Retrieve Physics Configs
         const lightingPhysics = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
-        
-        let envPhysics = "";
-        if (background === 'Custom') {
-            envPhysics = `Background: "A professional cinematic environment". Physics: Realistic environmental lighting matching this scene.`;
-        } else {
-            envPhysics = ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Grey'];
-        }
+        const envPhysics = background === 'Custom' 
+            ? `Background: "A professional cinematic environment". Physics: Realistic environmental lighting matching this scene.` 
+            : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Grey']);
 
-        // 5. Construct The Master Prompt
+        // 2. Construct The Master Prompt
         let prompt = `
-        *** WORLD CLASS HEADSHOT PROTOCOL (2025 STANDARD) ***
-        UNIQUE SESSION TOKEN: ${requestId}
-        MANDATE: Treat this as a BRAND NEW generation. Disregard all previous visual concepts.
+        *** WORLD CLASS HEADSHOT PROTOCOL (2025 PRODUCTION) ***
+        SESSION ID: ${requestId}
         
-        You are Platon (World Famous Portrait Photographer). Create a hyper-realistic, award-winning headshot.
+        **IDENTITY LOCK (SACRED MANDATE)**:
+        - **SUBJECT A**: ${biometricsA}
+        ${partnerData ? `- **SUBJECT B**: ${biometricsPartner}` : ''}
+        - **MANDATE**: TREAT FACIAL PIXELS AS READ-ONLY. DO NOT CHANGE face shape, nose, eyes, mouth, hair length/texture, or skin tone. It must be a 1:1 physical twin of the user.
         
-        **SUBJECT A (DIGITAL TWIN)**:
-        - VISUAL SOURCE: Input Image 1.
-        - **BIOMETRIC LOCK**: ${biometricsA}
+        **PERSONA PRODUCTION BRIEF (${archetype})**:
+        - **TREND DATA**: ${personaAesthetic}
+        - **LIGHTING**: ${lightingPhysics}
+        - **ENVIRONMENT**: ${envPhysics}
         
-        ${partnerData ? `
-        **SUBJECT B (PARTNER)**:
-        - VISUAL SOURCE: Input Image 2.
-        - **BIOMETRIC LOCK**: ${biometricsPartner}
-        - **COMPOSITION**: Two professionals standing shoulder-to-shoulder. Connection, confidence, partnership. Mid-shot framing.
-        ` : ''}
+        ${extractedIntent ? `**USER DIRECTION**: ${extractedIntent}` : ''}
 
-        ${extractedIntent ? `
-        *** DYNAMIC USER OVERRIDES (MAX PRIORITY) ***
-        - **INTENT**: ${extractedIntent}
-        - **MANDATE**: The requested props or changes must be perfectly integrated into the lighting and physics of the scene.
-        ` : ''}
+        **CAMERA ENGINE**:
+        - Lens: 85mm f/1.4. Sharp subject, creamy bokeh.
+        - Skin Rendering: Real skin pores, vellus hair, fine lines. NO plastic/smooth AI textures.
+        - Catchlights: Small glints in pupils to bring life to the eyes.
 
-        **PHOTOGRAPHY PHYSICS & SETUP**:
-        1. ${lightingPhysics}
-        2. ${envPhysics}
-        
-        **CAMERA SPECS**:
-        - **Lens**: 85mm Prime G-Master (The "Portrait King"). Flattering compression.
-        - **Aperture**: f/2.8. Eyes razor sharp, background creamy bokeh.
-        - **Film Stock**: Kodak Portra 400 simulation (Fine grain, great skin tones).
-        
-        **EXECUTION RULES (ZERO HALLUCINATIONS)**:
-        1. **IDENTITY IS SACRED**: Do NOT change bone structure, nose shape, or eye distance. It must look exactly like the person.
-        2. **TEXTURE REALISM**: Do NOT generate smooth "AI Skin". Keep skin pores, vellus hair, and natural texture. Skin must look organic, not plastic.
-        3. **ACCESSORIES**: ${extractedIntent.includes('prop') ? 'Carefully render the requested props while respecting facial biometrics.' : 'If the input has glasses, KEEP THEM. If not, DO NOT ADD THEM.'}
-        4. **HAIR CONSISTENCY**: Keep the hairline and hair length accurate to the input. You may style it neater, but do not grow/cut it.
-        5. **EYES**: Add "Catchlights" (reflection of the light source) in the pupils to bring life to the eyes.
-        
-        **OUTPUT**: A photorealistic 4K portrait.
+        OUTPUT: A single 4K photorealistic image of the subject(s) in professional attire.
         `;
 
         const parts: any[] = [
@@ -208,14 +186,11 @@ export const generateProfessionalHeadshot = async (
         parts.push({ text: prompt });
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview', // Best model for texture/identity
+            model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { 
-                    aspectRatio: '1:1', 
-                    imageSize: '1K' 
-                },
+                imageConfig: { aspectRatio: '1:1', imageSize: '1K' },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
