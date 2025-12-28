@@ -73,7 +73,7 @@ const ModeCard: React.FC<{
 
             {/* Glass Icon Container */}
             <div className={RestoreStyles.iconGlass}>
-                <div className={`${selected ? 'scale-110' : ''} transition-all duration-300 w-full h-full p-2 flex items-center justify-center`}>
+                <div className={`${selected ? 'scale-110' : ''} transition-all duration-300 w-full h-full flex items-center justify-center`}>
                     {icon}
                 </div>
             </div>
