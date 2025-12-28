@@ -666,7 +666,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>2</span><label className={AdMakerStyles.sectionTitle}>Style Intelligence</label></div>
                                         <div className="mb-4">
-                                            <CompactUpload label="Style Reference" uploadText="Upload Reference Image" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} heightClass="h-28" optional={true} isScanning={isRefScanning} />
+                                            <CompactUpload label="(optional) Style Reference" uploadText="Upload Reference Image" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} heightClass="h-28" optional={false} isScanning={isRefScanning} />
                                             {refAnalysisDone && (<div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn"><CheckIcon className="w-3 h-3" /><span>Structure Analyzed! Layout will match this reference.</span></div>)}
                                         </div>
                                         {!referenceImage && (
