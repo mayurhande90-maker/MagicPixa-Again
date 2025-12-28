@@ -49,7 +49,7 @@ const ARCHETYPES = [
 
 // DYNAMIC BACKGROUND MAPPING
 const PERSONA_BACKGROUNDS: Record<string, string[]> = {
-    'Executive': ['Studio Photoshoot', 'Modern Office', 'Meeting Room', 'Building Lobby', 'Plain Studio'],
+    'Executive': ['Studio Photoshoot', 'Modern Office', 'Meeting Room', 'Building Lobby', 'Personal Cabin'],
     'Tech': ['Studio Photoshoot', 'Startup Office', 'Server Room', 'Cool Lounge', 'City Street'],
     'Creative': ['Studio Photoshoot', 'Art Studio', 'Photo Gallery', 'Modern Loft', 'Green Garden'],
     'Medical': ['Studio Photoshoot', 'Clean Clinic', 'Doctor\'s Room', 'Bright Studio', 'Health Center'],

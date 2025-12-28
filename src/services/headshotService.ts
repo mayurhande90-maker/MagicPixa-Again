@@ -32,7 +32,7 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
     'Modern Office': 'Environment: High-end corporate office with floor-to-ceiling glass. Background: Soft Gaussian blur (f/1.8). Physics: Linear specular highlights from office track lights.',
     'Meeting Room': 'Environment: Executive boardroom. Background: Blurred mahogany table and ergonomic leather chairs. Physics: Soft overhead diffused fluorescent lighting.',
     'Building Lobby': 'Environment: Architectural glass lobby. Background: Grand marble surfaces and soaring ceilings (blurred). Physics: Large-scale natural daylight bouncing off polished floors.',
-    'Plain Studio': 'Environment: Minimalist studio. Background: Solid color paper roll with gentle light fall-off. Physics: Pure focus on the subject silhouette.',
+    'Personal Cabin': 'Environment: Private high-end executive cabin. Background: Large dark-wood executive desk, leather captain chair, bookshelf with leather-bound books and awards (artistically blurred). Physics: Warm accent lighting from table lamps mixed with soft side window light.',
     'Startup Office': 'Environment: Casual tech hub. Background: Open-plan space with plants and colorful furniture (blurred). Physics: Mixed natural and warm LED task lighting.',
     'Server Room': 'Environment: High-tech data center. Background: Glowing blue/green server racks. Physics: Low-key atmospheric lighting with technological accents.',
     'Cool Lounge': 'Environment: Designer co-working space. Background: Mid-century furniture and greenery. Physics: Warm, cozy accent lighting.',
