@@ -43,14 +43,14 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
 const OCCASIONS = ['New Launch', 'Flash Sale', 'Holiday Special', 'Brand Awareness', 'Seasonal Collection'];
 
 const AUDIENCE_MAP: Record<string, string[]> = {
-    'ecommerce': ['Gen-Z Trendsetters', 'Bargain Hunters', 'Eco-Conscious', 'Gift Shoppers'],
-    'fmcg': ['Busy Parents', 'Health Conscious', 'Bulk Buyers', 'Organic Seekers'],
-    'fashion': ['High-Fashion Stylists', 'Minimalist Enthusiasts', 'Fitness & Activewear', 'Streetwear Fans'],
-    'realty': ['First-time Homebuyers', 'Luxury Investors', 'Growing Families', 'Retirees'],
-    'food': ['Health Conscious', 'Office Professionals', 'Fine Dining Lovers', 'Late-night Snackers'],
-    'saas': ['Small Business Owners', 'CTOs/Developers', 'Productivity Geeks', 'Early Adopters'],
-    'education': ['Students', 'Career Switchers', 'Parents of Toddlers', 'Lifelong Learners'],
-    'services': ['Corporate Decision Makers', 'Local Homeowners', 'Freelancers', 'Solopreneurs'],
+    'ecommerce': ['Young & Trendy', 'Deal Seekers', 'Nature Lovers', 'Super Moms & Dads', '+ Custom'],
+    'fmcg': ['Super Moms & Dads', 'Fitness Freaks', 'Deal Seekers', 'Nature Lovers', '+ Custom'],
+    'fashion': ['Style Icons', 'Simple & Clean', 'Gym Lovers', 'Cool & Casual', '+ Custom'],
+    'realty': ['First Home Buyers', 'High-End Buyers', 'Big Families', 'Senior Living', '+ Custom'],
+    'food': ['Fitness Freaks', 'Office Crowd', 'Foodies', 'Midnight Cravings', '+ Custom'],
+    'saas': ['Startup Founders', 'Tech Nerds', 'Busy Pros', 'Early Adopters', '+ Custom'],
+    'education': ['College Kids', 'Career Switchers', 'Parents of Toddlers', 'Lifelong Learners', '+ Custom'],
+    'services': ['Big Bosses', 'Solo Workers', 'College Kids', 'Local Homeowners', '+ Custom'],
 };
 
 const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
@@ -217,6 +217,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [selectedBlueprint, setSelectedBlueprint] = useState<string | null>(null);
     const [occasion, setOccasion] = useState('');
     const [audience, setAudience] = useState('');
+    const [customAudience, setCustomAudience] = useState('');
     const [layoutTemplate, setTemplate] = useState('');
     const [isRefScanning, setIsRefScanning] = useState(false);
     const [refAnalysisDone, setRefAnalysisDone] = useState(false);
@@ -392,7 +393,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 industry, visualFocus, aspectRatio, mainImages: mainImages.map(m => m.base64), logoImage: logoImage?.base64, 
                 blueprintId: selectedBlueprint || undefined, 
                 productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
-                occasion, audience, 
+                occasion, 
+                audience: audience === '+ Custom' ? customAudience : audience, 
                 layoutTemplate: referenceImage ? undefined : layoutTemplate 
             };
             const assetUrl = await generateAdCreative(inputs, auth.activeBrandKit);
@@ -409,19 +411,20 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         const rand = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
         setOccasion(rand(OCCASIONS));
         const relevantAudiences = AUDIENCE_MAP[industry || 'ecommerce'] || AUDIENCE_MAP['ecommerce'];
-        setAudience(rand(relevantAudiences));
+        const picked = rand(relevantAudiences.filter(a => a !== '+ Custom'));
+        setAudience(picked);
         setTemplate(rand(isRangeMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES));
         setNotification({ msg: "Smart strategy filled! Pixa optimized your goals.", type: 'success' });
     };
 
-    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setTemplate(''); setLastCreationId(null); };
+    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setCustomAudience(''); setTemplate(''); setLastCreationId(null); };
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Ad Creative", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Error: " + e.message); } finally { setIsRefunding(false); } };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const u = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
     const handleClaimBonus = async () => { if (auth.user && milestoneBonus) { const u = await claimMilestoneBonus(auth.user.uid, milestoneBonus); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
 
     // MANDATORY LOGIC ENFORCEMENT
-    const isRequirementMet = !!occasion && !!audience && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint));
+    const isRequirementMet = !!occasion && !!audience && (audience === '+ Custom' ? !!customAudience : true) && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint));
 
     const isValid = mainImages.length > 0 && !isLowCredits && isRequirementMet && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName && !!desc) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
@@ -535,7 +538,19 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                         <div className="space-y-4">
                                             <SelectionGrid label="1. Selection Occasion" options={OCCASIONS} value={occasion} onChange={setOccasion} />
-                                            <SelectionGrid label="2. Target Audience" options={currentAudienceOptions} value={audience} onChange={setAudience} />
+                                            <div>
+                                                <SelectionGrid label="2. Target Audience" options={currentAudienceOptions} value={audience} onChange={setAudience} />
+                                                {audience === '+ Custom' && (
+                                                    <div className="mt-2 animate-fadeIn px-1">
+                                                        <InputField 
+                                                            placeholder="Who is your target audience?" 
+                                                            value={customAudience} 
+                                                            onChange={(e: any) => setCustomAudience(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                             {!referenceImage && (
                                                 <SelectionGrid 
                                                     label="3. Layout Template" 
