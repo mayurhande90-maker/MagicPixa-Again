@@ -1,4 +1,3 @@
-
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -75,7 +74,7 @@ export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
     visualFocus?: 'product' | 'lifestyle' | 'conceptual'; 
     aspectRatio?: '1:1' | '4:5' | '9:16';
-    mainImage: { base64: string; mimeType: string };
+    mainImages: { base64: string; mimeType: string }[]; // Updated to array
     logoImage?: { base64: string; mimeType: string } | null;
     blueprintId?: string; 
     productName?: string;
@@ -97,6 +96,7 @@ export interface AdMakerInputs {
 
 const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string, hasReference?: boolean) => {
     const ratio = inputs.aspectRatio || '1:1';
+    const isCollection = inputs.mainImages.length > 1;
     
     let layoutRules = "";
     if (ratio === '9:16') {
@@ -113,18 +113,27 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
         *** VISUAL INHERITANCE PROTOCOL (MASTER PRIORITY) ***
         - The attached REFERENCE IMAGE is the source of truth for DESIGN, STRATEGY, and COMPOSITION.
         - **STRUCTURE**: Replicate the exact layout seen in the reference (where text sits, where the product sits).
-        - **INTENT**: Infer the campaign goal (Sale, Launch, Awareness) and target audience from the visual vibe of the reference.
+        - **COLLECTION LOGIC**: If multiple products are provided, arrange them following the pattern of the reference.
         - **AESTHETIC**: Inherit the lighting, material textures, and color temperature exactly.
         `;
     }
 
     let templateDirectives = "";
     if (!hasReference) {
-        switch(inputs.layoutTemplate) {
-            case 'Hero Focus': templateDirectives = `**LAYOUT: HERO FOCUS** - Product large and centered. Minimalist background.`; break;
-            case 'Split Design': templateDirectives = `**LAYOUT: SPLIT DESIGN** - Canvas divided 50/50 between image and design/copy area.`; break;
-            case 'Bottom Strip': templateDirectives = `**LAYOUT: BOTTOM STRIP** - Immersive background with a high-contrast footer containing info.`; break;
-            case 'Social Proof': templateDirectives = `**LAYOUT: SOCIAL PROOF** - Composition allows space for a floating testimonial bubble.`; break;
+        if (isCollection) {
+            switch(inputs.layoutTemplate) {
+                case 'The Trio': templateDirectives = `**LAYOUT: THE TRIO** - Arrange the 3 items in a triangular composition with varying depths.`; break;
+                case 'Range Lineup': templateDirectives = `**LAYOUT: RANGE LINEUP** - Place items side-by-side or in a staggered line across the scene.`; break;
+                case 'Hero & Variants': templateDirectives = `**LAYOUT: HERO & VARIANTS** - One main item is large in center, others are smaller flanking it.`; break;
+                default: templateDirectives = `**LAYOUT: COLLECTION** - Arrange these items naturally as a product family.`; break;
+            }
+        } else {
+            switch(inputs.layoutTemplate) {
+                case 'Hero Focus': templateDirectives = `**LAYOUT: HERO FOCUS** - Product large and centered. Minimalist background.`; break;
+                case 'Split Design': templateDirectives = `**LAYOUT: SPLIT DESIGN** - Canvas divided 50/50 between image and design/copy area.`; break;
+                case 'Bottom Strip': templateDirectives = `**LAYOUT: BOTTOM STRIP** - Immersive background with a high-contrast footer containing info.`; break;
+                case 'Social Proof': templateDirectives = `**LAYOUT: SOCIAL PROOF** - Composition allows space for a floating testimonial bubble.`; break;
+            }
         }
     }
 
@@ -136,6 +145,14 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     - Negative Prompts: ${brand.negativePrompts || 'None'}.
     ` : `*** BRAND TONE ***\n- Tone: Professional`;
 
+    const collectionDirective = isCollection ? `
+    *** COLLECTION MODE MANDATE ***
+    - These ${inputs.mainImages.length} items belong to the same range/family.
+    - **RELATIVE SCALE**: Maintain realistic proportions between items.
+    - **UNIFIED LIGHTING**: A single light source must affect all items consistently.
+    - **ORGANIC PLACEMENT**: Do not just "paste" them; they must feel physically present in the environment with shared contact shadows.
+    ` : "";
+
     const vaultProtocol = vaultDna ? `
     *** GLOBAL STYLE VAULT PROTOCOL ***
     - (80%) Match lighting and atmosphere of attached VAULT REFERENCES.
@@ -145,6 +162,7 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     return `You are a World-Class Advertising Director for ${inputs.industry}.
     
     ${inheritanceDirective}
+    ${collectionDirective}
     ${vaultProtocol}
     ${layoutRules}
     ${templateDirectives}
@@ -152,7 +170,7 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     
     GOAL: Create a High-Conversion Ad Creative for "${inputs.productName || inputs.project || inputs.dishName || inputs.headline}".
     - Focus: ${inputs.visualFocus || 'product'}.
-    - Mandate: Preserve product identity exactly. Use high-contrast professional typography.
+    - Mandate: Preserve product identities exactly. Use high-contrast professional typography.
     
     OUTPUT: A single 4K marketing asset.`;
 };
@@ -170,13 +188,17 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         vaultAssets = await Promise.all(selectedRefs.map(async (r) => { const res = await urlToBase64(r.imageUrl); return { data: res.base64, mimeType: res.mimeType }; }));
     } catch (e) { console.warn("Vault fetch failed", e); }
 
-    const optMain = await optimizeImage(inputs.mainImage.base64, inputs.mainImage.mimeType);
+    const optimizedMains = await Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType)));
     const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType) : null;
     
     const refImg = (inputs as any).referenceImage;
 
     const parts: any[] = [];
-    parts.push({ text: "MAIN PRODUCT (SUBJECT):" }, { inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
+    
+    // Add all product images
+    optimizedMains.forEach((opt, idx) => {
+        parts.push({ text: `PRODUCT ASSET ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
+    });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
 

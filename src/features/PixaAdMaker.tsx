@@ -43,6 +43,7 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
 const OCCASIONS = ['New Launch', 'Flash Sale', 'Holiday Special', 'Brand Awareness', 'Seasonal Collection'];
 const AUDIENCES = ['Gen-Z', 'Corporate Professionals', 'Luxury High-End', 'Families / Parents', 'Students', 'Tech Enthusiasts'];
 const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
+const COLLECTION_TEMPLATES = ['The Trio', 'Range Lineup', 'Hero & Variants'];
 
 const IndustryCard: React.FC<{ 
     title: string; 
@@ -178,14 +179,14 @@ const CompactUpload: React.FC<{ label: string; image: { url: string } | null; on
     );
 };
 
-const SmartProductShelf: React.FC<{ activeBrand: BrandKit | null; selectedImageUrl: string | null; onSelect: (url: string) => Promise<void>; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; label: string; isProcessing?: boolean; }> = ({ activeBrand, selectedImageUrl, onSelect, onUpload, label, isProcessing }) => {
+const SmartProductShelf: React.FC<{ activeBrand: BrandKit | null; selectedImageUrls: string[]; onSelect: (url: string) => Promise<void>; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; label: string; isProcessing?: boolean; maxSelections?: number }> = ({ activeBrand, selectedImageUrls, onSelect, onUpload, label, isProcessing, maxSelections = 1 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const products = activeBrand?.products || [];
     if (products.length === 0) return null;
     return (
         <div className="w-full">
             <div className="flex justify-between items-center mb-2 px-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label><span className="text-[9px] text-indigo-400 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">Inventory Active</span></div>
-            <div className={AdMakerStyles.shelfContainer}><div onClick={() => !isProcessing && inputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} ${AdMakerStyles.shelfAdd}`}><div className={AdMakerStyles.shelfAddIcon}><PlusIcon className="w-full h-full" /></div><span className={AdMakerStyles.shelfAddText}>New</span></div>{products.map(p => { const isSelected = selectedImageUrl === p.imageUrl; return (<div key={p.id} onClick={() => !isProcessing && onSelect(p.imageUrl)} className={`${AdMakerStyles.shelfCard} ${isSelected ? AdMakerStyles.shelfCardSelected : AdMakerStyles.shelfCardInactive}`}><img src={p.imageUrl} className={AdMakerStyles.shelfImage} alt={p.name} />{isSelected && (<div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5" /></div>)}</div>); })}</div>
+            <div className={AdMakerStyles.shelfContainer}><div onClick={() => !isProcessing && inputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} ${AdMakerStyles.shelfAdd}`}><div className={AdMakerStyles.shelfAddIcon}><PlusIcon className="w-full h-full" /></div><span className={AdMakerStyles.shelfAddText}>New</span></div>{products.map(p => { const isSelected = selectedImageUrls.includes(p.imageUrl); return (<div key={p.id} onClick={() => !isProcessing && onSelect(p.imageUrl)} className={`${AdMakerStyles.shelfCard} ${isSelected ? AdMakerStyles.shelfCardSelected : AdMakerStyles.shelfCardInactive}`}><img src={p.imageUrl} className={AdMakerStyles.shelfImage} alt={p.name} />{isSelected && (<div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5" /></div>)}</div>); })}</div>
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
         </div>
     );
@@ -195,7 +196,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [industry, setIndustry] = useState<'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services' | null>(null);
     const [visualFocus, setVisualFocus] = useState<'product' | 'lifestyle' | 'conceptual'>('product');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
-    const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    
+    // Support for multiple images
+    const [isCollectionMode, setIsCollectionMode] = useState(false);
+    const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
+    
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [selectedBlueprint, setSelectedBlueprint] = useState<string | null>(null);
@@ -246,7 +251,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     useEffect(() => { if (auth.activeBrandKit) { const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry); if (mapped) setIndustry(mapped); } }, [auth.activeBrandKit?.id, auth.activeBrandKit?.industry]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
-    // PRE-PRODUCTION LOADING CYCLE (Consistent with Product Shots)
+    // PRE-PRODUCTION LOADING CYCLE
     useEffect(() => {
         let interval: any;
         if (loading) {
@@ -271,8 +276,57 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     useEffect(() => { if (auth.activeBrandKit) { const kit = auth.activeBrandKit; if (kit.logos.primary) { urlToBase64(kit.logos.primary).then(base64 => { setLogoImage({ url: kit.logos.primary!, base64 }); }).catch(console.warn); } if (kit.website) setCta(`Visit ${kit.website}`); } else { setLogoImage(null); setCta(''); } }, [auth.activeBrandKit?.id, industry]);
 
-    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
-    const handleInventorySelect = async (url: string) => { setIsFetchingProduct(true); try { if (auth.activeBrandKit) { const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry); if (mapped) setIndustry(mapped); } const base64 = await urlToBase64(url); setMainImage({ url, base64 }); setResultImage(null); } catch (e) { console.error("Failed to load product from inventory", e); setNotification({ msg: "Failed to load image.", type: 'error' }); } finally { setIsFetchingProduct(false); } };
+    const handleUploadMain = async (e: React.ChangeEvent<HTMLInputElement>, slot?: number) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            const data = { url: URL.createObjectURL(file), base64 };
+            
+            if (isCollectionMode && slot !== undefined) {
+                const next = [...mainImages];
+                next[slot] = data;
+                setMainImages(next);
+            } else {
+                setMainImages([data]);
+            }
+        }
+        e.target.value = '';
+    };
+
+    const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setLogoImage({ url: URL.createObjectURL(file), base64 });
+        }
+        e.target.value = '';
+    };
+
+    const handleInventorySelect = async (url: string) => {
+        setIsFetchingProduct(true);
+        try {
+            const base64 = await urlToBase64(url);
+            const data = { url, base64 };
+            
+            if (isCollectionMode) {
+                // Multi-select logic: if already in array, remove it. If not, add if < 3.
+                const exists = mainImages.find(m => m.url === url);
+                if (exists) {
+                    setMainImages(mainImages.filter(m => m.url !== url));
+                } else if (mainImages.length < 3) {
+                    setMainImages([...mainImages, data]);
+                }
+            } else {
+                setMainImages([data]);
+            }
+            setResultImage(null);
+        } catch (e) {
+            console.error("Failed to load product from inventory", e);
+            setNotification({ msg: "Failed to load image.", type: 'error' });
+        } finally {
+            setIsFetchingProduct(false);
+        }
+    };
 
     const handleRefUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -292,14 +346,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleBrandSelect = async (brand: BrandKit) => { if (auth.user && brand.id) { try { const brandData = await activateBrand(auth.user.uid, brand.id); auth.setActiveBrandKit(brandData || null); const mapped = MAP_KIT_TO_AD_INDUSTRY(brandData?.industry); if (mapped) setIndustry(mapped); setNotification({ msg: `Applied ${brand.companyName || brand.name} strategy and auto-switched category.`, type: 'success' }); setShowBrandModal(false); } catch (error) { console.error("Brand switch failed", error); setNotification({ msg: "Failed to switch brand", type: 'error' }); } } };
 
     const handleGenerate = async () => {
-        if (!mainImage || !industry || !auth.user) return;
+        if (mainImages.length === 0 || !industry || !auth.user) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
-        // Initial text before loop kicks in
         setLoadingText("Initializing Intelligent Production...");
         try {
             const inputs: AdMakerInputs = { 
-                industry, visualFocus, aspectRatio, mainImage: mainImage.base64, logoImage: logoImage?.base64, 
+                industry, visualFocus, aspectRatio, mainImages: mainImages.map(m => m.base64), logoImage: logoImage?.base64, 
                 blueprintId: selectedBlueprint || undefined, 
                 productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
                 occasion, audience, 
@@ -319,11 +372,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         const rand = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
         setOccasion(rand(OCCASIONS));
         setAudience(rand(AUDIENCES));
-        setTemplate(rand(LAYOUT_TEMPLATES));
+        if (isCollectionMode) {
+            setTemplate(rand(COLLECTION_TEMPLATES));
+        } else {
+            setTemplate(rand(LAYOUT_TEMPLATES));
+        }
         setNotification({ msg: "Smart strategy filled! Pixa optimized your goals.", type: 'success' });
     };
 
-    const handleNewSession = () => { setIndustry(null); setMainImage(null); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setTemplate(''); setLastCreationId(null); };
+    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setTemplate(''); setLastCreationId(null); setIsCollectionMode(false); };
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Ad Creative", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Error: " + e.message); } finally { setIsRefunding(false); } };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const u = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
@@ -332,7 +389,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // MANDATORY LOGIC ENFORCEMENT
     const isRequirementMet = !!occasion && !!audience && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint));
 
-    const isValid = !!mainImage && !isLowCredits && isRequirementMet && (
+    const isValid = mainImages.length > 0 && !isLowCredits && isRequirementMet && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName && !!desc) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
     );
     
@@ -363,35 +420,85 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div className="mb-6 animate-fadeIn"><div className="grid grid-cols-2 gap-3">{activeConfig && (<button onClick={() => setIndustry(null)} className={`relative overflow-hidden p-3 rounded-xl border transition-all group hover:shadow-md hover:scale-[1.02] active:scale-95 text-left ${activeConfig.bg} ${activeConfig.border} flex items-center gap-3`}><div className={`p-2 rounded-lg bg-white shadow-sm ${activeConfig.color}`}><activeConfig.icon className="w-5 h-5" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between mb-0.5"><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Industry</p><div className="bg-white/50 px-1.5 py-0.5 rounded text-[8px] font-bold text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><span>Switch</span> <ArrowRightIcon className="w-2 h-2" /></div></div><h2 className={`text-sm font-black ${activeConfig.color} truncate leading-tight`}>{activeConfig.label}</h2></div></button>)}{auth.activeBrandKit ? (<button onClick={() => setShowBrandModal(true)} className="relative overflow-hidden p-3 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/30 to-white hover:shadow-md hover:border-indigo-200 transition-all flex items-center gap-3 group text-left"><div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center border border-indigo-50 shadow-sm overflow-hidden shrink-0 p-0.5">{auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain" alt="Brand" /> : <BrandKitIcon className="w-5 h-5 text-indigo-500" />}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between mb-0.5"><span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1"><LockIcon className="w-2.5 h-2.5" /> Strategy</span><span className="text-[9px] font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span></div><h3 className="text-xs font-black text-indigo-900 truncate leading-tight">{auth.activeBrandKit.companyName || auth.activeBrandKit.name || 'Active Brand'}</h3></div></button>) : (<button onClick={() => setShowBrandModal(true)} className="p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/10 transition-all flex items-center justify-center gap-2 group hover:shadow-sm"><div className="p-1 bg-white rounded-full shadow-sm"><PlusCircleIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" /></div><span className="text-xs font-bold text-gray-400 group-hover:text-indigo-600 uppercase tracking-wide">Add Brand Kit</span></button>)}</div></div>
                                     {isIndustryMismatch && (<div className="mb-6 p-4 bg-orange-50 border-2 border-orange-300 rounded-2xl animate-pulse flex items-start gap-3 shadow-md ring-2 ring-orange-100"><div className="p-2 bg-orange-100 rounded-full text-orange-600 shadow-sm"><InformationCircleIcon className="w-6 h-6 shrink-0" /></div><div><h4 className="text-[clamp(11px,1.5vh,13px)] font-black text-orange-800 uppercase tracking-tight">Context Conflict Detected</h4><p className="text-[clamp(9px,1.2vh,11px)] text-orange-700 font-bold leading-relaxed mt-0.5">Your active brand is {auth.activeBrandKit?.industry} based, but you're creating a {INDUSTRY_CONFIG[industry!]?.label} ad. Pixa will intelligently adapt the product as a "Guest Feature" to maintain realism.</p></div></div>)}
 
+                                    {/* COLLECTION MODE TOGGLE */}
+                                    <div className="mb-6">
+                                        <button 
+                                            onClick={() => {
+                                                const next = !isCollectionMode;
+                                                setIsCollectionMode(next);
+                                                if (!next && mainImages.length > 1) {
+                                                    setMainImages([mainImages[0]]);
+                                                }
+                                                setTemplate('');
+                                            }}
+                                            className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${isCollectionMode ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-gray-100 text-gray-500 hover:border-indigo-200'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-xl transition-colors ${isCollectionMode ? 'bg-white/20' : 'bg-gray-50 group-hover:bg-indigo-50'}`}>
+                                                    <SparklesIcon className={`w-5 h-5 ${isCollectionMode ? 'text-yellow-300' : 'text-gray-400'}`} />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-xs font-black uppercase tracking-widest">Collection Mode</p>
+                                                    <p className={`text-[10px] font-medium ${isCollectionMode ? 'text-indigo-100' : 'text-gray-400'}`}>Showcase multiple items in one ad</p>
+                                                </div>
+                                            </div>
+                                            <div className={`w-10 h-6 rounded-full relative transition-colors ${isCollectionMode ? 'bg-green-400' : 'bg-gray-200'}`}>
+                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${isCollectionMode ? 'left-5' : 'left-1'}`}></div>
+                                            </div>
+                                        </button>
+                                    </div>
+
                                     {/* SECTION 1: VISUAL ASSETS */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
-                                        {hasBrandProducts ? (<div className="mb-5 animate-fadeIn"><SmartProductShelf activeBrand={auth.activeBrandKit} selectedImageUrl={mainImage?.url || null} onSelect={handleInventorySelect} onUpload={handleUpload(setMainImage)} label={mainLabel} isProcessing={isFetchingProduct}/></div>) : (<div className={AdMakerStyles.grid2 + " mb-5"}><CompactUpload label={mainLabel} uploadText={mainText} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} /><CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} /></div>)}
-                                        {hasBrandProducts && (<div className="mb-5"><CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} heightClass="h-24" /></div>)}
-                                    </div>
-
-                                    {/* SECTION 2: STYLE REFERENCE */}
-                                    <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50 mb-5">
-                                        <CompactUpload 
-                                            label="Style Reference (Optional)" 
-                                            uploadText="Upload Style Goal" 
-                                            image={referenceImage} 
-                                            onUpload={handleRefUpload} 
-                                            onClear={handleClearRef} 
-                                            icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} 
-                                            heightClass="h-28" 
-                                            optional={true} 
-                                            isScanning={isRefScanning} 
-                                        />
-                                        {refAnalysisDone && (
-                                            <div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn">
-                                                <CheckIcon className="w-3 h-3" />
-                                                <span>Style Locked! AI will inherit aesthetic and layout from this image.</span>
+                                        
+                                        {hasBrandProducts ? (
+                                            <div className="mb-5 animate-fadeIn">
+                                                <SmartProductShelf 
+                                                    activeBrand={auth.activeBrandKit} 
+                                                    selectedImageUrls={mainImages.map(m => m.url)} 
+                                                    onSelect={handleInventorySelect} 
+                                                    onUpload={(e) => handleUploadMain(e, isCollectionMode ? mainImages.length : 0)} 
+                                                    label={mainLabel} 
+                                                    isProcessing={isFetchingProduct}
+                                                    maxSelections={isCollectionMode ? 3 : 1}
+                                                />
+                                                {isCollectionMode && (
+                                                    <p className="text-[9px] text-gray-400 font-bold mt-2 ml-1 uppercase tracking-wider">
+                                                        Selected: {mainImages.length} / 3 Products
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4 mb-5">
+                                                {isCollectionMode ? (
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        {[0, 1, 2].map(slot => (
+                                                            <CompactUpload 
+                                                                key={slot}
+                                                                label={slot === 0 ? "Hero" : slot === 1 ? "Secondary" : "Detail"} 
+                                                                uploadText="Add"
+                                                                image={mainImages[slot] || null} 
+                                                                onUpload={(e) => handleUploadMain(e, slot)} 
+                                                                onClear={() => setMainImages(mainImages.filter((_, i) => i !== slot))} 
+                                                                icon={<PlusIcon className="w-4 h-4 text-indigo-400"/>} 
+                                                                heightClass="h-28" 
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <CompactUpload label={mainLabel} uploadText={mainText} image={mainImages[0] || null} onUpload={(e) => handleUploadMain(e, 0)} onClear={() => setMainImages([])} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} />
+                                                )}
                                             </div>
                                         )}
+                                        
+                                        <div className="grid grid-cols-2 gap-3 mb-5">
+                                            <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUploadLogo} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} heightClass="h-24" />
+                                            <CompactUpload label="Ad Reference" uploadText="Upload Ref" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<LightbulbIcon className="w-6 h-6 text-pink-500"/>} optional={true} heightClass="h-24" isScanning={isRefScanning} />
+                                        </div>
                                     </div>
 
-                                    {/* SECTION 3: CAMPAIGN STRATEGY */}
+                                    {/* SECTION 2: CAMPAIGN STRATEGY */}
                                     <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50">
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>2</span>
@@ -404,16 +511,20 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <SelectionGrid label="1. Selection Occasion" options={OCCASIONS} value={occasion} onChange={setOccasion} />
                                             <SelectionGrid label="2. Target Audience" options={AUDIENCES} value={audience} onChange={setAudience} />
                                             {!referenceImage && (
-                                                <SelectionGrid label="3. Layout Template" options={LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setTemplate} />
+                                                <SelectionGrid 
+                                                    label="3. Layout Template" 
+                                                    options={isCollectionMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES} 
+                                                    value={layoutTemplate} 
+                                                    onChange={setTemplate} 
+                                                />
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* SECTION 4: LOOK SELECTION */}
+                                    {/* SECTION 3: LOOK SELECTION */}
                                     {!referenceImage && (
                                         <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50 animate-fadeIn">
                                             <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Choose Look</label></div>
-                                            
                                             <div className="animate-fadeIn">
                                                 <SelectionGrid 
                                                     label="Visual Style" 
@@ -428,17 +539,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     )}
 
-                                    {/* SECTION 5: SMART DETAILS */}
+                                    {/* SECTION 4: SMART DETAILS */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label><div className="grid grid-cols-3 gap-2"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} /></div></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title="Product" desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
                                     </div>
 
-                                    {/* SECTION 6: CAMPAIGN COPY */}
+                                    {/* SECTION 5: CAMPAIGN COPY */}
                                     <div className="space-y-4">
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>5</span><label className={AdMakerStyles.sectionTitle}>Campaign Copy</label></div>
-                                        {industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField label="Product Name (Required)" placeholder="Product Name" value={productName} onChange={(e:any) => setProductName(e.target.value)} /><InputField label="Special Offer (Optional)" placeholder="e.g. 50% OFF" value={offer} onChange={(e:any) => setOffer(e.target.value)} /><div className="col-span-2"><InputField label="Context / Highlights (Required)" placeholder="e.g. Handmade, Organic, Great for gifts" value={desc} onChange={(e:any) => setDesc(e.target.value)} /></div></div>) : industry === 'realty' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} /><InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} /><InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} /><div className="col-span-1"><div className="flex gap-2"><input className="flex-1 text-xs p-2 border rounded-lg" placeholder="Add Feature (Max 4)" value={currentFeature} onChange={e => setCurrentFeature(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFeature()} /><button onClick={addFeature} className="bg-indigo-600 text-white p-2 rounded-lg"><CheckIcon className="w-4 h-4"/></button></div><div className="flex flex-wrap gap-1 mt-2">{features.map((f, i) => <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">{f}<button onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><XIcon className="w-2.5 h-2.5"/></button></span>)}</div></div></div>) : industry === 'food' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Dish Name" value={dishName} onChange={(e:any) => setDishName(e.target.value)} /><InputField placeholder="Restaurant Name" value={restaurant} onChange={(e:any) => setRestaurant(e.target.value)} /><div className="col-span-2"><InputField placeholder="Special Offer (e.g. Free Delivery)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /></div></div>) : (<div className="grid grid-cols-1 gap-3 animate-fadeIn"><InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} /><InputField placeholder="Sub-headline / Detail" value={subheadline} onChange={(e:any) => setSubheadline(e.target.value)} /><InputField placeholder="CTA Text (e.g. Book Now)" value={cta} onChange={(e:any) => setCta(e.target.value)} /></div>)}
+                                        {industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField label="Campaign Name" placeholder="e.g. Summer Collection" value={productName} onChange={(e:any) => setProductName(e.target.value)} /><InputField label="Special Offer (Optional)" placeholder="e.g. 50% OFF" value={offer} onChange={(e:any) => setOffer(e.target.value)} /><div className="col-span-2"><InputField label="Context / Highlights (Required)" placeholder="e.g. Handmade, Organic, Great for gifts" value={desc} onChange={(e:any) => setDesc(e.target.value)} /></div></div>) : industry === 'realty' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} /><InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} /><InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} /><div className="col-span-1"><div className="flex gap-2"><input className="flex-1 text-xs p-2 border rounded-lg" placeholder="Add Feature (Max 4)" value={currentFeature} onChange={e => setCurrentFeature(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFeature()} /><button onClick={addFeature} className="bg-indigo-600 text-white p-2 rounded-lg"><CheckIcon className="w-4 h-4"/></button></div><div className="flex flex-wrap gap-1 mt-2">{features.map((f, i) => <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">{f}<button onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><XIcon className="w-2.5 h-2.5"/></button></span>)}</div></div></div>) : industry === 'food' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Dish Name" value={dishName} onChange={(e:any) => setDishName(e.target.value)} /><InputField placeholder="Restaurant Name" value={restaurant} onChange={(e:any) => setRestaurant(e.target.value)} /><div className="col-span-2"><InputField placeholder="Special Offer (e.g. Free Delivery)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /></div></div>) : (<div className="grid grid-cols-1 gap-3 animate-fadeIn"><InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} /><InputField placeholder="Sub-headline / Detail" value={subheadline} onChange={(e:any) => setSubheadline(e.target.value)} /><InputField placeholder="CTA Text (e.g. Book Now)" value={cta} onChange={(e:any) => setCta(e.target.value)} /></div>)}
                                     </div>
                                 </div>
                             )}
