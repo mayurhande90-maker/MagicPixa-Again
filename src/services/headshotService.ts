@@ -7,7 +7,7 @@ import { resizeImage } from "../utils/imageUtils";
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1536, 0.90);
+        const resizedUri = await resizeImage(dataUri, 1536, 0.95); // Increased quality to 95%
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -19,115 +19,58 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 
 // --- PHOTOGRAPHY PHYSICS ENGINE ---
 const ARCHETYPE_LIGHTING: Record<string, string> = {
-    'Executive': 'Lighting Setup: "Rembrandt Lighting". A key light at 45-degrees to create a triangle of light on the cheek. Dramatic, authoritative shadows. High contrast. Color Grade: Cool, desaturated blues and slate greys. Attire: Bespoke Italian wool suit.',
-    'Tech': 'Lighting Setup: "Broad Softbox". Large, diffused light source directly in front. Minimal shadows, approachable and open. Color Grade: Clean whites, modern minimalism. Attire: Premium solid-color t-shirt/layering or smart casual blazer.',
-    'Creative': 'Lighting Setup: "Loop Lighting" or "Rim Light". A strong backlight separating the subject from the background, creating a halo effect. Artistic and moody. Color Grade: Warm, cinematic tones. Attire: Trendy, textured fabrics, bold accessories allowed.',
-    'Medical': 'Lighting Setup: "High Key / Clinical". Bright, even illumination to signify sterile, trustworthy professionalism. Minimize shadows. Color Grade: High-clarity, balanced whites. Attire: A high-quality white medical lab coat or designer scrubs. Optional stethoscope around neck.',
-    'Legal': 'Lighting Setup: "Split Lighting" (Subtle). Side lighting to show strength and solidity, but filled in to remain professional. Color Grade: Traditional, rich wood tones or neutral greys. Attire: Formal business suit, tie/scarf.',
-    'Realtor': 'Lighting Setup: "Paramount Lighting / Beauty Dish". High frontal light to highlight cheekbones and create a flattering, friendly appearance. Warm, vibrant color temperature. Attire: Sharp business-casual or semi-formal blazer. Polished and approachable look.'
+    'Executive': 'Lighting: "Classic Rembrandt". Key light at 45° for character depth. Fill light at 20% to soften shadows without losing authority. Catchlights in eyes are precise circular glints.',
+    'Tech': 'Lighting: "Large Window Softbox". Broad, even, diffused illumination. Soft shadows, approachable and bright. High clarity on eyes and skin textures.',
+    'Creative': 'Lighting: "Cinematic Edge". Strong rim light to separate hair from background. Warm key light with cool fill. Artistic contrast that highlights creative intent.',
+    'Medical': 'Lighting: "Sterile High-Key". Ultra-bright, even lighting. Neutral whites. Shadows are practically non-existent to project cleanliness and high-trust.',
+    'Legal': 'Lighting: "Authoritative Split". Side-focused lighting to emphasize structure and seriousness. Deep but legible shadows. Traditional corporate color grading.',
+    'Realtor': 'Lighting: "Beauty Dish Glow". Flattering frontal light. Vibrant skin tones. Warm, friendly highlights that make the subject pop against residential backgrounds.'
 };
 
 const ENVIRONMENT_PHYSICS: Record<string, string> = {
-    // STANDARD STUDIO
-    'Studio Photoshoot': 'Background: A professional photography studio with a clean, seamless solid backdrop in neutral grey or matte black. Physics: High-end studio strobe lighting with soft modifiers. Clean subject isolation.',
-    
-    // EXECUTIVE
-    'Modern Office': 'Background: Depth-of-field (f/1.8) blur of a high-end glass-walled office. Physics: Specular highlights from track lighting. Cool ambient light.',
-    'Meeting Room': 'Background: Blurred professional boardroom table and leather chairs. Physics: Soft overhead office lighting.',
-    'Building Lobby': 'Background: Large-scale architectural marble or glass lobby (blurred). Physics: Massive natural light from large windows.',
-    'Plain Studio': 'Background: Infinite seamless matte grey paper (#808080). Physics: Light fall-off is gradual. No distractions.',
-
-    // TECH
-    'Startup Office': 'Background: Casual open-plan tech office with colorful furniture and glass walls (blurred). Physics: Mixed natural and artificial light.',
-    'Server Room': 'Background: Futuristic server racks with glowing blue/green LED indicators (blurred). Physics: High-tech low-key lighting.',
-    'Cool Lounge': 'Background: Stylish co-working lounge with designer chairs and plants (blurred). Physics: Soft warm accent lighting.',
-    'City Street': 'Background: Out-of-focus modern city buildings at "Blue Hour". Physics: Cool ambient city light mixed with warm key light.',
-
-    // CREATIVE
-    'Art Studio': 'Background: Blurred workspace with canvases, easels, and creative tools. Physics: Natural north-facing window light.',
-    'Photo Gallery': 'Background: High-key white gallery walls with blurred artwork. Physics: Clean, bright exhibition lighting.',
-    'Modern Loft': 'Background: Home-office with exposed brick walls and large industrial windows (blurred). Physics: High-contrast daylight.',
-    'Green Garden': 'Background: Soft green foliage with sun flares (Golden Hour). Physics: Backlit by the sun (Hair light).',
-
-    // MEDICAL
-    'Clean Clinic': 'Background: Bright, sterile, and professional medical suite. Physics: Even, high-key clinical lighting.',
-    'Doctor\'s Room': 'Background: Private office with medical bookshelves and charts (blurred). Physics: Trustworthy, warm environment lighting.',
-    'Bright Studio': 'Background: Pure white seamless studio backdrop. Physics: Ultra-bright, high-clarity clinical white lighting.',
-    'Health Center': 'Background: Modern, welcoming wellness center with natural wood accents. Physics: Soft, calming natural light.',
-
-    // LEGAL
-    'Book Library': 'Background: Dark mahogany floor-to-ceiling bookshelves filled with leather-bound books. Physics: Warm, intellectual tungsten lighting.',
-    'Classic Boardroom': 'Background: Traditional boardroom with dark wood panels and leather furniture. Physics: Formal, authoritative lighting.',
-    'Formal Office': 'Background: Structured, high-end business room with a view of a financial district (blurred). Physics: Sharp, precise office lighting.',
-    'Courthouse': 'Background: Classical stone pillars or marble courthouse corridors (blurred). Physics: Grand, ambient light.',
-
-    // REALTOR
-    'Living Room': 'Background: High-end, comfortable luxury home interior. Physics: Warm, inviting residential lighting.',
-    'Modern Kitchen': 'Background: Bright, airy, and modern domestic kitchen. Physics: Clean natural daylight from large windows.',
-    'Outside House': 'Background: Blurred view of a manicured lawn and high-end home exterior. Physics: Outdoor natural daylight.',
-    'Nice Street': 'Background: Friendly, upscale residential tree-lined road. Physics: Vibrant, warm natural sunlight.'
+    'Studio Photoshoot': 'Environment: Professional infinity cove studio. Background: Pure matte seamless backdrop in Neutral Grey or Matte Black. Focus: Zero distractions. Subject isolation 100%.',
+    'Modern Office': 'Environment: High-end corporate office with floor-to-ceiling glass. Background: Soft Gaussian blur (f/1.8). Physics: Linear specular highlights from office track lights.',
+    'Meeting Room': 'Environment: Executive boardroom. Background: Blurred mahogany table and ergonomic leather chairs. Physics: Soft overhead diffused fluorescent lighting.',
+    'Building Lobby': 'Environment: Architectural glass lobby. Background: Grand marble surfaces and soaring ceilings (blurred). Physics: Large-scale natural daylight bouncing off polished floors.',
+    'Plain Studio': 'Environment: Minimalist studio. Background: Solid color paper roll with gentle light fall-off. Physics: Pure focus on the subject silhouette.',
+    'Startup Office': 'Environment: Casual tech hub. Background: Open-plan space with plants and colorful furniture (blurred). Physics: Mixed natural and warm LED task lighting.',
+    'Server Room': 'Environment: High-tech data center. Background: Glowing blue/green server racks. Physics: Low-key atmospheric lighting with technological accents.',
+    'Cool Lounge': 'Environment: Designer co-working space. Background: Mid-century furniture and greenery. Physics: Warm, cozy accent lighting.',
+    'City Street': 'Environment: Modern urban street. Background: Bokeh city buildings at blue hour. Physics: Cool ambient sky light mixed with warm street glow.',
+    'Art Studio': 'Environment: Creative workspace. Background: Canvas, easels, and brushes. Physics: Natural north-facing window light.',
+    'Photo Gallery': 'Environment: Modern art gallery. Background: Minimalist white walls with blurred frames. Physics: Clean exhibition track lighting.',
+    'Modern Loft': 'Environment: Industrial living/work space. Background: Exposed brick and large factory windows. Physics: High-contrast directional daylight.',
+    'Green Garden': 'Environment: Lush outdoor space. Background: Vibrant foliage with golden sun flares. Physics: Backlit sun serving as a natural hair light.',
+    'Clean Clinic': 'Environment: Modern medical suite. Background: White medical partitions and equipment (blurred). Physics: Clinical high-clarity lighting.',
+    'Doctor\'s Room': 'Environment: Private consultation room. Background: Medical journals and degree frames. Physics: Warm, professional atmosphere.',
+    'Bright Studio': 'Environment: High-key medical studio. Background: Pure white seamless. Physics: Intense illumination for maximum clarity.',
+    'Health Center': 'Environment: Modern wellness hub. Background: Zen wood textures and plants. Physics: Soft, calming natural light.',
+    'Book Library': 'Environment: Private law library. Background: Rows of leather-bound books. Physics: Warm tungsten lighting for an intellectual glow.',
+    'Classic Boardroom': 'Environment: Traditional wood-paneled room. Background: Heavy drapes and dark oak. Physics: Low-key formal lighting.',
+    'Formal Office': 'Environment: Financial district skyscraper office. Background: Distant city skyline through glass. Physics: Sharp, morning office light.',
+    'Courthouse': 'Environment: Neo-classical architecture. Background: Stone pillars and marble hallways. Physics: Grand, diffused ambient light.',
+    'Living Room': 'Environment: Luxury home. Background: High-end interior design. Physics: Warm residential lighting with soft shadows.',
+    'Modern Kitchen': 'Environment: Bright kitchen space. Background: Marble counters and high-end appliances. Physics: Clean daylight from kitchen windows.',
+    'Outside House': 'Environment: Residential facade. Background: Landscaped front yard and nice home exterior. Physics: Direct outdoor sunlight.',
+    'Nice Street': 'Environment: Upscale residential road. Background: Tree-lined street and sidewalk. Physics: Vibrant natural sunlight.'
 };
 
 /**
- * PHASE 1: PERSONA RESEARCH (Grounding)
- * Uses Google Search to find current 2025 standards for the specific persona.
+ * PHASE 1: FORENSIC BIOMETRIC SCAN
+ * This step defines the "Identity Anchor" that prevents the AI from changing the user's face.
  */
-const performPersonaResearch = async (ai: any, archetype: string): Promise<string> => {
-    const prompt = `Research current 2025 professional standards for a "${archetype}" headshot. 
-    Look for: 1. Current trending attire. 2. Most professional-looking backgrounds. 3. Lighting styles used by top photographers for this industry.
-    Return a concise "Aesthetic Blueprint" for this industry.`;
-    
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                tools: [{ googleSearch: {} }]
-            }
-        });
-        return response.text || "";
-    } catch (e) {
-        console.warn("Persona research failed, using defaults", e);
-        return "";
-    }
-};
-
-/**
- * PASS 2: STRATEGIC REASONING (Intent Extraction)
- * Analyzes the user's free-form "Additional Details" to extract specific prop, vibe, and expression requests.
- */
-const performIntentReasoning = async (ai: any, description: string): Promise<string> => {
-    if (!description || description.trim().length < 2) return "";
-    
-    const instructions = `You are a Visual Effects Supervisor. Analyze this user request for a professional headshot: "${description}"
-    
-    Extract and categorize the intent into:
-    1. **PROP INJECTION**: (e.g. "Aviator sunglasses", "Red baseball cap").
-    2. **VIBE OVERRIDE**: (e.g. "Vintage polaroid", "Cyberpunk").
-    3. **EXPRESSION SHIFT**: (e.g. "Winking", "Confident smirk").
-    
-    Return a concise technical directive for a generative AI model.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: instructions + "\n\nUser Input: " + description
-        });
-        return response.text || "";
-    } catch (e) {
-        console.warn("Reasoning pass failed", e);
-        return description;
-    }
-};
-
-// Phase 3: The "Digital Twin" Scan
 const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
-    const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST. Target: ${label}.
-    Perform a "Digital Twin" scan. Identify: 
-    1. **IMMUTABLE GEOMETRY**: Jawline angle, chin width, cheekbone structure. Eye shape (eyelid type, canthal tilt). Nose topology (bridge, tip rotation).
-    2. **SURFACE DETAILS**: Skin undertone, specific textures (freckles, moles), hairline and hair texture.
+    const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST.
+    Perform a "DNA-Level" visual scan of the ${label}.
     
-    MANDATE: The output MUST be a strict 1:1 replica of these pixels. DO NOT modify the identity.`;
+    CRITICAL FIELDS TO EXTRACT:
+    1. **BONE STRUCTURE**: Exact jawline sharpness, chin width, and cheekbone prominence. Note any slight facial asymmetry.
+    2. **EYE IDENTITY**: Eyelid type (mono, double), canthal tilt, iris position, and exact eyebrow arch/thickness.
+    3. **NOSE & MOUTH**: Bridge width, nostril shape, lip fullness, and the specific shape of the cupid's bow.
+    4. **HAIR ARCHITECTURE**: Exact hair texture (curl pattern, thickness), hairline shape, parting position, and how hair flows around the ears/forehead.
+    5. **MICRO-DETAILS**: Presence of moles, freckles, unique skin textures, or scars.
+    
+    MANDATE: This description will be used as a structural anchor. The output must be a 1:1 physical twin.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -144,6 +87,21 @@ const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string
         console.warn("Biometric analysis failed", e);
         return "Standard facial structure.";
     }
+};
+
+/**
+ * PHASE 2: INTENT REASONING
+ */
+const performIntentReasoning = async (ai: any, description: string): Promise<string> => {
+    if (!description || description.trim().length < 2) return "";
+    const instructions = `VFX Supervisor: Extract specific prop or vibe requests from: "${description}". Direction: "Add glasses", "Smiling", etc.`;
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: instructions + "\n\nUser Input: " + description
+        });
+        return response.text || "";
+    } catch (e) { return description; }
 };
 
 export const generateProfessionalHeadshot = async (
@@ -164,11 +122,10 @@ export const generateProfessionalHeadshot = async (
         let partnerMime = null;
         let biometricsPartner = "";
 
-        // 1. Parallel Research & Analysis
-        const [biometricsA, extractedIntent, personaAesthetic] = await Promise.all([
+        // Parallel Analysis for maximum speed and accuracy
+        const [biometricsA, extractedIntent] = await Promise.all([
             performDeepIdentityScan(ai, optData, optMime, "Person A (Main)"),
-            performIntentReasoning(ai, customDescription || ""),
-            performPersonaResearch(ai, archetype)
+            performIntentReasoning(ai, customDescription || "")
         ]);
 
         if (partnerBase64 && partnerMimeType) {
@@ -180,39 +137,45 @@ export const generateProfessionalHeadshot = async (
 
         const lightingPhysics = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
         const envPhysics = background === 'Custom' 
-            ? `Background: "A professional cinematic environment". Physics: Realistic environmental lighting matching this scene.` 
+            ? `Environment: Cinematic custom setting. Physics: High-end environmental lighting.` 
             : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Photoshoot']);
 
-        // 2. Construct The Master Prompt
+        // THE MASTER PRODUCTION PROMPT (2025 ELITE STANDARDS)
         let prompt = `
-        *** WORLD CLASS HEADSHOT PROTOCOL (2025 PRODUCTION) ***
+        *** WORLD-CLASS PROFESSIONAL HEADSHOT PROTOCOL (2025) ***
         SESSION ID: ${requestId}
         
-        **IDENTITY LOCK (SACRED MANDATE)**:
-        - **SUBJECT A**: ${biometricsA}
-        ${partnerData ? `- **SUBJECT B**: ${biometricsPartner}` : ''}
-        - **MANDATE**: TREAT FACIAL PIXELS AS READ-ONLY. DO NOT CHANGE face shape, nose, eyes, mouth, hair length/texture, or skin tone. It must be a 1:1 physical twin of the user.
+        **IDENTITY LOCK - SACRED MANDATE (ZERO ERROR TOLERANCE)**:
+        - **SUBJECT A BIOMETRICS**: ${biometricsA}
+        ${partnerData ? `- **SUBJECT B BIOMETRICS**: ${biometricsPartner}` : ''}
         
-        **PERSONA PRODUCTION BRIEF (${archetype})**:
-        - **TREND DATA**: ${personaAesthetic}
-        - **LIGHTING**: ${lightingPhysics}
-        - **ENVIRONMENT**: ${envPhysics}
+        **STRICT RULES**:
+        1. **NO ALTERATIONS**: Do NOT "beautify", "smooth", or "idealize" the face. Keep every wrinkle, freckle, and unique asymmetry.
+        2. **FACIAL MESH**: Extract the exact facial geometry from the source. The resulting face must be a 1:1 pixel match in structure to the source.
+        3. **HAIR PROTOCOL**: Preserve the exact hair texture, length, and style. If the user has messy hair, keep it. If they have a specific parting, do NOT change it.
+        4. **SKIN FIDELITY**: Render real skin pores, fine lines, and natural vellus hair. NO PLASTIC/AI TEXTURES.
         
-        ${extractedIntent ? `**USER DIRECTION**: ${extractedIntent}` : ''}
+        **PRODUCTION BRIEF**:
+        - **PERSONA**: ${archetype}
+        - **SCENE PHYSICS**: ${envPhysics}
+        - **STUDIO LIGHTING**: ${lightingPhysics}
+        ${extractedIntent ? `- **USER DIRECTION**: ${extractedIntent}` : ''}
 
-        **CAMERA ENGINE**:
-        - Lens: 85mm f/1.4. Sharp subject, creamy bokeh.
-        - Skin Rendering: Real skin pores, vellus hair, fine lines. NO plastic/smooth AI textures.
-        - Catchlights: Small glints in pupils to bring life to the eyes.
+        **CAMERA SPECS**:
+        - Lens: 85mm Prime f/1.2 (Portrait Master).
+        - Focus: Razor-sharp focus on the iris of the eyes. Creamy background bokeh.
+        - Color: Natural, professional color grade. True-to-life skin tones.
 
-        OUTPUT: A single 4K photorealistic image of the subject(s) in professional attire.
+        OUTPUT: A single 4K photorealistic image of the subject(s) as an exact digital twin.
         `;
 
         const parts: any[] = [
+            { text: "SOURCE PIXELS (PRIMARY SUBJECT):" },
             { inlineData: { data: optData, mimeType: optMime } }
         ];
 
         if (partnerData && partnerMime) {
+             parts.push({ text: "SOURCE PIXELS (SECONDARY SUBJECT):" });
              parts.push({ inlineData: { data: partnerData, mimeType: partnerMime } });
         }
 
@@ -235,7 +198,7 @@ export const generateProfessionalHeadshot = async (
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("No image generated.");
+        throw new Error("AI Engine failed to render high-fidelity image. Please try again.");
 
     } catch (error) {
         console.error("Error generating headshot:", error);
