@@ -5,6 +5,7 @@ import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit, IndustryType } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
+// Optimize images to 1024px
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -88,43 +89,91 @@ export interface AdMakerInputs {
     headline?: string;
     cta?: string;
     subheadline?: string;
+    // Strategic Fields
     occasion?: string;
     audience?: string;
     layoutTemplate?: string;
 }
 
-const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string, hasReference?: boolean) => {
+const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string) => {
     const ratio = inputs.aspectRatio || '1:1';
     
     let layoutRules = "";
     if (ratio === '9:16') {
-        layoutRules = `*** TECHNICAL SPEC: VERTICAL STORY (9:16) ***\n- Safe Zones: Top 15% and Bottom 20% clear. Center focus.`;
+        layoutRules = `*** TECHNICAL SPEC: INSTAGRAM STORIES/REELS (9:16) ***\n- Safe Zones: Top 14% and Bottom 20% clear. Center 60% focus.`;
     } else if (ratio === '4:5') {
-        layoutRules = `*** TECHNICAL SPEC: PORTRAIT FEED (4:5) ***\n- Maximize visual height.`;
+        layoutRules = `*** TECHNICAL SPEC: INSTAGRAM FEED (4:5) ***\n- Maximize real estate. Center-weighted.`;
     } else {
-        layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced composition.`;
+        layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced grid. Rule of thirds.`;
     }
 
-    // --- STRATEGIC INHERITANCE ---
-    let inheritanceDirective = "";
-    if (hasReference) {
-        inheritanceDirective = `
-        *** VISUAL INHERITANCE PROTOCOL (MASTER PRIORITY) ***
-        - The attached REFERENCE IMAGE is the source of truth for DESIGN, STRATEGY, and COMPOSITION.
-        - **STRUCTURE**: Replicate the exact layout seen in the reference (where text sits, where the product sits).
-        - **INTENT**: Infer the campaign goal (Sale, Launch, Awareness) and target audience from the visual vibe of the reference.
-        - **AESTHETIC**: Inherit the lighting, material textures, and color temperature exactly.
-        `;
-    }
-
-    // --- MANUAL STRATEGIC LAYOUT LOGIC ---
+    // --- STRATEGIC LAYOUT LOGIC ---
     let templateDirectives = "";
-    if (!hasReference) {
-        switch(inputs.layoutTemplate) {
-            case 'Hero Focus': templateDirectives = `**LAYOUT: HERO FOCUS** - Product large and centered. Minimalist background.`; break;
-            case 'Split Design': templateDirectives = `**LAYOUT: SPLIT DESIGN** - Canvas divided 50/50 between image and design/copy area.`; break;
-            case 'Bottom Strip': templateDirectives = `**LAYOUT: BOTTOM STRIP** - Immersive background with a high-contrast footer containing info.`; break;
-            case 'Social Proof': templateDirectives = `**LAYOUT: SOCIAL PROOF** - Composition allows space for a floating testimonial bubble.`; break;
+    switch(inputs.layoutTemplate) {
+        case 'Hero Focus':
+            templateDirectives = `**LAYOUT: HERO FOCUS** - Place the product large and dead-center. Background should be simple. Headlines must FLOAT in negative space above or below the subject.`;
+            break;
+        case 'Split Design':
+            templateDirectives = `**LAYOUT: SPLIT DESIGN** - Divide the canvas. Image occupies one half (Left/Right or Top/Bottom), Typography and Logo occupy a clean, solid-color or blurred-glass area on the other half.`;
+            break;
+        case 'Bottom Strip':
+            templateDirectives = `**LAYOUT: BOTTOM STRIP** - The image fills the entire background. Place a solid, high-contrast bar at the bottom containing the Product Name, CTA, and Website.`;
+            break;
+        case 'Social Proof':
+            templateDirectives = `**LAYOUT: SOCIAL PROOF** - Composition must leave a specific corner empty for a "Review Quote". Place the subject offset (Rule of Thirds). Add a realistic 'Testimonial Bubble' graphic.`;
+            break;
+    }
+
+    // --- AUDIENCE PSYCHOLOGY ---
+    let audienceDirectives = "";
+    switch(inputs.audience) {
+        case 'Gen-Z':
+            audienceDirectives = `**AUDIENCE: GEN-Z** - High visual noise, vibrant colors, "Handheld" camera feel, trendy textures (grain, liquid plastic). Use bold, expressive typography.`;
+            break;
+        case 'Corporate':
+            audienceDirectives = `**AUDIENCE: CORPORATE** - Clean, stable composition, neutral blues/greys, high-clarity. Use professional Sans-Serif fonts. Zero clutter.`;
+            break;
+        case 'Luxury':
+            audienceDirectives = `**AUDIENCE: LUXURY** - Maximum negative space, deep blacks or warm golds, soft cinematic shadows. Minimal text. Focus on material texture.`;
+            break;
+        case 'Families':
+            audienceDirectives = `**AUDIENCE: FAMILIES** - Warm lighting, soft focus backgrounds, organic shapes. Friendly, rounded typography. Approachable and trustworthy vibes.`;
+            break;
+    }
+
+    // --- OCCASION CONTEXT ---
+    let occasionDirectives = "";
+    if (inputs.occasion) {
+        occasionDirectives = `**CAMPAIGN GOAL: ${inputs.occasion}** - `;
+        if (inputs.occasion.includes('Sale')) occasionDirectives += "High urgency, use contrast to highlight the offer. Add a 'SALE' badge graphic.";
+        if (inputs.occasion.includes('Launch')) occasionDirectives += "Epic reveals, use rim lighting or a 'glow' effect to emphasize novelty.";
+        if (inputs.occasion.includes('Holiday')) occasionDirectives += "Infuse seasonal lighting and relevant background props subtly.";
+    }
+
+    // --- CONTEXT SHIELD: Handling Industry Mismatch ---
+    let contextShield = "";
+    if (brand && brand.industry) {
+        const brandIndustry = brand.industry.toLowerCase();
+        const targetIndustry = inputs.industry.toLowerCase();
+        
+        // Logical groups
+        const isBrandPhysical = ['physical', 'fashion'].includes(brandIndustry);
+        const isTargetRealEstate = targetIndustry === 'realty';
+        const isTargetFood = targetIndustry === 'food';
+
+        if (isBrandPhysical && isTargetRealEstate) {
+            contextShield = `
+            *** CONTEXT SHIELD: PRODUCT-IN-REALTY ***
+            - The product from ${brand.companyName} is being featured in a Real Estate setting.
+            - **CRITICAL**: Do NOT morph the product into architecture.
+            - **GUIDELINE**: Place the product as a luxury "Home Feature" (e.g. on a kitchen island, coffee table, or designer shelf) within the property.
+            `;
+        } else if (isBrandPhysical && isTargetFood) {
+             contextShield = `
+            *** CONTEXT SHIELD: PRODUCT-IN-DINING ***
+            - This is a ${brand.industry} product in a food environment.
+            - **GUIDELINE**: Treat the product as a "Sponsor" or "Table Setting" item. Do NOT make it look edible.
+            `;
         }
     }
 
@@ -137,24 +186,34 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
     ` : `*** BRAND TONE ***\n- Tone: ${inputs.tone || 'Modern'}`;
 
     const vaultProtocol = vaultDna ? `
-    *** GLOBAL STYLE VAULT PROTOCOL ***
-    - (80%) Match lighting and atmosphere of attached VAULT REFERENCES.
-    - (20%) Innovate on specific campaign elements.
+    *** GLOBAL STYLE VAULT PROTOCOL (THE PIXA SIGNATURE) ***
+    - **Instruction**: ${vaultDna}
+    - **80/20 INNOVATION RULE**: 
+      1. (80%) Follow the lighting, shadows, and composition depth of the attached VAULT REFERENCES exactly.
+      2. (20%) Innovate on secondary visual elements.
     ` : "";
 
-    return `You are a World-Class Advertising Director for ${inputs.industry}.
+    const smartMappingLogic = `
+    *** INTELLIGENT CONTENT ENGINE ***
+    - Synthesize high-impact headlines better than the raw input.
+    - Sacred Logo: Use the provided BRAND LOGO exactly.
+    `;
+
+    return `You are a World-Class Advertising Director for the ${inputs.industry} industry.
     
-    ${inheritanceDirective}
     ${vaultProtocol}
+    ${contextShield}
     ${layoutRules}
     ${templateDirectives}
+    ${audienceDirectives}
+    ${occasionDirectives}
     ${brandDNA}
+    ${smartMappingLogic}
     
     GOAL: Create a High-Conversion Ad Creative for "${inputs.productName || inputs.project || inputs.dishName || inputs.headline}".
     - Focus: ${inputs.visualFocus || 'product'}.
-    - Mandate: Preserve product identity exactly. Use high-contrast professional typography.
     
-    OUTPUT: A single 4K marketing asset.`;
+    OUTPUT: A high-resolution marketing asset designed to stop the scroll.`;
 };
 
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
@@ -163,38 +222,41 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
     try {
-        const [refs, conf] = await Promise.all([getVaultImages('brand_stylist'), getVaultFolderConfig('brand_stylist')]);
+        const [refs, conf] = await Promise.all([
+            getVaultImages('brand_stylist'),
+            getVaultFolderConfig('brand_stylist')
+        ]);
         if (conf) vaultDna = conf.dna;
         const shuffled = refs.sort(() => 0.5 - Math.random());
-        const selectedRefs = shuffled.slice(0, 1);
-        vaultAssets = await Promise.all(selectedRefs.map(async (r) => { const res = await urlToBase64(r.imageUrl); return { data: res.base64, mimeType: res.mimeType }; }));
-    } catch (e) { console.warn("Vault fetch failed", e); }
+        const selectedRefs = shuffled.slice(0, 2);
+        vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
+            const res = await urlToBase64(r.imageUrl);
+            return { data: res.base64, mimeType: res.mimeType };
+        }));
+    } catch (e) {
+        console.warn("Vault fetch failed", e);
+    }
 
     const optMain = await optimizeImage(inputs.mainImage.base64, inputs.mainImage.mimeType);
     const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType) : null;
-    
-    // Explicitly check for reference image
-    const hasReference = !!(inputs.mainImage && (inputs as any).referenceImage); // Check if reference was passed in contents (logic below handles this)
-    // Actually, inputs.mainImage is separate. Let's look at the calling part.
 
     const parts: any[] = [];
-    parts.push({ text: "MAIN PRODUCT (SUBJECT):" }, { inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
+    parts.push({ text: "MAIN USER ASSET (Subject):" });
+    parts.push({ inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
     
-    if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-
-    // Handle reference image if provided (fork logic)
-    const refImg = (inputs as any).referenceImage;
-    if (refImg) {
-        const optRef = await optimizeImage(refImg.base64, refImg.mimeType);
-        parts.push({ text: "STYLE & COMPOSITION REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+    if (optLogo) {
+        parts.push({ text: "BRAND LOGO:" });
+        parts.push({ inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     }
 
     if (vaultAssets.length > 0) {
-        parts.push({ text: "VAULT STYLE GUIDES:" });
-        vaultAssets.forEach(v => parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } }));
+        parts.push({ text: "GLOBAL STYLE REFERENCES (THE VAULT):" });
+        vaultAssets.forEach(v => {
+            parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } });
+        });
     }
 
-    const systemPrompt = getSystemPrompt(inputs, brand, vaultDna, !!refImg);
+    const systemPrompt = getSystemPrompt(inputs, brand, vaultDna);
     parts.push({ text: systemPrompt });
 
     try {
@@ -203,7 +265,10 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "1K" },
+                imageConfig: { 
+                    aspectRatio: inputs.aspectRatio || "1:1", 
+                    imageSize: "1K" 
+                },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -212,8 +277,12 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
                 ]
             },
         }));
+
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("No image generated.");
-    } catch (e) { console.error("Ad generation failed", e); throw e; }
+    } catch (e) {
+        console.error("Ad generation failed", e);
+        throw e;
+    }
 };
