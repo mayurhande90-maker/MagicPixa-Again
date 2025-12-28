@@ -3,8 +3,8 @@ export const PhotoStudioStyles = {
   // Container
   modeGrid: "grid grid-cols-1 md:grid-cols-2 gap-6",
 
-  // Base Card - Apple/Bento Style
-  modeCard: "group relative w-full h-64 rounded-[2rem] overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:shadow-gray-200 hover:-translate-y-2 border border-white/60 text-left",
+  // Base Card - Apple/Bento Style - Added vertical liquidity with clamp
+  modeCard: "group relative w-full h-[clamp(160px,22vh,240px)] rounded-[2rem] overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:shadow-gray-200 hover:-translate-y-2 border border-white/60 text-left cursor-pointer",
   
   // Product Variant
   modeCardProduct: "bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FF] to-[#E1F5FE]", // Soft tech blue
@@ -12,25 +12,25 @@ export const PhotoStudioStyles = {
   modeCardModel: "bg-gradient-to-br from-[#F3E5F5] via-[#FFF3E0] to-[#FCE4EC]", // Soft warm/purple
 
   // Abstract Decoration (The "Orb")
-  orb: "absolute w-64 h-64 rounded-full blur-3xl opacity-60 transition-all duration-700 ease-in-out group-hover:opacity-80 group-hover:scale-110",
+  orb: "absolute w-64 h-64 rounded-full blur-3xl opacity-60 transition-all duration-700 ease-in-out group-hover:opacity-80 group-hover:scale-110 pointer-events-none",
   orbProduct: "bg-gradient-to-tr from-blue-300 to-cyan-200 -top-20 -right-20",
   orbModel: "bg-gradient-to-tr from-purple-300 to-orange-200 -top-20 -right-20",
 
   // Content Layout
-  contentWrapper: "absolute inset-0 flex flex-col justify-end p-8 z-10",
+  contentWrapper: "absolute inset-0 flex flex-col justify-end p-[min(3vh,28px)] z-10",
   
-  // Icon Box (Glassmorphism)
-  iconGlass: "absolute top-6 left-6 w-16 h-16 rounded-2xl bg-white/40 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 transition-transform duration-500 group-hover:scale-110 group-hover:bg-white/60",
+  // Icon Box (Glassmorphism) - Added fluid sizing
+  iconGlass: "absolute top-6 left-6 w-[clamp(44px,7vh,64px)] h-[clamp(44px,7vh,64px)] rounded-2xl bg-white/40 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 transition-transform duration-500 group-hover:scale-110 group-hover:bg-white/60 p-2.5",
   iconProduct: "text-blue-600",
   iconModel: "text-purple-600",
 
-  // Typography
-  title: "text-2xl font-black text-gray-900 mb-2 tracking-tight group-hover:translate-x-1 transition-transform duration-300",
-  desc: "text-sm text-gray-600 font-medium leading-relaxed max-w-[90%] group-hover:text-gray-800 transition-colors",
+  // Typography - Added fluid typography
+  title: "text-[clamp(16px,2.5vh,24px)] font-black text-gray-900 mb-1 tracking-tight group-hover:translate-x-1 transition-transform duration-300 leading-tight",
+  desc: "text-[clamp(9px,1.2vh,13px)] text-gray-600 font-medium leading-relaxed max-w-[90%] group-hover:text-gray-800 transition-colors uppercase tracking-wider",
 
   // Action Indicator (Arrow circle)
-  actionBtn: "absolute bottom-6 right-6 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75",
-  actionIcon: "w-5 h-5 text-gray-900",
+  actionBtn: "absolute bottom-6 right-6 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75",
+  actionIcon: "w-4 h-4 text-gray-900",
 
   // Prompt Pills
   promptContainer: "transition-all duration-300 mb-6",
