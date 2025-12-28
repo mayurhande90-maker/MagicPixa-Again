@@ -307,9 +307,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleDeductEditCredit = async () => { if(auth.user) { const u = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
     const handleClaimBonus = async () => { if (auth.user && milestoneBonus) { const u = await claimMilestoneBonus(auth.user.uid, milestoneBonus); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
 
-    const isValid = !!mainImage && !isLowCredits && (
+    // MANDATORY LOGIC ENFORCEMENT
+    const isRequirementMet = !!occasion && !!audience && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint));
+
+    const isValid = !!mainImage && !isLowCredits && isRequirementMet && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName && !!desc) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
     );
+    
     const getResultHeight = () => { if (aspectRatio === '9:16') return "h-[950px]"; if (aspectRatio === '4:5') return "h-[850px]"; return "h-[750px]"; };
     const { label: mainLabel, uploadText: mainText } = getImageLabels(industry);
     const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
