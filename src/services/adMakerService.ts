@@ -26,32 +26,35 @@ export interface Blueprint {
 }
 
 const RETAIL_BLUEPRINTS: Blueprint[] = [
-    { id: 'modern_studio', label: 'Modern Studio', desc: 'Clean white background, soft shadows.', prompt: 'High-end studio photography style, clean white background, soft diffused lighting, minimalist composition, commercial product focus.' },
-    { id: 'luxury_dark', label: 'Luxury Dark', desc: 'Black textures, gold accents.', prompt: 'Luxury dark mode aesthetic, matte black textures, elegant gold accents, dramatic rim lighting, premium sophisticated atmosphere.' },
-    { id: 'bold_urban', label: 'Bold Urban', desc: 'High contrast, street style.', prompt: 'Bold streetwear aesthetic, high contrast, concrete textures, strong shadows, energetic and edgy composition.' },
-    { id: 'pastel_pop', label: 'Pastel Pop', desc: 'Soft colors, playful geometry.', prompt: 'Playful pop art style, soft pastel background colors, geometric shapes, bright studio lighting, fun and youthful vibe.' },
-    { id: 'nature_organic', label: 'Nature/Organic', desc: 'Sunlight, leaves, wood textures.', prompt: 'Organic nature theme, natural sunlight, botanical shadows, wooden textures, earth tones, fresh and sustainable look.' }
+    { id: 'pro_studio', label: 'Pro Studio', desc: 'Standard professional studio look.', prompt: 'High-end studio photography style, clean grey/white background, soft diffused 3-point lighting, commercial product focus, high clarity.' },
+    { id: 'pure_white', label: 'Pure White', desc: 'Isolated on perfect white.', prompt: 'Isolated product on a solid pure #FFFFFF white background, high-key lighting, soft natural contact shadows only, extremely clean and minimalist.' },
+    { id: 'night_luxury', label: 'Night Luxury', desc: 'Premium dark aesthetic.', prompt: 'Luxury dark mode aesthetic, matte black textures, elegant gold or silver accents, dramatic rim lighting, premium sophisticated atmosphere.' },
+    { id: 'nature_vibe', label: 'Nature Vibe', desc: 'Earthy and organic feel.', prompt: 'Organic nature theme, natural sunlight dapples, botanical shadows, wooden textures, earth tones, fresh and sustainable look.' },
+    { id: 'street_style', label: 'Street Style', desc: 'Edgy urban environment.', prompt: 'Bold streetwear aesthetic, high contrast, concrete textures, strong shadows, energetic and edgy urban composition.' }
 ];
 
 const FOOD_BLUEPRINTS: Blueprint[] = [
-    { id: 'rustic_table', label: 'Rustic Table', desc: 'Wooden textures, warm lighting.', prompt: 'Rustic farm-to-table aesthetic, textured wooden surface, warm ambient lighting, fresh ingredients in background, cozy atmosphere.' },
-    { id: 'dark_moody', label: 'Dark Moody', desc: 'Slate backgrounds, spotlight.', prompt: 'Dark moody food photography, slate stone background, dramatic spotlight on the dish, rich shadows, high-end steakhouse vibe.' },
-    { id: 'bright_fresh', label: 'Bright & Fresh', desc: 'High-key lighting, white marble.', prompt: 'Bright and airy food photography, white marble surface, high-key lighting, fresh herbs, brunch aesthetic, clean and appetizing.' },
-    { id: 'neon_diner', label: 'Neon Diner', desc: 'Vibrant colors, hard shadows.', prompt: 'Retro diner aesthetic, vibrant neon colors, hard flash photography shadows, energetic fast-food vibe, bold and colorful.' }
+    { id: 'wooden_table', label: 'Wooden Table', desc: 'Rustic and earthy.', prompt: 'Rustic food photography, placed on a textured dark wooden table, warm ambient lighting, fresh ingredients scattered in background.' },
+    { id: 'bright_kitchen', label: 'Bright Kitchen', desc: 'Clean and morning-fresh.', prompt: 'Bright and airy kitchen setting, white marble or tile surfaces, natural morning sunlight, clean and appetizing presentation.' },
+    { id: 'moody_cafe', label: 'Moody Cafe', desc: 'Intimate cafe lighting.', prompt: 'Low-light cafe environment, warm tungsten glow, intimate atmosphere, soft bokeh of coffee shop interior in background.' },
+    { id: 'sunlit_window', label: 'Sunlit Window', desc: 'Dramatic natural shadows.', prompt: 'Food placed near a window, strong directional natural sunlight, long dramatic shadows, golden hour warmth, high-end editorial style.' },
+    { id: 'neon_diner', label: 'Neon Diner', desc: 'Vibrant and trendy.', prompt: 'Retro diner aesthetic, vibrant neon light reflections, hard flash photography, bold colors, energetic fast-food vibe.' }
 ];
 
 const REALTY_BLUEPRINTS: Blueprint[] = [
-    { id: 'bright_airy', label: 'Bright Airy', desc: 'Daylight, blue sky, open.', prompt: 'Bright and airy architectural photography, natural daylight, blue sky view, open windows, spacious and welcoming atmosphere.' },
-    { id: 'golden_hour', label: 'Golden Hour', desc: 'Warm sunset glow, long shadows.', prompt: 'Golden hour real estate photography, warm sunset light, long dramatic shadows, emotional and inviting glow, exterior curb appeal.' },
-    { id: 'twilight_luxury', label: 'Twilight Luxury', desc: 'Evening "Blue Hour", glowing lights.', prompt: 'Twilight "Blue Hour" photography, deep blue sky, interior lights glowing warm, luxurious and premium exterior shot, dramatic lighting.' },
-    { id: 'modern_clean', label: 'Modern Clean', desc: 'Architectural lines, desaturated.', prompt: 'Modern architectural style, clean lines, desaturated cool tones, sharp focus, professional portfolio look.' }
+    { id: 'daylight', label: 'Daylight', desc: 'Bright and airy.', prompt: 'Professional real estate photography in broad daylight, blue sky visible through windows, bright and spacious feel, high dynamic range.' },
+    { id: 'sunset_glow', label: 'Sunset Glow', desc: 'Warm and emotional.', prompt: 'Golden hour real estate photography, warm sunset light hitting surfaces, inviting long shadows, emotional and cozy residential glow.' },
+    { id: 'city_nights', label: 'City Nights', desc: 'Twilight luxury.', prompt: 'Blue hour twilight photography, deep blue sky, interior lights glowing warm through glass, luxurious and premium architectural lighting.' },
+    { id: 'clean_interior', label: 'Clean Interior', desc: 'Modern and minimalist.', prompt: 'Modern minimalist interior design style, clean lines, neutral desaturated tones, sharp focus, magazine-ready architectural shot.' },
+    { id: 'luxury_garden', label: 'Luxury Garden', desc: 'Outdoor and green.', prompt: 'Premium outdoor residential shot, lush green landscaping, clear pool or garden area, bright natural light, expensive exterior aesthetic.' }
 ];
 
 const PROFESSIONAL_BLUEPRINTS: Blueprint[] = [
-    { id: 'corporate_clean', label: 'Corporate Clean', desc: 'White/Blue palette, structured.', prompt: 'Corporate business aesthetic, clean white and blue color palette, structured grid layout, trustworthy and professional, banking/consulting vibe.' },
-    { id: 'dark_mode_tech', label: 'Dark Mode Tech', desc: 'Sleek dark interfaces, glowing.', prompt: 'Modern SaaS dark mode aesthetic, sleek dark gradients, glowing tech accents, futuristic interface elements, premium software vibe.' },
-    { id: 'warm_trust', label: 'Warm Trust', desc: 'Beige/Soft colors, approachable.', prompt: 'Warm and trustworthy professional style, beige and soft earth tones, human-centric, approachable and caring, healthcare/education vibe.' },
-    { id: 'minimalist_grey', label: 'Minimalist Grey', desc: 'Serious, legal/financial.', prompt: 'Minimalist professional aesthetic, shades of grey and white, serious and authoritative, legal or financial firm look, clean typography.' }
+    { id: 'modern_tech', label: 'Modern Tech', desc: 'Clean and structured.', prompt: 'Modern technology office aesthetic, clean white and blue color palette, structured layout, trustworthy and professional, SaaS software vibe.' },
+    { id: 'dark_mode', label: 'Dark Mode', desc: 'Sleek and futuristic.', prompt: 'Futuristic tech dark mode, sleek dark gradients, glowing blue or purple tech accents, professional interface environment, premium software look.' },
+    { id: 'warm_trust', label: 'Warm Trust', desc: 'Approachable and soft.', prompt: 'Approachable professional style, beige and soft earth tones, warm natural light, friendly and trustworthy atmosphere, service/healthcare vibe.' },
+    { id: 'clean_minimal', label: 'Clean Minimal', desc: 'Authoritative and simple.', prompt: 'Minimalist corporate aesthetic, shades of professional grey and white, serious and authoritative, clean high-end studio look.' },
+    { id: 'creative_flare', label: 'Creative Flare', desc: 'Artistic and bold.', prompt: 'Modern creative agency style, bold accent colors, artistic lighting, unique geometric background elements, energetic and innovative vibe.' }
 ];
 
 export const getBlueprintsForIndustry = (industry: string): Blueprint[] => {
@@ -104,7 +107,6 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
         layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced composition.`;
     }
 
-    // --- STRATEGIC INHERITANCE ---
     let inheritanceDirective = "";
     if (hasReference) {
         inheritanceDirective = `
@@ -116,7 +118,6 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
         `;
     }
 
-    // --- MANUAL STRATEGIC LAYOUT LOGIC ---
     let templateDirectives = "";
     if (!hasReference) {
         switch(inputs.layoutTemplate) {
