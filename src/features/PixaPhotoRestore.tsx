@@ -13,6 +13,32 @@ import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { RestoreStyles } from '../styles/features/PixaPhotoRestore.styles';
 
+const ColorRestoreIcon = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g fill="none">
+            <g clipPath="url(#SVGXv8lpc2Y)">
+                <path fill="#66e1ff" d="M23 12a10.8 10.8 0 0 1-.823 4.16l-8.848-3.624c.144-.35.14-.743-.01-1.09l8.83-3.703a11 11 0 0 1 .85 4.257"/>
+                <path fill="#c2f3ff" d="M22.178 16.16a10.92 10.92 0 0 1-5.93 5.979l-3.693-8.82a1.42 1.42 0 0 0 .775-.783z"/>
+                <path fill="#ff808c" d="M16.247 22.139a10.94 10.94 0 0 1-8.417.038l3.625-8.857c.171.076.357.117.545.115c.192.002.38-.039.555-.115z"/>
+                <path fill="#ffbfc5" d="m11.456 13.32l-3.625 8.857a11.04 11.04 0 0 1-5.978-5.93l8.828-3.692c.146.348.425.624.775.765"/>
+                <path fill="#78eb7b" d="M10.566 12c-.002.191.037.38.115.555l-8.829 3.692A11 11 0 0 1 1 12a10.8 10.8 0 0 1 .823-4.17l8.857 3.625a1.3 1.3 0 0 0-.114.545"/>
+                <path fill="#c9f7ca" d="M11.446 10.68c-.352.14-.63.42-.765.775L1.824 7.83a10.98 10.98 0 0 1 5.93-5.979z"/>
+                <path fill="#ffef5e" d="m16.162 1.823l-3.616 8.857a1.38 1.38 0 0 0-1.1 0L7.754 1.85A11 11 0 0 1 12 1.001a10.8 10.8 0 0 1 4.16.822"/>
+                <path fill="#fff9bf" d="m22.149 7.743l-8.829 3.702a1.38 1.38 0 0 0-.775-.765l3.616-8.857h.01a11.02 11.02 0 0 1 5.978 5.92"/>
+                <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M23 12a10.8 10.8 0 0 1-.823 4.16l-8.848-3.624c.144-.35.14-.743-.01-1.09l8.83-3.703a11 11 0 0 1 .85 4.257"/>
+                <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M22.178 16.16a10.92 10.92 0 0 1-5.93 5.979l-3.693-8.82a1.42 1.42 0 0 0 .775-.783zm-5.931 5.979a10.94 10.94 0 0 1-8.417.038l3.625-8.857c.171.076.357.117.545.115c.192.002.38-.039.555-.115z"/>
+                <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M1.852 16.247a11.04 11.04 0 0 0 5.979 5.93l3.625-8.857a1.4 1.4 0 0 1-.775-.765m-8.829 3.692l8.829-3.692m-8.829 3.692A11 11 0 0 1 1 12a10.8 10.8 0 0 1 .823-4.17m8.858 4.725a1.3 1.3 0 0 1-.115-.555a1.3 1.3 0 0 1 .114-.545M1.823 7.83l8.857 3.625M1.823 7.83a10.98 10.98 0 0 1 5.931-5.98m2.926 9.604c.136-.354.414-.635.766-.775m0 0L7.754 1.85m3.692 8.829c.35-.153.75-.153 1.1 0l3.616-8.857A10.8 10.8 0 0 0 12 1c-1.458 0-2.902.29-4.247.851"/>
+                <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="m22.149 7.743l-8.829 3.702a1.38 1.38 0 0 0-.775-.765l3.616-8.857h.01a11.02 11.02 0 0 1 5.978 5.92"/>
+            </g>
+            <defs>
+                <clipPath id="SVGXv8lpc2Y">
+                    <path fill="#fff" d="M0 0h24v24H0z"/>
+                </clipPath>
+            </defs>
+        </g>
+    </svg>
+);
+
 const ModeCard: React.FC<{ 
     title: string; 
     description: string; 
@@ -38,7 +64,7 @@ const ModeCard: React.FC<{
 
             {/* Glass Icon Container */}
             <div className={RestoreStyles.iconGlass}>
-                <div className={`${selected ? 'text-indigo-600 scale-110' : 'text-gray-400'} transition-all duration-300`}>
+                <div className={`${selected ? 'scale-110' : ''} transition-all duration-300 w-full h-full p-2 flex items-center justify-center`}>
                     {icon}
                 </div>
             </div>
@@ -177,7 +203,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                 <ModeCard 
                                     title="Colour & Restore" 
                                     description="Repairs damage + AI Colorization" 
-                                    icon={<PaletteIcon className="w-6 h-6"/>} 
+                                    icon={<ColorRestoreIcon className="w-full h-full"/>} 
                                     selected={restoreMode === 'restore_color'} 
                                     onClick={() => setRestoreMode('restore_color')} 
                                     variant="color"
@@ -185,7 +211,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                 <ModeCard 
                                     title="Restore Only" 
                                     description="Repairs damage while keeping original" 
-                                    icon={<MagicWandIcon className="w-6 h-6"/>} 
+                                    icon={<MagicWandIcon className="w-full h-full"/>} 
                                     selected={restoreMode === 'restore_only'} 
                                     onClick={() => setRestoreMode('restore_only')} 
                                     variant="restore"
