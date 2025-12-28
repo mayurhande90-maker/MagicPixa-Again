@@ -340,7 +340,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     
                                     <div className="mb-4 pb-4 border-b border-gray-100">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <SparklesIcon className="w-3 h-3 text-indigo-500" />
                                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Magic Overrides</span>
                                         </div>
                                         <div className="mb-4">
