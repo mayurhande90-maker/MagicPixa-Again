@@ -28,11 +28,44 @@ const ARCHETYPE_LIGHTING: Record<string, string> = {
 };
 
 const ENVIRONMENT_PHYSICS: Record<string, string> = {
-    'Studio Grey': 'Background: Infinite seamless matte grey paper (#808080). Physics: Light fall-off is gradual. No background distractions.',
-    'Modern Office': 'Background: Depth-of-field (f/1.8) blur of a glass-walled office. Physics: Specular highlights from overhead track lighting. Cool ambient light.',
-    'City Skyline': 'Background: Out-of-focus city bokeh at "Blue Hour" (twilight). Physics: Mixed lighting—Warm key light on face vs Cool ambient city light in background.',
-    'Library': 'Background: Blurred mahogany shelves and books. Physics: Warm tungsten practical lamps (2700K). Cozy, intellectual atmosphere.',
-    'Outdoor Garden': 'Background: Soft green foliage with sun flares (Golden Hour). Physics: Backlit by the sun (Hair light), soft bounce fill on the face.'
+    // STANDARD STUDIO
+    'Studio Photoshoot': 'Background: A professional photography studio with a clean, seamless solid backdrop in neutral grey or matte black. Physics: High-end studio strobe lighting with soft modifiers. Clean subject isolation.',
+    
+    // EXECUTIVE
+    'Modern Office': 'Background: Depth-of-field (f/1.8) blur of a high-end glass-walled office. Physics: Specular highlights from track lighting. Cool ambient light.',
+    'Meeting Room': 'Background: Blurred professional boardroom table and leather chairs. Physics: Soft overhead office lighting.',
+    'Building Lobby': 'Background: Large-scale architectural marble or glass lobby (blurred). Physics: Massive natural light from large windows.',
+    'Plain Studio': 'Background: Infinite seamless matte grey paper (#808080). Physics: Light fall-off is gradual. No distractions.',
+
+    // TECH
+    'Startup Office': 'Background: Casual open-plan tech office with colorful furniture and glass walls (blurred). Physics: Mixed natural and artificial light.',
+    'Server Room': 'Background: Futuristic server racks with glowing blue/green LED indicators (blurred). Physics: High-tech low-key lighting.',
+    'Cool Lounge': 'Background: Stylish co-working lounge with designer chairs and plants (blurred). Physics: Soft warm accent lighting.',
+    'City Street': 'Background: Out-of-focus modern city buildings at "Blue Hour". Physics: Cool ambient city light mixed with warm key light.',
+
+    // CREATIVE
+    'Art Studio': 'Background: Blurred workspace with canvases, easels, and creative tools. Physics: Natural north-facing window light.',
+    'Photo Gallery': 'Background: High-key white gallery walls with blurred artwork. Physics: Clean, bright exhibition lighting.',
+    'Modern Loft': 'Background: Home-office with exposed brick walls and large industrial windows (blurred). Physics: High-contrast daylight.',
+    'Green Garden': 'Background: Soft green foliage with sun flares (Golden Hour). Physics: Backlit by the sun (Hair light).',
+
+    // MEDICAL
+    'Clean Clinic': 'Background: Bright, sterile, and professional medical suite. Physics: Even, high-key clinical lighting.',
+    'Doctor\'s Room': 'Background: Private office with medical bookshelves and charts (blurred). Physics: Trustworthy, warm environment lighting.',
+    'Bright Studio': 'Background: Pure white seamless studio backdrop. Physics: Ultra-bright, high-clarity clinical white lighting.',
+    'Health Center': 'Background: Modern, welcoming wellness center with natural wood accents. Physics: Soft, calming natural light.',
+
+    // LEGAL
+    'Book Library': 'Background: Dark mahogany floor-to-ceiling bookshelves filled with leather-bound books. Physics: Warm, intellectual tungsten lighting.',
+    'Classic Boardroom': 'Background: Traditional boardroom with dark wood panels and leather furniture. Physics: Formal, authoritative lighting.',
+    'Formal Office': 'Background: Structured, high-end business room with a view of a financial district (blurred). Physics: Sharp, precise office lighting.',
+    'Courthouse': 'Background: Classical stone pillars or marble courthouse corridors (blurred). Physics: Grand, ambient light.',
+
+    // REALTOR
+    'Living Room': 'Background: High-end, comfortable luxury home interior. Physics: Warm, inviting residential lighting.',
+    'Modern Kitchen': 'Background: Bright, airy, and modern domestic kitchen. Physics: Clean natural daylight from large windows.',
+    'Outside House': 'Background: Blurred view of a manicured lawn and high-end home exterior. Physics: Outdoor natural daylight.',
+    'Nice Street': 'Background: Friendly, upscale residential tree-lined road. Physics: Vibrant, warm natural sunlight.'
 };
 
 /**
@@ -148,7 +181,7 @@ export const generateProfessionalHeadshot = async (
         const lightingPhysics = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
         const envPhysics = background === 'Custom' 
             ? `Background: "A professional cinematic environment". Physics: Realistic environmental lighting matching this scene.` 
-            : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Grey']);
+            : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Photoshoot']);
 
         // 2. Construct The Master Prompt
         let prompt = `

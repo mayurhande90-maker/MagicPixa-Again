@@ -47,13 +47,15 @@ const ARCHETYPES = [
     { id: 'Realtor', label: 'Realtor / Sales', icon: <RealtorSalesIcon className="w-12 h-12"/>, desc: 'Friendly Professional' }
 ];
 
-const BACKGROUNDS = [
-    { id: 'Studio Grey', label: 'Studio Grey' },
-    { id: 'Modern Office', label: 'Modern Office' },
-    { id: 'City Skyline', label: 'City Skyline' },
-    { id: 'Library', label: 'Library' },
-    { id: 'Outdoor Garden', label: 'Outdoor Garden' }
-];
+// DYNAMIC BACKGROUND MAPPING
+const PERSONA_BACKGROUNDS: Record<string, string[]> = {
+    'Executive': ['Studio Photoshoot', 'Modern Office', 'Meeting Room', 'Building Lobby', 'Plain Studio'],
+    'Tech': ['Studio Photoshoot', 'Startup Office', 'Server Room', 'Cool Lounge', 'City Street'],
+    'Creative': ['Studio Photoshoot', 'Art Studio', 'Photo Gallery', 'Modern Loft', 'Green Garden'],
+    'Medical': ['Studio Photoshoot', 'Clean Clinic', 'Doctor\'s Room', 'Bright Studio', 'Health Center'],
+    'Legal': ['Studio Photoshoot', 'Book Library', 'Classic Boardroom', 'Formal Office', 'Courthouse'],
+    'Realtor': ['Studio Photoshoot', 'Living Room', 'Modern Kitchen', 'Outside House', 'Nice Street']
+};
 
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +90,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
-    const [background, setBackground] = useState('');
+    const [background, setBackground] = useState('Studio Photoshoot');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     
     const [customDesc, setCustomDesc] = useState('');
@@ -109,6 +111,12 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     
     // Check if required uploads are present to enable other controls
     const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
+
+    // AUTO-CORRECTION: Reset background when persona changes
+    useEffect(() => {
+        setBackground('Studio Photoshoot');
+        setCustomBackgroundPrompt('');
+    }, [archetype]);
 
     useEffect(() => { let interval: any; if (loading) { const steps = ["Scanning facial biometrics...", "Applying professional lighting...", "Styling attire...", "Retouching skin texture...", "Finalizing headshot..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
@@ -188,6 +196,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
     const canGenerate = !!image && (mode === 'individual' || (mode === 'duo' && !!partnerImage)) && !!background && !isLowCredits;
+    const currentAvailableBackgrounds = PERSONA_BACKGROUNDS[archetype] || PERSONA_BACKGROUNDS['Executive'];
 
     return (
         <>
@@ -283,17 +292,17 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     </div>
                                 </div>
 
-                                {/* 3. Background Selector */}
+                                {/* 3. Background Selector (DYNAMIC) */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3 px-1"><LocationIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Location</label></div>
                                     <div className="flex flex-wrap gap-2">
-                                        {BACKGROUNDS.map((bg) => (
+                                        {currentAvailableBackgrounds.map((bg) => (
                                             <button 
-                                                key={bg.id}
-                                                onClick={() => setBackground(bg.id)}
-                                                className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${background === bg.id ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                                                key={bg}
+                                                onClick={() => setBackground(bg)}
+                                                className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${background === bg ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
                                             >
-                                                {bg.label}
+                                                {bg}
                                             </button>
                                         ))}
                                         <button 
