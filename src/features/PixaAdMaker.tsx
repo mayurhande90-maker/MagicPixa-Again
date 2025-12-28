@@ -318,6 +318,27 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {hasBrandProducts && (<div className="mb-5"><CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-6 h-6 text-indigo-500"/>} optional={true} heightClass="h-24" /></div>)}
                                     </div>
 
+                                    {/* NEW PLACEMENT: STYLE REFERENCE */}
+                                    <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50 mb-5">
+                                        <CompactUpload 
+                                            label="Style Reference (Optional)" 
+                                            uploadText="Upload Style Goal" 
+                                            image={referenceImage} 
+                                            onUpload={handleRefUpload} 
+                                            onClear={handleClearRef} 
+                                            icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} 
+                                            heightClass="h-28" 
+                                            optional={true} 
+                                            isScanning={isRefScanning} 
+                                        />
+                                        {refAnalysisDone && (
+                                            <div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn">
+                                                <CheckIcon className="w-3 h-3" />
+                                                <span>Style Locked! AI will inherit aesthetic and layout from this image.</span>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* SECTION 2: CAMPAIGN STRATEGY */}
                                     <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50">
                                         <div className={AdMakerStyles.sectionHeader}>
@@ -330,34 +351,29 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className="space-y-4">
                                             <SelectionGrid label="1. Selection Occasion" options={OCCASIONS} value={occasion} onChange={setOccasion} />
                                             <SelectionGrid label="2. Target Audience" options={AUDIENCES} value={audience} onChange={setAudience} />
-                                            <SelectionGrid label="3. Layout Template" options={LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setLayoutTemplate} />
+                                            {!referenceImage && (
+                                                <SelectionGrid label="3. Layout Template" options={LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setLayoutTemplate} />
+                                            )}
                                         </div>
                                     </div>
 
                                     {/* SECTION 3: AESTHETIC DESIGN (PRIORITY LOGIC APPLIED) */}
-                                    <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50">
-                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Aesthetic Design</label></div>
-                                        
-                                        <div className="mb-4">
-                                            <CompactUpload label="Style Reference (Master Priority)" uploadText="Upload Style Goal" image={referenceImage} onUpload={handleRefUpload} onClear={handleClearRef} icon={<CloudUploadIcon className="w-6 h-6 text-pink-500"/>} heightClass="h-28" optional={true} isScanning={isRefScanning} />
-                                            {refAnalysisDone && (<div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 animate-fadeIn"><CheckIcon className="w-3 h-3" /><span>Style Locked! Reference image takes priority over blueprints.</span></div>)}
-                                        </div>
-
-                                        {/* Blueprints: Hidden if Style Ref is uploaded */}
-                                        {!referenceImage && (
+                                    {!referenceImage && (
+                                        <div className="bg-white/40 p-4 rounded-3xl border border-gray-100/50 animate-fadeIn">
+                                            <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Aesthetic Design</label></div>
+                                            
                                             <div className="animate-fadeIn">
                                                 <div className="flex items-center justify-between mb-2 px-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Choose a Visual Blueprint</label>{selectedBlueprint && (<button onClick={() => setSelectedBlueprint(null)} className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors">Clear</button>)}</div>
                                                 <div className={AdMakerStyles.blueprintGrid}>{currentBlueprints.map(bp => (<button key={bp.id} onClick={() => setSelectedBlueprint(bp.id)} className={`${AdMakerStyles.blueprintCard} ${selectedBlueprint === bp.id ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}><div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center"><BlueprintStarIcon className="w-5 h-5" /> </div><span className={`${AdMakerStyles.blueprintLabel} ${selectedBlueprint === bp.id ? 'text-indigo-700' : 'text-gray-600'}`}>{bp.label}</span>{selectedBlueprint === bp.id && (<div className={AdMakerStyles.blueprintCheck}><CheckIcon className="w-3 h-3"/></div>)}</button>))}</div>
                                             </div>
-                                        )}
 
-                                        {/* Vibe: Only if neither Ref nor Blueprint is active */}
-                                        {!referenceImage && !selectedBlueprint && (
-                                            <div className="mt-6 pt-4 border-t border-gray-100 animate-fadeIn">
-                                                <SelectionGrid label={industry === 'food' ? "Taste Vibe" : "Campaign Vibe"} options={activeToneOptions} value={tone} onChange={setTone} />
-                                            </div>
-                                        )}
-                                    </div>
+                                            {!selectedBlueprint && (
+                                                <div className="mt-6 pt-4 border-t border-gray-100 animate-fadeIn">
+                                                    <SelectionGrid label={industry === 'food' ? "Taste Vibe" : "Campaign Vibe"} options={activeToneOptions} value={tone} onChange={setTone} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* SECTION 4: SMART DETAILS */}
                                     <div>
