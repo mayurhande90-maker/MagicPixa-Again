@@ -431,43 +431,61 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                     {/* SECTION 1: VISUAL ASSETS */}
                                     <div>
-                                        <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>1</span><label className={AdMakerStyles.sectionTitle}>Visual Assets</label></div>
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>1</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Visual Assets</label>
+                                            {isRangeMode && (
+                                                <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 rounded-full animate-fadeIn border border-green-200 shadow-sm">
+                                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest">Collection Mode Active</span>
+                                                </div>
+                                            )}
+                                        </div>
                                         
                                         {hasBrandProducts ? (
                                             <div className="mb-5 animate-fadeIn">
+                                                <div className="flex justify-between items-center mb-1.5 px-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{mainLabel}</label>
+                                                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 flex items-center gap-1">
+                                                        <InformationCircleIcon className="w-2.5 h-2.5" /> Select up to 3 for Collection Mode
+                                                    </span>
+                                                </div>
                                                 <SmartProductShelf 
                                                     activeBrand={auth.activeBrandKit} 
                                                     selectedImageUrls={mainImages.map(m => m.url)} 
                                                     onSelect={handleInventorySelect} 
                                                     onUpload={(e) => handleUploadMain(e, mainImages.length)} 
-                                                    label={mainLabel} 
+                                                    label="" 
                                                     isProcessing={isFetchingProduct}
                                                     maxSelections={3}
                                                 />
-                                                {isRangeMode && (
-                                                    <p className="text-[9px] text-indigo-500 font-black mt-2 ml-1 uppercase tracking-widest flex items-center gap-1 animate-fadeIn">
-                                                        <SparklesIcon className="w-3 h-3"/> Range Detected: {mainImages.length} Products
-                                                    </p>
-                                                )}
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-3 gap-3 mb-5">
-                                                {[0, 1, 2].map(slot => (
-                                                    <CompactUpload 
-                                                        key={slot}
-                                                        label={slot === 0 ? "Hero Asset" : slot === 1 ? "Asset 2" : "Asset 3"} 
-                                                        uploadText={slot === 0 ? "Upload" : "Add"}
-                                                        image={mainImages[slot] || null} 
-                                                        onUpload={(e) => handleUploadMain(e, slot)} 
-                                                        onClear={() => {
-                                                            const next = mainImages.filter((_, i) => i !== slot);
-                                                            setMainImages(next);
-                                                            if (next.length <= 1 && COLLECTION_TEMPLATES.includes(layoutTemplate)) setTemplate('');
-                                                        }} 
-                                                        icon={slot === 0 ? <CloudUploadIcon className="w-4 h-4 text-indigo-500"/> : <PlusIcon className="w-4 h-4 text-gray-400"/>} 
-                                                        heightClass="h-28" 
-                                                    />
-                                                ))}
+                                            <div className="mb-5">
+                                                <div className="flex justify-between items-center mb-1.5 px-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{mainLabel}</label>
+                                                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 flex items-center gap-1">
+                                                        <InformationCircleIcon className="w-2.5 h-2.5" /> Upload up to 3 for Collection Mode
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {[0, 1, 2].map(slot => (
+                                                        <CompactUpload 
+                                                            key={slot}
+                                                            label={slot === 0 ? "Hero Asset" : slot === 1 ? "Asset 2" : "Asset 3"} 
+                                                            uploadText={slot === 0 ? "Upload" : "Add"}
+                                                            image={mainImages[slot] || null} 
+                                                            onUpload={(e) => handleUploadMain(e, slot)} 
+                                                            onClear={() => {
+                                                                const next = mainImages.filter((_, i) => i !== slot);
+                                                                setMainImages(next);
+                                                                if (next.length <= 1 && COLLECTION_TEMPLATES.includes(layoutTemplate)) setTemplate('');
+                                                            }} 
+                                                            icon={slot === 0 ? <CloudUploadIcon className="w-4 h-4 text-indigo-500"/> : <PlusIcon className="w-4 h-4 text-gray-400"/>} 
+                                                            heightClass="h-28" 
+                                                        />
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                         
