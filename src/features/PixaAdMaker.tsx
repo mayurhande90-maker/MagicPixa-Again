@@ -33,7 +33,7 @@ const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
 // --- CONFIGURATION FOR INDUSTRY DISPLAY ---
 const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
     'ecommerce': { label: 'E-Commerce', icon: EcommerceAdIcon, color: 'text-blue-600', bg: 'bg-blue-50/50', border: 'border-blue-200' },
-    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-green-50/50', border: 'border-green-200' },
+    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-blue-50/50', border: 'border-green-200' },
     'fashion': { label: 'Fashion', icon: ApparelIcon, color: 'text-pink-500', bg: 'bg-pink-50/50', border: 'border-pink-200' },
     'realty': { label: 'Real Estate', icon: RealtyAdIcon, color: 'text-purple-600', bg: 'bg-purple-50/50', border: 'border-purple-200' },
     'food': { label: 'Food & Dining', icon: FoodIcon, color: 'text-orange-600', bg: 'bg-orange-50/50', border: 'border-orange-200' },
@@ -366,7 +366,7 @@ const SmartProductShelf: React.FC<{
                             <img src={p.imageUrl} className={AdMakerStyles.shelfImage} alt={p.name} />
                             {isSelected && (
                                 <div className={AdMakerStyles.shelfCheck}>
-                                    CheckIcon className="w-2.5 h-2.5" />
+                                    <CheckIcon className="w-2.5 h-2.5" />
                                 </div>
                             )}
                         </div>
@@ -458,7 +458,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 console.log(`[AdMaker] Auto-switched to ${mapped} based on Brand Identity.`);
             }
         }
-    }, [auth.activeBrandKit?.id]); // Watch specifically for brand ID changes
+    }, [auth.activeBrandKit?.id, auth.activeBrandKit?.industry]); // Watch specifically for brand identity changes
 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
