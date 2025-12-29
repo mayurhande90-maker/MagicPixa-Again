@@ -640,21 +640,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e:any) => setConfig(e.target.value)} />
                                                 <div className="col-span-1 mb-6">
                                                     <label className={FeatureStyles.inputLabel}>Property Features</label>
-                                                    <div className="flex gap-2">
-                                                        <input 
-                                                            className={FeatureStyles.inputField} 
-                                                            placeholder="e.g. Sea View, Gym..." 
-                                                            value={currentFeature} 
-                                                            onChange={handleTagChange} 
-                                                            onKeyDown={handleTagKeyDown} 
-                                                        />
-                                                        <button 
-                                                            onClick={addFeature} 
-                                                            className="bg-indigo-600 text-white p-2.5 rounded-2xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm flex items-center justify-center shrink-0 h-[44px] w-[44px]"
-                                                        >
-                                                            <PlusIcon className="w-3.5 h-3.5"/>
-                                                        </button>
-                                                    </div>
+                                                    <input 
+                                                        className={FeatureStyles.inputField} 
+                                                        placeholder="e.g. Sea View, Gym..." 
+                                                        value={currentFeature} 
+                                                        onChange={handleTagChange} 
+                                                        onKeyDown={handleTagKeyDown} 
+                                                    />
                                                     <p className="text-[9px] text-gray-400 mt-1 italic ml-1">Press Enter or use a Comma to add features</p>
                                                     <div className="flex flex-wrap gap-1.5 mt-3">
                                                         {features.map((f, i) => (
