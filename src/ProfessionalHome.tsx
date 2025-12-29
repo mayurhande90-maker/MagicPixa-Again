@@ -1,10 +1,12 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon, ArrowRightIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, CampaignStudioIcon, LightningIcon, CubeIcon, GlobeIcon, ChartBarIcon
+  SparklesIcon, PixaProductIcon, MagicAdsIcon, 
+  PixaHeadshotIcon, PixaCaptionIcon, 
+  PixaInteriorIcon, PixaMockupIcon, 
+  ArrowRightIcon, GlobeIcon, CubeIcon, ShieldCheckIcon
 } from './components/icons';
 import { ProfessionalHomeStyles as styles } from './styles/ProfessionalHome.styles';
 
@@ -15,82 +17,91 @@ interface ProfessionalHomePageProps {
 }
 
 const SHOWREEL_IMAGES = [
-    { label: "Elite Product Shots", url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop" },
-    { label: "Executive Headshots", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" },
-    { label: "Commerce Lifestyle", url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop" },
-    { label: "Interior Spaces", url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" },
-    { label: "Physical Mockups", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop" },
-    { label: "Campaign Strategy", url: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?q=80&w=2070&auto=format&fit=crop" }
+    { label: "Elite Product Shots", url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop", span: "md:col-span-2 md:row-span-2" },
+    { label: "Executive Headshots", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop", span: "md:col-span-1 md:row-span-1" },
+    { label: "Luxury Interiors", url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop", span: "md:col-span-1 md:row-span-2" },
+    { label: "High-CTR Thumbnails", url: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?q=80&w=2070&auto=format&fit=crop", span: "md:col-span-1 md:row-span-1" },
+    { label: "Pro Mockups", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop", span: "md:col-span-2 md:row-span-1" },
 ];
 
-const DEPARTMENTS = [
+const BENTO_FEATURES = [
     {
-        title: "Production Dept.",
-        icon: <PixaProductIcon className="w-7 h-7" />,
-        colSpan: "lg:col-span-4",
-        features: [
-            { id: 'studio', name: 'Elite Product Shots', desc: 'Studio-Grade Optics' },
-            { id: 'headshot', name: 'Executive Headshots', desc: 'Identity Cloning' },
-            { id: 'colour', name: 'Archive Restore', desc: 'Forensic Repair' }
-        ]
+        id: 'studio',
+        title: "Product Studio",
+        desc: "Professional photography, instantly.",
+        icon: <PixaProductIcon className="w-10 h-10" />,
+        size: "lg", // 2x2
+        color: "blue"
     },
     {
-        title: "Marketing Dept.",
-        icon: <MagicAdsIcon className="w-7 h-7" />,
-        colSpan: "lg:col-span-4",
-        features: [
-            { id: 'brand_stylist', name: 'Pixa AdMaker', desc: 'Conversion Engineering' },
-            { id: 'brand_kit', name: 'Ecommerce Packs', desc: 'Listing Automation' },
-            { id: 'thumbnail_studio', name: 'Thumbnail Pro', desc: 'CTR Optimization' }
-        ]
+        id: 'brand_stylist',
+        title: "AdMaker",
+        desc: "Convert at scale.",
+        icon: <MagicAdsIcon className="w-10 h-10" />,
+        size: "lg",
+        color: "indigo"
     },
     {
-        title: "Strategy & Design",
-        icon: <CampaignStudioIcon className="w-7 h-7" />,
-        colSpan: "lg:col-span-4",
-        features: [
-            { id: 'campaign_studio', name: 'Campaign Studio', desc: 'Annual Content Engine' },
-            { id: 'interior', name: 'Interior Design', desc: 'Spatial Visualization' },
-            { id: 'mockup', name: 'Pixa Mockups', desc: 'Physical Prototyping' }
-        ]
+        id: 'headshot',
+        title: "Headshot Pro",
+        desc: "Executive grade.",
+        icon: <PixaHeadshotIcon className="w-6 h-6" />,
+        size: "sm", // 1x1
+        color: "purple"
+    },
+    {
+        id: 'caption',
+        title: "Caption AI",
+        desc: "Viral Copy.",
+        icon: <PixaCaptionIcon className="w-6 h-6" />,
+        size: "sm",
+        color: "teal"
+    },
+    {
+        id: 'interior',
+        title: "Spatial Design",
+        desc: "Reimagine rooms.",
+        icon: <PixaInteriorIcon className="w-10 h-10" />,
+        size: "md", // 2x1
+        color: "amber"
+    },
+    {
+        id: 'mockup',
+        title: "Mockup Engine",
+        desc: "Physical proofs.",
+        icon: <PixaMockupIcon className="w-6 h-6" />,
+        size: "sm",
+        color: "rose"
     }
 ];
 
-const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, auth, appConfig }) => {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
+const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, auth }) => {
   return (
     <div className={styles.main}>
       <Header navigateTo={navigateTo} auth={auth} />
       
-      {/* LUXURY BACKGROUND LAYERS */}
+      {/* BACKGROUND DECORATION */}
       <div className={styles.meshGradient}></div>
       <div className={styles.grainTexture}></div>
 
-      <main className="relative">
+      <main className="relative z-10">
         
-        {/* HERO SECTION: THE MISSION CONTROL */}
+        {/* HERO SECTION */}
         <section className={styles.heroWrapper}>
             <div className={styles.heroContainer}>
                 <div className={styles.heroBadge}>
-                    <SparklesIcon className="w-3 h-3 animate-pulse" />
-                    <span>Generative Creative Agency for Scale</span>
+                    <SparklesIcon className="w-3 h-3 text-indigo-600" />
+                    <span>The Production Standard for Generative Design</span>
                 </div>
                 
                 <h1 className={styles.heroTitle}>
-                    High-End Design <br/>
-                    <span className="text-indigo-600">at Infinite Scale.</span>
+                    Unleash Your <br/>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">Creative Agency.</span>
                 </h1>
                 
                 <p className={styles.heroSubtitle}>
-                    Pixa replaces weeks of photography and design delay with an instant generative production engine. 
-                    Commercial-grade visuals engineered for founders who value ROI over retainers.
+                    From professional product shots to full-scale marketing campaigns. 
+                    MagicPixa delivers world-class visual assets in seconds. No prompt required.
                 </p>
 
                 <div className={styles.heroActionGroup}>
@@ -98,112 +109,63 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
                         className={styles.primaryButton}
                     >
-                        <span className="relative z-10 flex items-center gap-3 font-black">
-                          Enter The Studio (50 Free Credits) <ArrowRightIcon className="w-5 h-5"/>
-                        </span>
+                        Create with Pixa
+                        <ArrowRightIcon className="w-5 h-5 ml-2"/>
                         <div className={styles.buttonGlow}></div>
                     </button>
                     <button 
-                        onClick={() => navigateTo('home', undefined, 'showreel')}
+                        onClick={() => auth.isAuthenticated ? navigateTo('dashboard', 'billing') : auth.openAuthModal()}
                         className={styles.secondaryButton}
                     >
-                        View Showreel
+                        View Pricing
                     </button>
                 </div>
             </div>
 
-            {/* VISUAL SHOWREEL: THE PROOF */}
-            <div id="showreel" className={styles.showreelGrid}>
-                {SHOWREEL_IMAGES.map((img, i) => (
-                    <div key={i} className={styles.showreelItem} style={{ animationDelay: `${i * 100}ms` }}>
-                        <img src={img.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={img.label} />
-                        <div className={styles.showreelLabel}>{img.label}</div>
-                    </div>
-                ))}
-            </div>
-        </section>
-
-        {/* COMPARISON: THE ROI ENGINE */}
-        <section className={styles.sectionPadding}>
-            <div className={styles.contentWrapper}>
-                <div className="text-center mb-20">
-                    <h2 className={styles.sectionTitle}>Commercial Audit.</h2>
-                    <p className={styles.sectionSubtitle}>Why wait for designers to finish their morning coffee when Pixa is already rendering your entire campaign?</p>
-                </div>
-
-                <div className={styles.comparisonTable}>
-                    <div className={styles.compRow}>
-                        <div className={styles.compCell + " border-r border-slate-100"}>
-                            <span className={styles.compHeader}>Old-School Agency</span>
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-end border-b border-slate-100 pb-3">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Turnaround</p>
-                                    <p className="text-lg font-black text-rose-500 italic">48-72 Hours</p>
-                                </div>
-                                <div className="flex justify-between items-end border-b border-slate-100 pb-3">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost / Asset</p>
-                                    <p className="text-lg font-black text-rose-500 italic">₹2,500+</p>
-                                </div>
-                                <div className="flex justify-between items-end">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Process</p>
-                                    <p className="text-sm font-bold text-slate-600">Manual Feedback Loops</p>
-                                </div>
+            {/* MASONRY SHOWCASE WALL */}
+            <div className={styles.masonryContainer}>
+                <div className={styles.masonryGrid}>
+                    {SHOWREEL_IMAGES.map((img, i) => (
+                        <div key={i} className={`${img.span} ${styles.masonryItem}`}>
+                            <img src={img.url} className="w-full h-full object-cover" alt={img.label} />
+                            <div className={styles.masonryOverlay}>
+                                <span className="text-[10px] font-black uppercase tracking-widest">{img.label}</span>
                             </div>
                         </div>
-                        <div className={styles.compCell + " bg-indigo-50/20"}>
-                            <span className={styles.compHeader + " text-indigo-600"}>Pixa Generative Engine</span>
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-end border-b border-indigo-100/50 pb-3">
-                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Turnaround</p>
-                                    <p className="text-xl font-black text-indigo-600 tracking-tighter">10 Seconds</p>
-                                </div>
-                                <div className="flex justify-between items-end border-b border-indigo-100/50 pb-3">
-                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Cost / Asset</p>
-                                    <p className="text-xl font-black text-indigo-600 tracking-tighter">₹10</p>
-                                </div>
-                                <div className="flex justify-between items-end">
-                                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Process</p>
-                                    <p className="text-sm font-bold text-indigo-900 flex items-center gap-1"><LightningIcon className="w-3 h-3"/> 1-Click Production</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
         </section>
 
-        {/* BENTO DEPARTMENTS: THE CAPABILITIES */}
+        {/* BENTO GRID: TOOLS */}
         <section className={styles.sectionPadding}>
             <div className={styles.contentWrapper}>
-                <div className="text-center mb-24">
-                    <h2 className={styles.sectionTitle}>Creative Departments.</h2>
-                    <p className={styles.sectionSubtitle}>A full-stack design department living inside your dashboard, optimized for 2025 performance standards.</p>
+                <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+                    <div className="max-w-2xl text-left">
+                        <h2 className={styles.sectionTitle}>Engineered for Impact.</h2>
+                        <p className={styles.sectionSubtitle}>Every tool is architected to deliver high-converting, professional results for founders and agencies.</p>
+                    </div>
+                    <button onClick={() => navigateTo('dashboard', 'dashboard')} className="group flex items-center gap-2 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-all">
+                        Launch All Tools <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </div>
 
                 <div className={styles.bentoGrid}>
-                    {DEPARTMENTS.map((dept, i) => (
-                        <div key={i} className={`${dept.colSpan} ${styles.glassCard} p-10`}>
-                            <div className={styles.deptHeader}>
-                                <div className={styles.deptIcon}>{dept.icon}</div>
-                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{dept.title}</h3>
+                    {BENTO_FEATURES.map((feature, i) => (
+                        <div 
+                            key={i} 
+                            onClick={() => navigateTo('dashboard', feature.id as View)}
+                            className={`${styles.bentoCard} ${feature.size === 'lg' ? styles.bentoLg : feature.size === 'md' ? styles.bentoMd : styles.bentoSm}`}
+                        >
+                            <div className={`${styles.bentoIconBox} ${feature.color === 'blue' ? 'bg-blue-50 text-blue-600' : feature.color === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-50 text-gray-600'}`}>
+                                {feature.icon}
                             </div>
-                            
-                            <div className={styles.featureList}>
-                                {dept.features.map(f => (
-                                    <button 
-                                        key={f.id}
-                                        onClick={() => navigateTo('dashboard', f.id as View)}
-                                        className={styles.featureItem}
-                                    >
-                                        <div className="text-left">
-                                            <p className={styles.featureName}>{f.name}</p>
-                                            <p className={styles.featureDesc}>{f.desc}</p>
-                                        </div>
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-50 opacity-0 group-hover/item:opacity-100 transition-all">
-                                            <ArrowRightIcon className="w-4 h-4 text-indigo-600" />
-                                        </div>
-                                    </button>
-                                ))}
+                            <div className="mt-auto text-left">
+                                <h3 className="text-xl font-black text-slate-900 tracking-tight">{feature.title}</h3>
+                                <p className="text-sm font-medium text-slate-500 mt-1">{feature.desc}</p>
+                            </div>
+                            <div className={styles.bentoArrow}>
+                                <ArrowRightIcon className="w-4 h-4" />
                             </div>
                         </div>
                     ))}
@@ -211,45 +173,45 @@ const ProfessionalHome: React.FC<ProfessionalHomePageProps> = ({ navigateTo, aut
             </div>
         </section>
 
-        {/* PERSOANAS: BUILT FOR SHAKERS */}
+        {/* TRUST/PHYSICS SECTION */}
         <section className={styles.sectionPadding}>
             <div className={styles.contentWrapper}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                     {[
-                        { title: "Founders", hook: "Time to Market.", desc: "Save ₹50,000+ on design retainers. Launch with world-class visuals from raw smartphone prototype photos.", icon: <LightningIcon className="w-6 h-6"/> },
-                        { title: "Agencies", hook: "Capacity Unlocked.", desc: "White-label quality for a fraction of the cost. Handle 5x more clients without hiring more creative staff.", icon: <BuildingIcon className="w-6 h-6"/> },
-                        { title: "Marketers", hook: "Performance First.", desc: "Automate the tedious 48-hour design cycle. Focus on strategy and ROAS, not clicking pen tools.", icon: <ChartBarIcon className="w-6 h-6"/> }
+                        { title: "Physical Realism", icon: <CubeIcon className="w-6 h-6"/>, desc: "Pixa understands material physics. Light interacts with glass, metal, and fabric exactly as it does in a studio." },
+                        { title: "Identity Lock", icon: <ShieldCheckIcon className="w-6 h-6"/>, desc: "Our proprietary forensic anchor ensures your product's labels and faces remain 100% accurate." },
+                        { title: "Global Context", icon: <GlobeIcon className="w-6 h-6"/>, desc: "Smart research agents analyze regional trends to ensure your ads resonate with local audiences." }
                     ].map((p, i) => (
-                        <div key={i} className={styles.glassCard + " p-12 text-center"}>
-                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-8 mx-auto shadow-inner text-slate-400 group-hover:text-indigo-600 transition-colors">
+                        <div key={i} className="flex flex-col items-start gap-6 group text-left">
+                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-gray-100 group-hover:scale-110 group-hover:border-indigo-200 transition-all text-indigo-600">
                                 {p.icon}
                             </div>
-                            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">{p.title}</h3>
-                            <p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest mb-6">{p.hook}</p>
-                            <p className="text-sm text-slate-500 leading-relaxed font-medium">{p.desc}</p>
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900 mb-3">{p.title}</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed font-medium">{p.desc}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
             </div>
         </section>
 
-        {/* FINAL CTA: THE CALL TO SCALE */}
-        <section className="py-48 px-4 text-center relative overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-full bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        {/* FINAL CTA */}
+        <section className="py-48 px-4 text-center relative overflow-hidden bg-white">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-full bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="max-w-3xl mx-auto relative z-10">
                 <h2 className="text-5xl md:text-[84px] font-black mb-12 tracking-tighter text-slate-950 leading-[0.9]">
                     Upgrade your <br/> production.
                 </h2>
                 <button 
                     onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                    className={styles.primaryButton}
+                    className={styles.primaryButton + " mx-auto"}
                 >
-                    <span className="relative z-10 flex items-center gap-3 font-black">
-                      Start Your Campaign Today <ArrowRightIcon className="w-5 h-5"/>
-                    </span>
+                    Get Started for Free
+                    <ArrowRightIcon className="w-5 h-5 ml-2"/>
                     <div className={styles.buttonGlow}></div>
                 </button>
-                <p className="mt-10 text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">No Retainers • No Contracts • Just Magic</p>
+                <p className="mt-10 text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">One-Click Production • Pro Quality • Zero Delay</p>
             </div>
         </section>
 
