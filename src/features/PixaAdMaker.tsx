@@ -217,8 +217,8 @@ const SmartProductShelf: React.FC<{ activeBrand: BrandKit | null; selectedImageU
 
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [industry, setIndustry] = useState<'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services' | null>(null);
-    const [visualFocus, setVisualFocus] = useState<'product' | 'lifestyle' | 'conceptual'>('product');
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
+    const [visualFocus, setVisualFocus] = useState<'product' | 'lifestyle' | 'conceptual' | null>(null);
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | null>(null);
     
     // Support for multiple images - Range mode is automatically detected
     const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
@@ -450,7 +450,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setLoadingText("Initializing Intelligent Production...");
         try {
             const inputs: AdMakerInputs = { 
-                industry, visualFocus, aspectRatio, mainImages: mainImages.map(m => m.base64), logoImage: logoImage?.base64, 
+                industry, visualFocus: visualFocus || undefined, aspectRatio: aspectRatio || undefined, mainImages: mainImages.map(m => m.base64), logoImage: logoImage?.base64, 
                 blueprintId: selectedBlueprint || undefined, 
                 productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
                 occasion, 
@@ -487,7 +487,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleNewSession = () => { 
-        setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setCustomAudience(''); setTemplate(''); setLastCreationId(null); 
+        setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setCustomAudience(''); setTemplate(''); setLastCreationId(null); 
         // Reset Model States
         setModelSource(null); setModelImage(null); setAiGender(''); setAiEthnicity(''); setAiSkinTone(''); setAiBodyType('');
     };
@@ -504,7 +504,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const isRequirementMet = !!occasion && !!audience && (audience === '+ Custom' ? !!customAudience : true) && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint)) && isModelRequirementMet;
 
-    const isValid = mainImages.length > 0 && !isLowCredits && isRequirementMet && (
+    const isValid = mainImages.length > 0 && !isLowCredits && isRequirementMet && !!aspectRatio && !!visualFocus && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName && !!desc) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
     );
     
@@ -746,7 +746,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                                                 <InputField label="Project Name" placeholder="e.g. Skyline Towers" value={project} onChange={(e:any) => setProject(e.target.value)} />
                                                 <InputField label="Location" placeholder="e.g. Pune" value={location} onChange={(e:any) => setLocation(e.target.value)} />
-                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e:any) => setConfig(e.target.value)} />
+                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e) => setConfig(e.target.value)} />
                                                 <div className="col-span-1 mb-6">
                                                     <label className={FeatureStyles.inputLabel}>Property Features</label>
                                                     <input 
