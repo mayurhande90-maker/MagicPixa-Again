@@ -120,7 +120,7 @@ export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = ''
         <img 
             src="https://lh3.googleusercontent.com/u/0/d/15gbFAltiH5h4GrVbWwoBDyK9c1Ex-UcV" 
             alt="MagicPixa" 
-            className="h-8 md:h-9 w-auto block object-contain"
+            className="h-12 md:h-16 w-auto block object-contain"
         />
     </div>
 );
