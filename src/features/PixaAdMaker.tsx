@@ -14,6 +14,7 @@ import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
+import { FeatureStyles } from '../styles/FeatureLayout.styles.ts';
 
 // --- HELPERS ---
 const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
@@ -634,26 +635,27 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                         ) : industry === 'realty' ? (
                                             <div className="grid grid-cols-2 gap-3 animate-fadeIn">
-                                                <InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} />
-                                                <InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} />
-                                                <InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} />
-                                                <div className="col-span-1">
-                                                    <label className="text-[9px] font-medium text-gray-500 mb-1.5 block ml-1 italic">Press Enter or use a Comma to add features</label>
+                                                <InputField label="Project Name" placeholder="e.g. Skyline Towers" value={project} onChange={(e:any) => setProject(e.target.value)} />
+                                                <InputField label="Location" placeholder="e.g. Pune" value={location} onChange={(e:any) => setLocation(e.target.value)} />
+                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e:any) => setConfig(e.target.value)} />
+                                                <div className="col-span-1 mb-6">
+                                                    <label className={FeatureStyles.inputLabel}>Property Features</label>
                                                     <div className="flex gap-2">
                                                         <input 
-                                                            className="flex-1 text-[clamp(11px,1.5vh,13px)] px-3 py-2 bg-white border-2 border-gray-100 hover:border-gray-200 focus:border-indigo-500 rounded-xl outline-none transition-all font-medium text-gray-800 placeholder-gray-300" 
-                                                            placeholder="e.g. Sea View, Gym, Parking..." 
+                                                            className={FeatureStyles.inputField} 
+                                                            placeholder="e.g. Sea View, Gym..." 
                                                             value={currentFeature} 
                                                             onChange={handleTagChange} 
                                                             onKeyDown={handleTagKeyDown} 
                                                         />
                                                         <button 
                                                             onClick={addFeature} 
-                                                            className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm"
+                                                            className="bg-indigo-600 text-white px-4 py-3 rounded-2xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm"
                                                         >
                                                             <PlusIcon className="w-4 h-4"/>
                                                         </button>
                                                     </div>
+                                                    <p className="text-[9px] text-gray-400 mt-1 italic ml-1">Press Enter or use a Comma to add features</p>
                                                     <div className="flex flex-wrap gap-1.5 mt-3">
                                                         {features.map((f, i) => (
                                                             <span 
