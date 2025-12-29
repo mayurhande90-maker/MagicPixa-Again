@@ -30,6 +30,7 @@ interface CreativeBrief {
         cta: string;
     };
     visualDirection: string;     // Art direction for the rendering engine
+    interactionLogic: string;    // How the model/environment interacts with the product
 }
 
 const performAdIntelligence = async (
@@ -38,7 +39,6 @@ const performAdIntelligence = async (
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
     
-    // Use smaller low-res assets for analysis to save bandwidth and tokens
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 2).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
@@ -51,28 +51,34 @@ const performAdIntelligence = async (
     **STAGE 1: FORENSIC PRODUCT AUDIT**
     Analyze the attached raw photo(s). Identify:
     - **Material Physics**: Glass (reflective), Matte plastic (diffused), Metal (specular), or Fabric?
-    - **Source Lighting**: Where is the primary light coming from in the original?
     - **Label Identity**: Precisely read and respect the branding on the product.
     
     **STAGE 2: REAL-TIME TREND PULSE (Use Google Search)**
     - Search for: "High-performing ${inputs.industry} advertising trends 2025" and "Luxury visual styles for ${inputs.productName || 'this niche'}".
-    - Identify current winning visual languages (e.g., minimalist organic, high-contrast brutalism, cinematic lifestyle).
+    - Identify current winning visual languages.
     
     **STAGE 3: STRATEGIC COPYWRITING**
-    - Rewrite the user's raw input ("${inputs.headline || 'Product'}", "${inputs.offer || ''}") using the AIDA framework.
-    - Headline must be short (2-5 words), punchy, and verb-led.
+    - Rewrite the user's raw input using the AIDA framework.
+    
+    **STAGE 4: SCENE LOGIC (${inputs.visualFocus?.toUpperCase()} FOCUS)**
+    ${inputs.visualFocus === 'lifestyle' ? `
+    - PROMPT MANDATE: The user has requested a LIFESTYLE shot.
+    - TASK: Define how a human model should interact with this specific product. 
+    - CONSIDER: Should they be holding it? Wearing it? Using it on a surface? 
+    - DIRECTION: Provide specific instructions on hand placement and physical contact to ensure the AI renders a human.` : ''}
     
     *** OUTPUT REQUIREMENT ***
     Return strictly a JSON object.
     {
-        "forensicReport": "Technical physics and lighting blueprint...",
-        "marketTrends": "Summary of current industry winning visuals...",
+        "forensicReport": "Technical physics report...",
+        "marketTrends": "Industry visual summary...",
         "strategicCopy": {
-            "headline": "AIDA-optimized headline",
-            "subheadline": "Benefit-driven sub-header",
-            "cta": "Urgent call to action"
+            "headline": "AIDA headline",
+            "subheadline": "AIDA subheader",
+            "cta": "Urgent CTA"
         },
-        "visualDirection": "Detailed Art Direction for a 4K rendering engine..."
+        "visualDirection": "Detailed Art Direction for lighting/bg...",
+        "interactionLogic": "MANDATORY: Instructions on model-product interaction..."
     }`;
 
     const parts: any[] = [];
@@ -83,7 +89,6 @@ const performAdIntelligence = async (
     parts.push({ text: prompt });
 
     try {
-        // OPTIMIZATION: Switched to gemini-3-flash-preview for high speed research and reasoning
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: { parts },
@@ -103,25 +108,22 @@ const performAdIntelligence = async (
                                 cta: { type: Type.STRING }
                             }
                         },
-                        visualDirection: { type: Type.STRING }
+                        visualDirection: { type: Type.STRING },
+                        interactionLogic: { type: Type.STRING }
                     },
-                    required: ["forensicReport", "marketTrends", "strategicCopy", "visualDirection"]
+                    required: ["forensicReport", "marketTrends", "strategicCopy", "visualDirection", "interactionLogic"]
                 }
             }
         });
 
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        console.warn("Ad intelligence failed, using heuristics", e);
         return {
-            forensicReport: "Standard studio lighting, sharp focus.",
-            marketTrends: "Clean high-end commercial aesthetic.",
-            strategicCopy: {
-                headline: inputs.headline || inputs.productName || "Premium Quality",
-                subheadline: inputs.subheadline || "Experience Excellence.",
-                cta: inputs.cta || "Order Now"
-            },
-            visualDirection: "Professional product photography with soft shadows."
+            forensicReport: "Professional studio physics.",
+            marketTrends: "Commercial aesthetic.",
+            strategicCopy: { headline: inputs.productName || "Premium", subheadline: "Excellence.", cta: "Order Now" },
+            visualDirection: "Clean lighting.",
+            interactionLogic: "Focus on the product in use."
         };
     }
 };
@@ -213,18 +215,12 @@ export interface AdMakerInputs {
 
 /**
  * --- PHASE 2: THE PRODUCTION ENGINE ---
- * Assembles the creative brief, vault references, and product pixels into a final masterpiece.
  */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    // 1. EXECUTE CREATIVE DIRECTOR INTELLIGENCE & ASSET PREP IN PARALLEL
-    // This removes the serial bottleneck between research and optimization.
     const [brief, vaultData, optimizedMains, optLogo, optModel] = await Promise.all([
-        // A. Run Research/Research Pass (Switch to Flash in performAdIntelligence)
         performAdIntelligence(inputs, brand),
-        
-        // B. Fetch Vault References
         (async () => {
             try {
                 const [refs, conf] = await Promise.all([getVaultImages('brand_stylist'), getVaultFolderConfig('brand_stylist')]);
@@ -242,66 +238,82 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
                 return { assets: [], dna: "" };
             }
         })(),
-
-        // C. Optimize Main Product Assets
         Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
-
-        // D. Optimize Secondary Assets
         inputs.logoImage ? optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : Promise.resolve(null),
         (inputs.modelSource === 'upload' && inputs.modelImage) ? optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : Promise.resolve(null)
     ]);
 
     const parts: any[] = [];
     
-    // Identity Lock: Feed high-res product pixels
+    // Identity Lock
     optimizedMains.forEach((opt, idx) => {
         parts.push({ text: `MANDATORY PRODUCT ASSET ${idx + 1} (IDENTITY ANCHOR):` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS (STRICT MATCH):" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
-    // Vault Influence
     if (vaultData.assets.length > 0) {
-        parts.push({ text: "SIGNATURE PIXA QUALITY BENCHMARK:" });
+        parts.push({ text: "QUALITY BENCHMARK:" });
         vaultData.assets.forEach(v => parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } }));
     }
 
-    // 2. ASSEMBLE FINAL MASTER PROMPT
+    // MANDATORY HUMAN SUBJECT OVERRIDE
+    let humanMandate = "";
+    if (inputs.visualFocus === 'lifestyle') {
+        if (inputs.modelSource === 'ai' && inputs.modelParams) {
+            humanMandate = `
+            *** CRITICAL SUBJECT MANDATE ***
+            YOU MUST RENDER A REALISTIC HUMAN SUBJECT AS THE PRIMARY FOCUS.
+            - Persona: ${inputs.modelParams.gender}, ${inputs.modelParams.ethnicity}, ${inputs.modelParams.skinTone}, ${inputs.modelParams.bodyType}.
+            - Role: The person MUST be actively interacting with the product as defined in the Interaction Logic.
+            - Quality: Photorealistic skin textures, natural hand positioning.
+            `;
+        } else if (inputs.modelSource === 'upload') {
+            humanMandate = `
+            *** CRITICAL IDENTITY MANDATE ***
+            YOU MUST RENDER THE PERSON FROM 'TARGET MODEL BIOMETRICS' AS THE PRIMARY SUBJECT.
+            - Role: This specific person MUST be shown using the product.
+            - Strictness: Zero changes to their facial structure or body type.
+            `;
+        }
+    }
+
     const brandDNA = brand ? `
-    *** BRAND DNA (STRICT) ***
-    - Client: '${brand.companyName || brand.name}'
-    - Color Palette: ${brand.colors.primary} (Primary), ${brand.colors.accent} (Accent).
-    - Font Family: ${brand.fonts.heading}.
-    - Instructions: Integrate brand palette into lighting dapples and highlight reflections.
+    *** BRAND DNA ***
+    - Brand: '${brand.companyName || brand.name}'
+    - Palette: ${brand.colors.primary} (Primary), ${brand.colors.accent} (Accent).
+    - Instructions: Integrate brand palette into scene lighting.
     ` : "";
 
     const finalPrompt = `You are the High-Fidelity Ad Production Engine.
     
-    *** CREATIVE DIRECTOR'S MASTER BRIEF ***
+    ${humanMandate}
+    
+    *** CREATIVE DIRECTOR'S BRIEF ***
     ${brief.forensicReport}
     ${brief.marketTrends}
+    ${brief.interactionLogic}
     
-    *** PRODUCTION MANDATE ***
+    *** PRODUCTION INSTRUCTIONS ***
     ${brief.visualDirection}
     ${brandDNA}
-    ${vaultData.dna ? `*** SIGNATURE DESIGN RULES ***\n${vaultData.dna}` : ''}
+    ${vaultData.dna ? `*** SIGNATURE RULES ***\n${vaultData.dna}` : ''}
     
-    *** GRAPHIC DESIGN LOGIC ***
-    1. **Identity Lock**: Treat product pixels as sacred. Zero alterations to labels or geometry.
-    2. **Physics**: Apply 8K ray-traced shadows and material physics compliant with the forensic audit.
-    3. **Composition**: Apply "Rule of Thirds". Maintain negative space for text clarity.
-    4. **Typography**: Integrate the following copy using elite design hierarchy:
-       - HEADLINE: "${brief.strategicCopy.headline}" (Commanding, Bold)
+    *** GRAPHIC DESIGN RULES ***
+    1. **Identity**: Preserve product pixels exactly.
+    2. **Interaction**: If lifestyle, the human subject must be the center of the story.
+    3. **Physics**: Apply 8K ray-traced lighting matching the forensic audit.
+    4. **Typography**:
+       - HEADLINE: "${brief.strategicCopy.headline}"
        - SUBHEADER: "${brief.strategicCopy.subheadline}"
-       - CALL TO ACTION: "${brief.strategicCopy.cta}" (Urgent, High Contrast)
+       - CTA: "${brief.strategicCopy.cta}"
     
-    OUTPUT: A world-class 4K marketing asset for "${inputs.industry}". Magazine quality.`;
+    OUTPUT: A world-class 4K marketing asset. Magazine quality.`;
 
     parts.push({ text: finalPrompt });
 
     try {
-        // Keep gemini-3-pro-image-preview for the final high-quality render
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
@@ -318,6 +330,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         }));
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Ad intelligence successfully calculated, but the visual engine failed to render.");
+        throw new Error("Visual engine failed to render.");
     } catch (e) { console.error("Ad production failed", e); throw e; }
 };
