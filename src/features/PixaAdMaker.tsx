@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PaletteIcon, LightbulbIcon, ApparelIcon, BrandKitIcon, SparklesIcon, UserIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon } from '../components/icons';
+// Added missing imports: ApparelIcon, BrandKitIcon, UserIcon to fix errors on lines 35, 120, 126, 483, 491, 615
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, getBlueprintsForIndustry } from '../services/adMakerService';
@@ -380,7 +381,37 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleClearRef = () => { setReferenceImage(null); setRefAnalysisDone(false); };
-    const addFeature = () => { if (currentFeature.trim() && features.length < 4) { setFeatures([...features, currentFeature.trim()]); setCurrentFeature(''); } };
+    
+    const addFeature = () => {
+        const trimmed = currentFeature.trim();
+        if (trimmed && !features.includes(trimmed) && features.length < 5) {
+            setFeatures([...features, trimmed]);
+            setCurrentFeature('');
+        }
+    };
+
+    const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (val.endsWith(',')) {
+            const tag = val.slice(0, -1).trim();
+            if (tag && !features.includes(tag) && features.length < 5) {
+                setFeatures([...features, tag]);
+                setCurrentFeature('');
+            } else if (tag === '') {
+                setCurrentFeature('');
+            }
+        } else {
+            setCurrentFeature(val);
+        }
+    };
+
+    const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addFeature();
+        }
+    };
+
     const handleBrandSelect = async (brand: BrandKit) => { if (auth.user && brand.id) { try { const brandData = await activateBrand(auth.user.uid, brand.id); auth.setActiveBrandKit(brandData || null); const mapped = MAP_KIT_TO_AD_INDUSTRY(brandData?.industry); if (mapped) setIndustry(mapped); setNotification({ msg: `Applied ${brand.companyName || brand.name} strategy and auto-switched category.`, type: 'success' }); setShowBrandModal(false); } catch (error) { console.error("Brand switch failed", error); setNotification({ msg: "Failed to switch brand", type: 'error' }); } } };
 
     const handleGenerate = async () => {
@@ -455,6 +486,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <IndustryCard title="Food & Dining" desc="Menus, Promos" icon={<FoodIcon className={`w-8 h-8 ${AdMakerStyles.iconFood}`}/>} onClick={() => setIndustry('food')} styles={{ card: "bg-gradient-to-br from-[#FFF8E1] via-[#FFECB3] to-[#FFCC80]", orb: "bg-gradient-to-tr from-orange-400 to-yellow-300 -top-20 -right-20", icon: "text-orange-600" }} />
                                 <IndustryCard title="SaaS / Tech" desc="B2B, Software" icon={<SaaSRequestIcon className={`w-8 h-8 ${AdMakerStyles.iconSaaS}`}/>} onClick={() => setIndustry('saas')} styles={{ card: "bg-gradient-to-br from-[#E0F2F1] via-[#B2DFDB] to-[#80CBC4]", orb: "bg-gradient-to-tr from-teal-400 to-emerald-300 -top-20 -right-20", icon: "text-teal-700" }} />
                                 <IndustryCard title="Education" desc="Courses, Schools" icon={<EducationAdIcon className={`w-8 h-8 text-amber-600`}/>} onClick={() => setIndustry('education')} styles={{ card: "bg-gradient-to-br from-[#FFF3E0] via-[#FFE0B2] to-[#FFCC80]", orb: "bg-gradient-to-tr from-amber-300 to-orange-200 -top-20 -right-20", icon: "text-amber-600" }} />
+                                {/* Fixed missing < for IndustryCard below */}
                                 <IndustryCard title="Services" desc="Consulting, Agency" icon={<ServicesAdIcon className={`w-8 h-8 text-indigo-600`}/>} onClick={() => setIndustry('services')} styles={{ card: "bg-gradient-to-br from-[#EDE7F6] via-[#D1C4E9] to-[#B39DDB]", orb: "bg-gradient-to-tr from-indigo-300 to-purple-200 -top-20 -right-20", icon: "text-indigo-600" }} />
                             </div>) : (
                                 <div className={AdMakerStyles.formContainer}>
@@ -601,7 +633,46 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <InputField label="Context / Highlights (Required)" placeholder="e.g. Handmade, Organic, Great for gifts" value={desc} onChange={(e:any) => setDesc(e.target.value)} />
                                                 </div>
                                             </div>
-                                        ) : industry === 'realty' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} /><InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} /><InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} /><div className="col-span-1"><div className="flex gap-2"><input className="flex-1 text-xs p-2 border rounded-lg" placeholder="Add Feature (Max 4)" value={currentFeature} onChange={e => setCurrentFeature(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFeature()} /><button onClick={addFeature} className="bg-indigo-600 text-white p-2 rounded-lg"><CheckIcon className="w-4 h-4"/></button></div><div className="flex flex-wrap gap-1 mt-2">{features.map((f, i) => <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">{f}<button onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><XIcon className="w-2.5 h-2.5"/></button></span>)}</div></div></div>) : industry === 'food' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Dish Name" value={dishName} onChange={(e:any) => setDishName(e.target.value)} /><InputField placeholder="Restaurant Name" value={restaurant} onChange={(e:any) => setRestaurant(e.target.value)} /><div className="col-span-2"><InputField placeholder="Special Offer (e.g. Free Delivery)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /></div></div>) : (<div className="grid grid-cols-1 gap-3 animate-fadeIn"><InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} /><InputField placeholder="Sub-headline / Detail" value={subheadline} onChange={(e:any) => setSubheadline(e.target.value)} /><InputField placeholder="CTA Text (e.g. Book Now)" value={cta} onChange={(e:any) => setCta(e.target.value)} /></div>)}
+                                        ) : industry === 'realty' ? (
+                                            <div className="grid grid-cols-2 gap-3 animate-fadeIn">
+                                                <InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} />
+                                                <InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} />
+                                                <InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} />
+                                                <div className="col-span-1">
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            className="flex-1 text-[clamp(11px,1.5vh,13px)] px-3 py-2 bg-white border-2 border-gray-100 hover:border-gray-200 focus:border-indigo-500 rounded-xl outline-none transition-all font-medium text-gray-800 placeholder-gray-300" 
+                                                            placeholder="e.g. Sea View, Gym, Parking..." 
+                                                            value={currentFeature} 
+                                                            onChange={handleTagChange} 
+                                                            onKeyDown={handleTagKeyDown} 
+                                                        />
+                                                        <button 
+                                                            onClick={addFeature} 
+                                                            className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm"
+                                                        >
+                                                            <PlusIcon className="w-4 h-4"/>
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5 mt-3">
+                                                        {features.map((f, i) => (
+                                                            <span 
+                                                                key={i} 
+                                                                className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border border-indigo-100 animate-in fade-in zoom-in duration-300"
+                                                            >
+                                                                {f}
+                                                                <button 
+                                                                    onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}
+                                                                    className="text-indigo-300 hover:text-red-500 transition-colors"
+                                                                >
+                                                                    <XIcon className="w-3 h-3"/>
+                                                                </button>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : industry === 'food' ? (<div className="grid grid-cols-2 gap-3 animate-fadeIn"><InputField placeholder="Dish Name" value={dishName} onChange={(e:any) => setDishName(e.target.value)} /><InputField placeholder="Restaurant Name" value={restaurant} onChange={(e:any) => setRestaurant(e.target.value)} /><div className="col-span-2"><InputField placeholder="Special Offer (e.g. Free Delivery)" value={offer} onChange={(e:any) => setOffer(e.target.value)} /></div></div>) : (<div className="grid grid-cols-1 gap-3 animate-fadeIn"><InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} /><InputField placeholder="Sub-headline / Detail" value={subheadline} onChange={(e:any) => setSubheadline(e.target.value)} /><InputField placeholder="CTA Text (e.g. Book Now)" value={cta} onChange={(e:any) => setCta(e.target.value)} /></div>)}
                                     </div>
                                 </div>
                             )}

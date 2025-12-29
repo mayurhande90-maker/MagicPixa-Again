@@ -1,4 +1,3 @@
-
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -136,7 +135,13 @@ export const editImageWithPrompt = async (
     1. Identity Lock: Preserve product pixels exactly.
     2. Physics Compliance: shadows/light must match technical blueprint.
     
-    OUTPUT: A photorealistic 4K commercial shot.`;
+    OUTPUT: A hyper-realistic 8K commercial product photograph. 
+    Technical Requirements: 
+    - Sharp focus on product with natural lens bokeh.
+    - Professional studio lighting (Rembrandt or Butterfly lighting).
+    - Realistic material reflections (Ray-tracing accuracy).
+    - High dynamic range and professional color science.
+    - No artifacts, zero noise, pristine commercial quality.`;
     
     const parts: any[] = [{ inlineData: { data: data, mimeType: optimizedMime } }];
     if (vaultAssets.length > 0) {
@@ -186,7 +191,14 @@ export const generateModelShot = async (
       ${brandContext}
       GOAL: Render model with product. ${userDirection}
       - Protocol: Realism, perfect hand positioning, natural lighting.
-      OUTPUT: Photorealistic 4K portrait.`;
+      
+      OUTPUT: A hyper-realistic 8K fashion portrait. 
+      Technical Requirements:
+      - Exact skin texture (pores, fine details) without artificial smoothing.
+      - High-end cinematic lighting and realistic shadow gradients.
+      - Natural fabric physics and drape.
+      - Captured on a Hasselblad H6D-400c, prime lens.
+      - Commercial grade output, ultra-detailed.`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
