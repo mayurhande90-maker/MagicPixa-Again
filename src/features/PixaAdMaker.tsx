@@ -650,9 +650,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         />
                                                         <button 
                                                             onClick={addFeature} 
-                                                            className="bg-indigo-600 text-white px-4 py-3 rounded-2xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm"
+                                                            className="bg-indigo-600 text-white p-2.5 rounded-2xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm flex items-center justify-center shrink-0 h-[44px] w-[44px]"
                                                         >
-                                                            <PlusIcon className="w-4 h-4"/>
+                                                            <PlusIcon className="w-3.5 h-3.5"/>
                                                         </button>
                                                     </div>
                                                     <p className="text-[9px] text-gray-400 mt-1 italic ml-1">Press Enter or use a Comma to add features</p>
