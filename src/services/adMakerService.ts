@@ -1,7 +1,7 @@
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
-import { BrandKit, IndustryType } from "../types";
+import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -17,33 +17,112 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
     }
 };
 
-// Helper: Detect Aspect Ratio from Image
-const getBestAspectRatio = (base64: string, mimeType: string): Promise<string> => {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-            const ratio = img.width / img.height;
-            let bestRatio = "1:1";
-            const supportedRatios = [
-                { id: "1:1", value: 1 },
-                { id: "3:4", value: 0.75 },
-                { id: "4:3", value: 1.333 },
-                { id: "9:16", value: 0.5625 },
-                { id: "16:9", value: 1.777 }
-            ];
-            let minDiff = Infinity;
-            for (const r of supportedRatios) {
-                const diff = Math.abs(ratio - r.value);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    bestRatio = r.id;
+/**
+ * --- PHASE 1: THE AD-INTELLIGENCE ENGINE ---
+ * Acts as the CMO, Creative Director, and Forensic Analyst.
+ */
+interface CreativeBrief {
+    forensicReport: string;      // Physical properties & lighting audit
+    marketTrends: string;        // Trend research from Google Search
+    strategicCopy: {
+        headline: string;
+        subheadline: string;
+        cta: string;
+    };
+    visualDirection: string;     // Art direction for the rendering engine
+}
+
+const performAdIntelligence = async (
+    inputs: AdMakerInputs, 
+    brand?: BrandKit | null
+): Promise<CreativeBrief> => {
+    const ai = getAiClient();
+    
+    // Prepare product assets for visual analysis
+    const lowResAssets = await Promise.all(
+        inputs.mainImages.slice(0, 2).map(img => optimizeImage(img.base64, img.mimeType, 512))
+    );
+
+    const prompt = `You are the Lead Creative Director and Product Strategist for MagicPixa.
+    
+    *** THE INTELLIGENCE MISSION ***
+    Perform a three-stage "Thinking" audit for an upcoming high-end ad campaign.
+    
+    **STAGE 1: FORENSIC PRODUCT AUDIT**
+    Analyze the attached raw photo(s). Identify:
+    - **Material Physics**: Glass (reflective), Matte plastic (diffused), Metal (specular), or Fabric?
+    - **Source Lighting**: Where is the primary light coming from in the original?
+    - **Label Identity**: Precisely read and respect the branding on the product.
+    
+    **STAGE 2: REAL-TIME TREND PULSE (Use Google Search)**
+    - Search for: "High-performing ${inputs.industry} advertising trends 2025" and "Luxury visual styles for ${inputs.productName || 'this niche'}".
+    - Identify current winning visual languages (e.g., minimalist organic, high-contrast brutalism, cinematic lifestyle).
+    
+    **STAGE 3: STRATEGIC COPYWRITING**
+    - Rewrite the user's raw input ("${inputs.headline || 'Product'}", "${inputs.offer || ''}") using the AIDA framework.
+    - Headline must be short (2-5 words), punchy, and verb-led.
+    
+    *** OUTPUT REQUIREMENT ***
+    Return strictly a JSON object.
+    {
+        "forensicReport": "Technical physics and lighting blueprint...",
+        "marketTrends": "Summary of current industry winning visuals...",
+        "strategicCopy": {
+            "headline": "AIDA-optimized headline",
+            "subheadline": "Benefit-driven sub-header",
+            "cta": "Urgent call to action"
+        },
+        "visualDirection": "Detailed Art Direction for a 4K rendering engine..."
+    }`;
+
+    const parts: any[] = [];
+    lowResAssets.forEach((asset, i) => {
+        parts.push({ text: `RAW PRODUCT ASSET ${i+1}:` });
+        parts.push({ inlineData: { data: asset.data, mimeType: asset.mimeType } });
+    });
+    parts.push({ text: prompt });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: { parts },
+            config: {
+                tools: [{ googleSearch: {} }],
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        forensicReport: { type: Type.STRING },
+                        marketTrends: { type: Type.STRING },
+                        strategicCopy: {
+                            type: Type.OBJECT,
+                            properties: {
+                                headline: { type: Type.STRING },
+                                subheadline: { type: Type.STRING },
+                                cta: { type: Type.STRING }
+                            }
+                        },
+                        visualDirection: { type: Type.STRING }
+                    },
+                    required: ["forensicReport", "marketTrends", "strategicCopy", "visualDirection"]
                 }
             }
-            resolve(bestRatio);
+        });
+
+        return JSON.parse(response.text || "{}");
+    } catch (e) {
+        console.warn("Ad intelligence failed, using heuristics", e);
+        return {
+            forensicReport: "Standard studio lighting, sharp focus.",
+            marketTrends: "Clean high-end commercial aesthetic.",
+            strategicCopy: {
+                headline: inputs.headline || inputs.productName || "Premium Quality",
+                subheadline: inputs.subheadline || "Experience Excellence.",
+                cta: inputs.cta || "Order Now"
+            },
+            visualDirection: "Professional product photography with soft shadows."
         };
-        img.onerror = () => resolve("1:1");
-        img.src = `data:${mimeType};base64,${base64}`;
-    });
+    }
 };
 
 export interface Blueprint {
@@ -121,7 +200,6 @@ export interface AdMakerInputs {
     occasion?: string;
     audience?: string;
     layoutTemplate?: string;
-    // New Model States for Lifestyle
     modelSource?: 'ai' | 'upload';
     modelImage?: { base64: string; mimeType: string } | null;
     modelParams?: {
@@ -132,93 +210,17 @@ export interface AdMakerInputs {
     };
 }
 
-const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string, hasReference?: boolean) => {
-    const ratio = inputs.aspectRatio || '1:1';
-    const focus = inputs.visualFocus || 'product';
-    
-    let layoutRules = "";
-    if (ratio === '9:16') {
-        layoutRules = `*** TECHNICAL SPEC: VERTICAL STORY (9:16) ***\n- Safe Zones: Top 15% and Bottom 20% clear. Center focus.`;
-    } else if (ratio === '4:5') {
-        layoutRules = `*** TECHNICAL SPEC: PORTRAIT FEED (4:5) ***\n- Maximize visual height.`;
-    } else {
-        layoutRules = `*** TECHNICAL SPEC: SQUARE FEED (1:1) ***\n- Balanced composition.`;
-    }
-
-    let visualFocusMandate = "";
-    if (focus === 'lifestyle') {
-        let modelDesc = "";
-        if (inputs.modelSource === 'upload' && inputs.modelImage) {
-            modelDesc = "You MUST use the human identity provided in the 'USER MODEL REFERENCE'. Maintain their facial biometrics and body shape exactly. This is a non-negotiable identity lock.";
-        } else if (inputs.modelSource === 'ai' && inputs.modelParams) {
-            const p = inputs.modelParams;
-            modelDesc = `Generate a photorealistic human model: ${p.gender}, ${p.ethnicity} ethnicity, ${p.skinTone} skin tone, ${p.bodyType} build.`;
-        } else {
-            modelDesc = `Generate a high-end, photorealistic human model matching the target audience: "${inputs.audience || 'General'}".`;
-        }
-
-        visualFocusMandate = `
-        *** LIFESTYLE PRODUCTION MANDATE (CRITICAL) ***
-        - **SCENE**: ${modelDesc}
-        - **INTERACTION**: The model MUST be interacting with, holding, wearing, or looking at the PRODUCT ASSETS provided.
-        - **CONTEXT**: If it's Fashion, the model wears it. If it's Food, the model is about to eat it or is served it. If it's Tech, they are using it.
-        - **INTEGRATION**: Use realistic contact shadows and depth-of-field. The product must look physically present in the model's environment.
-        `;
-    } else if (focus === 'conceptual') {
-        visualFocusMandate = `
-        *** CONCEPTUAL ART MANDATE ***
-        - **STYLING**: Use abstract elements, creative lighting, and high-art compositions.
-        - **METAPHOR**: Use the background to tell a story about the product's benefits (e.g., speed = light streaks).
-        `;
-    } else {
-        visualFocusMandate = `
-        *** PRODUCT-ONLY MANDATE ***
-        - **FOCUS**: No humans. Just the product assets in a premium studio or themed environment.
-        - **CLARITY**: Maximize detail on the product surfaces and textures.
-        `;
-    }
-
-    let inheritanceDirective = "";
-    if (hasReference) {
-        inheritanceDirective = `
-        *** VISUAL INHERITANCE PROTOCOL (MASTER PRIORITY) ***
-        - Replicate the exact visual architecture, color grading, and lighting of the attached REFERENCE IMAGE.
-        - **STRUCTURE**: Place the text and products in the exact same positions relative to the canvas.
-        - **AESTHETIC**: Inherit the mood, lens bokeh, and material finishes from the reference.
-        `;
-    }
-
-    const brandDNA = brand ? `
-    *** BRAND DNA (STRICT) ***
-    - Client: '${brand.companyName || brand.name}'
-    - Visual Tone: ${brand.toneOfVoice || 'Professional'}.
-    - Color Palette: Dominant Primary=${brand.colors.primary}.
-    - Typography Style: ${brand.fonts.heading}.
-    - Instruction: Subtly use the brand colors in accents, clothing, or subtle background lighting.
-    ` : `*** BRAND TONE ***\n- Tone: Professional`;
-
-    return `You are an Elite Ad Creative Director specialized in ${inputs.industry} advertising.
-    
-    ${visualFocusMandate}
-    ${inheritanceDirective}
-    ${brandDNA}
-    ${vaultDna ? `*** SIGNATURE VAULT DNA ***\n${vaultDna}` : ''}
-    ${layoutRules}
-    
-    GOAL: Create a single 4K, photorealistic marketing asset for "${inputs.productName || inputs.project || inputs.dishName || inputs.headline}".
-    
-    *** EXECUTION RULES ***
-    1. **Identity Lock**: You MUST preserve the exact appearance of the uploaded PRODUCT ASSETS. Do not change their shape or labels.
-    2. **Physics**: Apply ray-traced shadows, realistic reflections, and professional lens physics (aperture f/2.8 style bokeh).
-    3. **Copywriting**: Render "${inputs.headline || ''}" and "${inputs.offer || ''}" in high-contrast, professional typography that flows with the composition.
-    4. **No Fluff**: No artifacts, no watermarks, no distorted faces.
-    
-    OUTPUT: A high-resolution advertisement.`;
-};
-
+/**
+ * --- PHASE 2: THE PRODUCTION ENGINE ---
+ * Assembles the creative brief, vault references, and product pixels into a final masterpiece.
+ */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
+    // 1. EXECUTE CREATIVE DIRECTOR INTELLIGENCE (STAGE 1 & 2)
+    const brief = await performAdIntelligence(inputs, brand);
+
+    // 2. FETCH STYLE VAULT DATA (STAGE 4)
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
     try {
@@ -226,31 +228,65 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         if (conf) vaultDna = conf.dna;
         const shuffled = refs.sort(() => 0.5 - Math.random());
         const selectedRefs = shuffled.slice(0, 1);
-        vaultAssets = await Promise.all(selectedRefs.map(async (r) => { const res = await urlToBase64(r.imageUrl); return { data: res.base64, mimeType: res.mimeType }; }));
+        vaultAssets = await Promise.all(selectedRefs.map(async (r) => { 
+            const res = await urlToBase64(r.imageUrl); 
+            return { data: res.base64, mimeType: res.mimeType }; 
+        }));
     } catch (e) { console.warn("Vault fetch failed", e); }
 
-    const optimizedMains = await Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))); // Increased res
+    // 3. OPTIMIZE PRODUCT ASSETS (STAGE 2: FORENSIC ANCHOR)
+    const optimizedMains = await Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536)));
     const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : null;
     const optModel = (inputs.modelSource === 'upload' && inputs.modelImage) ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : null;
     
-    const refImg = (inputs as any).referenceImage;
-
     const parts: any[] = [];
     
+    // Identity Lock: Feed high-res product pixels
     optimizedMains.forEach((opt, idx) => {
-        parts.push({ text: `PRODUCT ASSET ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
+        parts.push({ text: `MANDATORY PRODUCT ASSET ${idx + 1} (IDENTITY ANCHOR):` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    if (optModel) parts.push({ text: "USER MODEL REFERENCE:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
-    if (refImg) {
-        const optRef = await optimizeImage(refImg.base64, refImg.mimeType, 1024);
-        parts.push({ text: "STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+    // Vault Influence
+    if (vaultAssets.length > 0) {
+        parts.push({ text: "SIGNATURE PIXA QUALITY BENCHMARK:" });
+        vaultAssets.forEach(v => parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } }));
     }
 
-    const systemPrompt = getSystemPrompt(inputs, brand, vaultDna, !!refImg);
-    parts.push({ text: systemPrompt });
+    // 4. ASSEMBLE FINAL MASTER PROMPT
+    const brandDNA = brand ? `
+    *** BRAND DNA (STRICT) ***
+    - Client: '${brand.companyName || brand.name}'
+    - Color Palette: ${brand.colors.primary} (Primary), ${brand.colors.accent} (Accent).
+    - Font Family: ${brand.fonts.heading}.
+    - Instructions: Integrate brand palette into lighting dapples and highlight reflections.
+    ` : "";
+
+    const finalPrompt = `You are the High-Fidelity Ad Production Engine.
+    
+    *** CREATIVE DIRECTOR'S MASTER BRIEF ***
+    ${brief.forensicReport}
+    ${brief.marketTrends}
+    
+    *** PRODUCTION MANDATE ***
+    ${brief.visualDirection}
+    ${brandDNA}
+    ${vaultDna ? `*** SIGNATURE DESIGN RULES ***\n${vaultDna}` : ''}
+    
+    *** GRAPHIC DESIGN LOGIC ***
+    1. **Identity Lock**: Treat product pixels as sacred. Zero alterations to labels or geometry.
+    2. **Physics**: Apply 8K ray-traced shadows and material physics compliant with the forensic audit.
+    3. **Composition**: Apply "Rule of Thirds". Maintain negative space for text clarity.
+    4. **Typography**: Integrate the following copy using elite design hierarchy:
+       - HEADLINE: "${brief.strategicCopy.headline}" (Commanding, Bold)
+       - SUBHEADER: "${brief.strategicCopy.subheadline}"
+       - CALL TO ACTION: "${brief.strategicCopy.cta}" (Urgent, High Contrast)
+    
+    OUTPUT: A world-class 4K marketing asset for "${inputs.industry}". Magazine quality.`;
+
+    parts.push({ text: finalPrompt });
 
     try {
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
@@ -269,6 +305,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         }));
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("No image generated by the AI production engine.");
+        throw new Error("Ad intelligence successfully calculated, but the visual engine failed to render.");
     } catch (e) { console.error("Ad production failed", e); throw e; }
 };
