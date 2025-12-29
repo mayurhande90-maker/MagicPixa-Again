@@ -668,7 +668,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
                                                             <SparklesIcon className="w-5 h-5"/>
                                                         </div>
-                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>AI Persona</span>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Pixa Model</span>
                                                         {modelSource === 'ai' && <div className="absolute top-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-scaleIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
                                                     </button>
                                                     
