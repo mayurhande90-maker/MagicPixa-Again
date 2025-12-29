@@ -31,15 +31,15 @@ const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
     }
 };
 
-const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
-    'ecommerce': { label: 'E-Commerce', icon: EcommerceAdIcon, color: 'text-blue-600', bg: 'bg-blue-50/50', border: 'border-blue-200' },
-    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-green-50/50', border: 'border-green-200' },
-    'fashion': { label: 'Fashion', icon: ApparelIcon, color: 'text-pink-500', bg: 'bg-pink-50/50', border: 'border-pink-200' },
-    'realty': { label: 'Real Estate', icon: RealtyAdIcon, color: 'text-purple-600', bg: 'bg-purple-50/50', border: 'border-purple-200' },
-    'food': { label: 'Food & Dining', icon: FoodIcon, color: 'text-orange-600', bg: 'bg-orange-50/50', border: 'border-orange-200' },
-    'saas': { label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'text-teal-600', bg: 'bg-teal-50/50', border: 'border-teal-200' },
-    'education': { label: 'Education', icon: EducationAdIcon, color: 'text-amber-600', bg: 'bg-amber-50/50', border: 'border-amber-200' },
-    'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200' },
+const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string; base: string }> = {
+    'ecommerce': { label: 'E-Commerce', icon: EcommerceAdIcon, color: 'text-blue-600', bg: 'bg-blue-50/50', border: 'border-blue-200', base: 'blue' },
+    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-green-50/50', border: 'border-green-200', base: 'green' },
+    'fashion': { label: 'Fashion', icon: ApparelIcon, color: 'text-pink-500', bg: 'bg-pink-50/50', border: 'border-pink-200', base: 'pink' },
+    'realty': { label: 'Real Estate', icon: RealtyAdIcon, color: 'text-purple-600', bg: 'bg-purple-50/50', border: 'border-purple-200', base: 'purple' },
+    'food': { label: 'Food & Dining', icon: FoodIcon, color: 'text-orange-600', bg: 'bg-orange-50/50', border: 'border-orange-200', base: 'orange' },
+    'saas': { label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'text-teal-600', bg: 'bg-teal-50/50', border: 'border-teal-200', base: 'teal' },
+    'education': { label: 'Education', icon: EducationAdIcon, color: 'text-amber-600', bg: 'bg-amber-50/50', border: 'border-amber-200', base: 'amber' },
+    'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
 };
 
 const OCCASIONS = ['New Launch', 'Flash Sale', 'Holiday Special', 'Brand Awareness', 'Seasonal Collection'];
@@ -148,12 +148,22 @@ const FocusCard: React.FC<{ title: string; desc: string; icon: React.ReactNode; 
     </button>
 );
 
-const RatioCard: React.FC<{ label: string; ratio: string; sub: string; selected: boolean; onClick: () => void }> = ({ label, ratio, sub, selected, onClick }) => {
+const RatioCard: React.FC<{ label: string; ratio: string; sub: string; selected: boolean; onClick: () => void; colorBase: string }> = ({ label, ratio, sub, selected, onClick, colorBase }) => {
     const getRatioStyle = () => { switch(ratio) { case '9:16': return 'w-3.5 h-6'; case '4:5': return 'w-5 h-6'; default: return 'w-6 h-6'; } };
+    
+    // Dynamic Tailwind Classes based on colorBase
+    const activeBg = `bg-${colorBase}-50`;
+    const activeBorder = `border-${colorBase}-500`;
+    const activeRing = `ring-${colorBase}-100`;
+    const activeText = `text-${colorBase}-700`;
+    const activeBoxBorder = `border-${colorBase}-600`;
+    const activeBoxBg = `bg-${colorBase}-200`;
+    const hoverBorder = `hover:border-${colorBase}-200`;
+
     return (
-        <button onClick={onClick} className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all w-full h-full min-h-[90px] ${selected ? 'bg-indigo-50 border-indigo-500 shadow-sm' : 'bg-white border-gray-100 hover:border-indigo-200 hover:bg-gray-50'}`}>
-            <div className={`border-2 rounded-sm mb-2 ${getRatioStyle()} ${selected ? 'border-indigo-600 bg-indigo-200' : 'border-gray-300 bg-gray-100'}`}></div>
-            <p className={`text-[10px] font-bold uppercase tracking-wider ${selected ? 'text-indigo-700' : 'text-gray-600'}`}>{label}</p>
+        <button onClick={onClick} className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all w-full h-full min-h-[90px] ${selected ? `${activeBg} ${activeBorder} shadow-sm ring-1 ${activeRing}` : `bg-white border-gray-100 ${hoverBorder} hover:bg-gray-50`}`}>
+            <div className={`border-2 rounded-sm mb-2 ${getRatioStyle()} ${selected ? `${activeBoxBorder} ${activeBoxBg}` : 'border-gray-300 bg-gray-100'}`}></div>
+            <p className={`text-[10px] font-bold uppercase tracking-wider ${selected ? activeText : 'text-gray-600'}`}>{label}</p>
             <p className="text-[9px] text-gray-400 mt-0.5">{sub}</p>
         </button>
     );
@@ -651,33 +661,37 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     {/* SECTION 4: SMART DETAILS */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
-                                        <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label><div className="grid grid-cols-3 gap-2"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} /></div></div>
+                                        <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label><div className="grid grid-cols-3 gap-2"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} colorBase={activeConfig?.base || 'indigo'} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} colorBase={activeConfig?.base || 'indigo'} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} colorBase={activeConfig?.base || 'indigo'} /></div></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title={item} desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
                                         
                                         {/* CONDITIONAL MODEL SELECTION (LIFESTYLE ONLY) */}
                                         {visualFocus === 'lifestyle' && (
                                             <div className="mt-6 border-t border-gray-100 pt-6 animate-fadeInUp">
                                                 <div className="flex items-center gap-2 mb-4 ml-1">
-                                                    <div className="p-1 bg-indigo-50 rounded-lg text-indigo-600">
+                                                    <div className={`p-1 rounded-lg ${activeConfig ? activeConfig.bg.replace('/50', '') : 'bg-indigo-50'} ${activeConfig ? activeConfig.color : 'text-indigo-600'}`}>
                                                         <UserIcon className="w-3.5 h-3.5" />
                                                     </div>
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Target Model Control</label>
                                                 </div>
                                                 <div className={AdMakerStyles.modelSelectionGrid}>
-                                                    <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
-                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                    <button onClick={() => { setModelSource('ai'); autoScroll(); }} 
+                                                        className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? `border-${activeConfig?.base || 'indigo'}-500/30 bg-gradient-to-br from-${activeConfig?.base || 'indigo'}-50 to-white shadow-md ring-1 ring-${activeConfig?.base || 'indigo'}-500/20 -translate-y-0.5` : AdMakerStyles.modelSelectionCardInactive}`}
+                                                    >
+                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? `bg-white shadow-sm ${activeConfig?.color || 'text-indigo-600'}` : `bg-gray-100 text-gray-400 group-hover:${activeConfig?.color || 'text-indigo-500'} group-hover:bg-${activeConfig?.base || 'indigo'}-50`}`}>
                                                             <SparklesIcon className="w-5 h-5"/>
                                                         </div>
-                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Pixa Model</span>
-                                                        {modelSource === 'ai' && <div className="absolute top-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-scaleIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'ai' ? (activeConfig ? activeConfig.color.replace('text-', 'text-').replace('600', '900') : 'text-indigo-900') : 'text-gray-500 group-hover:text-gray-700'}`}>Pixa Model</span>
+                                                        {modelSource === 'ai' && <div className={`absolute top-2 right-2 w-4 h-4 ${activeConfig ? activeConfig.color.replace('text-', 'bg-') : 'bg-indigo-600'} rounded-full flex items-center justify-center shadow-sm animate-scaleIn`}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
                                                     </button>
                                                     
-                                                    <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
-                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                    <button onClick={() => { setModelSource('upload'); autoScroll(); }} 
+                                                        className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? `border-${activeConfig?.base || 'indigo'}-500/30 bg-gradient-to-br from-${activeConfig?.base || 'indigo'}-50 to-white shadow-md ring-1 ring-${activeConfig?.base || 'indigo'}-500/20 -translate-y-0.5` : AdMakerStyles.modelSelectionCardInactive}`}
+                                                    >
+                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? `bg-white shadow-sm ${activeConfig?.color || 'text-indigo-600'}` : `bg-gray-100 text-gray-400 group-hover:${activeConfig?.color || 'text-indigo-500'} group-hover:bg-${activeConfig?.base || 'indigo'}-50`}`}>
                                                             <UserIcon className="w-5 h-5"/>
                                                         </div>
-                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'upload' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Own Model</span>
-                                                        {modelSource === 'upload' && <div className="absolute top-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-scaleIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'upload' ? (activeConfig ? activeConfig.color.replace('text-', 'text-').replace('600', '900') : 'text-indigo-900') : 'text-gray-500 group-hover:text-gray-700'}`}>Own Model</span>
+                                                        {modelSource === 'upload' && <div className={`absolute top-2 right-2 w-4 h-4 ${activeConfig ? activeConfig.color.replace('text-', 'bg-') : 'bg-indigo-600'} rounded-full flex items-center justify-center shadow-sm animate-scaleIn`}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
                                                     </button>
                                                 </div>
 
@@ -732,7 +746,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                                                 <InputField label="Project Name" placeholder="e.g. Skyline Towers" value={project} onChange={(e:any) => setProject(e.target.value)} />
                                                 <InputField label="Location" placeholder="e.g. Pune" value={location} onChange={(e:any) => setLocation(e.target.value)} />
-                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e) => setConfig(e.target.value)} />
+                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e:any) => setConfig(e.target.value)} />
                                                 <div className="col-span-1 mb-6">
                                                     <label className={FeatureStyles.inputLabel}>Property Features</label>
                                                     <input 
