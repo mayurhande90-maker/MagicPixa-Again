@@ -31,6 +31,7 @@ interface CreativeBrief {
     };
     visualDirection: string;     // Art direction for the rendering engine
     interactionLogic: string;    // How the model/environment interacts with the product
+    perspectiveAnchor: string;   // NEW: Camera angle detection (Eye-level, Bird's eye, etc)
 }
 
 const performAdIntelligence = async (
@@ -46,26 +47,23 @@ const performAdIntelligence = async (
     const prompt = `You are the Lead Creative Director and Product Strategist for MagicPixa.
     
     *** THE INTELLIGENCE MISSION ***
-    Perform a three-stage "Thinking" audit for an upcoming high-end ad campaign.
+    Perform a four-stage "Thinking" audit for an upcoming high-end ad campaign.
     
     **STAGE 1: FORENSIC PRODUCT AUDIT**
     Analyze the attached raw photo(s). Identify:
     - **Material Physics**: Glass (reflective), Matte plastic (diffused), Metal (specular), or Fabric?
-    - **Label Identity**: Precisely read and respect the branding on the product.
+    - **Camera Angle (STRICT)**: Is this an "Eye-Level" shot, "Top-Down / Bird's Eye", or "Low Angle"? This is the Perspective Anchor.
     
     **STAGE 2: REAL-TIME TREND PULSE (Use Google Search)**
-    - Search for: "High-performing ${inputs.industry} advertising trends 2025" and "Luxury visual styles for ${inputs.productName || 'this niche'}".
-    - Identify current winning visual languages.
+    - Search for: "High-performing ${inputs.industry} advertising trends 2025".
     
     **STAGE 3: STRATEGIC COPYWRITING**
-    - Rewrite the user's raw input using the AIDA framework.
+    - Rewrite inputs using AIDA framework.
     
     **STAGE 4: SCENE LOGIC (${inputs.visualFocus?.toUpperCase()} FOCUS)**
     ${inputs.visualFocus === 'lifestyle' ? `
-    - PROMPT MANDATE: The user has requested a LIFESTYLE shot.
-    - TASK: Define how a human model should interact with this specific product. 
-    - CONSIDER: Should they be holding it? Wearing it? Using it on a surface? 
-    - DIRECTION: Provide specific instructions on hand placement and physical contact to ensure the AI renders a human.` : ''}
+    - PROMPT MANDATE: Define how a human model interacts with this product.
+    - CONSTRAINT: The model's interaction MUST match the Stage 1 Perspective Anchor.` : ''}
     
     *** OUTPUT REQUIREMENT ***
     Return strictly a JSON object.
@@ -78,7 +76,8 @@ const performAdIntelligence = async (
             "cta": "Urgent CTA"
         },
         "visualDirection": "Detailed Art Direction for lighting/bg...",
-        "interactionLogic": "MANDATORY: Instructions on model-product interaction..."
+        "interactionLogic": "Instructions on model-product interaction...",
+        "perspectiveAnchor": "Precise camera angle (e.g., 'Straight Eye-Level')"
     }`;
 
     const parts: any[] = [];
@@ -109,9 +108,10 @@ const performAdIntelligence = async (
                             }
                         },
                         visualDirection: { type: Type.STRING },
-                        interactionLogic: { type: Type.STRING }
+                        interactionLogic: { type: Type.STRING },
+                        perspectiveAnchor: { type: Type.STRING }
                     },
-                    required: ["forensicReport", "marketTrends", "strategicCopy", "visualDirection", "interactionLogic"]
+                    required: ["forensicReport", "marketTrends", "strategicCopy", "visualDirection", "interactionLogic", "perspectiveAnchor"]
                 }
             }
         });
@@ -123,7 +123,8 @@ const performAdIntelligence = async (
             marketTrends: "Commercial aesthetic.",
             strategicCopy: { headline: inputs.productName || "Premium", subheadline: "Excellence.", cta: "Order Now" },
             visualDirection: "Clean lighting.",
-            interactionLogic: "Focus on the product in use."
+            interactionLogic: "Focus on the product.",
+            perspectiveAnchor: "Standard eye-level."
         };
     }
 };
@@ -187,6 +188,7 @@ export interface AdMakerInputs {
     aspectRatio?: '1:1' | '4:5' | '9:16';
     mainImages: { base64: string; mimeType: string }[];
     logoImage?: { base64: string; mimeType: string } | null;
+    referenceImage?: { base64: string; mimeType: string } | null; // NEW: Direct reference
     blueprintId?: string; 
     productName?: string;
     offer?: string;
@@ -219,7 +221,7 @@ export interface AdMakerInputs {
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    const [brief, vaultData, optimizedMains, optLogo, optModel] = await Promise.all([
+    const [brief, vaultData, optimizedMains, optLogo, optModel, optRef] = await Promise.all([
         performAdIntelligence(inputs, brand),
         (async () => {
             try {
@@ -234,77 +236,77 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
                 }));
                 return { assets, dna };
             } catch (e) {
-                console.warn("Vault fetch failed", e);
                 return { assets: [], dna: "" };
             }
         })(),
         Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
         inputs.logoImage ? optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : Promise.resolve(null),
-        (inputs.modelSource === 'upload' && inputs.modelImage) ? optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : Promise.resolve(null)
+        (inputs.modelSource === 'upload' && inputs.modelImage) ? optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : Promise.resolve(null),
+        inputs.referenceImage ? optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType, 1024) : Promise.resolve(null)
     ]);
 
     const parts: any[] = [];
     
+    // --- LOGIC PRUNING: Reference Image Priority ---
+    let styleInstructions = "";
+    if (optRef) {
+        styleInstructions = `*** SINGLE SOURCE OF TRUTH (REFERENCE IMAGE) ***
+        IGNORE ALL BLUEPRINTS. Copy the lighting, background style, and layout of the attached 'REFERENCE IMAGE' exactly.`;
+        parts.push({ text: "REFERENCE IMAGE (STYLE GUIDE):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+    } else {
+        const blueprint = getBlueprintsForIndustry(inputs.industry).find(b => b.id === inputs.blueprintId);
+        styleInstructions = blueprint ? `*** VISUAL STYLE: ${blueprint.label} ***\n${blueprint.prompt}` : "Professional studio lighting.";
+    }
+
     // Identity Lock
     optimizedMains.forEach((opt, idx) => {
         parts.push({ text: `MANDATORY PRODUCT ASSET ${idx + 1} (IDENTITY ANCHOR):` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS (STRICT MATCH):" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
-    if (vaultData.assets.length > 0) {
-        parts.push({ text: "QUALITY BENCHMARK:" });
-        vaultData.assets.forEach(v => parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } }));
-    }
-
-    // MANDATORY HUMAN SUBJECT OVERRIDE
+    // MANDATORY HUMAN SUBJECT OVERRIDE (Weight 1.5 - Absolute Top Priority)
     let humanMandate = "";
     if (inputs.visualFocus === 'lifestyle') {
-        if (inputs.modelSource === 'ai' && inputs.modelParams) {
-            humanMandate = `
-            *** CRITICAL SUBJECT MANDATE ***
-            YOU MUST RENDER A REALISTIC HUMAN SUBJECT AS THE PRIMARY FOCUS.
-            - Persona: ${inputs.modelParams.gender}, ${inputs.modelParams.ethnicity}, ${inputs.modelParams.skinTone}, ${inputs.modelParams.bodyType}.
-            - Role: The person MUST be actively interacting with the product as defined in the Interaction Logic.
-            - Quality: Photorealistic skin textures, natural hand positioning.
-            `;
-        } else if (inputs.modelSource === 'upload') {
-            humanMandate = `
-            *** CRITICAL IDENTITY MANDATE ***
-            YOU MUST RENDER THE PERSON FROM 'TARGET MODEL BIOMETRICS' AS THE PRIMARY SUBJECT.
-            - Role: This specific person MUST be shown using the product.
-            - Strictness: Zero changes to their facial structure or body type.
-            `;
-        }
+        const modelDesc = inputs.modelSource === 'ai' && inputs.modelParams 
+            ? `${inputs.modelParams.gender}, ${inputs.modelParams.ethnicity}, ${inputs.modelParams.skinTone}, ${inputs.modelParams.bodyType}`
+            : "the provided person asset";
+            
+        humanMandate = `
+        *** MANDATE #1: THE HUMAN SUBJECT (SUBJECT WEIGHT 1.5) ***
+        YOU MUST RENDER A REALISTIC HUMAN SUBJECT (${modelDesc}) AS THE PRIMARY FOCUS.
+        - INTERACTION: ${brief.interactionLogic}
+        - PERSPECTIVE: The human must be positioned at ${brief.perspectiveAnchor}.
+        - REALISM: High-fidelity skin texture and natural hand-product contact points.
+        - FAILURE CRITERIA: If no human is rendered, the task has failed.
+        `;
     }
 
     const brandDNA = brand ? `
     *** BRAND DNA ***
     - Brand: '${brand.companyName || brand.name}'
-    - Palette: ${brand.colors.primary} (Primary), ${brand.colors.accent} (Accent).
-    - Instructions: Integrate brand palette into scene lighting.
+    - Palette: ${brand.colors.primary} (Primary).
     ` : "";
 
     const finalPrompt = `You are the High-Fidelity Ad Production Engine.
     
     ${humanMandate}
     
-    *** CREATIVE DIRECTOR'S BRIEF ***
-    ${brief.forensicReport}
-    ${brief.marketTrends}
-    ${brief.interactionLogic}
+    *** PERSPECTIVE ANCHOR ***
+    - Mandatory Camera Angle: ${brief.perspectiveAnchor}
+    - Mandate: The background, model, and lighting MUST match this specific product perspective.
     
-    *** PRODUCTION INSTRUCTIONS ***
-    ${brief.visualDirection}
+    *** PRODUCTION BRIEF ***
+    ${styleInstructions}
     ${brandDNA}
     ${vaultData.dna ? `*** SIGNATURE RULES ***\n${vaultData.dna}` : ''}
+    ${brief.forensicReport}
     
     *** GRAPHIC DESIGN RULES ***
-    1. **Identity**: Preserve product pixels exactly.
-    2. **Interaction**: If lifestyle, the human subject must be the center of the story.
-    3. **Physics**: Apply 8K ray-traced lighting matching the forensic audit.
-    4. **Typography**:
+    1. **Identity**: Preserve product pixels exactly. No label changes.
+    2. **Composition**: Place product and model strategically within the frame.
+    3. **Typography**:
        - HEADLINE: "${brief.strategicCopy.headline}"
        - SUBHEADER: "${brief.strategicCopy.subheadline}"
        - CTA: "${brief.strategicCopy.cta}"
