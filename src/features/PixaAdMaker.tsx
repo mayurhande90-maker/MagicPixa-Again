@@ -638,7 +638,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <InputField placeholder="Location" value={location} onChange={(e:any) => setLocation(e.target.value)} />
                                                 <InputField placeholder="Config (e.g. 3BHK)" value={config} onChange={(e:any) => setConfig(e.target.value)} />
                                                 <div className="col-span-1">
-                                                    <label className="text-[9px] font-medium text-gray-500 mb-1 block ml-1">Press Enter or use a Comma to add features</label>
+                                                    <label className="text-[9px] font-medium text-gray-500 mb-1.5 block ml-1 italic">Press Enter or use a Comma to add features</label>
                                                     <div className="flex gap-2">
                                                         <input 
                                                             className="flex-1 text-[clamp(11px,1.5vh,13px)] px-3 py-2 bg-white border-2 border-gray-100 hover:border-gray-200 focus:border-indigo-500 rounded-xl outline-none transition-all font-medium text-gray-800 placeholder-gray-300" 
