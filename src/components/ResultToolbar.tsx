@@ -1,22 +1,19 @@
 import React from 'react';
-import { PlusIcon, RegenerateIcon, FlagIcon, MagicWandIcon } from './icons';
+import { PlusIcon, RegenerateIcon, FlagIcon } from './icons';
 
 interface ResultToolbarProps {
-    onNew?: () => void;
-    onRegen?: () => void;
-    onEdit?: () => void;
-    onReport?: () => void;
+    onNew: () => void;
+    onRegen: () => void;
+    onEdit: () => void;
+    onReport: () => void;
 }
 
-export const ResultToolbar: React.FC<ResultToolbarProps> = ({ onNew, onRegen, onEdit, onReport }) => {
+export const ResultToolbar: React.FC<ResultToolbarProps> = ({ onNew, onRegen, onReport }) => {
     const buttons = [
-        onNew && { label: 'New Project', icon: PlusIcon, onClick: onNew, color: 'text-gray-700', bg: 'hover:bg-gray-100' },
-        onRegen && { label: 'Regenerate', icon: RegenerateIcon, onClick: onRegen, color: 'text-blue-600', bg: 'hover:bg-blue-50' },
-        onEdit && { label: 'Magic Editor', icon: MagicWandIcon, onClick: onEdit, color: 'text-indigo-600', bg: 'hover:bg-indigo-50' },
-        onReport && { label: 'Report Issue', icon: FlagIcon, onClick: onReport, color: 'text-red-500', bg: 'hover:bg-red-50' },
-    ].filter(Boolean) as any[];
-
-    if (buttons.length === 0) return null;
+        { label: 'New Project', icon: PlusIcon, onClick: onNew, color: 'text-gray-700', bg: 'hover:bg-gray-100' },
+        { label: 'Regenerate', icon: RegenerateIcon, onClick: onRegen, color: 'text-blue-600', bg: 'hover:bg-blue-50' },
+        { label: 'Report Issue', icon: FlagIcon, onClick: onReport, color: 'text-red-500', bg: 'hover:bg-red-50' },
+    ];
 
     return (
         <div className="flex flex-col gap-1.5 items-end pointer-events-auto">
