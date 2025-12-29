@@ -38,7 +38,7 @@ const performAdIntelligence = async (
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
     
-    // Prepare product assets for visual analysis
+    // Use smaller low-res assets for analysis to save bandwidth and tokens
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 2).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
@@ -83,8 +83,9 @@ const performAdIntelligence = async (
     parts.push({ text: prompt });
 
     try {
+        // OPTIMIZATION: Switched to gemini-3-flash-preview for high speed research and reasoning
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3-flash-preview',
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -217,28 +218,39 @@ export interface AdMakerInputs {
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    // 1. EXECUTE CREATIVE DIRECTOR INTELLIGENCE (STAGE 1 & 2)
-    const brief = await performAdIntelligence(inputs, brand);
+    // 1. EXECUTE CREATIVE DIRECTOR INTELLIGENCE & ASSET PREP IN PARALLEL
+    // This removes the serial bottleneck between research and optimization.
+    const [brief, vaultData, optimizedMains, optLogo, optModel] = await Promise.all([
+        // A. Run Research/Research Pass (Switch to Flash in performAdIntelligence)
+        performAdIntelligence(inputs, brand),
+        
+        // B. Fetch Vault References
+        (async () => {
+            try {
+                const [refs, conf] = await Promise.all([getVaultImages('brand_stylist'), getVaultFolderConfig('brand_stylist')]);
+                let dna = conf?.dna || "";
+                let assets: { data: string, mimeType: string }[] = [];
+                const shuffled = refs.sort(() => 0.5 - Math.random());
+                const selectedRefs = shuffled.slice(0, 1);
+                assets = await Promise.all(selectedRefs.map(async (r) => { 
+                    const res = await urlToBase64(r.imageUrl); 
+                    return { data: res.base64, mimeType: res.mimeType }; 
+                }));
+                return { assets, dna };
+            } catch (e) {
+                console.warn("Vault fetch failed", e);
+                return { assets: [], dna: "" };
+            }
+        })(),
 
-    // 2. FETCH STYLE VAULT DATA (STAGE 4)
-    let vaultAssets: { data: string, mimeType: string }[] = [];
-    let vaultDna = "";
-    try {
-        const [refs, conf] = await Promise.all([getVaultImages('brand_stylist'), getVaultFolderConfig('brand_stylist')]);
-        if (conf) vaultDna = conf.dna;
-        const shuffled = refs.sort(() => 0.5 - Math.random());
-        const selectedRefs = shuffled.slice(0, 1);
-        vaultAssets = await Promise.all(selectedRefs.map(async (r) => { 
-            const res = await urlToBase64(r.imageUrl); 
-            return { data: res.base64, mimeType: res.mimeType }; 
-        }));
-    } catch (e) { console.warn("Vault fetch failed", e); }
+        // C. Optimize Main Product Assets
+        Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
 
-    // 3. OPTIMIZE PRODUCT ASSETS (STAGE 2: FORENSIC ANCHOR)
-    const optimizedMains = await Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536)));
-    const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : null;
-    const optModel = (inputs.modelSource === 'upload' && inputs.modelImage) ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : null;
-    
+        // D. Optimize Secondary Assets
+        inputs.logoImage ? optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : Promise.resolve(null),
+        (inputs.modelSource === 'upload' && inputs.modelImage) ? optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : Promise.resolve(null)
+    ]);
+
     const parts: any[] = [];
     
     // Identity Lock: Feed high-res product pixels
@@ -250,12 +262,12 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
     // Vault Influence
-    if (vaultAssets.length > 0) {
+    if (vaultData.assets.length > 0) {
         parts.push({ text: "SIGNATURE PIXA QUALITY BENCHMARK:" });
-        vaultAssets.forEach(v => parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } }));
+        vaultData.assets.forEach(v => parts.push({ inlineData: { data: v.data, mimeType: v.mimeType } }));
     }
 
-    // 4. ASSEMBLE FINAL MASTER PROMPT
+    // 2. ASSEMBLE FINAL MASTER PROMPT
     const brandDNA = brand ? `
     *** BRAND DNA (STRICT) ***
     - Client: '${brand.companyName || brand.name}'
@@ -273,7 +285,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     *** PRODUCTION MANDATE ***
     ${brief.visualDirection}
     ${brandDNA}
-    ${vaultDna ? `*** SIGNATURE DESIGN RULES ***\n${vaultDna}` : ''}
+    ${vaultData.dna ? `*** SIGNATURE DESIGN RULES ***\n${vaultData.dna}` : ''}
     
     *** GRAPHIC DESIGN LOGIC ***
     1. **Identity Lock**: Treat product pixels as sacred. Zero alterations to labels or geometry.
@@ -289,6 +301,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     parts.push({ text: finalPrompt });
 
     try {
+        // Keep gemini-3-pro-image-preview for the final high-quality render
         const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
