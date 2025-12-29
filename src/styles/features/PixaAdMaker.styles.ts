@@ -1,4 +1,3 @@
-
 export const AdMakerStyles = {
   // Container
   modeGrid: "grid grid-cols-1 md:grid-cols-2 gap-3 h-full content-start",
@@ -66,5 +65,11 @@ export const AdMakerStyles = {
   
   shelfAdd: "flex flex-col items-center justify-center gap-1 text-gray-400 group hover:text-indigo-600",
   shelfAddIcon: "w-6 h-6 p-1.5 bg-gray-50 rounded-lg border border-gray-100 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-all",
-  shelfAddText: "text-[9px] font-black uppercase tracking-widest"
+  shelfAddText: "text-[9px] font-black uppercase tracking-widest",
+
+  // Model Selection (Consistency with Merchant Studio)
+  modelSelectionGrid: "grid grid-cols-2 gap-3 mb-4",
+  modelSelectionCard: "group relative w-full h-24 rounded-2xl border transition-all duration-300 ease-out flex flex-col items-center justify-center gap-2 overflow-hidden text-center cursor-pointer",
+  modelSelectionCardSelected: "border-indigo-500/30 bg-gradient-to-br from-[#E0E7FF] to-[#EEF2FF] shadow-md ring-1 ring-indigo-500/20 -translate-y-0.5",
+  modelSelectionCardInactive: "border-gray-200 bg-white hover:border-indigo-200 hover:shadow-sm hover:-translate-y-0.5",
 };

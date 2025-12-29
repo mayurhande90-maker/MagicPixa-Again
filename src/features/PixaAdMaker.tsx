@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
-// Added missing imports: ApparelIcon, BrandKitIcon, UserIcon to fix errors on lines 35, 120, 126, 483, 491, 615
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon } from '../components/icons';
+// Added ShieldCheckIcon to the imports
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon, BlueprintStarIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, getBlueprintsForIndustry } from '../services/adMakerService';
@@ -69,8 +69,8 @@ const IndustryCard: React.FC<{
         <div className={`${AdMakerStyles.orb} ${styles.orb}`}></div>
         <div className={`${AdMakerStyles.iconGlass} ${styles.icon}`}>{icon}</div>
         <div className={AdMakerStyles.contentWrapper}>
-            <h3 className={AdMakerStyles.title}>{title}</h3>
-            <p className={AdMakerStyles.desc}>{desc}</p>
+            <h3 className={AdMakerStyles.title}> {title} </h3>
+            <p className={AdMakerStyles.desc}> {desc} </p>
         </div>
         <div className={AdMakerStyles.actionBtn}>
             <ArrowRightIcon className={AdMakerStyles.actionIcon}/>
@@ -247,6 +247,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     const [showBrandModal, setShowBrandModal] = useState(false);
+    
+    // NEW Model States
+    const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
+    const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [aiGender, setAiGender] = useState('');
+    const [aiEthnicity, setAiEthnicity] = useState('');
+    const [aiSkinTone, setAiSkinTone] = useState('');
+    const [aiBodyType, setAiBodyType] = useState('');
+
     const scrollRef = useRef<HTMLDivElement>(null);
     
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
@@ -331,6 +340,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setLogoImage({ url: URL.createObjectURL(file), base64 });
+        }
+        e.target.value = '';
+    };
+
+    const handleUploadModel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setModelImage({ url: URL.createObjectURL(file), base64 });
         }
         e.target.value = '';
     };
@@ -427,7 +445,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
                 occasion, 
                 audience: audience === '+ Custom' ? customAudience : audience, 
-                layoutTemplate: referenceImage ? undefined : layoutTemplate 
+                layoutTemplate: referenceImage ? undefined : layoutTemplate,
+                // NEW: Pass model details
+                modelSource: visualFocus === 'lifestyle' ? (modelSource || undefined) : undefined,
+                modelImage: (visualFocus === 'lifestyle' && modelSource === 'upload') ? modelImage?.base64 : undefined,
+                modelParams: (visualFocus === 'lifestyle' && modelSource === 'ai') ? {
+                    gender: aiGender,
+                    ethnicity: aiEthnicity,
+                    skinTone: aiSkinTone,
+                    bodyType: aiBodyType
+                } : undefined
             };
             const assetUrl = await generateAdCreative(inputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
@@ -449,14 +476,23 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setNotification({ msg: "Smart strategy filled! Pixa optimized your goals.", type: 'success' });
     };
 
-    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setCustomAudience(''); setTemplate(''); setLastCreationId(null); };
+    const handleNewSession = () => { 
+        setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setSelectedBlueprint(null); setRefAnalysisDone(false); setVisualFocus('product'); setAspectRatio('1:1'); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setOccasion(''); setAudience(''); setCustomAudience(''); setTemplate(''); setLastCreationId(null); 
+        // Reset Model States
+        setModelSource(null); setModelImage(null); setAiGender(''); setAiEthnicity(''); setAiSkinTone(''); setAiBodyType('');
+    };
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Ad Creative", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Error: " + e.message); } finally { setIsRefunding(false); } };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const u = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
     const handleClaimBonus = async () => { if (auth.user && milestoneBonus) { const u = await claimMilestoneBonus(auth.user.uid, milestoneBonus); auth.setUser(prev => prev ? { ...prev, ...u } : null); } };
 
     // MANDATORY LOGIC ENFORCEMENT
-    const isRequirementMet = !!occasion && !!audience && (audience === '+ Custom' ? !!customAudience : true) && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint));
+    const isModelRequirementMet = visualFocus !== 'lifestyle' || (
+        (modelSource === 'ai' && !!aiGender && !!aiEthnicity && !!aiSkinTone && !!aiBodyType) ||
+        (modelSource === 'upload' && !!modelImage)
+    );
+
+    const isRequirementMet = !!occasion && !!audience && (audience === '+ Custom' ? !!customAudience : true) && (!!referenceImage || (!!layoutTemplate && !!selectedBlueprint)) && isModelRequirementMet;
 
     const isValid = mainImages.length > 0 && !isLowCredits && isRequirementMet && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName && !!desc) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
@@ -473,6 +509,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const currentAudienceOptions = useMemo(() => {
         return AUDIENCE_MAP[industry || 'ecommerce'] || AUDIENCE_MAP['ecommerce'];
     }, [industry]);
+
+    const autoScroll = () => { if (scrollRef.current) { setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 150); } };
 
     return (
         <>
@@ -615,6 +653,63 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Smart Details</label></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Format</label><div className="grid grid-cols-3 gap-2"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} /></div></div>
                                         <div className="mb-4"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block ml-1">Visual Focus</label><div className="flex gap-2"><FocusCard title={item} desc="Studio lighting & clean background" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using product in real scene" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div></div>
+                                        
+                                        {/* CONDITIONAL MODEL SELECTION (LIFESTYLE ONLY) */}
+                                        {visualFocus === 'lifestyle' && (
+                                            <div className="mt-6 border-t border-gray-100 pt-6 animate-fadeInUp">
+                                                <div className="flex items-center gap-2 mb-4 ml-1">
+                                                    <div className="p-1 bg-indigo-50 rounded-lg text-indigo-600">
+                                                        <UserIcon className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Target Model Control</label>
+                                                </div>
+                                                <div className={AdMakerStyles.modelSelectionGrid}>
+                                                    <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                            <SparklesIcon className="w-5 h-5"/>
+                                                        </div>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>AI Persona</span>
+                                                        {modelSource === 'ai' && <div className="absolute top-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-scaleIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </button>
+                                                    
+                                                    <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
+                                                            <UserIcon className="w-5 h-5"/>
+                                                        </div>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${modelSource === 'upload' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Own Model</span>
+                                                        {modelSource === 'upload' && <div className="absolute top-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-scaleIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </button>
+                                                </div>
+
+                                                {/* MODEL CONTENT */}
+                                                {modelSource === 'ai' && (
+                                                    <div className="space-y-4 animate-fadeIn">
+                                                        <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
+                                                        <SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian', 'African']} value={aiEthnicity} onChange={setAiEthnicity} />
+                                                        <SelectionGrid label="Skin Tone" options={['Fair Tone', 'Wheatish Tone', 'Dusky Tone']} value={aiSkinTone} onChange={setAiSkinTone} />
+                                                        <SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} />
+                                                    </div>
+                                                )}
+                                                
+                                                {modelSource === 'upload' && (
+                                                    <div className="animate-fadeIn">
+                                                        <CompactUpload 
+                                                            label="Target Model" 
+                                                            uploadText="Upload Photo of Model" 
+                                                            image={modelImage} 
+                                                            onUpload={handleUploadModel} 
+                                                            onClear={() => setModelImage(null)} 
+                                                            icon={<UserIcon className="w-6 h-6 text-blue-400"/>} 
+                                                            heightClass="h-44"
+                                                        />
+                                                        <p className="text-[9px] text-gray-400 mt-2 italic px-1">
+                                                            <ShieldCheckIcon className="w-3 h-3 inline mr-1 text-green-500" />
+                                                            Forensic Anchor active: Face and body shape will be preserved exactly.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* SECTION 5: CAMPAIGN COPY */}
@@ -637,7 +732,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                                                 <InputField label="Project Name" placeholder="e.g. Skyline Towers" value={project} onChange={(e:any) => setProject(e.target.value)} />
                                                 <InputField label="Location" placeholder="e.g. Pune" value={location} onChange={(e:any) => setLocation(e.target.value)} />
-                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e:any) => setConfig(e.target.value)} />
+                                                <InputField label="Configuration" placeholder="e.g. 3BHK" value={config} onChange={(e) => setConfig(e.target.value)} />
                                                 <div className="col-span-1 mb-6">
                                                     <label className={FeatureStyles.inputLabel}>Property Features</label>
                                                     <input 

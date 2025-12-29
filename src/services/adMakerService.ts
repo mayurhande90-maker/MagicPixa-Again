@@ -121,11 +121,19 @@ export interface AdMakerInputs {
     occasion?: string;
     audience?: string;
     layoutTemplate?: string;
+    // New Model States for Lifestyle
+    modelSource?: 'ai' | 'upload';
+    modelImage?: { base64: string; mimeType: string } | null;
+    modelParams?: {
+        gender: string;
+        ethnicity: string;
+        skinTone: string;
+        bodyType: string;
+    };
 }
 
 const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDna?: string, hasReference?: boolean) => {
     const ratio = inputs.aspectRatio || '1:1';
-    const isCollection = inputs.mainImages.length > 1;
     const focus = inputs.visualFocus || 'product';
     
     let layoutRules = "";
@@ -139,9 +147,19 @@ const getSystemPrompt = (inputs: AdMakerInputs, brand?: BrandKit | null, vaultDn
 
     let visualFocusMandate = "";
     if (focus === 'lifestyle') {
+        let modelDesc = "";
+        if (inputs.modelSource === 'upload' && inputs.modelImage) {
+            modelDesc = "You MUST use the human identity provided in the 'USER MODEL REFERENCE'. Maintain their facial biometrics and body shape exactly. This is a non-negotiable identity lock.";
+        } else if (inputs.modelSource === 'ai' && inputs.modelParams) {
+            const p = inputs.modelParams;
+            modelDesc = `Generate a photorealistic human model: ${p.gender}, ${p.ethnicity} ethnicity, ${p.skinTone} skin tone, ${p.bodyType} build.`;
+        } else {
+            modelDesc = `Generate a high-end, photorealistic human model matching the target audience: "${inputs.audience || 'General'}".`;
+        }
+
         visualFocusMandate = `
         *** LIFESTYLE PRODUCTION MANDATE (CRITICAL) ***
-        - **SCENE**: You MUST generate a high-end, photorealistic human model that matches the target audience: "${inputs.audience || 'General'}".
+        - **SCENE**: ${modelDesc}
         - **INTERACTION**: The model MUST be interacting with, holding, wearing, or looking at the PRODUCT ASSETS provided.
         - **CONTEXT**: If it's Fashion, the model wears it. If it's Food, the model is about to eat it or is served it. If it's Tech, they are using it.
         - **INTEGRATION**: Use realistic contact shadows and depth-of-field. The product must look physically present in the model's environment.
@@ -213,6 +231,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const optimizedMains = await Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))); // Increased res
     const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : null;
+    const optModel = (inputs.modelSource === 'upload' && inputs.modelImage) ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : null;
     
     const refImg = (inputs as any).referenceImage;
 
@@ -223,6 +242,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
+    if (optModel) parts.push({ text: "USER MODEL REFERENCE:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
     if (refImg) {
         const optRef = await optimizeImage(refImg.base64, refImg.mimeType, 1024);
