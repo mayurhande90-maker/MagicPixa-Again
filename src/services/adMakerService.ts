@@ -1,8 +1,8 @@
-
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
+import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
     try {
@@ -17,159 +17,321 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
     }
 };
 
-export interface Archetype {
+/**
+ * --- PHASE 1: THE AD-INTELLIGENCE ENGINE ---
+ * Acts as the CMO, Creative Director, and Forensic Analyst.
+ */
+interface CreativeBrief {
+    forensicReport: string;      // Physical properties & lighting audit
+    marketTrends: string;        // Trend research from Google Search
+    strategicCopy: {
+        headline: string;
+        subheadline: string;
+        cta: string;
+    };
+    visualDirection: string;     // Art direction for the rendering engine
+    interactionLogic: string;    // How the model/environment interacts with the product
+    perspectiveAnchor: string;   // NEW: Camera angle detection (Eye-level, Bird's eye, etc)
+}
+
+const performAdIntelligence = async (
+    inputs: AdMakerInputs, 
+    brand?: BrandKit | null
+): Promise<CreativeBrief> => {
+    const ai = getAiClient();
+    
+    const lowResAssets = await Promise.all(
+        inputs.mainImages.slice(0, 2).map(img => optimizeImage(img.base64, img.mimeType, 512))
+    );
+
+    const prompt = `You are the Lead Creative Director and Product Strategist for MagicPixa.
+    
+    *** THE INTELLIGENCE MISSION ***
+    Perform a four-stage "Thinking" audit for an upcoming high-end ad campaign.
+    
+    **STAGE 1: FORENSIC PRODUCT AUDIT**
+    Analyze the attached raw photo(s). Identify:
+    - **Material Physics**: Glass (reflective), Matte plastic (diffused), Metal (specular), or Fabric?
+    - **Camera Angle (STRICT)**: Is this an "Eye-Level" shot, "Top-Down / Bird's Eye", or "Low Angle"? This is the Perspective Anchor.
+    
+    **STAGE 2: REAL-TIME TREND PULSE (Use Google Search)**
+    - Search for: "High-performing ${inputs.industry} advertising trends 2025".
+    
+    **STAGE 3: STRATEGIC COPYWRITING**
+    - Rewrite inputs using AIDA framework.
+    
+    **STAGE 4: SCENE LOGIC (${inputs.visualFocus?.toUpperCase()} FOCUS)**
+    ${inputs.visualFocus === 'lifestyle' ? `
+    - PROMPT MANDATE: Define how a human model interacts with this product.
+    - CONSTRAINT: The model's interaction MUST match the Stage 1 Perspective Anchor.` : ''}
+    
+    *** OUTPUT REQUIREMENT ***
+    Return strictly a JSON object.
+    {
+        "forensicReport": "Technical physics report...",
+        "marketTrends": "Industry visual summary...",
+        "strategicCopy": {
+            "headline": "AIDA headline",
+            "subheadline": "AIDA subheader",
+            "cta": "Urgent CTA"
+        },
+        "visualDirection": "Detailed Art Direction for lighting/bg...",
+        "interactionLogic": "Instructions on model-product interaction...",
+        "perspectiveAnchor": "Precise camera angle (e.g., 'Straight Eye-Level')"
+    }`;
+
+    const parts: any[] = [];
+    lowResAssets.forEach((asset, i) => {
+        parts.push({ text: `RAW PRODUCT ASSET ${i+1}:` });
+        parts.push({ inlineData: { data: asset.data, mimeType: asset.mimeType } });
+    });
+    parts.push({ text: prompt });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: { parts },
+            config: {
+                tools: [{ googleSearch: {} }],
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        forensicReport: { type: Type.STRING },
+                        marketTrends: { type: Type.STRING },
+                        strategicCopy: {
+                            type: Type.OBJECT,
+                            properties: {
+                                headline: { type: Type.STRING },
+                                subheadline: { type: Type.STRING },
+                                cta: { type: Type.STRING }
+                            }
+                        },
+                        visualDirection: { type: Type.STRING },
+                        interactionLogic: { type: Type.STRING },
+                        perspectiveAnchor: { type: Type.STRING }
+                    },
+                    required: ["forensicReport", "marketTrends", "strategicCopy", "visualDirection", "interactionLogic", "perspectiveAnchor"]
+                }
+            }
+        });
+
+        return JSON.parse(response.text || "{}");
+    } catch (e) {
+        return {
+            forensicReport: "Professional studio physics.",
+            marketTrends: "Commercial aesthetic.",
+            strategicCopy: { headline: inputs.productName || "Premium", subheadline: "Excellence.", cta: "Order Now" },
+            visualDirection: "Clean lighting.",
+            interactionLogic: "Focus on the product.",
+            perspectiveAnchor: "Standard eye-level."
+        };
+    }
+};
+
+export interface Blueprint {
     id: string;
     label: string;
     desc: string;
-    focus: 'product' | 'lifestyle';
     prompt: string;
 }
 
-const ECOM_ARCHETYPES: Archetype[] = [
-    { id: 'viral_sale', label: 'The Viral Sale', desc: 'High energy, bold text, performance focus.', focus: 'product', prompt: 'Hard-sell retail style, high contrast, aggressive but premium lighting, emphasis on conversion elements, vibrant commercial colors.' },
-    { id: 'luxury_showcase', label: 'Luxury Showcase', desc: 'Minimalist, high-end, premium textures.', focus: 'product', prompt: 'Luxury editorial style, soft cinematic shadows, premium materials (marble, gold, velvet), sophisticated color grading, high-end studio lighting.' },
-    { id: 'lifestyle_story', label: 'Lifestyle Story', desc: 'In-use, emotional, natural setting.', focus: 'lifestyle', prompt: 'Authentic lifestyle photography, product in an organic environment, natural daylight, soft bokeh, emotional and aspirational atmosphere.' },
-    { id: 'minimal_pro', label: 'Minimalist Pro', desc: 'Clean background, geometry focus.', focus: 'product', prompt: 'Minimalist modern design, clean white or desaturated space, sharp geometric focus, perfectly balanced lighting, magazine-standard clarity.' }
+const RETAIL_BLUEPRINTS: Blueprint[] = [
+    { id: 'pro_studio', label: 'Studio Look', desc: 'Standard professional studio look.', prompt: 'High-end studio photography style, clean grey/white background, soft diffused 3-point lighting, commercial product focus, high clarity.' },
+    { id: 'pure_white', label: 'Clean/Minimalistic', desc: 'Isolated on perfect white.', prompt: 'Isolated product on a solid pure #FFFFFF white background, high-key lighting, soft natural contact shadows only, extremely clean and minimalist.' },
+    { id: 'night_luxury', label: 'Luxury', desc: 'Premium dark aesthetic.', prompt: 'Luxury dark mode aesthetic, matte black textures, elegant gold or silver accents, dramatic rim lighting, premium sophisticated atmosphere.' },
+    { id: 'nature_vibe', label: 'Nature', desc: 'Earthy and organic feel.', prompt: 'Organic nature theme, natural sunlight dapples, botanical shadows, wooden textures, earth tones, fresh and sustainable look.' },
+    { id: 'street_style', label: 'Street/Urban', desc: 'Edgy urban environment.', prompt: 'Bold streetwear aesthetic, high contrast, concrete textures, strong shadows, energetic and edgy urban composition.' }
 ];
 
-const REALTY_ARCHETYPES: Archetype[] = [
-    { id: 'investor_alert', label: 'Investor Alert', desc: 'ROI focused, sharp clarity, data-heavy vibe.', focus: 'product', prompt: 'Professional architectural photography, high clarity, wide dynamic range, emphasizes structure and scale, bright neutral lighting.' },
-    { id: 'golden_hour', label: 'Golden Hour Listing', desc: 'Warm, emotional, inviting atmosphere.', focus: 'product', prompt: 'Emotional residential photography, sunset/golden hour lighting, warm glows through windows, long inviting shadows, cozy and upscale vibe.' },
-    { id: 'neighborhood', label: 'The Neighborhood', desc: 'Lifestyle focused, community feel.', focus: 'lifestyle', prompt: 'Outdoor community lifestyle, lush landscaping, warm natural light, emphasizes surroundings and lifestyle benefits, friendly tone.' },
-    { id: 'arch_detail', label: 'Architectural Detail', desc: 'Focus on materials and high-end design.', focus: 'product', prompt: 'Macro architectural photography, focus on textures (stone, glass, wood), high-contrast lighting, sharp artistic geometry.' }
+const FOOD_BLUEPRINTS: Blueprint[] = [
+    { id: 'wooden_table', label: 'Wood Table', desc: 'Rustic and earthy.', prompt: 'Rustic food photography, placed on a textured dark wooden table, warm ambient lighting, fresh ingredients scattered in background.' },
+    { id: 'bright_kitchen', label: 'Kitchen', desc: 'Clean and morning-fresh.', prompt: 'Bright and airy kitchen setting, white marble or tile surfaces, natural morning sunlight, clean and appetizing presentation.' },
+    { id: 'moody_cafe', label: 'Cafe', desc: 'Intimate cafe lighting.', prompt: 'Low-light cafe environment, warm tungsten glow, intimate atmosphere, soft bokeh of coffee shop interior in background.' },
+    { id: 'sunlit_window', label: 'Window', desc: 'Dramatic natural shadows.', prompt: 'Food placed near a window, strong directional natural sunlight, long dramatic shadows, golden hour warmth, high-end editorial style.' },
+    { id: 'neon_diner', label: 'Diner', desc: 'Vibrant and trendy.', prompt: 'Retro diner aesthetic, vibrant neon light reflections, hard flash photography, bold colors, energetic fast-food vibe.' }
 ];
 
-const FOOD_ARCHETYPES: Archetype[] = [
-    { id: 'tasty_closeup', label: 'Tasty Close-up', desc: 'Extreme detail, appetizing textures.', focus: 'product', prompt: 'Macro food photography, glisten and texture focus, vibrant appetizing colors, soft directional lighting, shallow depth of field.' },
-    { id: 'chefs_table', label: 'Chef’s Table', desc: 'Premium plating, restaurant environment.', focus: 'lifestyle', prompt: 'High-end restaurant atmosphere, premium plating, elegant table setting, warm tungsten ambient light, sophisticated culinary vibe.' },
-    { id: 'midnight_craving', label: 'Midnight Craving', desc: 'Moody, high-contrast, urgent vibe.', focus: 'product', prompt: 'Low-key food photography, dramatic spotlighting, deep shadows, rich saturated colors, intense appetizing appeal.' },
-    { id: 'clean_menu', label: 'Clean Menu', desc: 'Isolated, minimalist, high-key.', focus: 'product', prompt: 'Modern menu photography, isolated on clean background, high-key lighting, bright and fresh, zero clutter.' }
+const REALTY_BLUEPRINTS: Blueprint[] = [
+    { id: 'daylight', label: 'Day', desc: 'Bright and airy.', prompt: 'Professional real estate photography in broad daylight, blue sky visible through windows, bright and spacious feel, high dynamic range.' },
+    { id: 'sunset_glow', label: 'Sunset', desc: 'Warm and emotional.', prompt: 'Golden hour real estate photography, warm sunset light hitting surfaces, inviting long shadows, emotional and cozy residential glow.' },
+    { id: 'city_nights', label: 'Night City', desc: 'Twilight luxury.', prompt: 'Blue hour twilight photography, deep blue sky, interior lights glowing warm through glass, luxurious and premium architectural lighting.' },
+    { id: 'clean_interior', label: 'Room', desc: 'Modern and minimalist.', prompt: 'Modern minimalist interior design style, clean lines, neutral desaturated tones, sharp focus, magazine-ready architectural shot.' },
+    { id: 'luxury_garden', label: 'Garden', desc: 'Outdoor and green.', prompt: 'Premium outdoor residential shot, lush green landscaping, clear pool or garden area, bright natural light, expensive exterior aesthetic.' }
 ];
 
-const PRO_ARCHETYPES: Archetype[] = [
-    { id: 'authority', label: 'Authority Builder', desc: 'Professional, trustworthy, corporate.', focus: 'lifestyle', prompt: 'Corporate leadership aesthetic, clean structured office environment, balanced neutral lighting, confident and trustworthy color palette.' },
-    { id: 'testimonial', label: 'User Testimonial', desc: 'Friendly, relatable, social-proof.', focus: 'lifestyle', prompt: 'Friendly user-focused photography, approachable smart-casual environment, natural lighting, genuine and relatable atmosphere.' },
-    { id: 'solver', label: 'Problem Solver', desc: 'High energy, solution-focused, bold.', focus: 'product', prompt: 'High-impact technical visualization, clean tech environment, vibrant blue/green accents, focused and energetic composition.' },
-    { id: 'future', label: 'Future Vision', desc: 'Futuristic, innovative, high-tech.', focus: 'product', prompt: 'Futuristic technology aesthetic, dark gradients, neon rim lighting, high-tech interface elements, innovative atmosphere.' }
+const PROFESSIONAL_BLUEPRINTS: Blueprint[] = [
+    { id: 'modern_tech', label: 'Modern', desc: 'Clean and structured.', prompt: 'Modern technology office aesthetic, clean white and blue color palette, structured layout, trustworthy and professional, SaaS software vibe.' },
+    { id: 'dark_mode', label: 'Dark', desc: 'Sleek and futuristic.', prompt: 'Futuristic tech dark mode, sleek dark gradients, glowing blue or purple tech accents, professional interface environment, premium software look.' },
+    { id: 'warm_trust', label: 'Soft', desc: 'Approachable and soft.', prompt: 'Approachable professional style, beige and soft earth tones, warm natural light, friendly and trustworthy atmosphere, service/healthcare vibe.' },
+    { id: 'clean_minimal', label: 'Clean', desc: 'Authoritative and simple.', prompt: 'Minimalist corporate aesthetic, shades of professional grey and white, serious and authoritative, clean high-end studio look.' },
+    { id: 'creative_flare', label: 'Creative', desc: 'Artistic and bold.', prompt: 'Modern creative agency style, bold accent colors, artistic lighting, unique geometric background elements, energetic and innovative vibe.' }
 ];
 
-export const getArchetypesForIndustry = (industry: string): Archetype[] => {
+export const getBlueprintsForIndustry = (industry: string): Blueprint[] => {
     switch (industry) {
-        case 'ecommerce': case 'fashion': case 'fmcg': return ECOM_ARCHETYPES;
-        case 'realty': return REALTY_ARCHETYPES;
-        case 'food': return FOOD_ARCHETYPES;
-        default: return PRO_ARCHETYPES;
+        case 'ecommerce':
+        case 'fashion':
+        case 'fmcg': return RETAIL_BLUEPRINTS;
+        case 'food': return FOOD_BLUEPRINTS;
+        case 'realty': return REALTY_BLUEPRINTS;
+        case 'saas':
+        case 'education':
+        case 'services': return PROFESSIONAL_BLUEPRINTS;
+        default: return RETAIL_BLUEPRINTS;
     }
 };
 
 export interface AdMakerInputs {
-    industry: string;
+    industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
+    visualFocus?: 'product' | 'lifestyle' | 'conceptual'; 
+    aspectRatio?: '1:1' | '4:5' | '9:16';
     mainImages: { base64: string; mimeType: string }[];
     logoImage?: { base64: string; mimeType: string } | null;
-    referenceImage?: { base64: string; mimeType: string } | null;
-    blueprintId?: string; // This is now the prompt part of the archetype
-    description: string; // This is the consolidated Creative Goal
-    aspectRatio?: string;
-    visualFocus: 'product' | 'lifestyle';
+    referenceImage?: { base64: string; mimeType: string } | null; // NEW: Direct reference
+    blueprintId?: string; 
+    productName?: string;
+    offer?: string;
+    description?: string;
+    project?: string;
+    location?: string;
+    config?: string;
+    features?: string[];
+    dishName?: string;
+    restaurant?: string;
+    headline?: string;
+    cta?: string;
+    subheadline?: string;
+    occasion?: string;
+    audience?: string;
+    layoutTemplate?: string;
     modelSource?: 'ai' | 'upload';
     modelImage?: { base64: string; mimeType: string } | null;
-    modelParams?: { gender: string; ethnicity: string; skinTone: string; bodyType: string; };
+    modelParams?: {
+        gender: string;
+        ethnicity: string;
+        skinTone: string;
+        bodyType: string;
+    };
 }
 
+/**
+ * --- PHASE 2: THE PRODUCTION ENGINE ---
+ */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    // STEP 1: ENTITY EXTRACTION & CREATIVE STRATEGY (THINKING PHASE)
-    const extractionPrompt = `You are a World-Class Ad Director.
-    
-    *** THE CREATIVE GOAL ***
-    "${inputs.description}"
-    
-    *** THE TASK ***
-    Analyze the goal and extract entities for a high-converting ad campaign. 
-    Use Google Search to find current 2025 consumer trends for this specific product context.
-    
-    RETURN JSON ONLY:
-    {
-        "productName": "extracted product name",
-        "offer": "extracted special offer or CTA",
-        "location": "extracted location if any",
-        "hook": "a catchy verb-led headline rewritten for maximum CTR",
-        "subline": "a professional subheadline that emphasizes value",
-        "visualDirectives": "specific art direction for the rendering engine based on the goal",
-        "colorPsychology": "suggested hex code or color name to evoke the right emotion"
-    }`;
-
-    const extractionRes = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: extractionPrompt,
-        config: { 
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json"
-        }
-    });
-
-    const brief = JSON.parse(extractionRes.text || "{}");
-
-    // STEP 2: HIGH-FIDELITY PRODUCTION
-    const optimizedMains = await Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536)));
-    const optLogo = inputs.logoImage ? await optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : null;
-    const optRef = inputs.referenceImage ? await optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType, 1024) : null;
-    const optModel = (inputs.modelSource === 'upload' && inputs.modelImage) ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : null;
+    const [brief, vaultData, optimizedMains, optLogo, optModel, optRef] = await Promise.all([
+        performAdIntelligence(inputs, brand),
+        (async () => {
+            try {
+                const [refs, conf] = await Promise.all([getVaultImages('brand_stylist'), getVaultFolderConfig('brand_stylist')]);
+                let dna = conf?.dna || "";
+                let assets: { data: string, mimeType: string }[] = [];
+                const shuffled = refs.sort(() => 0.5 - Math.random());
+                const selectedRefs = shuffled.slice(0, 1);
+                assets = await Promise.all(selectedRefs.map(async (r) => { 
+                    const res = await urlToBase64(r.imageUrl); 
+                    return { data: res.base64, mimeType: res.mimeType }; 
+                }));
+                return { assets, dna };
+            } catch (e) {
+                return { assets: [], dna: "" };
+            }
+        })(),
+        Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
+        inputs.logoImage ? optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : Promise.resolve(null),
+        (inputs.modelSource === 'upload' && inputs.modelImage) ? optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : Promise.resolve(null),
+        inputs.referenceImage ? optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType, 1024) : Promise.resolve(null)
+    ]);
 
     const parts: any[] = [];
-    optimizedMains.forEach((opt, i) => {
-        parts.push({ text: `MANDATORY PRODUCT ASSET ${i+1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
+    
+    // --- LOGIC PRUNING: Reference Image Priority ---
+    let styleInstructions = "";
+    if (optRef) {
+        styleInstructions = `*** SINGLE SOURCE OF TRUTH (REFERENCE IMAGE) ***
+        IGNORE ALL BLUEPRINTS. Copy the lighting, background style, and layout of the attached 'REFERENCE IMAGE' exactly.`;
+        parts.push({ text: "REFERENCE IMAGE (STYLE GUIDE):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
+    } else {
+        const blueprint = getBlueprintsForIndustry(inputs.industry).find(b => b.id === inputs.blueprintId);
+        styleInstructions = blueprint ? `*** VISUAL STYLE: ${blueprint.label} ***\n${blueprint.prompt}` : "Professional studio lighting.";
+    }
+
+    // Identity Lock
+    optimizedMains.forEach((opt, idx) => {
+        parts.push({ text: `MANDATORY PRODUCT ASSET ${idx + 1} (IDENTITY ANCHOR):` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    if (optModel) parts.push({ text: "HUMAN SUBJECT REFERENCE:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    if (optModel) parts.push({ text: "TARGET MODEL BIOMETRICS:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
-    let styleMandate = inputs.blueprintId || "Professional commercial photography.";
-    if (optRef) {
-        parts.push({ text: "REFERENCE STYLE GUIDE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
-        styleMandate = "IGNORE ARCHETYPES. Strictly replicate the lighting, background, and layout of the 'REFERENCE STYLE GUIDE'.";
+    // MANDATORY HUMAN SUBJECT OVERRIDE (Weight 1.5 - Absolute Top Priority)
+    let humanMandate = "";
+    if (inputs.visualFocus === 'lifestyle') {
+        const modelDesc = inputs.modelSource === 'ai' && inputs.modelParams 
+            ? `${inputs.modelParams.gender}, ${inputs.modelParams.ethnicity}, ${inputs.modelParams.skinTone}, ${inputs.modelParams.bodyType}`
+            : "the provided person asset";
+            
+        humanMandate = `
+        *** MANDATE #1: THE HUMAN SUBJECT (SUBJECT WEIGHT 1.5) ***
+        YOU MUST RENDER A REALISTIC HUMAN SUBJECT (${modelDesc}) AS THE PRIMARY FOCUS.
+        - INTERACTION: ${brief.interactionLogic}
+        - PERSPECTIVE: The human must be positioned at ${brief.perspectiveAnchor}.
+        - REALISM: High-fidelity skin texture and natural hand-product contact points.
+        - FAILURE CRITERIA: If no human is rendered, the task has failed.
+        `;
     }
 
-    const brandDNA = brand ? `Brand: '${brand.companyName}'. Palette: ${brand.colors.primary}.` : "";
+    const brandDNA = brand ? `
+    *** BRAND DNA ***
+    - Brand: '${brand.companyName || brand.name}'
+    - Palette: ${brand.colors.primary} (Primary).
+    ` : "";
 
-    const productionPrompt = `You are a High-End Ad Production Engine.
+    const finalPrompt = `You are the High-Fidelity Ad Production Engine.
+    
+    ${humanMandate}
+    
+    *** PERSPECTIVE ANCHOR ***
+    - Mandatory Camera Angle: ${brief.perspectiveAnchor}
+    - Mandate: The background, model, and lighting MUST match this specific product perspective.
+    
+    *** PRODUCTION BRIEF ***
+    ${styleInstructions}
     ${brandDNA}
-    ${styleMandate}
+    ${vaultData.dna ? `*** SIGNATURE RULES ***\n${vaultData.dna}` : ''}
+    ${brief.forensicReport}
     
-    *** CREATIVE BRIEF ***
-    Product: ${brief.productName}
-    Offer: ${brief.offer}
-    Direction: ${brief.visualDirectives}
-    
-    *** MANDATORY RENDERING RULES ***
-    1. **Identity**: The product labels and structure must be pixel-perfect.
-    2. **Composition**: ${inputs.visualFocus === 'lifestyle' ? 'Physically integrate the human subject with the product. Realistic contact points.' : 'Focus strictly on product geometry.'}
+    *** GRAPHIC DESIGN RULES ***
+    1. **Identity**: Preserve product pixels exactly. No label changes.
+    2. **Composition**: Place product and model strategically within the frame.
     3. **Typography**:
-       - HEADLINE: "${brief.hook}" (Large, commanding)
-       - SUBLINE: "${brief.subline}"
-       - CTA: "${brief.offer || 'Order Now'}"
+       - HEADLINE: "${brief.strategicCopy.headline}"
+       - SUBHEADER: "${brief.strategicCopy.subheadline}"
+       - CTA: "${brief.strategicCopy.cta}"
     
-    OUTPUT: A single 4K masterpiece asset. Aspect Ratio: ${inputs.aspectRatio || '1:1'}.`;
+    OUTPUT: A world-class 4K marketing asset. Magazine quality.`;
 
-    parts.push({ text: productionPrompt });
+    parts.push({ text: finalPrompt });
 
-    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: { parts },
-        config: { 
-            responseModalities: [Modality.IMAGE],
-            imageConfig: { aspectRatio: (inputs.aspectRatio as any) || '1:1', imageSize: '1K' },
-            safetySettings: [
-                { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-                { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-                { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-                { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-            ]
-        },
-    }));
-
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("Render engine failed.");
+    try {
+        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: { parts },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "1K" },
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ]
+            },
+        }));
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error("Visual engine failed to render.");
+    } catch (e) { console.error("Ad production failed", e); throw e; }
 };
