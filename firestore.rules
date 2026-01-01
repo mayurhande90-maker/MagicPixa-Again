@@ -19,18 +19,16 @@ service cloud.firestore {
     match /users/{userId} {
       
       // Core Profile Rule: Owners and Admins have full access.
-      // This is the most robust way to ensure transactions (like credit deductions) never fail.
       allow read, write: if isOwner(userId) || isAdmin();
       
       // Referral Check: Allow any authenticated user to check if a referral code exists
       allow get: if request.auth != null;
 
       // Third-Party Updates: (e.g., Referrals) 
-      // Only allow non-owners to update specific fields if they aren't the owner or admin.
       allow update: if request.auth != null && 
                    !isOwner(userId) && 
                    !isAdmin() &&
-                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'creditGrantNotification']);
+                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'creditGrantNotification', 'lastAutomatedRefund']);
 
       // Explicitly allow all sub-collections for the owner/admin
       match /{allPaths=**} {
@@ -41,6 +39,11 @@ service cloud.firestore {
     // --- GLOBAL COLLECTIONS ---
 
     match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /global_vault/{allPaths=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
