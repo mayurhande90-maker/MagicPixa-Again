@@ -42,6 +42,16 @@ export interface AdMakerInputs {
     };
 }
 
+const LAYOUT_BLUEPRINTS: Record<string, string> = {
+    'Hero Focus': "SPATIAL GRID: [Subject: Center-Weighted, Scale 70%] | [Headline: Upper 15%, Center-Align] | [CTA: Bottom 10%, Floating]. Rule: Maximum focal impact on the product.",
+    'Split Design': "SPATIAL GRID: [Subject: Left 50% Horizontal Column] | [Text/Copy Stack: Right 50% Horizontal Column]. Rule: Hard vertical axis split for clean informational hierarchy.",
+    'Bottom Strip': "SPATIAL GRID: [Subject: Upper 80% Canvas] | [Information Strip: Bottom 20% with semi-transparent backdrop]. Rule: Cinematic focus with a grounded info footer.",
+    'Social Proof': "SPATIAL GRID: [Subject: Center-Right] | [Review Bubble/Badge: Bottom-Left Overlay]. Rule: Offset subject to create space for secondary trust markers.",
+    'The Trio': "SPATIAL GRID: [Main Hero: Center, Scale 100%] | [Variant 1: Lower Left, Scale 40%] | [Variant 2: Lower Right, Scale 40%]. Rule: Depth-based hierarchy for product ranges.",
+    'Range Lineup': "SPATIAL GRID: [3 Items: Arranged side-by-side on a horizontal shelf plane]. Rule: Perfect symmetrical alignment for collections.",
+    'Hero & Variants': "SPATIAL GRID: [Hero Item: Front & Center] | [2 Supporting Items: Blurred in the shallow background]. Rule: Dynamic bokeh-based product storytelling."
+};
+
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -205,7 +215,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
-            parts.push({ text: `VAULT REFERENCE ${i+1} (LAYOUT SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+            parts.push({ text: `VAULT REFERENCE ${i+1} (AESTHETIC SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
@@ -219,36 +229,38 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         parts.push({ text: "USER MODEL:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
     }
 
+    const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
+
     let styleInstructions = "";
     if (optRef) {
-        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the layout and structural logic of the attached USER REFERENCE exactly.`;
+        styleInstructions = `
+        *** HYBRID PRODUCTION PROTOCOL (MANDATORY) ***
+        1. **GEOMETRIC SOURCE**: Follow the strict spatial coordinates of: ${blueprintInstruction}
+        2. **AESTHETIC SOURCE**: Use the attached USER STYLE REFERENCE for lighting, color grading, and environmental texture ONLY. 
+        3. **RULE**: Spatial Template (Geometry) OVERRIDES Reference Image (Layout). Do NOT copy the reference image's layout; copy its SOUL.`;
         parts.push({ text: "USER STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic.";
-        styleInstructions = `*** THE DESIGN VIBE: ${inputs.vibe} ***\n${vibeDesc}`;
+        styleInstructions = `
+        *** PRODUCTION PROTOCOL ***
+        - **LAYOUT**: ${blueprintInstruction}
+        - **VIBE**: ${vibeDesc}`;
     }
 
     const finalPrompt = `You are a High-Precision Ad Production Engine. 
     
     *** VISUAL HIERARCHY (STRICT) ***
     1. **LEVEL 1 (TITLE)**: Render the Headline: "${brief.strategicCopy.headline}" as the most dominant text element. 
-       - **MANDATE**: This is the ad's main title/hook. It must be loud, legible, and artistically integrated.
     2. **LEVEL 2 (PRODUCT)**: The USER PRODUCT photo must be the central visual hero.
     3. **LEVEL 3 (IDENTITY)**: The Product Name "${inputs.productName}" is SECONDARY. 
        - **STRATEGY**: ${brief.identityStrategy.weight === 'Hidden' ? 'DO NOT overlay the name as text.' : `Apply as ${brief.identityStrategy.weight}: ${brief.identityStrategy.placementRecommendation}.`}
-       - **LIMIT**: Identity text must occupy < 3% of the canvas.
-    4. **LEVEL 4 (ACTION)**: Render the CTA "${brief.strategicCopy.cta}" as a button or clear action anchor.
+    4. **LEVEL 4 (ACTION)**: Render the CTA "${brief.strategicCopy.cta}" as a button.
 
     *** THE CONTEXTUAL FIREWALL ***
     - Category: ${inputs.industry.toUpperCase()}
-    - DO NOT use claims or icons from Vault References.
-    - FORBIDDEN KEYWORDS: ${brief.industryLogic.forbiddenKeywords.join(', ')}.
+    - DO NOT use text/icons from Vault or Reference Images.
+    - ${styleInstructions}
 
-    *** PRODUCTION DETAILS ***
-    ${vaultDna ? `DNA RULES: ${vaultDna}` : ''}
-    ${styleInstructions}
-    Subheadline: "${brief.strategicCopy.subheadline}"
-    
     FINAL OUTPUT: A single, magazine-quality 4K ad image. 
     Ray-traced lighting, perfect product integration, and premium typography.`;
 

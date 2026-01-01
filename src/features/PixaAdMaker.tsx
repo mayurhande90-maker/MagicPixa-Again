@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
@@ -502,7 +503,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const canGenerate = mainImages.length > 0 && !!industry && !!vibe && (vibe !== CUSTOM_VIBE_KEY || !!customVibeText.trim()) && (referenceImage ? true : !!layoutTemplate) && (
         (visualFocus !== 'lifestyle' || (modelSource === 'ai' && !!aiModelType && !!aiRegion && !!aiSkinTone && !!aiBodyType && !!aiComposition && !!aiFraming) || (modelSource === 'upload' && !!modelImage))
     ) && !!aspectRatio && !!visualFocus && (
-        ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
+        ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services' || industry === 'realty') && !!headline)
     );
     
     const activeConfig = industry ? INDUSTRY_CONFIG[industry] : null;
@@ -524,7 +525,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {(loading || isRefining || isFetchingProduct) ? (
-                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                            <div className="absolute inset-0 z-[110] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
@@ -559,7 +560,42 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     const { label: mainLabel, item, items } = getImageLabels(industry);
                                     return (
                                         <>
-                                            <div className="mb-4 animate-fadeIn"><div className="grid grid-cols-2 gap-3">{activeConfig && (<button onClick={() => setIndustry(null)} className={`p-3 rounded-xl border transition-all group ${activeConfig.bg} ${activeConfig.border} flex items-center gap-3`}><div className={`p-2 rounded-lg bg-white shadow-sm ${activeConfig.color}`}><activeConfig.icon className="w-5 h-5" /></div><div className="min-w-0 flex-1"><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Category</p><h2 className={`text-sm font-black ${activeConfig.color} truncate leading-tight`}>{activeConfig.label}</h2></div></button>)}<button onClick={() => setShowBrandModal(true)} className="p-3 rounded-xl border border-indigo-100 bg-white hover:bg-indigo-50 transition-all flex items-center gap-3 group text-left overflow-hidden">{auth.activeBrandKit ? (<><div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center border border-indigo-50 shadow-sm shrink-0 p-0.5">{auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain" /> : <BrandKitIcon className="w-5 h-5 text-indigo-500" />}</div><div className="min-w-0 flex-1"><p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Identity</p><h3 className="text-xs font-black text-indigo-900 truncate leading-tight">{auth.activeBrandKit.companyName || auth.activeBrandKit.name}</h3></div></>) : (<><div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:text-indigo-500"><PlusCircleIcon className="w-5 h-5" /></div><span className="text-xs font-bold text-gray-400 group-hover:text-indigo-600">Brand Kit</span></>)}</button></div></div>
+                                            <div className="mb-4 animate-fadeIn">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    {activeConfig && (
+                                                        <button onClick={() => setIndustry(null)} className={`p-4 rounded-2xl border transition-all group ${activeConfig.bg} ${activeConfig.border} flex items-center gap-3 w-full shadow-sm`}>
+                                                            <div className={`p-2 rounded-xl bg-white shadow-sm ${activeConfig.color} shrink-0`}>
+                                                                <activeConfig.icon className="w-6 h-6" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1 text-left">
+                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Sector</p>
+                                                                <h2 className={`text-xs font-black ${activeConfig.color} truncate leading-tight uppercase`}>{activeConfig.label}</h2>
+                                                            </div>
+                                                            <XIcon className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => setShowBrandModal(true)} className="p-4 rounded-2xl border border-indigo-100 bg-white hover:bg-indigo-50 transition-all flex items-center gap-3 group text-left overflow-hidden w-full shadow-sm">
+                                                        {auth.activeBrandKit ? (
+                                                            <>
+                                                                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center border border-indigo-50 shadow-sm shrink-0 p-1">
+                                                                    {auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain" /> : <BrandKitIcon className="w-5 h-5 text-indigo-500" />}
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Brand</p>
+                                                                    <h3 className="text-xs font-black text-indigo-900 truncate leading-tight uppercase">{auth.activeBrandKit.companyName || auth.activeBrandKit.name}</h3>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:text-indigo-500 border border-gray-100 shrink-0">
+                                                                    <PlusCircleIcon className="w-5 h-5" />
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-gray-400 group-hover:text-indigo-600 uppercase tracking-widest">Connect Kit</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
 
                                             {/* ASSETS */}
                                             <div>
@@ -600,9 +636,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     </div>
                                                 )}
 
-                                                {!referenceImage && vibe && (
+                                                {/* FIXED: Layout templates are now hybrid-aware. We show them even with a reference image. */}
+                                                {vibe && (
                                                     <div className="mt-4">
                                                         <SelectionGrid label="Layout Composition" options={isRangeMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setTemplate} />
+                                                        {referenceImage && (
+                                                            <p className="text-[9px] text-indigo-400 mt-1 italic ml-1">
+                                                                <LightningIcon className="w-3 h-3 inline mr-1" />
+                                                                <b>Hybrid Logic Active</b>: Applying {layoutTemplate} geometry to your Style Reference.
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -616,8 +659,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 {visualFocus === 'lifestyle' && (
                                                     <div className="animate-fadeInUp space-y-4 pt-2">
                                                         <div className={AdMakerStyles.modelSelectionGrid}>
-                                                            <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? 'border-indigo-500 bg-indigo-50' : ''}`}><SparklesIcon className="w-5 h-5"/> <span className="text-[10px] font-bold">Pixa Model</span></button>
-                                                            <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? 'border-indigo-500 bg-indigo-50' : ''}`}><UserIcon className="w-5 h-5"/> <span className="text-[10px] font-bold">Own Model</span></button>
+                                                            <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? 'border-indigo-500 bg-indigo-50 shadow-sm' : ''}`}>
+                                                                <SparklesIcon className="w-5 h-5 text-indigo-500"/> 
+                                                                <span className="text-[10px] font-black uppercase tracking-tight">Pixa Model</span>
+                                                            </button>
+                                                            <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? 'border-indigo-500 bg-indigo-50 shadow-sm' : ''}`}>
+                                                                <UserIcon className="w-5 h-5 text-indigo-500"/> 
+                                                                <span className="text-[10px] font-black uppercase tracking-tight">Own Model</span>
+                                                            </button>
                                                         </div>
 
                                                         {modelSource === 'ai' && (
@@ -653,6 +702,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <div className="space-y-3">
                                                         <InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} />
                                                         <InputField placeholder="Location & Details" value={location} onChange={(e:any) => setLocation(e.target.value)} />
+                                                        <InputField placeholder="Hero Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} />
                                                         <TextAreaField 
                                                             label="Property USPs & Details" 
                                                             placeholder="Enter amenities, key selling points, and specifications." 
@@ -687,29 +737,35 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
             {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
 
-            {/* REFINED INPUT BAR */}
+            {/* REFINED INPUT BAR - Fixed Overlap by raising z-index and adjusting bottom position */}
             {isRefineActive && resultImage && !isRefining && createPortal(
-                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-6 animate-fadeInUp z-[300]">
-                    <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2 rounded-2xl shadow-2xl flex gap-2 items-center">
+                <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-lg px-6 animate-fadeInUp z-[350]">
+                    <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2.5 rounded-[1.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex gap-3 items-center">
+                        <div className="p-3 bg-white/10 rounded-2xl text-yellow-400">
+                            <SparklesIcon className="w-5 h-5"/>
+                        </div>
                         <input 
                             type="text"
                             value={refineText}
                             onChange={(e) => setRefineText(e.target.value)}
                             placeholder="Example: Move logo to top right, make lighting warmer..."
-                            className="flex-1 bg-transparent border-none px-4 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-0"
+                            className="flex-1 bg-transparent border-none px-2 py-2 text-sm font-medium text-white placeholder-gray-500 outline-none focus:ring-0"
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
                         />
                         <button 
                             onClick={handleRefine}
                             disabled={!refineText.trim()}
-                            className="bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95"
+                            className="bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95"
                         >
-                            <ArrowRightIcon className="w-5 h-5" />
+                            Refine <ArrowRightIcon className="w-4 h-4 ml-2" />
                         </button>
                     </div>
-                    <div className="mt-2 flex justify-center">
-                         <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] bg-black/40 px-3 py-1 rounded-full border border-white/5">{refineCost} Credits</span>
+                    <div className="mt-3 flex justify-center">
+                         <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.25em] bg-black/60 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md shadow-xl flex items-center gap-2">
+                            <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
+                            {refineCost} Credits / Refinement
+                         </span>
                     </div>
                 </div>,
                 document.body
