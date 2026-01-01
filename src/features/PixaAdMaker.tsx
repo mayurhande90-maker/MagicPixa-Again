@@ -498,7 +498,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         onClick={() => setIsRefineActive(true)}
                         className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"
                     >
-                        <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 group-hover:scale-110 transition-transform"/>
                         <span>Make Changes</span>
                     </button>
                 ) : null}
@@ -519,41 +518,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-2">{industry ? 'Enter details on the right' : 'Select an industry to start'}</p>
-                            </div>
-                        )}
-                        
-                        {/* REFINE INPUT MODAL OVERLAY */}
-                        {isRefineActive && resultImage && (
-                            <div className="absolute inset-x-0 bottom-24 z-[40] flex justify-center px-6 animate-fadeInUp">
-                                <div className="bg-gray-900/90 backdrop-blur-xl border border-white/20 p-5 rounded-[2rem] shadow-2xl w-full max-w-lg flex flex-col gap-4">
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center gap-2">
-                                            <MagicWandIcon className="w-5 h-5 text-yellow-400" />
-                                            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Pixa Refiner</span>
-                                        </div>
-                                        <button onClick={() => setIsRefineActive(false)} className="text-gray-400 hover:text-white"><XIcon className="w-5 h-5"/></button>
-                                    </div>
-                                    <div className="relative">
-                                        <textarea 
-                                            value={refineText}
-                                            onChange={(e) => setRefineText(e.target.value)}
-                                            placeholder="Example: Move logo to top right, make lighting warmer..."
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder-gray-500 outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/5 resize-none h-24"
-                                            autoFocus
-                                        />
-                                        <div className="absolute bottom-3 right-3 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                                            {refineCost} Credits
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={handleRefine}
-                                        disabled={!refineText.trim() || isRefining}
-                                        className="w-full py-4 bg-yellow-400 hover:bg-yellow-500 text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
-                                    >
-                                        <PaperAirplaneIcon className="w-4 h-4"/>
-                                        Submit Changes
-                                    </button>
-                                </div>
                             </div>
                         )}
                     </div>
@@ -650,7 +614,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </div>
                             )}
                     </div>
-                )
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
@@ -658,6 +621,60 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
             {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
+            
+            {/* REFINE INPUT MODAL OVERLAY - Rendered via Portal so it's always on top and visible when resultImage is shown */}
+            {isRefineActive && resultImage && createPortal(
+                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsRefineActive(false)}>
+                    <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] shadow-2xl w-full max-w-lg flex flex-col gap-6 transform animate-bounce-slight" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-yellow-400/10 rounded-xl">
+                                    <MagicWandIcon className="w-6 h-6 text-yellow-400" />
+                                </div>
+                                <span className="text-[11px] font-black text-white uppercase tracking-[0.25em]">Pixa Refiner</span>
+                            </div>
+                            <button onClick={() => setIsRefineActive(false)} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/5 transition-all"><XIcon className="w-5 h-5"/></button>
+                        </div>
+                        
+                        <div className="relative">
+                            <textarea 
+                                value={refineText}
+                                onChange={(e) => setRefineText(e.target.value)}
+                                placeholder="Example: Move logo to top right, make lighting warmer, change headline to 'Buy Now'..."
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm text-white placeholder-gray-500 outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/5 resize-none h-32 leading-relaxed font-medium shadow-inner"
+                                autoFocus
+                            />
+                            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-white/10">
+                                <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
+                                <span className="text-[10px] text-gray-300 font-black uppercase tracking-widest">
+                                    {refineCost} Credits
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10">
+                            <InformationCircleIcon className="w-4 h-4 text-indigo-400 shrink-0"/>
+                            <p className="text-[10px] text-indigo-300/80 font-medium leading-relaxed">
+                                Pixa will repixelate your existing ad based on your vision. Core identity and product remains locked.
+                            </p>
+                        </div>
+
+                        <button 
+                            onClick={handleRefine}
+                            disabled={!refineText.trim() || isRefining}
+                            className="w-full py-4.5 bg-yellow-400 hover:bg-yellow-500 text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale disabled:transform-none"
+                        >
+                            {isRefining ? (
+                                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                            ) : (
+                                <PaperAirplaneIcon className="w-4 h-4"/>
+                            )}
+                            {isRefining ? 'Polishing Pixels...' : 'Submit Changes'}
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
         </>
     );
 };
