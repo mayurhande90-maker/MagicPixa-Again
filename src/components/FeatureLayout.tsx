@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     SparklesIcon, 
@@ -379,12 +378,28 @@ export const FeatureLayout: React.FC<{
                              <div className={FeatureStyles.resultOverlay}></div>
                              <img 
                                 src={resultImage} 
-                                className={FeatureStyles.resultImage}
+                                className={`${FeatureStyles.resultImage} ${isGenerating ? 'blur-md grayscale-[0.2] brightness-75 transition-all duration-700' : ''}`}
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
                              
-                             {resultOverlay && (
+                             {isGenerating && (
+                                <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] animate-fadeIn">
+                                    <div className="relative">
+                                        <div className="w-20 h-20 border-4 border-white/20 border-t-yellow-400 rounded-full animate-spin"></div>
+                                        <SparklesIcon className="absolute inset-0 m-auto w-8 h-8 text-yellow-400 animate-pulse" />
+                                    </div>
+                                    <div className="mt-6 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex flex-col items-center gap-1 shadow-2xl">
+                                        <span className="text-xs font-black text-white uppercase tracking-[0.2em] animate-pulse">Reworking Identity</span>
+                                        <span className="text-[10px] text-white/60 font-medium italic">Polishing every pixel...</span>
+                                    </div>
+                                    
+                                    {/* Scan Line effect during rework */}
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent shadow-[0_0_15px_#facc15] animate-[scan-v_2s_linear_infinite]"></div>
+                                </div>
+                             )}
+
+                             {resultOverlay && !isGenerating && (
                                  <div className="absolute top-4 right-4 z-30">
                                      {resultOverlay}
                                  </div>
@@ -400,7 +415,7 @@ export const FeatureLayout: React.FC<{
                                 )}
                                 
                                 {/* Buttons Container - Only show if creationId exists to prevent broken admin links */}
-                                {!feedbackGiven && creationId && (
+                                {!feedbackGiven && creationId && !isGenerating && (
                                     <>
                                         <span className="text-[10px] font-bold text-white/90 shadow-black/50 drop-shadow-md ml-1 bg-black/20 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">Do you like this result?</span>
                                         <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
@@ -438,37 +453,39 @@ export const FeatureLayout: React.FC<{
                              </div>
                              
                              {/* Result Actions */}
-                             <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
-                                <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
-                                    {customActionButtons}
+                             {!isGenerating && (
+                                <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
+                                    <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
+                                        {customActionButtons}
 
-                                    {onEdit && (
-                                        <button 
-                                            onClick={onEdit} 
-                                            className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"
-                                        >
-                                            <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 group-hover:scale-110 transition-transform"/>
-                                            <span className="hidden sm:inline">Magic Editor</span>
-                                        </button>
-                                    )}
+                                        {onEdit && (
+                                            <button 
+                                                onClick={onEdit} 
+                                                className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"
+                                            >
+                                                <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 group-hover:scale-110 transition-transform"/>
+                                                <span className="hidden sm:inline">Magic Editor</span>
+                                            </button>
+                                        )}
 
-                                    {onNewSession && (
-                                         <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
-                                            <TrashIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
-                                            <span className="hidden sm:inline">New Project</span>
+                                        {onNewSession && (
+                                            <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
+                                                <TrashIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
+                                                <span className="hidden sm:inline">New Project</span>
+                                            </button>
+                                        )}
+                                        {onResetResult && (
+                                            <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
+                                                <RegenerateIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
+                                                <span className="hidden sm:inline">Regenerate</span>
+                                            </button>
+                                        )}
+                                        <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-yellow-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
+                                            <DownloadIcon className="w-4 h-4 sm:w-5 sm:h-5"/> <span>Download</span>
                                         </button>
-                                    )}
-                                    {onResetResult && (
-                                        <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
-                                            <RegenerateIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
-                                            <span className="hidden sm:inline">Regenerate</span>
-                                        </button>
-                                    )}
-                                    <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-yellow-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
-                                        <DownloadIcon className="w-4 h-4 sm:w-5 sm:h-5"/> <span>Download</span>
-                                    </button>
+                                    </div>
                                 </div>
-                             </div>
+                             )}
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-start">
@@ -536,6 +553,13 @@ export const FeatureLayout: React.FC<{
             {isZoomed && resultImage && (
                 <ImageModal imageUrl={resultImage} onClose={() => setIsZoomed(false)} />
             )}
+            
+            <style>{`
+                @keyframes scan-v {
+                    0% { top: 0%; }
+                    100% { top: 100%; }
+                }
+            `}</style>
         </div>
     );
 };
