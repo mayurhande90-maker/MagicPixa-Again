@@ -1,4 +1,3 @@
-
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -528,11 +527,16 @@ export const claimMilestoneBonus = async (uid: string, amount: number) => {
 
 // --- GLOBAL STYLE VAULT FUNCTIONS ---
 
-export const getVaultImages = async (featureId: string): Promise<VaultReference[]> => {
+export const getVaultImages = async (featureId: string, subCategoryId?: string): Promise<VaultReference[]> => {
     if (!db) return [];
     try {
-        const snap = await db.collection('global_vault').doc(featureId).collection('references')
-            .orderBy('addedAt', 'desc').get();
+        let collRef;
+        if (subCategoryId) {
+            collRef = db.collection('global_vault').doc(featureId).collection('categories').doc(subCategoryId).collection('references');
+        } else {
+            collRef = db.collection('global_vault').doc(featureId).collection('references');
+        }
+        const snap = await collRef.orderBy('addedAt', 'desc').get();
         return snap.docs.map(d => ({ id: d.id, ...d.data() } as VaultReference));
     } catch(e) {
         console.warn("Vault fetch error", e);
@@ -540,46 +544,77 @@ export const getVaultImages = async (featureId: string): Promise<VaultReference[
     }
 };
 
-export const uploadVaultImage = async (adminUid: string, featureId: string, dataUri: string): Promise<string> => {
+export const uploadVaultImage = async (adminUid: string, featureId: string, dataUri: string, subCategoryId?: string): Promise<string> => {
     if (!storage || !db) throw new Error("Init error");
     
     // 1. Upload to Storage
     const response = await fetch(dataUri);
     const blob = await response.blob();
     const ext = blob.type.split('/')[1] || 'jpg';
-    const path = `global_vault/${featureId}/${Date.now()}.${ext}`;
-    const ref = storage.ref().child(path);
+    
+    const storagePath = subCategoryId 
+        ? `global_vault/${featureId}/categories/${subCategoryId}/${Date.now()}.${ext}`
+        : `global_vault/${featureId}/${Date.now()}.${ext}`;
+        
+    const ref = storage.ref().child(storagePath);
     await ref.put(blob);
     const url = await ref.getDownloadURL();
 
     // 2. Add to Firestore
-    const docRef = await db.collection('global_vault').doc(featureId).collection('references').add({
+    let collRef;
+    if (subCategoryId) {
+        collRef = db.collection('global_vault').doc(featureId).collection('categories').doc(subCategoryId).collection('references');
+    } else {
+        collRef = db.collection('global_vault').doc(featureId).collection('references');
+    }
+    
+    const docRef = await collRef.add({
         imageUrl: url,
         addedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    await logAudit(adminUid, 'Vault Upload', `Feature: ${featureId}, ID: ${docRef.id}`);
+    await logAudit(adminUid, 'Vault Upload', `Feature: ${featureId}, SubCat: ${subCategoryId || 'None'}, ID: ${docRef.id}`);
     return docRef.id;
 };
 
-export const deleteVaultImage = async (adminUid: string, featureId: string, imageId: string) => {
+export const deleteVaultImage = async (adminUid: string, featureId: string, imageId: string, subCategoryId?: string) => {
     if (!db) return;
-    await db.collection('global_vault').doc(featureId).collection('references').doc(imageId).delete();
-    await logAudit(adminUid, 'Vault Delete', `Feature: ${featureId}, ID: ${imageId}`);
+    let collRef;
+    if (subCategoryId) {
+        collRef = db.collection('global_vault').doc(featureId).collection('categories').doc(subCategoryId).collection('references');
+    } else {
+        collRef = db.collection('global_vault').doc(featureId).collection('references');
+    }
+    await collRef.doc(imageId).delete();
+    await logAudit(adminUid, 'Vault Delete', `Feature: ${featureId}, SubCat: ${subCategoryId || 'None'}, ID: ${imageId}`);
 };
 
-export const getVaultFolderConfig = async (featureId: string): Promise<VaultFolderConfig | null> => {
+export const getVaultFolderConfig = async (featureId: string, subCategoryId?: string): Promise<VaultFolderConfig | null> => {
     if (!db) return null;
-    const doc = await db.collection('global_vault').doc(featureId).get();
+    let docRef;
+    if (subCategoryId) {
+        docRef = db.collection('global_vault').doc(featureId).collection('categories').doc(subCategoryId);
+    } else {
+        docRef = db.collection('global_vault').doc(featureId);
+    }
+    
+    const doc = await docRef.get();
     if (!doc.exists) return null;
     return { featureId: doc.id, ...doc.data() } as VaultFolderConfig;
 };
 
-export const updateVaultFolderConfig = async (adminUid: string, featureId: string, dna: string) => {
+export const updateVaultFolderConfig = async (adminUid: string, featureId: string, dna: string, subCategoryId?: string) => {
     if (!db) return;
-    await db.collection('global_vault').doc(featureId).set({
+    let docRef;
+    if (subCategoryId) {
+        docRef = db.collection('global_vault').doc(featureId).collection('categories').doc(subCategoryId);
+    } else {
+        docRef = db.collection('global_vault').doc(featureId);
+    }
+    
+    await docRef.set({
         dna,
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
-    await logAudit(adminUid, 'Vault Update DNA', `Feature: ${featureId}`);
+    await logAudit(adminUid, 'Vault Update DNA', `Feature: ${featureId}, SubCat: ${subCategoryId || 'None'}`);
 };

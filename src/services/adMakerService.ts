@@ -2,6 +2,7 @@ import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThresho
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
+import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
 // Helper: Resize image with customizable width
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -118,8 +119,6 @@ const performAdIntelligence = async (
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
-                // Note: responseMimeType is not allowed when tools: googleSearch is used in some versions,
-                // but here we are using it for a flash-preview structured call.
                 responseMimeType: "application/json"
             }
         });
@@ -171,6 +170,24 @@ export interface AdMakerInputs {
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
+    // 0. Fetch Global Vault references for AdMaker (brand_stylist) with category-specific logic
+    let vaultAssets: { data: string, mimeType: string }[] = [];
+    let vaultDna = "";
+    try {
+        const [refs, conf] = await Promise.all([
+            getVaultImages('brand_stylist', inputs.industry),
+            getVaultFolderConfig('brand_stylist', inputs.industry)
+        ]);
+        if (conf) vaultDna = conf.dna;
+        // Select top 2 random industry references
+        const shuffled = refs.sort(() => 0.5 - Math.random());
+        const selectedRefs = shuffled.slice(0, 2);
+        vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
+            const res = await urlToBase64(r.imageUrl);
+            return { data: res.base64, mimeType: res.mimeType };
+        }));
+    } catch (e) { console.warn("AdMaker Industry Vault fetch failed", e); }
+
     const [brief, optimizedMains, optLogo, optModel, optRef] = await Promise.all([
         performAdIntelligence(inputs, brand),
         Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
@@ -181,6 +198,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const parts: any[] = [];
     
+    // Vault DNA Injection
+    const vaultProtocol = vaultDna ? `
+    *** SIGNATURE INDUSTRY PROTOCOL (MANDATORY) ***
+    - Category Rules: ${vaultDna}
+    - Mandate: Ensure the lighting and atmosphere align strictly with the ${inputs.industry.toUpperCase()} industry standards.
+    ` : "";
+
     // Style Mapping
     let styleInstructions = "";
     if (optRef) {
@@ -189,6 +213,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || inputs.vibe || "Professional studio lighting.";
         styleInstructions = `*** THE VIBE: ${inputs.vibe} ***\n${vibeDesc}`;
+    }
+
+    // Add Vault Assets if available
+    if (vaultAssets.length > 0) {
+        vaultAssets.forEach((v, i) => {
+            parts.push({ text: `INDUSTRY REFERENCE ${i+1}:` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+        });
     }
 
     optimizedMains.forEach((opt, idx) => {
@@ -209,6 +240,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     const finalPrompt = `You are a High-End Ad Production Engine.
     
     *** THE STRATEGY ***
+    ${vaultProtocol}
     ${styleInstructions}
     ${brief.visualDirection}
     ${modelDirective ? `*** MODEL PROTOCOL ***\n${modelDirective}` : ''}
