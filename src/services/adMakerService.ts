@@ -218,3 +218,45 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         throw new Error("No image generated.");
     } catch (e) { throw e; }
 };
+
+/**
+ * Iterative Refinement Service
+ */
+export const refineAdCreative = async (
+    base64Result: string,
+    mimeType: string,
+    instruction: string
+): Promise<string> => {
+    const ai = getAiClient();
+    const optResult = await optimizeImage(base64Result, mimeType, 1536);
+
+    const prompt = `You are a Precision Ad Editor.
+    
+    *** CURRENT VERSION ***
+    Modify the provided image based on this specific user feedback: "${instruction}".
+    
+    *** EDITING RULES ***
+    1. **Preservation**: Keep the core product, environment, and vibe identical.
+    2. **Transformation**: Apply the user's specific requested change (e.g., reposition logo, brighten scene, change text content).
+    3. **Seamlessness**: Ensure the edited area blends perfectly with the rest of the high-fidelity ad.
+    
+    OUTPUT: A single 4K refined image.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: optResult.data, mimeType: optResult.mimeType } },
+                    { text: prompt }
+                ]
+            },
+            config: { 
+                responseModalities: [Modality.IMAGE]
+            },
+        });
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error("Refinement failed.");
+    } catch (e) { throw e; }
+};
