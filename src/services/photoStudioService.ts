@@ -29,18 +29,18 @@ const getBrandDNA = (brand?: BrandKit | null) => {
 };
 
 /**
- * PHASE 1: MATERIAL-AWARE PHYSICS AUDIT
- * Classifies the product into Optical Profiles to determine light interaction rules.
+ * PHASE 1: MATERIAL-AWARE PHYSICS AUDIT (ELITE RETOUCHER UPGRADE)
+ * Performs an Optical Profiling session to classify materials and light transport.
  */
 const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): Promise<string> => {
     const prompt = `Perform a Deep Forensic Physics & Material Audit of this product image.
     
-    1. **OPTICAL CLASSIFICATION**: Is it Specular (Reflective/Metal/Glass), Diffuse (Matte/Fabric/Paper), or Refractive (Translucent/Liquid)?
-    2. **LIGHTING TOPOLOGY**: Map the primary light source direction and intensity.
-    3. **GEOMETRIC GRID**: Identify the perspective angle and contact points with the ground.
-    4. **MATERIAL PHYSICS**: Note surface roughness, subsurface scattering needs, and Fresnel edge requirements.
+    1. **OPTICAL CLASSIFICATION**: Classify into a technical bucket: Specular (Reflective/Metal/Chrome), Diffuse (Matte/Fabric/Paper), or Refractive (Translucent/Glass/Liquid).
+    2. **GLOBAL ILLUMINATION (GI) SPILL**: Predict how the environment light will "bleed" onto the bottom edges of the product based on its material response.
+    3. **LIGHTING TOPOLOGY**: Map the primary light source direction and intensity.
+    4. **GEOMETRIC GRID**: Identify the exact contact points with the ground for Ambient Occlusion (AO) calculation.
     
-    Output a concise "Technical Optical Blueprint" paragraph.`;
+    Output a concise "Technical Optical Blueprint" paragraph of physics commands.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
@@ -110,7 +110,6 @@ export const editImageWithPrompt = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
-    // 1. Fetch Global Vault references for 'studio'
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
     try {
@@ -139,7 +138,7 @@ export const editImageWithPrompt = async (
 
     const prompt = `You are Pixa Studio Pro, a world-class commercial photographer.
     ${vaultProtocol}
-    *** TECHNICAL OPTICAL BLUEPRINT ***
+    *** TECHNICAL OPTICAL BLUEPRINT (PHYSICS MANDATE) ***
     ${technicalBlueprint}
     ${brandContext}
     
@@ -151,9 +150,11 @@ export const editImageWithPrompt = async (
     *** COMMERCIAL OPTIC BLOCK (HYPER-REALISM MANDATE) ***
     1. **RAY-TRACED CONTACT SHADOWS**: Calculate the exact ambient occlusion where the product meets the new surface. Ensure a dark, sharp, high-fidelity crease shadow to prevent the product from "floating".
     2. **GLOBAL ILLUMINATION (COLOR SPILL)**: Calculate light bouncing from the environment onto the product. If placed on marble, the marble's white/grey light must "bleed" onto the bottom of the product.
-    3. **FRESNEL SILHOUETTES**: Apply realistic edge-highlighting on the product's silhouette based on the new environment's light sources.
-    4. **SPECULAR REFLECTIONS**: If the material is Specular/Hard, it MUST reflect the new environment (e.g., if in a forest, show hints of green in the glass/metal highlights).
-    5. **CAUSTICS & DISTORTION**: If the product is Refractive (liquid/glass), ensure the background is realistically distorted through the container.
+    3. **MATERIAL PHYSICS**:
+       - If Specular: High-specular sharp highlights.
+       - If Diffuse: Soft sub-surface scattering.
+       - If Refractive: Caustics and realistic distortion.
+    4. **FRESNEL SILHOUETTES**: Apply realistic edge-highlighting on the product's silhouette based on the new environment's light sources.
 
     OUTPUT: A hyper-realistic 8K commercial product photograph. No AI artifacts, zero noise, pristine 2025 production quality.`;
     
@@ -209,9 +210,8 @@ export const generateModelShot = async (
       *** REALISM PROTOCOL ***
       1. **IDENTITY LOCK**: Keep the product pixels 100% real. Do not alter branding or labels.
       2. **SKIN FIDELITY**: Render photorealistic skin (visible pores, fine lines, micro-textures) without artificial smoothing.
-      3. **FABRIC PHYSICS**: Calculate realistic drape, folds, and subsurface scattering for any clothing.
-      4. **HAND INTERACTION**: If the model is holding the product, ensure perfect finger positioning and realistic contact shadows.
-      5. **ENVIRONMENTAL BLENDING**: The model's skin and the product surface must reflect the surrounding light sources perfectly.
+      3. **PHYSICS ANCHORING**: Calculate realistic contact shadows where the model touches the product.
+      4. **GLOBAL ILLUMINATION**: The model's skin and the product surface must reflect the surrounding light sources perfectly.
 
       OUTPUT: A hyper-realistic 8K fashion portrait. Captured on a Hasselblad H6D-400c. Commercial grade, ultra-detailed fashion shoot.`;
       
@@ -233,3 +233,45 @@ export const generateModelShot = async (
       throw new Error("No image generated.");
     } catch (error) { throw error; }
   };
+
+/**
+ * PHASE 3: ELITE REFINEMENT (ITERATIVE LOOP)
+ */
+export const refineStudioImage = async (
+    base64Result: string,
+    mimeType: string,
+    instruction: string
+): Promise<string> => {
+    const ai = getAiClient();
+    const optResult = await optimizeImage(base64Result, mimeType, 1536);
+
+    const prompt = `You are an Elite Commercial Retoucher.
+    
+    *** CURRENT IMAGE ***
+    Modify the provided image based on this specific "Creative Director" feedback: "${instruction}".
+    
+    *** REFINEMENT RULES ***
+    1. **Preserve State**: Keep the core product, environment, and 90% of the lighting identical.
+    2. **Iterative Physics**: Only modify the specific elements requested while maintaining consistent scene physics.
+    3. **Asset Lock**: Do NOT alter the sacred product pixels.
+    
+    OUTPUT: A single 8K refined commercial photograph.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: optResult.data, mimeType: optResult.mimeType } },
+                    { text: prompt }
+                ]
+            },
+            config: { 
+                responseModalities: [Modality.IMAGE]
+            },
+        });
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error("Refinement failed.");
+    } catch (e) { throw e; }
+};

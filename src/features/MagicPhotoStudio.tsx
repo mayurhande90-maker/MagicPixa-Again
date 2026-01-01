@@ -1,14 +1,13 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
-    PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon, InformationCircleIcon
+    PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon, InformationCircleIcon, MagicWandIcon
 } from '../components/icons';
 import { 
     FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone 
 } from '../components/FeatureLayout';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
-import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt } from '../services/photoStudioService';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt, refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, logApiError } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
@@ -16,6 +15,7 @@ import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
+import { createPortal } from 'react-dom';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
@@ -25,6 +25,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const currentCost = studioMode === 'model' 
         ? (appConfig?.featureCosts['Model Shot'] || 10) 
         : (appConfig?.featureCosts['Pixa Product Shots'] || appConfig?.featureCosts['Magic Photo Studio'] || 10);
+    
+    const refineCost = 2;
 
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -37,6 +39,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [refineText, setRefineText] = useState('');
+    const [isRefining, setIsRefining] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
@@ -75,17 +82,19 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     useEffect(() => {
         let interval: any;
-        if (loading) {
-            const steps = ["Pixa is analyzing structure...", "Pixa is generating model...", "Pixa is adjusting lighting...", "Pixa is applying physics...", "Pixa is polishing pixels..."];
+        if (loading || isRefining) {
+            const steps = isRefining 
+                ? ["Elite Retoucher: Analyzing current pixels...", "Optical Audit: Tracing light transport...", "Contact Correction: Recalculating AO shadows...", "Global Illumination: Applying color bleed...", "Post-Production: Final pixel polish..."]
+                : ["Pixa Vision: Extracting material properties...", "Production Engine: Calibrating lighting rig...", "Ray-Tracing: Calculating contact shadows...", "Elite Retoucher: Harmonizing reflections...", "Finalizing: Polishing 8K output..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 1500);
+            }, 1800);
         }
         return () => clearInterval(interval);
-    }, [loading]);
+    }, [loading, isRefining]);
 
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
 
@@ -149,6 +158,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setResult(null); 
         setLoading(true); 
         setLastCreationId(null);
+        setIsRefineActive(false);
         
         try {
             let res;
@@ -164,33 +174,60 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             const dataUri = `data:image/png;base64,${res}`;
             const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
             
-            // EXECUTE DATABASE SYNC
             try {
-                // 1. Deduct Credits first (The gatekeeper)
-                console.log("Starting credit deduction transaction...");
                 const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-                
-                // 2. Save image to gallery
-                console.log("Saving creation to user gallery...");
                 const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
                 setLastCreationId(creationId);
-                
                 if (updatedUser.lifetimeGenerations) { 
                     const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
                     if (bonus !== false) setMilestoneBonus(bonus); 
                 }
             } catch (dbError: any) {
-                console.error("CRITICAL: Database sync failed during post-generation processing", dbError);
+                console.error("DB Sync Failure", dbError);
                 logApiError("DB Sync Failure", dbError.message || "Unknown Firestore Error", auth.user.uid);
-                setNotification({ msg: `Sync Failed: ${dbError.message || 'Permissions issue'}. Check browser console for details.`, type: 'error' });
             }
         } catch (e: any) { 
             console.error("AI Generation Error:", e); 
             logApiError("Studio AI Failure", e.message || "Unknown AI Error", auth.user.uid);
-            alert('Generation failed. The AI might be busy or your image contains sensitive content.'); 
+            alert('Generation failed.'); 
         } finally { 
             setLoading(false); 
+        }
+    };
+
+    const handleRefine = async () => {
+        if (!result || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
+        
+        setIsRefining(true);
+        setIsRefineActive(false); 
+        try {
+            const currentB64 = await urlToBase64(result);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText);
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
+            
+            const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            } else {
+                const id = await saveCreation(auth.user.uid, dataUri, `${featureName} (Refined)`);
+                setLastCreationId(id);
+            }
+            
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, `${featureName} (Refinement)`);
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            
+            setRefineText('');
+            setNotification({ msg: "Elite Retoucher: Refinement complete!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            alert("Refinement failed.");
+        } finally {
+            setIsRefining(false);
         }
     };
 
@@ -206,7 +243,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     };
 
     const handleNewSession = () => {
-        setImage(null); setResult(null); setStudioMode(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); setSuggestedPrompts([]); setSuggestedModelPrompts([]); setSelectedPrompt(null); setLastCreationId(null);
+        setImage(null); setResult(null); setStudioMode(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); setSuggestedPrompts([]); setSuggestedModelPrompts([]); setSelectedPrompt(null); setLastCreationId(null); setIsRefineActive(false);
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -232,7 +269,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             icon={<PixaProductIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>}
             rawIcon={true}
             creditCost={currentCost}
-            isGenerating={loading}
+            isGenerating={loading || isRefining}
             canGenerate={canGenerate}
             onGenerate={handleGenerate}
             resultImage={result}
@@ -242,6 +279,15 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             onEdit={() => setShowMagicEditor(true)}
             activeBrandKit={auth.activeBrandKit}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+            customActionButtons={result ? (
+                <button 
+                    onClick={() => setIsRefineActive(!isRefineActive)}
+                    className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                >
+                    <SparklesIcon className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
+                    <span>Fine-Tune with AI</span>
+                </button>
+            ) : null}
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
             generateButtonStyle={{ 
@@ -253,12 +299,12 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             leftContent={
                 image ? (
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                         {loading && (
+                         {(loading || isRefining) && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-6">{loadingText}</p>
                             </div>
                         )}
                         {(isAnalyzing || isAnalyzingModel) && (
@@ -274,14 +320,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                             </div>
                         )}
                         <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'blur-sm scale-105' : ''}`} />
-                        {!loading && !isAnalyzing && !isAnalyzingModel && (
+                        {!loading && !isRefining && !isAnalyzing && !isAnalyzingModel && (
                             <>
                                 <button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40"><XIcon className="w-5 h-5"/></button>
                                 <button onClick={() => redoFileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40"><UploadIcon className="w-5 h-5"/></button>
                             </>
                         )}
                         <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } } @keyframes scan-horizontal { 0% { left: 0%; } 100% { left: 100%; } }`}</style>
                     </div>
                 ) : (
                     <div className="w-full h-full flex justify-center">
@@ -308,7 +353,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b]">Recharge Now</button>
                     </div>
                 ) : (
-                    <div className={`space-y-4 animate-fadeIn p-1 h-full flex flex-col ${(!image || loading) ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
+                    <div className={`space-y-4 animate-fadeIn p-1 h-full flex flex-col ${(!image || loading || isRefining) ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                         {!studioMode && !isAnalyzing && !isAnalyzingModel && (
                             <div className="flex flex-col gap-4 h-full justify-center">
                                 <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Select Generation Mode</p>
@@ -442,6 +487,40 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Product Shot" />}
         {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         
+        {/* REFINEMENT BAR PORTAL */}
+        {isRefineActive && result && !isRefining && createPortal(
+            <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-lg px-6 animate-fadeInUp z-[350]">
+                <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2.5 rounded-[1.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex gap-3 items-center">
+                    <div className="p-3 bg-white/10 rounded-2xl text-yellow-400">
+                        <MagicWandIcon className="w-5 h-5"/>
+                    </div>
+                    <input 
+                        type="text"
+                        value={refineText}
+                        onChange={(e) => setRefineText(e.target.value)}
+                        placeholder="e.g. Add water droplets to glass, make lighting warmer..."
+                        className="flex-1 bg-transparent border-none px-2 py-2 text-sm font-medium text-white placeholder-gray-500 outline-none focus:ring-0"
+                        autoFocus
+                        onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
+                    />
+                    <button 
+                        onClick={handleRefine}
+                        disabled={!refineText.trim()}
+                        className="bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95"
+                    >
+                        Apply <ArrowRightIcon className="w-4 h-4 ml-2" />
+                    </button>
+                </div>
+                <div className="mt-3 flex justify-center">
+                        <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.25em] bg-black/60 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md shadow-xl flex items-center gap-2">
+                        <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
+                        {refineCost} Credits / Refinement
+                        </span>
+                </div>
+            </div>,
+            document.body
+        )}
+
         {/* Hidden inputs for file uploads */}
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
         </>
