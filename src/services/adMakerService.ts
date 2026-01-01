@@ -5,7 +5,6 @@ import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
-// FIX: Define and export AdMakerInputs interface to resolve missing name and exported member errors.
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
     mainImages: { base64: string; mimeType: string }[];
@@ -43,7 +42,6 @@ export interface AdMakerInputs {
     };
 }
 
-// Helper: Resize image with customizable width
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -57,9 +55,6 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
     }
 };
 
-/**
- * Lehman Vibe Mappings - Translates simple names to technical prompts
- */
 const VIBE_PROMPTS: Record<string, string> = {
     "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk.",
     "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers.",
@@ -90,11 +85,17 @@ interface CreativeBrief {
         subheadline: string;
         cta: string;
     };
+    identityStrategy: {
+        weight: 'Primary' | 'Secondary' | 'Hidden' | 'Footnote';
+        reasoning: string;
+        placementRecommendation: string;
+        styling: string;
+    };
     visualDirection: string;
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE with Forensic Visual Audit
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -105,18 +106,31 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a Senior Creative Strategist. Analyze this ${inputs.industry} product.
+    const prompt = `You are a Senior Creative Strategist and Branding Expert. 
+    Analyze this ${inputs.industry} product and the requested product name: "${inputs.productName || 'N/A'}".
     
-    **TASK**: Generate high-conversion ad copy.
-    1. **Headline**: Verb-led, punchy (3-6 words).
-    2. **Subheadline**: Benefit-driven (5-10 words).
-    3. **CTA**: Direct action (2-3 words).
+    **TASK 1: REDUNDANCY AUDIT**
+    Examine the product image closely. Is the product name or brand logo already clearly visible and legible on the packaging or item itself?
     
-    Avoid corporate jargon. Use human-centric, impactful language.
+    **TASK 2: IDENTITY STRATEGY**
+    Determine the 'identityWeight' for the text overlay of the product name:
+    - **Hidden**: If the name is already large and clear on the product.
+    - **Footnote**: If the name is visible but needs a small, elegant reinforcement in a corner.
+    - **Secondary**: If the product is raw/unbranded and the name serves as a supporting anchor.
+    - **Primary**: Only if the name is the core focus of the ad (rare in high-end production).
+
+    **TASK 3: AD COPY**
+    Generate high-conversion ad copy (Headline, Subheadline, CTA).
     
     RETURN JSON ONLY:
     {
         "strategicCopy": { "headline": "STRING", "subheadline": "STRING", "cta": "STRING" },
+        "identityStrategy": {
+            "weight": "Primary | Secondary | Hidden | Footnote",
+            "reasoning": "Technical explanation based on visual audit",
+            "placementRecommendation": "X, Y zone recommendation (e.g., 'Opposite axis to hero weight')",
+            "styling": "Typography rules (e.g., 'Spaced-out Serif at 15% opacity')"
+        },
         "visualDirection": "Technical notes on how to showcase this product in a ${inputs.vibe} setting"
     }`;
 
@@ -134,7 +148,11 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        return { strategicCopy: { headline: inputs.productName || "Premium Quality", subheadline: inputs.description || "", cta: "Order Now" }, visualDirection: "Professional commercial lighting." };
+        return { 
+            strategicCopy: { headline: inputs.productName || "Premium Quality", subheadline: inputs.description || "", cta: "Order Now" }, 
+            identityStrategy: { weight: 'Secondary', reasoning: 'Default fallback', placementRecommendation: 'Bottom Right', styling: 'Clean Sans' },
+            visualDirection: "Professional commercial lighting." 
+        };
     }
 };
 
@@ -144,7 +162,6 @@ const performAdIntelligence = async (
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
-    // 1. Fetch Global Vault references specifically for this industry
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
     try {
@@ -154,7 +171,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         ]);
         if (conf) vaultDna = conf.dna;
         
-        // Pick the top 3 best references from the vault for layout guidance
         const selectedRefs = refs.slice(0, 3);
         vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
             const res = await urlToBase64(r.imageUrl);
@@ -172,14 +188,12 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const parts: any[] = [];
     
-    // 2. Add Vault References as the PRIMARY structural guides
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
             parts.push({ text: `VAULT REFERENCE ${i+1} (LAYOUT SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
-    // 3. Add User Assets
     optimizedMains.forEach((opt, idx) => {
         parts.push({ text: `USER PRODUCT ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
@@ -190,7 +204,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         parts.push({ text: "USER MODEL:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
     }
 
-    // 4. Style Guide Selection
     let styleInstructions = "";
     if (optRef) {
         styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the specific layout, lighting, and aesthetic of the attached USER REFERENCE image with 90% fidelity.`;
@@ -203,30 +216,31 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     const finalPrompt = `You are a High-Precision Ad Production Engine.
     
     *** THE 80/20 PRODUCTION RULE (STRICT) ***
-    1. **80% FIDELITY TO VAULT**: Perform a deep forensic analysis of the 'VAULT REFERENCES'. 
-       - Strictly copy the text placement (X, Y coordinates of headline/CTA).
-       - Strictly copy the image composition (where the product sits relative to the edges).
-       - Strictly copy the design hierarchy (font weights, button styles, gradient usage).
-    2. **20% CREATIVE INNOVATION**: Use your AI intelligence to harmoniously blend the 'USER PRODUCT' into this proven structure. Adjust lighting, reflections, and color grading to make the product look native to the scene.
+    1. **80% FIDELITY TO VAULT**: Strictly follow layout, text positioning, and image weight of 'VAULT REFERENCES'.
+    2. **20% CREATIVE INNOVATION**: Adjust lighting, reflections, and color grading to blend the 'USER PRODUCT' natively.
+
+    *** THE 3% IDENTITY RULE (SMART BRANDING) ***
+    Based on our forensic audit, the Product Name "${inputs.productName}" is assigned weight: **${brief.identityStrategy.weight}**.
+    - **INSTRUCTION**: ${brief.identityStrategy.reasoning}. 
+    - **PLACEMENT**: ${brief.identityStrategy.placementRecommendation}. Use 'Negative Space Anchor' logic (place text on the opposite visual axis to the product).
+    - **STYLING**: ${brief.identityStrategy.styling}. Ensure utility text occupies < 3% of total canvas area.
+    - **INTEGRATION**: If applicable, use 'Perspective Matching' (render text as if it's embossed/engraved on the environment surface like a table or wall).
 
     *** INDUSTRY PROTOCOL: ${inputs.industry.toUpperCase()} ***
     ${vaultDna ? `DNA RULES: ${vaultDna}` : ''}
     ${styleInstructions}
     
     *** PRODUCTION BRIEF ***
-    - **Identity Lock**: Do NOT modify the USER PRODUCT pixels or logos. They must be sharp and legible.
+    - **Identity Lock**: Do NOT modify the USER PRODUCT pixels or logos.
     - **Copy Integration**: 
-        - Headline: "${brief.strategicCopy.headline}" (Large, scannable).
+        - Headline: "${brief.strategicCopy.headline}" (Hero focus).
         - Subheadline: "${brief.strategicCopy.subheadline}" (Supporting).
-        - CTA Button: "${brief.strategicCopy.cta}" (Designed as a high-contrast interactive element).
-    - **Contact Info**: ${inputs.location || inputs.website || ''}. Include only if it fits the vault layout.
+        - CTA Button: "${brief.strategicCopy.cta}" (Interactive element).
+    - **Product Name**: Apply based on weight "${brief.identityStrategy.weight}".
 
     *** VISUAL REQUIREMENTS ***
     - Output a single, finished, magazine-quality 4K ad.
     - Perfect contact shadows and ray-traced material physics.
-    - The final result must look like an exact designed asset from the provided vault references.
-    
-    IF VAULT IS EMPTY: Use your creative agency intelligence to design the best possible ad from scratch.
     
     FINAL OUTPUT: High-fidelity image only.`;
 
@@ -253,9 +267,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     } catch (e) { throw e; }
 };
 
-/**
- * Iterative Refinement Service
- */
 export const refineAdCreative = async (
     base64Result: string,
     mimeType: string,
@@ -271,7 +282,7 @@ export const refineAdCreative = async (
     
     *** EDITING RULES ***
     1. **Preservation**: Keep the core product, environment, and vibe identical.
-    2. **Transformation**: Apply the user's specific requested change (e.g., reposition logo, brighten scene, change text content).
+    2. **Transformation**: Apply the user's specific requested change.
     3. **Seamlessness**: Ensure the edited area blends perfectly with the rest of the high-fidelity ad.
     
     OUTPUT: A single 4K refined image.`;
