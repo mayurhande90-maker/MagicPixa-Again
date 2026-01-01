@@ -56,11 +56,11 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
 };
 
 const VIBE_PROMPTS: Record<string, string> = {
-    "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk.",
-    "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers.",
-    "Lifestyle": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional.",
-    "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting.",
-    "Nature": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones.",
+    "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk. Typography: Tracking-wide, Serif, elegant.",
+    "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers. Typography: Bold, high-contrast Sans-Serif.",
+    "Lifestyle": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional. Typography: Clean, modern, approachable.",
+    "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting. Typography: Minimalist, mid-weight Sans-Serif.",
+    "Nature": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones. Typography: Natural, organic, light weights.",
     "Cinematic": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel.",
     "Grand & Expensive": "Architectural showcase style, high-contrast luxury photography, premium status, dusk/blue hour lighting with warm interior glow.",
     "Bright & Airy": "Clean real estate listing style, high exposure, informative and bright, spacious and welcoming daylight feel.",
@@ -110,35 +110,37 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a Senior Creative Strategist and Branding Expert. 
+    const prompt = `You are a Senior Creative Strategist and Global Branding Expert. 
     Analyze this ${inputs.industry} product and the requested product name: "${inputs.productName || 'N/A'}".
     
-    **TASK 1: REDUNDANCY AUDIT**
-    Examine the product image closely. Is the product name or brand logo already clearly visible and legible on the packaging or item itself?
+    **TASK 1: FORENSIC REDUNDANCY AUDIT**
+    Examine the product pixels. Is the brand name or a recognizable logo already clearly legible on the physical packaging (e.g., label, embroidery, engraving)? 
+    If YES, we MUST avoid duplicate branding.
     
-    **TASK 2: IDENTITY STRATEGY**
-    Determine the 'identityWeight' for the text overlay:
-    - **Hidden**: If name is large/clear on product.
-    - **Footnote**: Small reinforcement in a corner.
-    - **Secondary**: Supporting anchor.
-    
-    **TASK 3: CONTEXTUAL FIREWALLING**
-    Identify specific "Safety Badges" or "Marketing Claims" appropriate for the ${inputs.industry} category.
-    - If food: e.g., '100% Organic', 'Gluten Free'.
-    - If SaaS: e.g., 'SSO Enabled', 'Cloud Native'.
-    
+    **TASK 2: SMART IDENTITY WEIGHT**
+    Assign the 'identityWeight' for the text overlay of the product name:
+    - **Hidden**: If the name is already a dominant visual on the physical product. Do not add it as text.
+    - **Footnote**: If the name is on the product but small, or if the vibe is "Luxury/Elegant". The overlay should be a tiny, elegant "Quiet Zone" anchor.
+    - **Secondary**: If the product is raw/unbranded. The name should support the headline but not fight it.
+    - **Primary**: ONLY if the product name IS the headline (rare in pro ads).
+
+    **TASK 3: MARKET TIER HIERARCHY**
+    - For Luxury: Wide tracking, small font, serif.
+    - For Retail/Sale: Paired with the price/badge as a single info-unit.
+    - For SaaS/Tech: Clean Breadcrumb style near the logo.
+
     RETURN JSON ONLY:
     {
         "strategicCopy": { "headline": "STRING", "subheadline": "STRING", "cta": "STRING" },
         "identityStrategy": {
             "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Technical explanation",
-            "placementRecommendation": "Zone",
-            "styling": "Rules"
+            "reasoning": "Forensic explanation of logo detection on packaging",
+            "placementRecommendation": "Placement Zone (e.g., 'Bottom-right quiet zone', 'Top-left breadcrumb')",
+            "styling": "Styling rule (e.g., 'Small Serif with 200 tracking', 'Paired with Offer Badge')"
         },
         "industryLogic": {
             "categoryBadgeText": "Category appropriate trust claim",
-            "forbiddenKeywords": ["List keywords from other industries to avoid, like 'tested on animals' for food"]
+            "forbiddenKeywords": ["tested on animals", "industrial", "cheap"]
         },
         "visualDirection": "Technical notes"
     }`;
@@ -200,7 +202,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
-            parts.push({ text: `VAULT REFERENCE ${i+1} (LAYOUT & LIGHTING ONLY):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+            parts.push({ text: `VAULT REFERENCE ${i+1} (LAYOUT SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
@@ -216,7 +218,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     let styleInstructions = "";
     if (optRef) {
-        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the structural layout of this reference image with 90% fidelity.`;
+        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the specific layout, lighting, and aesthetic of the attached USER REFERENCE image with 90% fidelity.`;
         parts.push({ text: "USER STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic.";
@@ -226,27 +228,28 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     const finalPrompt = `You are a High-Precision Ad Production Engine.
     
     *** THE CONTEXTUAL FIREWALL (CRITICAL) ***
-    1. **STRUCTURAL SOURCE**: Use 'VAULT REFERENCES' for spatial geometry, lighting angles, and composition ONLY.
-    2. **SEMANTIC PURGE**: You are strictly FORBIDDEN from copying any text, icons, badges, or marketing claims found in the VAULT REFERENCES. They are from different product ranges.
-    3. **CATEGORY SYNC**: The user's industry is ${inputs.industry.toUpperCase()}. 
+    1. **SEMANTIC PURGE**: DO NOT copy any text, icons, or badges from the VAULT REFERENCES. They are from different products.
+    2. **CATEGORY SYNC**: User industry is ${inputs.industry.toUpperCase()}. 
        - DO NOT use claims like "Not tested on animals" if the product is food.
-       - DO NOT use claims like "100% Organic" if the product is SaaS.
-       - Use ONLY the provided 'Strategic Copy' and the Category Badge: "${brief.industryLogic.categoryBadgeText}".
-    4. **FORBIDDEN KEYWORDS**: Never use these words in this ad: ${brief.industryLogic.forbiddenKeywords.join(', ')}.
+       - FORBIDDEN KEYWORDS: ${brief.industryLogic.forbiddenKeywords.join(', ')}.
+
+    *** SMART IDENTITY PROTOCOL (THE 3% RULE) ***
+    Based on our forensic audit, the Product Name "${inputs.productName}" is assigned weight: **${brief.identityStrategy.weight}**.
+    - **STRATEGY**: ${brief.identityStrategy.reasoning}. 
+    - **PLACEMENT**: ${brief.identityStrategy.placementRecommendation}. Apply 'Negative Space Anchor' logic: place utility text on the opposite visual axis to the product's center of mass.
+    - **STYLING**: ${brief.identityStrategy.styling}. 
+    - **CONSTRAINT**: Ensure all utility text (Name, Website, Address) occupies less than 3% of the total canvas area.
+    - **INTEGRATION**: Use 'Perspective Matching' for lifestyle shots—if the name is used, render it as if it's physically embossed or printed on a surface in the environment (e.g., a table, wall, or tag).
 
     *** PRODUCTION BRIEF ***
     - **Identity Lock**: Do NOT modify user product pixels.
-    - **Copy Integration**: 
-        - Headline: "${brief.strategicCopy.headline}"
-        - Subheadline: "${brief.strategicCopy.subheadline}"
-        - CTA Button: "${brief.strategicCopy.cta}"
-    - **Product Name Weight**: **${brief.identityStrategy.weight}**.
-
-    *** VISUAL REQUIREMENTS ***
-    - Output a single, finished, magazine-quality 4K ad.
-    - Perfect contact shadows and realistic blending.
+    - **Copy Hierarchy**: 
+        - **HERO**: Headline: "${brief.strategicCopy.headline}". This must be the loudest text element.
+        - **SUB**: Subheadline: "${brief.strategicCopy.subheadline}".
+        - **UTILITY**: Product Name (apply based on weight), Website: "${inputs.website || ''}", Location: "${inputs.location || ''}".
+        - **ACTION**: CTA Button: "${brief.strategicCopy.cta}".
     
-    FINAL OUTPUT: High-fidelity image only.`;
+    FINAL OUTPUT: A single, finished, magazine-quality 4K ad image.`;
 
     parts.push({ text: finalPrompt });
 
@@ -279,7 +282,17 @@ export const refineAdCreative = async (
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
-    const prompt = `You are a Precision Ad Editor. Modify image based on: "${instruction}". Keep core identity intact.`;
+    const prompt = `You are a Precision Ad Editor.
+    
+    *** CURRENT VERSION ***
+    Modify the provided image based on this specific user feedback: "${instruction}".
+    
+    *** EDITING RULES ***
+    1. **Preservation**: Keep the core product, environment, and vibe identical.
+    2. **Transformation**: Apply the user's specific requested change.
+    3. **Seamlessness**: Ensure the edited area blends perfectly with the rest of the high-fidelity ad.
+    
+    OUTPUT: A single 4K refined image.`;
 
     try {
         const response = await ai.models.generateContent({
