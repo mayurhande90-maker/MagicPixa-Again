@@ -14,6 +14,14 @@ import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
 
+// --- CONSTANTS ---
+const MODEL_TYPES = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
+const MODEL_REGIONS = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
+const SKIN_TONES = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
+const BODY_TYPES = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
+const COMPOSITION_TYPES = ['Single Model', 'Group Shot'];
+const SHOT_TYPES = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
+
 // --- HELPERS ---
 const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
     switch (type) {
@@ -229,7 +237,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [productName, setProductName] = useState('');
     const [offer, setOffer] = useState('');
     const [desc, setDesc] = useState('');
-    const [productSpecs, setProductSpecs] = useState(''); // New field for USPs
+    const [productSpecs, setProductSpecs] = useState(''); 
     const [project, setProject] = useState('');
     const [location, setLocation] = useState('');
     const [config, setConfig] = useState('');
@@ -256,16 +264,19 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [refineText, setRefineText] = useState('');
     const [isRefining, setIsRefining] = useState(false);
 
+    // Forensic Model State
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [aiGender, setAiGender] = useState('');
-    const [aiEthnicity, setAiEthnicity] = useState('');
+    const [aiModelType, setAiModelType] = useState('');
+    const [aiRegion, setAiRegion] = useState('');
     const [aiSkinTone, setAiSkinTone] = useState('');
     const [aiBodyType, setAiBodyType] = useState('');
+    const [aiComposition, setAiComposition] = useState('');
+    const [aiFraming, setAiFraming] = useState('');
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
-    const refineCost = 2; // Refinement cost
+    const refineCost = 2; 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
     const hasBrandProducts = !!auth.activeBrandKit && auth.activeBrandKit.products && auth.activeBrandKit.products.length > 0;
@@ -394,7 +405,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 referenceImage: referenceImage?.base64,
                 modelSource: visualFocus === 'lifestyle' ? (modelSource || undefined) : undefined,
                 modelImage: (visualFocus === 'lifestyle' && modelSource === 'upload') ? modelImage?.base64 : undefined,
-                modelParams: (visualFocus === 'lifestyle' && modelSource === 'ai') ? { gender: aiGender, ethnicity: aiEthnicity, skinTone: aiSkinTone, bodyType: aiBodyType } : undefined
+                modelParams: (visualFocus === 'lifestyle' && modelSource === 'ai') ? { 
+                    modelType: aiModelType, 
+                    region: aiRegion, 
+                    skinTone: aiSkinTone, 
+                    bodyType: aiBodyType,
+                    composition: aiComposition,
+                    framing: aiFraming
+                } : undefined
             };
             const assetUrl = await generateAdCreative(inputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
@@ -411,9 +429,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
         
         setIsRefining(true);
-        setIsRefineActive(false); // Close popup when starting
+        setIsRefineActive(false); 
         try {
-            // Get current base64 from blob URL
             const currentB64 = await urlToBase64(resultImage);
             const res = await refineAdCreative(currentB64.base64, currentB64.mimeType, refineText);
             
@@ -421,7 +438,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;
             
-            // Save as an edit
             if (lastCreationId) {
                 await updateCreation(auth.user.uid, lastCreationId, dataUri);
             } else {
@@ -443,13 +459,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProductSpecs(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setVibe(''); setCustomVibeText(''); setTemplate(''); setLastCreationId(null); setModelSource(null); setModelImage(null); setIsRefineActive(false); };
-    
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
 
     const handleClaimBonus = async () => {
-        if (!auth.user || !milestoneBonus) return;
-        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        if (auth.user && milestoneBonus) {
+            const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        }
     };
 
     const handleDeductEditCredit = async () => {
@@ -481,8 +497,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
+    const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
+
     const canGenerate = mainImages.length > 0 && !!industry && !!vibe && (vibe !== CUSTOM_VIBE_KEY || !!customVibeText.trim()) && (referenceImage ? true : !!layoutTemplate) && (
-        (visualFocus !== 'lifestyle' || (modelSource === 'ai' && !!aiGender) || (modelSource === 'upload' && !!modelImage))
+        (visualFocus !== 'lifestyle' || (modelSource === 'ai' && !!aiModelType && !!aiRegion && !!aiSkinTone && !!aiBodyType && !!aiComposition && !!aiFraming) || (modelSource === 'upload' && !!modelImage))
     ) && !!aspectRatio && !!visualFocus && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
     );
@@ -598,10 +616,20 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 {visualFocus === 'lifestyle' && (
                                                     <div className="animate-fadeInUp space-y-4 pt-2">
                                                         <div className={AdMakerStyles.modelSelectionGrid}>
-                                                            <button onClick={() => setModelSource('ai')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? 'border-indigo-500 bg-indigo-50' : ''}`}><SparklesIcon className="w-5 h-5"/> <span className="text-[10px] font-bold">Pixa Model</span></button>
-                                                            <button onClick={() => setModelSource('upload')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? 'border-indigo-500 bg-indigo-50' : ''}`}><UserIcon className="w-5 h-5"/> <span className="text-[10px] font-bold">Own Model</span></button>
+                                                            <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? 'border-indigo-500 bg-indigo-50' : ''}`}><SparklesIcon className="w-5 h-5"/> <span className="text-[10px] font-bold">Pixa Model</span></button>
+                                                            <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? 'border-indigo-500 bg-indigo-50' : ''}`}><UserIcon className="w-5 h-5"/> <span className="text-[10px] font-bold">Own Model</span></button>
                                                         </div>
-                                                        {modelSource === 'ai' && <div className="space-y-3"><SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} /><SelectionGrid label="Ethnicity" options={['International', 'Indian', 'Asian']} value={aiEthnicity} onChange={setAiEthnicity} /></div>}
+
+                                                        {modelSource === 'ai' && (
+                                                            <div className="animate-fadeIn space-y-4">
+                                                                <SelectionGrid label="1. Model Persona" options={MODEL_TYPES} value={aiModelType} onChange={(val) => { setAiModelType(val); autoScroll(); }} />
+                                                                {aiModelType && <SelectionGrid label="2. Regional Identity" options={MODEL_REGIONS} value={aiRegion} onChange={(val) => { setAiRegion(val); autoScroll(); }} />}
+                                                                {aiRegion && <SelectionGrid label="3. Skin & Build" options={SKIN_TONES} value={aiSkinTone} onChange={(val) => { setAiSkinTone(val); autoScroll(); }} />}
+                                                                {aiSkinTone && <SelectionGrid label="4. Body Archetype" options={BODY_TYPES} value={aiBodyType} onChange={(val) => { setAiBodyType(val); autoScroll(); }} />}
+                                                                {aiBodyType && <SelectionGrid label="5. Shot Composition" options={COMPOSITION_TYPES} value={aiComposition} onChange={(val) => { setAiComposition(val); autoScroll(); }} />}
+                                                                {aiComposition && <SelectionGrid label="6. Camera Framing" options={SHOT_TYPES} value={aiFraming} onChange={setAiFraming} />}
+                                                            </div>
+                                                        )}
                                                         {modelSource === 'upload' && <CompactUpload label="Model Photo" image={modelImage} onUpload={handleUploadModel} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} heightClass="h-40" />}
                                                     </div>
                                                 )}
@@ -659,7 +687,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
             {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
 
-            {/* REFINED INPUT BAR - Centered above buttons via Portal */}
+            {/* REFINED INPUT BAR */}
             {isRefineActive && resultImage && !isRefining && createPortal(
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-6 animate-fadeInUp z-[300]">
                     <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2 rounded-2xl shadow-2xl flex gap-2 items-center">

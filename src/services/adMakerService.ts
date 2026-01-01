@@ -1,7 +1,6 @@
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
-// FIX: Import BrandKit type
 import { BrandKit } from "../types";
 
 // Helper: Resize image with customizable width
@@ -119,6 +118,8 @@ const performAdIntelligence = async (
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
+                // Note: responseMimeType is not allowed when tools: googleSearch is used in some versions,
+                // but here we are using it for a flash-preview structured call.
                 responseMimeType: "application/json"
             }
         });
@@ -139,7 +140,7 @@ export interface AdMakerInputs {
     productName?: string;
     offer?: string;
     description?: string;
-    productSpecs?: string; // New field for deep product knowledge
+    productSpecs?: string; 
     project?: string;
     location?: string;
     config?: string;
@@ -155,10 +156,12 @@ export interface AdMakerInputs {
     modelSource?: 'ai' | 'upload';
     modelImage?: { base64: string; mimeType: string } | null;
     modelParams?: {
-        gender: string;
-        ethnicity: string;
+        modelType: string;
+        region: string;
         skinTone: string;
         bodyType: string;
+        composition: string;
+        framing: string;
     };
 }
 
@@ -193,13 +196,22 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    if (optModel) parts.push({ text: "MODEL:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    
+    // Handle Model Details
+    let modelDirective = "";
+    if (optModel) {
+        modelDirective = "Use the TARGET MODEL provided. Maintain facial identity and body shape exactly.";
+        parts.push({ text: "MODEL:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    } else if (inputs.modelSource === 'ai' && inputs.modelParams) {
+        modelDirective = `Render a photorealistic AI Model: ${inputs.modelParams.modelType}, Region: ${inputs.modelParams.region}, Skin: ${inputs.modelParams.skinTone}, Body: ${inputs.modelParams.bodyType}, Composition: ${inputs.modelParams.composition}, Framing: ${inputs.modelParams.framing}. The model should naturally interact with the product.`;
+    }
 
     const finalPrompt = `You are a High-End Ad Production Engine.
     
     *** THE STRATEGY ***
     ${styleInstructions}
     ${brief.visualDirection}
+    ${modelDirective ? `*** MODEL PROTOCOL ***\n${modelDirective}` : ''}
     
     *** DESIGN & TYPOGRAPHY MANDATE (STRICT) ***
     1. **Identity**: Do NOT alter the product pixels. Maintain all label legibility.
@@ -218,7 +230,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1" }
+                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1" },
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ]
             },
         }));
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
