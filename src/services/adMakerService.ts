@@ -99,7 +99,7 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE with Forensic Visual Audit
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -111,38 +111,41 @@ const performAdIntelligence = async (
     );
 
     const prompt = `You are a Senior Creative Strategist and Global Branding Expert. 
-    Analyze this ${inputs.industry} product and the requested product name: "${inputs.productName || 'N/A'}".
+    Analyze this ${inputs.industry} product: "${inputs.productName || 'N/A'}" and context: "${inputs.description || 'N/A'}".
     
-    **TASK 1: FORENSIC REDUNDANCY AUDIT**
-    Examine the product pixels. Is the brand name or a recognizable logo already clearly legible on the physical packaging (e.g., label, embroidery, engraving)? 
-    If YES, we MUST avoid duplicate branding.
+    **TASK 1: HEADLINE ENGINEERING**
+    Draft a benefit-driven, high-conversion headline.
+    - **STRICT RULE**: The headline MUST NOT be the product name. 
+    - **GOOD**: "Wake up to perfection" (for coffee), "Your skin's new best friend" (for cream).
+    - **BAD**: "Coffee Beans", "Aloe Cream".
+
+    **TASK 2: SMART IDENTITY AUDIT**
+    Examine the product pixels. If the brand name or logo is clearly visible on the physical product/packaging, we MUST avoid duplicate text overlays.
     
-    **TASK 2: SMART IDENTITY WEIGHT**
-    Assign the 'identityWeight' for the text overlay of the product name:
-    - **Hidden**: If the name is already a dominant visual on the physical product. Do not add it as text.
-    - **Footnote**: If the name is on the product but small, or if the vibe is "Luxury/Elegant". The overlay should be a tiny, elegant "Quiet Zone" anchor.
-    - **Secondary**: If the product is raw/unbranded. The name should support the headline but not fight it.
-    - **Primary**: ONLY if the product name IS the headline (rare in pro ads).
-
-    **TASK 3: MARKET TIER HIERARCHY**
-    - For Luxury: Wide tracking, small font, serif.
-    - For Retail/Sale: Paired with the price/badge as a single info-unit.
-    - For SaaS/Tech: Clean Breadcrumb style near the logo.
-
+    **TASK 3: IDENTITY STRATEGY**
+    Determine the 'identityWeight' for the OVERLAY text of the product name:
+    - **Hidden**: If name is large/clear on product.
+    - **Footnote**: Small reinforcement in a corner (Luxury/Modern vibes).
+    - **Secondary**: Supporting anchor if product is raw.
+    
     RETURN JSON ONLY:
     {
-        "strategicCopy": { "headline": "STRING", "subheadline": "STRING", "cta": "STRING" },
+        "strategicCopy": { 
+            "headline": "A creative, benefit-led headline line", 
+            "subheadline": "Supporting details", 
+            "cta": "Action command" 
+        },
         "identityStrategy": {
             "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Forensic explanation of logo detection on packaging",
-            "placementRecommendation": "Placement Zone (e.g., 'Bottom-right quiet zone', 'Top-left breadcrumb')",
-            "styling": "Styling rule (e.g., 'Small Serif with 200 tracking', 'Paired with Offer Badge')"
+            "reasoning": "Technical explanation of why the headline is a hook and not just the name",
+            "placementRecommendation": "Zone Recommendation",
+            "styling": "Typography rules"
         },
         "industryLogic": {
-            "categoryBadgeText": "Category appropriate trust claim",
-            "forbiddenKeywords": ["tested on animals", "industrial", "cheap"]
+            "categoryBadgeText": "Category appropriate claim",
+            "forbiddenKeywords": ["List irrelevant industry terms"]
         },
-        "visualDirection": "Technical notes"
+        "visualDirection": "Art direction notes"
     }`;
 
     const parts: any[] = lowResAssets.map((asset, i) => ({ text: `PRODUCT IMAGE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -160,9 +163,9 @@ const performAdIntelligence = async (
         return JSON.parse(response.text || "{}");
     } catch (e) {
         return { 
-            strategicCopy: { headline: inputs.productName || "Premium Quality", subheadline: inputs.description || "", cta: "Order Now" }, 
-            identityStrategy: { weight: 'Secondary', reasoning: 'Default', placementRecommendation: 'Bottom Right', styling: 'Clean Sans' },
-            industryLogic: { categoryBadgeText: 'Quality Assured', forbiddenKeywords: [] },
+            strategicCopy: { headline: "Experience Excellence", subheadline: inputs.description || "", cta: "Order Now" }, 
+            identityStrategy: { weight: 'Secondary', reasoning: 'Fallback', placementRecommendation: 'Bottom Right', styling: 'Clean Sans' },
+            industryLogic: { categoryBadgeText: 'Premium Quality', forbiddenKeywords: [] },
             visualDirection: "Professional commercial lighting." 
         };
     }
@@ -218,38 +221,36 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     let styleInstructions = "";
     if (optRef) {
-        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the specific layout, lighting, and aesthetic of the attached USER REFERENCE image with 90% fidelity.`;
+        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the layout and structural logic of the attached USER REFERENCE exactly.`;
         parts.push({ text: "USER STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic.";
         styleInstructions = `*** THE DESIGN VIBE: ${inputs.vibe} ***\n${vibeDesc}`;
     }
 
-    const finalPrompt = `You are a High-Precision Ad Production Engine.
+    const finalPrompt = `You are a High-Precision Ad Production Engine. 
     
-    *** THE CONTEXTUAL FIREWALL (CRITICAL) ***
-    1. **SEMANTIC PURGE**: DO NOT copy any text, icons, or badges from the VAULT REFERENCES. They are from different products.
-    2. **CATEGORY SYNC**: User industry is ${inputs.industry.toUpperCase()}. 
-       - DO NOT use claims like "Not tested on animals" if the product is food.
-       - FORBIDDEN KEYWORDS: ${brief.industryLogic.forbiddenKeywords.join(', ')}.
+    *** VISUAL HIERARCHY (STRICT) ***
+    1. **LEVEL 1 (TITLE)**: Render the Headline: "${brief.strategicCopy.headline}" as the most dominant text element. 
+       - **MANDATE**: This is the ad's main title/hook. It must be loud, legible, and artistically integrated.
+    2. **LEVEL 2 (PRODUCT)**: The USER PRODUCT photo must be the central visual hero.
+    3. **LEVEL 3 (IDENTITY)**: The Product Name "${inputs.productName}" is SECONDARY. 
+       - **STRATEGY**: ${brief.identityStrategy.weight === 'Hidden' ? 'DO NOT overlay the name as text.' : `Apply as ${brief.identityStrategy.weight}: ${brief.identityStrategy.placementRecommendation}.`}
+       - **LIMIT**: Identity text must occupy < 3% of the canvas.
+    4. **LEVEL 4 (ACTION)**: Render the CTA "${brief.strategicCopy.cta}" as a button or clear action anchor.
 
-    *** SMART IDENTITY PROTOCOL (THE 3% RULE) ***
-    Based on our forensic audit, the Product Name "${inputs.productName}" is assigned weight: **${brief.identityStrategy.weight}**.
-    - **STRATEGY**: ${brief.identityStrategy.reasoning}. 
-    - **PLACEMENT**: ${brief.identityStrategy.placementRecommendation}. Apply 'Negative Space Anchor' logic: place utility text on the opposite visual axis to the product's center of mass.
-    - **STYLING**: ${brief.identityStrategy.styling}. 
-    - **CONSTRAINT**: Ensure all utility text (Name, Website, Address) occupies less than 3% of the total canvas area.
-    - **INTEGRATION**: Use 'Perspective Matching' for lifestyle shots—if the name is used, render it as if it's physically embossed or printed on a surface in the environment (e.g., a table, wall, or tag).
+    *** THE CONTEXTUAL FIREWALL ***
+    - Category: ${inputs.industry.toUpperCase()}
+    - DO NOT use claims or icons from Vault References.
+    - FORBIDDEN KEYWORDS: ${brief.industryLogic.forbiddenKeywords.join(', ')}.
 
-    *** PRODUCTION BRIEF ***
-    - **Identity Lock**: Do NOT modify user product pixels.
-    - **Copy Hierarchy**: 
-        - **HERO**: Headline: "${brief.strategicCopy.headline}". This must be the loudest text element.
-        - **SUB**: Subheadline: "${brief.strategicCopy.subheadline}".
-        - **UTILITY**: Product Name (apply based on weight), Website: "${inputs.website || ''}", Location: "${inputs.location || ''}".
-        - **ACTION**: CTA Button: "${brief.strategicCopy.cta}".
+    *** PRODUCTION DETAILS ***
+    ${vaultDna ? `DNA RULES: ${vaultDna}` : ''}
+    ${styleInstructions}
+    Subheadline: "${brief.strategicCopy.subheadline}"
     
-    FINAL OUTPUT: A single, finished, magazine-quality 4K ad image.`;
+    FINAL OUTPUT: A single, magazine-quality 4K ad image. 
+    Ray-traced lighting, perfect product integration, and premium typography.`;
 
     parts.push({ text: finalPrompt });
 
