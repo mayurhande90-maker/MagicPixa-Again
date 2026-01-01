@@ -24,10 +24,10 @@ const VIBE_PROMPTS: Record<string, string> = {
     // E-com / Products / Fashion
     "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk.",
     "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers.",
-    "In a Real Home": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional.",
+    "Lifestyle": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional.",
     "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting.",
-    "Nature & Organic": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones.",
-    "Cinematic Night": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel.",
+    "Nature": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones.",
+    "Cinematic": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel.",
 
     // Realty
     "Grand & Expensive": "Architectural showcase style, high-contrast luxury photography, premium status, dusk/blue hour lighting with warm interior glow.",
@@ -47,7 +47,7 @@ const VIBE_PROMPTS: Record<string, string> = {
     "Modern & Sleek": "Modern tech aesthetic, Apple-style gradients, clean glass and metal surfaces, futuristic and professional.",
     "Professional & Trust": "Clean corporate blue and white theme, high clarity, trustworthy and stable business presentation.",
     "Cyberpunk / Neon": "Futuristic dark mode, glowing purple and blue neon lines, high-tech digital grid elements.",
-    "Minimalist Alpha": "Bold massive typography, extreme white space, ultra-minimalist focus on a single core message.",
+    "Minimalistic": "Bold massive typography, extreme white space, ultra-minimalist focus on a single core message.",
     "High Energy": "Dynamic camera angles, action-oriented visuals, vibrant speed lines, high-impact motion feel."
 };
 

@@ -44,14 +44,14 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
 const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
 
 const VIBE_MAP: Record<string, string[]> = {
-    'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home", "Clean Studio", "Nature & Organic", "Cinematic Night", CUSTOM_VIBE_KEY],
-    'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home", "Clean Studio", "Nature & Organic", "Cinematic Night", CUSTOM_VIBE_KEY],
-    'fashion': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home", "Clean Studio", "Nature & Organic", "Cinematic Night", CUSTOM_VIBE_KEY],
+    'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
+    'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
+    'fashion': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
     'realty': ["Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", CUSTOM_VIBE_KEY],
     'food': ["Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", CUSTOM_VIBE_KEY],
-    'saas': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalist Alpha", "High Energy", CUSTOM_VIBE_KEY],
-    'education': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalist Alpha", "High Energy", CUSTOM_VIBE_KEY],
-    'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalist Alpha", "High Energy", CUSTOM_VIBE_KEY],
+    'saas': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'education': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
 };
 
 const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
