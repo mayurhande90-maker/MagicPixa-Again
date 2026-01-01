@@ -1,4 +1,3 @@
-
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -272,6 +271,12 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     const finalPrompt = `You are a High-Precision Ad Production Engine. 
     
     ${vaultProtocol}
+
+    *** FORENSIC IDENTITY LOCK (MANDATORY & CRITICAL) ***
+    - **ZERO ALTERATION POLICY**: For EVERY "USER PRODUCT" image provided, you MUST preserve the exact physical identity.
+    - **LABELS & TEXT**: DO NOT re-type, "improve", or modify the text on the product labels. They must be exact pixel transfers.
+    - **LOGOS & BRANDING**: The logos present on the physical products are SACRED. Do not change their font, size, or color to match the ad.
+    - **PRODUCT INTEGRITY**: Even if multiple products are used (e.g. Range Lineup), each must maintain its unique branding from the source image.
 
     *** VISUAL HIERARCHY (STRICT) ***
     1. **LEVEL 1 (TITLE)**: Render the Headline: "${brief.strategicCopy.headline}" as the primary focal text. 
