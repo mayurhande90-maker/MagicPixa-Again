@@ -40,6 +40,7 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
     'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
 };
 
+// --- EXPANDED LEHMAN FRIENDLY VIBES ---
 const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
 
 const VIBE_MAP: Record<string, string[]> = {
