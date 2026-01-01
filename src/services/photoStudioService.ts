@@ -28,17 +28,26 @@ const getBrandDNA = (brand?: BrandKit | null) => {
     `;
 };
 
+/**
+ * PHASE 1: MATERIAL-AWARE PHYSICS AUDIT
+ * Classifies the product into Optical Profiles to determine light interaction rules.
+ */
 const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Perform a Technical Photography Audit. 
-    1. Lighting Map. 2. Material Physics. 3. Perspective Grid. 4. Scale.
-    Return a concise "Technical Blueprint" paragraph.`;
+    const prompt = `Perform a Deep Forensic Physics & Material Audit of this product image.
+    
+    1. **OPTICAL CLASSIFICATION**: Is it Specular (Reflective/Metal/Glass), Diffuse (Matte/Fabric/Paper), or Refractive (Translucent/Liquid)?
+    2. **LIGHTING TOPOLOGY**: Map the primary light source direction and intensity.
+    3. **GEOMETRIC GRID**: Identify the perspective angle and contact points with the ground.
+    4. **MATERIAL PHYSICS**: Note surface roughness, subsurface scattering needs, and Fresnel edge requirements.
+    
+    Output a concise "Technical Optical Blueprint" paragraph.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
         });
-        return response.text || "Standard studio lighting, eye-level perspective.";
-    } catch (e) { return "Standard studio lighting, eye-level perspective."; }
+        return response.text || "Standard specular profile, eye-level perspective.";
+    } catch (e) { return "Standard specular profile, eye-level perspective."; }
 };
 
 export const analyzeProductImage = async (
@@ -90,6 +99,9 @@ export const analyzeProductForModelPrompts = async (
     } catch (e) { return [{ display: "Studio", prompt: "Model holding product" }]; }
 };
 
+/**
+ * PHASE 2: HYPER-REALISTIC PRODUCTION ENGINE
+ */
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
@@ -125,23 +137,25 @@ export const editImageWithPrompt = async (
     - Mandate: (80%) Match lighting and atmosphere of VAULT REFERENCES. (20%) Creatively innovate secondary details.
     ` : "";
 
-    const prompt = `You are Pixa Studio Pro.
+    const prompt = `You are Pixa Studio Pro, a world-class commercial photographer.
     ${vaultProtocol}
-    *** TECHNICAL BLUEPRINT ***
+    *** TECHNICAL OPTICAL BLUEPRINT ***
     ${technicalBlueprint}
     ${brandContext}
     
     GOAL: "${styleInstructions}"
-    1. Identity Lock: Preserve product pixels exactly.
-    2. Physics Compliance: shadows/light must match technical blueprint.
-    
-    OUTPUT: A hyper-realistic 8K commercial product photograph. 
-    Technical Requirements: 
-    - Sharp focus on product with natural lens bokeh.
-    - Professional studio lighting (Rembrandt or Butterfly lighting).
-    - Realistic material reflections (Ray-tracing accuracy).
-    - High dynamic range and professional color science.
-    - No artifacts, zero noise, pristine commercial quality.`;
+
+    *** IDENTITY LOCK 2.0 (SACRED ASSET PROTOCOL) ***
+    The product in the source image is a 'Sacred Asset'. You are permitted to change the lighting wrap and environment, but you are FORBIDDEN from altering its geometry, typography, logo placement, or material identity. Preserve 1:1 pixel structure of the product label.
+
+    *** COMMERCIAL OPTIC BLOCK (HYPER-REALISM MANDATE) ***
+    1. **RAY-TRACED CONTACT SHADOWS**: Calculate the exact ambient occlusion where the product meets the new surface. Ensure a dark, sharp, high-fidelity crease shadow to prevent the product from "floating".
+    2. **GLOBAL ILLUMINATION (COLOR SPILL)**: Calculate light bouncing from the environment onto the product. If placed on marble, the marble's white/grey light must "bleed" onto the bottom of the product.
+    3. **FRESNEL SILHOUETTES**: Apply realistic edge-highlighting on the product's silhouette based on the new environment's light sources.
+    4. **SPECULAR REFLECTIONS**: If the material is Specular/Hard, it MUST reflect the new environment (e.g., if in a forest, show hints of green in the glass/metal highlights).
+    5. **CAUSTICS & DISTORTION**: If the product is Refractive (liquid/glass), ensure the background is realistically distorted through the container.
+
+    OUTPUT: A hyper-realistic 8K commercial product photograph. No AI artifacts, zero noise, pristine 2025 production quality.`;
     
     const parts: any[] = [{ inlineData: { data: data, mimeType: optimizedMime } }];
     if (vaultAssets.length > 0) {
@@ -185,20 +199,21 @@ export const generateModelShot = async (
 
       const userDirection = inputs.freeformPrompt || `Model: ${inputs.modelType}, Region: ${inputs.region}, Skin: ${inputs.skinTone}, Body: ${inputs.bodyType}, Composition: ${inputs.composition}, Framing: ${inputs.framing}`;
 
-      let prompt = `You are Pixa Model Studio.
-      *** PRODUCT SPECS ***
+      let prompt = `You are Pixa Model Studio, a high-end fashion photographer.
+      *** PRODUCT TECHNICAL SPECS ***
       ${technicalBlueprint}
       ${brandContext}
-      GOAL: Render model with product. ${userDirection}
-      - Protocol: Realism, perfect hand positioning, natural lighting.
-      
-      OUTPUT: A hyper-realistic 8K fashion portrait. 
-      Technical Requirements:
-      - Exact skin texture (pores, fine details) without artificial smoothing.
-      - High-end cinematic lighting and realistic shadow gradients.
-      - Natural fabric physics and drape.
-      - Captured on a Hasselblad H6D-400c, prime lens.
-      - Commercial grade output, ultra-detailed.`;
+
+      GOAL: Render a high-fashion model interacting with the product. ${userDirection}
+
+      *** REALISM PROTOCOL ***
+      1. **IDENTITY LOCK**: Keep the product pixels 100% real. Do not alter branding or labels.
+      2. **SKIN FIDELITY**: Render photorealistic skin (visible pores, fine lines, micro-textures) without artificial smoothing.
+      3. **FABRIC PHYSICS**: Calculate realistic drape, folds, and subsurface scattering for any clothing.
+      4. **HAND INTERACTION**: If the model is holding the product, ensure perfect finger positioning and realistic contact shadows.
+      5. **ENVIRONMENTAL BLENDING**: The model's skin and the product surface must reflect the surrounding light sources perfectly.
+
+      OUTPUT: A hyper-realistic 8K fashion portrait. Captured on a Hasselblad H6D-400c. Commercial grade, ultra-detailed fashion shoot.`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
