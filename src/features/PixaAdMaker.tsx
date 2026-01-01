@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
 import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
@@ -40,16 +40,18 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
     'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
 };
 
-// --- NEW COMBINED VIBES (LEHMAN FRIENDLY) ---
+// --- EXPANDED LEHMAN FRIENDLY VIBES ---
+const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
+
 const VIBE_MAP: Record<string, string[]> = {
-    'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home"],
-    'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home"],
-    'fashion': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home"],
-    'realty': ["Grand & Expensive", "Bright & Airy"],
-    'food': ["Delicious & Fresh", "Classy & Dim"],
-    'saas': ["Clean Studio", "Modern & Sleek"],
-    'education': ["Clean Studio", "Modern & Sleek"],
-    'services': ["Clean Studio", "Modern & Sleek"],
+    'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home", "Clean Studio", "Nature & Organic", "Cinematic Night", CUSTOM_VIBE_KEY],
+    'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home", "Clean Studio", "Nature & Organic", "Cinematic Night", CUSTOM_VIBE_KEY],
+    'fashion': ["Luxury & Elegant", "Big Sale / Discount", "In a Real Home", "Clean Studio", "Nature & Organic", "Cinematic Night", CUSTOM_VIBE_KEY],
+    'realty': ["Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", CUSTOM_VIBE_KEY],
+    'food': ["Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", CUSTOM_VIBE_KEY],
+    'saas': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalist Alpha", "High Energy", CUSTOM_VIBE_KEY],
+    'education': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalist Alpha", "High Energy", CUSTOM_VIBE_KEY],
+    'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalist Alpha", "High Energy", CUSTOM_VIBE_KEY],
 };
 
 const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
@@ -219,7 +221,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [vibe, setVibe] = useState(''); // NEW COMBINED STATE
+    const [vibe, setVibe] = useState(''); 
+    const [customVibeText, setCustomVibeText] = useState(''); // NEW CUSTOM TEXT STATE
     const [layoutTemplate, setTemplate] = useState('');
     const [isRefScanning, setIsRefScanning] = useState(false);
     const [isFetchingProduct, setIsFetchingProduct] = useState(false);
@@ -364,24 +367,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         e.target.value = '';
     };
 
-    const addFeature = () => {
-        const trimmed = currentFeature.trim();
-        if (trimmed && !features.includes(trimmed) && features.length < 5) {
-            setFeatures([...features, trimmed]);
-            setCurrentFeature('');
-        }
-    };
-
     const handleBrandSelect = async (brand: BrandKit) => { if (auth.user && brand.id) { try { const brandData = await activateBrand(auth.user.uid, brand.id); auth.setActiveBrandKit(brandData || null); const mapped = MAP_KIT_TO_AD_INDUSTRY(brandData?.industry); if (mapped) setIndustry(mapped); setNotification({ msg: `Applied ${brand.companyName || brand.name} strategy.`, type: 'success' }); setShowBrandModal(false); } catch (error) { console.error(error); } } };
 
     const handleGenerate = async () => {
         if (mainImages.length === 0 || !industry || !auth.user) return;
+        if (vibe === CUSTOM_VIBE_KEY && !customVibeText.trim()) { alert("Please describe your custom vibe."); return; }
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
             const inputs: AdMakerInputs = { 
                 industry, visualFocus: visualFocus || undefined, aspectRatio: aspectRatio || undefined, mainImages: mainImages.map(m => m.base64), logoImage: logoImage?.base64, 
-                vibe, // COMBINED VIBE
+                vibe: vibe === CUSTOM_VIBE_KEY ? customVibeText : vibe, // PASS CUSTOM TEXT IF ACTIVE
                 productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
                 occasion: vibe, 
                 audience: vibe, 
@@ -401,20 +397,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
 
-    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setVibe(''); setTemplate(''); setLastCreationId(null); setModelSource(null); setModelImage(null); };
+    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setVibe(''); setCustomVibeText(''); setTemplate(''); setLastCreationId(null); setModelSource(null); setModelImage(null); };
     
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
 
-    // --- MISSING HANDLERS ADDED BELOW ---
-
-    // FIX: Added handleClaimBonus to resolve ReferenceError
     const handleClaimBonus = async () => {
         if (!auth.user || !milestoneBonus) return;
         const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    // FIX: Added handleDeductEditCredit to resolve ReferenceError
     const handleDeductEditCredit = async () => {
         if (auth.user) {
             const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser (AdMaker)');
@@ -422,7 +414,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // FIX: Added handleRefundRequest to resolve ReferenceError
     const handleRefundRequest = async (reason: string) => {
         if (!auth.user || !resultImage) return;
         setIsRefunding(true);
@@ -445,7 +436,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = mainImages.length > 0 && !!industry && !!vibe && (referenceImage ? true : !!layoutTemplate) && (
+    const canGenerate = mainImages.length > 0 && !!industry && !!vibe && (vibe !== CUSTOM_VIBE_KEY || !!customVibeText.trim()) && (referenceImage ? true : !!layoutTemplate) && (
         (visualFocus !== 'lifestyle' || (modelSource === 'ai' && !!aiGender) || (modelSource === 'upload' && !!modelImage))
     ) && !!aspectRatio && !!visualFocus && (
         ((industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion') && !!productName) || (industry === 'realty' && !!project) || (industry === 'food' && !!dishName) || ((industry === 'saas' || industry === 'education' || industry === 'services') && !!headline)
@@ -463,7 +454,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (<IndustryCard key={key} title={conf.label} desc={`Marketing for ${conf.label}`} icon={<conf.icon className={`w-8 h-8 ${AdMakerStyles.iconEcommerce}`}/>} onClick={() => setIndustry(key as any)} styles={{ card: `bg-gradient-to-br ${conf.bg.replace('50/50', '100')} border-${conf.base}-100`, orb: `bg-${conf.base}-300 -top-20 -right-20`, icon: conf.color }} />))}
                             </div>) : (
                                 <div className={AdMakerStyles.formContainer}>
-                                    {/* FIX: Introduced scope for missing variables using an immediate function */}
                                     {(() => {
                                         const { label: mainLabel, item, items } = getImageLabels(industry);
                                         return (
@@ -477,7 +467,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         <SmartProductShelf activeBrand={auth.activeBrandKit} selectedImageUrls={mainImages.map(m => m.url)} onSelect={handleInventorySelect} onUpload={(e) => handleUploadMain(e, mainImages.length)} label={mainLabel} isProcessing={isFetchingProduct} maxSelections={3} />
                                                     ) : (
                                                         <div className="grid grid-cols-3 gap-3 mb-4">
-                                                            {/* FIX: Resolved 'item' and 'mainLabel' find name errors by using extracted variables */}
                                                             {[0, 1, 2].map(slot => (<CompactUpload key={slot} label={slot === 0 ? `Hero ${item}` : `${item} ${slot + 1}`} uploadText="Add" image={mainImages[slot] || null} onUpload={(e) => handleUploadMain(e, slot)} onClear={() => setMainImages(mainImages.filter((_, i) => i !== slot))} icon={slot === 0 ? <CloudUploadIcon className="w-4 h-4 text-indigo-500"/> : <PlusIcon className="w-4 h-4 text-gray-400"/>} heightClass="h-24" />))}
                                                         </div>
                                                     )}
@@ -487,12 +476,33 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     </div>
                                                 </div>
 
-                                                {/* NEW COMBINED VIBE SECTION */}
+                                                {/* CAMPAIGN VIBE SECTION */}
                                                 <div>
                                                     <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>2</span><label className={AdMakerStyles.sectionTitle}>Campaign Vibe</label></div>
-                                                    <SelectionGrid label="Choose a Vibe" options={vibes} value={vibe} onChange={setVibe} />
+                                                    <SelectionGrid label="Choose a Vibe" options={vibes} value={vibe} onChange={(val) => { setVibe(val); if(val !== CUSTOM_VIBE_KEY) setCustomVibeText(''); }} />
+                                                    
+                                                    {vibe === CUSTOM_VIBE_KEY && (
+                                                        <div className="animate-fadeIn mt-4 px-1">
+                                                            <TextAreaField 
+                                                                label="Describe Your Vision" 
+                                                                placeholder="e.g. A futuristic cyberpunk laboratory with neon purple lighting and floating holograms..." 
+                                                                value={customVibeText} 
+                                                                onChange={(e: any) => setCustomVibeText(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                            <div className="flex items-center gap-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 mt-2">
+                                                                <InformationCircleIcon className="w-4 h-4 text-indigo-600 shrink-0"/>
+                                                                <p className="text-[10px] text-indigo-700 font-medium leading-relaxed">
+                                                                    Describe the lighting, background, and mood. Pixa's design agents will optimize this for high conversion.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {!referenceImage && vibe && (
-                                                        <SelectionGrid label="Layout Composition" options={isRangeMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setTemplate} />
+                                                        <div className="mt-4">
+                                                            <SelectionGrid label="Layout Composition" options={isRangeMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setTemplate} />
+                                                        </div>
                                                     )}
                                                 </div>
 

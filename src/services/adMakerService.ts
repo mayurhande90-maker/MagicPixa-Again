@@ -21,22 +21,34 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
  * Lehman Vibe Mappings - Translates simple names to technical prompts
  */
 const VIBE_PROMPTS: Record<string, string> = {
-    // E-com / Products
+    // E-com / Products / Fashion
     "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk.",
     "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers.",
     "In a Real Home": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional.",
-    
+    "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting.",
+    "Nature & Organic": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones.",
+    "Cinematic Night": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel.",
+
     // Realty
     "Grand & Expensive": "Architectural showcase style, high-contrast luxury photography, premium status, dusk/blue hour lighting with warm interior glow.",
     "Bright & Airy": "Clean real estate listing style, high exposure, informative and bright, spacious and welcoming daylight feel.",
-    
+    "Cozy & Warm": "Residential inviting feel, golden hour sunlight, soft textures, warm homey atmosphere.",
+    "Modern & Sharp": "Modern architecture, clean lines, high sharpness, neutral tones, tech-forward presentation.",
+    "Lush & Green": "Focus on landscaping and exterior beauty, vibrant greenery, bright clear sky, spacious outdoor context.",
+
     // Food
     "Delicious & Fresh": "Mouth-watering focus, vibrant saturated colors, fresh ingredients visible, bright natural light, energetic appetite-hook style.",
     "Classy & Dim": "Fine dining atmosphere, low-key moody lighting, elegant and sophisticated, focus on texture and intimacy.",
-    
-    // General / Tech
-    "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting.",
-    "Modern & Sleek": "Modern tech aesthetic, Apple-style gradients, clean glass and metal surfaces, futuristic and professional."
+    "Rustic & Homemade": "Warm wood surfaces, farmhouse aesthetic, organic textures, natural flour or herb dustings, cozy kitchen vibe.",
+    "Vibrant Street": "High-energy, colorful, pop-art style food photography, sharp contrast, urban food stall context.",
+    "Clean & Healthy": "Minimalist, bright whites and greens, clean porcelain surfaces, very light and airy health-conscious look.",
+
+    // Tech / SaaS / Services
+    "Modern & Sleek": "Modern tech aesthetic, Apple-style gradients, clean glass and metal surfaces, futuristic and professional.",
+    "Professional & Trust": "Clean corporate blue and white theme, high clarity, trustworthy and stable business presentation.",
+    "Cyberpunk / Neon": "Futuristic dark mode, glowing purple and blue neon lines, high-tech digital grid elements.",
+    "Minimalist Alpha": "Bold massive typography, extreme white space, ultra-minimalist focus on a single core message.",
+    "High Energy": "Dynamic camera angles, action-oriented visuals, vibrant speed lines, high-impact motion feel."
 };
 
 /**
@@ -115,7 +127,7 @@ export interface AdMakerInputs {
     mainImages: { base64: string; mimeType: string }[];
     logoImage?: { base64: string; mimeType: string } | null;
     referenceImage?: { base64: string; mimeType: string } | null;
-    vibe?: string; // COMBINED INPUT
+    vibe?: string; // Preset name OR custom description
     productName?: string;
     offer?: string;
     description?: string;
@@ -157,13 +169,15 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const parts: any[] = [];
     
-    // Style Mapping: Use Reference OR Lehman Vibe
+    // Style Mapping: Use Reference OR Preset OR Raw User Input
     let styleInstructions = "";
     if (optRef) {
         styleInstructions = `*** STYLE GUIDE: REFERENCE IMAGE ***\nCopy the layout and lighting of the reference exactly.`;
         parts.push({ text: "REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
-        const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional studio lighting.";
+        // If it's a known preset, use mapped instructions. 
+        // If it's not a known key, it's a custom user description.
+        const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || inputs.vibe || "Professional studio lighting.";
         styleInstructions = `*** THE VIBE: ${inputs.vibe} ***\n${vibeDesc}`;
     }
 
