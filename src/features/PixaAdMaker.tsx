@@ -40,7 +40,6 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
     'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
 };
 
-// --- EXPANDED LEHMAN FRIENDLY VIBES ---
 const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
 
 const VIBE_MAP: Record<string, string[]> = {
@@ -520,33 +519,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <p className="text-sm text-gray-300 mt-2">{industry ? 'Enter details on the right' : 'Select an industry to start'}</p>
                             </div>
                         )}
-
-                        {/* REFINED INPUT BAR - Centered above buttons */}
-                        {isRefineActive && resultImage && !isRefining && (
-                            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-6 animate-fadeInUp z-[60]">
-                                <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2 rounded-2xl shadow-2xl flex gap-2 items-center">
-                                    <input 
-                                        type="text"
-                                        value={refineText}
-                                        onChange={(e) => setRefineText(e.target.value)}
-                                        placeholder="Move logo, make it brighter..."
-                                        className="flex-1 bg-transparent border-none px-4 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-0"
-                                        autoFocus
-                                        onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
-                                    />
-                                    <button 
-                                        onClick={handleRefine}
-                                        disabled={!refineText.trim()}
-                                        className="bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95"
-                                    >
-                                        <ArrowRightIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                <div className="mt-2 flex justify-center">
-                                     <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] bg-black/40 px-3 py-1 rounded-full border border-white/5">{refineCost} Credits</span>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 }
                 rightContent={isLowCredits ? (
@@ -657,6 +629,34 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
             {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
+
+            {/* REFINED INPUT BAR - Centered above buttons via Portal */}
+            {isRefineActive && resultImage && !isRefining && createPortal(
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-6 animate-fadeInUp z-[300]">
+                    <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2 rounded-2xl shadow-2xl flex gap-2 items-center">
+                        <input 
+                            type="text"
+                            value={refineText}
+                            onChange={(e) => setRefineText(e.target.value)}
+                            placeholder="Example: Move logo to top right, make lighting warmer..."
+                            className="flex-1 bg-transparent border-none px-4 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-0"
+                            autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
+                        />
+                        <button 
+                            onClick={handleRefine}
+                            disabled={!refineText.trim()}
+                            className="bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95"
+                        >
+                            <ArrowRightIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="mt-2 flex justify-center">
+                         <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] bg-black/40 px-3 py-1 rounded-full border border-white/5">{refineCost} Credits</span>
+                    </div>
+                </div>,
+                document.body
+            )}
         </>
     );
 };
