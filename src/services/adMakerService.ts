@@ -1,3 +1,4 @@
+
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -108,7 +109,8 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE (PRO UPGRADE)
+ * Upgraded to Gemini 3 Pro for deep market research and psychological copywriting.
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -119,50 +121,64 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a Senior Creative Strategist and Global Branding Expert. 
-    Analyze this ${inputs.industry} product: "${inputs.productName || 'N/A'}" and context: "${inputs.description || 'N/A'}".
+    const prompt = `You are a World-Class Chief Marketing Officer and Creative Director. 
+    Analyze this ${inputs.industry} product: "${inputs.productName || 'N/A'}"
+    Context provided: "${inputs.description || 'N/A'}"
+    Product Specs/USPs: "${inputs.productSpecs || 'N/A'}"
     
-    **TASK 1: HEADLINE ENGINEERING**
-    Draft a benefit-driven, high-conversion headline.
-    - **STRICT RULE**: The headline MUST NOT be the product name. 
-    - **GOOD**: "Wake up to perfection" (for coffee), "Your skin's new best friend" (for cream).
-    - **BAD**: "Coffee Beans", "Aloe Cream".
+    *** STEP 1: DEEP MARKET RESEARCH (GOOGLE SEARCH) ***
+    1. Search for "2025 high-performing ad benchmarks for ${inputs.industry} ${inputs.productName}".
+    2. Identify the top 3 "Winning Hooks" and "Consumer Pain Points" currently trending for this specific product niche on Meta and LinkedIn.
+    3. Analyze competitor visual strategies to find an "Unoccupied Aesthetic Space".
 
-    **TASK 2: SMART IDENTITY AUDIT**
-    Examine the product pixels. If the brand name or logo is clearly visible on the physical product/packaging, we MUST avoid duplicate text overlays.
+    *** STEP 2: COPYWRITING REFINEMENT (AIDA FRAMEWORK) ***
+    Apply the AIDA (Attention, Interest, Desire, Action) model to draft elite ad lines.
     
-    **TASK 3: IDENTITY STRATEGY**
-    Determine the 'identityWeight' for the OVERLAY text of the product name:
-    - **Hidden**: If name is large/clear on product.
-    - **Footnote**: Small reinforcement in a corner (Luxury/Modern vibes).
-    - **Secondary**: Supporting anchor if product is raw.
+    1. **HEADLINE (Attention)**: 
+       - MUST be a scroll-stopping "Hook" (2-6 words).
+       - FORBIDDEN: Do not use the Product Name as the Headline.
+       - RULE: Use curiosity gaps, authoritative claims, or emotional triggers.
+       - Example: Instead of "Organic Coffee", use "The 6:00 AM ritual for high-performers."
+
+    2. **SUB-HEADLINE (Desire)**: 
+       - Translate the "Product Specs" into "Human Benefits".
+       - Example: Instead of "10-hour battery", use "Uninterrupted focus from morning to night."
+
+    3. **CTA (Action)**:
+       - A directive, low-friction command.
+
+    *** STEP 3: IDENTITY STRATEGY ***
+    Determine the 'identityWeight' for the product name text overlay:
+    - **Hidden**: If name is large/clear on the physical product pixels.
+    - **Footnote**: Small reinforcement in a corner.
+    - **Secondary**: Supporting anchor if product is raw/unbranded.
     
     RETURN JSON ONLY:
     {
         "strategicCopy": { 
-            "headline": "A creative, benefit-led headline line", 
-            "subheadline": "Supporting details", 
+            "headline": "Researched, high-conversion hook", 
+            "subheadline": "Benefit-driven supporting text", 
             "cta": "Action command" 
         },
         "identityStrategy": {
             "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Technical explanation of why the headline is a hook and not just the name",
-            "placementRecommendation": "Zone Recommendation",
-            "styling": "Typography rules"
+            "reasoning": "Technical breakdown of the hook choice based on current trends",
+            "placementRecommendation": "Optimal Zone Recommendation",
+            "styling": "Typography weights/styles"
         },
         "industryLogic": {
-            "categoryBadgeText": "Category appropriate claim",
-            "forbiddenKeywords": ["List irrelevant industry terms"]
+            "categoryBadgeText": "Category appropriate trust claim",
+            "forbiddenKeywords": ["Irrational industry buzzwords to avoid"]
         },
-        "visualDirection": "Art direction notes"
+        "visualDirection": "Detailed art direction based on market trends"
     }`;
 
-    const parts: any[] = lowResAssets.map((asset, i) => ({ text: `PRODUCT IMAGE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
+    const parts: any[] = lowResAssets.map((asset) => ({ text: `PRODUCT PIXELS:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
     parts.push({ text: prompt });
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3-pro-preview', // Upgraded to PRO for complex marketing reasoning
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -171,6 +187,7 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
+        console.warn("Pro Intelligence failed, falling back to Flash", e);
         return { 
             strategicCopy: { headline: "Experience Excellence", subheadline: inputs.description || "", cta: "Order Now" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Fallback', placementRecommendation: 'Bottom Right', styling: 'Clean Sans' },
@@ -233,7 +250,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     const vaultProtocol = vaultDna ? `
     *** SIGNATURE INDUSTRY PROTOCOL (VAULT DNA - HIGH PRIORITY) ***
     - **MANDATORY RULES**: ${vaultDna}
-    - **AESTHETIC DOMINANCE**: The resulting ad MUST perfectly mirror the lighting, material physics, and atmospheric quality of the VAULT REFERENCE images. This is the "Soul" of the generation.
+    - **AESTHETIC DOMINANCE**: The resulting ad MUST perfectly mirror the lighting, material physics, and atmospheric quality of the VAULT REFERENCE images.
     ` : "";
 
     let styleInstructions = "";
@@ -242,14 +259,14 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         *** HYBRID PRODUCTION PROTOCOL (MANDATORY) ***
         1. **GEOMETRIC SOURCE**: Follow the strict spatial coordinates of: ${blueprintInstruction}
         2. **AESTHETIC SOURCE**: Use the attached USER STYLE REFERENCE for lighting, color grading, and environmental texture ONLY. 
-        3. **RULE**: Spatial Template (Geometry) OVERRIDES Reference Image (Layout). Do NOT copy the reference image's layout; copy its spirit.`;
+        3. **RULE**: Spatial Template (Geometry) OVERRIDES Reference Image (Layout).`;
         parts.push({ text: "USER STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic.";
         styleInstructions = `
         *** PRODUCTION PROTOCOL ***
         - **LAYOUT**: ${blueprintInstruction}
-        - **VIBE**: ${vibeDesc} (Use this only to fill in gaps not covered by Vault DNA)`;
+        - **VIBE**: ${vibeDesc} (Research-backed Visual Direction: ${brief.visualDirection})`;
     }
 
     const finalPrompt = `You are a High-Precision Ad Production Engine. 
@@ -257,16 +274,15 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ${vaultProtocol}
 
     *** VISUAL HIERARCHY (STRICT) ***
-    1. **LEVEL 1 (TITLE)**: Render the Headline: "${brief.strategicCopy.headline}" as the most dominant text element. 
+    1. **LEVEL 1 (TITLE)**: Render the Headline: "${brief.strategicCopy.headline}" as the primary focal text. 
        - **FORBIDDEN**: Do NOT use "${inputs.productName}" as the title.
     2. **LEVEL 2 (PRODUCT)**: The USER PRODUCT photo must be the central visual hero.
     3. **LEVEL 3 (IDENTITY)**: The Product Name "${inputs.productName}" is SECONDARY. 
        - **STRATEGY**: ${brief.identityStrategy.weight === 'Hidden' ? 'DO NOT overlay the name as text.' : `Apply as ${brief.identityStrategy.weight}: ${brief.identityStrategy.placementRecommendation}.`}
-    4. **LEVEL 4 (ACTION)**: Render the CTA "${brief.strategicCopy.cta}" as a button.
+    4. **LEVEL 4 (ACTION)**: Render the CTA "${brief.strategicCopy.cta}" as a professional button.
 
     *** THE CONTEXTUAL FIREWALL ***
     - Category: ${inputs.industry.toUpperCase()}
-    - DO NOT use text/icons from Vault or Reference Images.
     - ${styleInstructions}
 
     FINAL OUTPUT: A single, magazine-quality 4K ad image. 
@@ -311,7 +327,6 @@ export const refineAdCreative = async (
     *** EDITING RULES ***
     1. **Preservation**: Keep the core product, environment, and vibe identical.
     2. **Transformation**: Apply the user's specific requested change.
-    3. **Seamlessness**: Ensure the edited area blends perfectly with the rest of the high-fidelity ad.
     
     OUTPUT: A single 4K refined image.`;
 
