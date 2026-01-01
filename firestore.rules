@@ -66,8 +66,7 @@ service cloud.firestore {
     }
     
     match /audit_logs/{logId} {
-      allow read: if isAdmin();
-      allow write: if false; 
+      allow read, write: if isAdmin(); 
     }
 
     match /{allPaths=**} {
