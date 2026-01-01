@@ -3,7 +3,7 @@ import { AuthProps, AppConfig, Page, View } from '../types';
 import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
-import { generateApparelTryOn } from '../services/apparelService';
+import { generateApparelTryOn, ApparelStylingOptions } from '../services/apparelService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
@@ -23,10 +23,13 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [personImage, setPersonImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [tuck, setTuck] = useState('');
-    const [sleeve, setSleeve] = useState('');
-    const [fit, setFit] = useState('');
+    
+    // Refined Styling State
+    const [tuck, setTuck] = useState<ApparelStylingOptions['tuck']>('Untucked');
+    const [sleeve, setSleeve] = useState<ApparelStylingOptions['sleeve']>('Long');
+    const [fit, setFit] = useState<ApparelStylingOptions['fit']>('Regular');
     const [accessories, setAccessories] = useState('');
+    
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -47,7 +50,15 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     useEffect(() => {
         let interval: any;
         if (loading) {
-            const steps = ["Scanning model biometrics...", "Analyzing garment texture...", "Simulating fabric drape...", "Aligning seams & shadows...", "Finalizing fashion render..."];
+            const steps = [
+                "Pixa Vision: Auditing body mesh...", 
+                "Pixa Vision: Mapping skeletal stress points...",
+                "Fabric Engine: Classifying material weight...", 
+                "Physics Engine: Simulating gravity & drapes...", 
+                "Physics Engine: Calculating crease occlusion...",
+                "Retoucher: Applying color bleed & skin reflection...",
+                "Finalizing: Refining seamless edges..."
+            ];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -69,7 +80,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             if (file.type.startsWith('image/')) {
                 const base64 = await fileToBase64(file);
                 handleNewSession();
-                // FIX: Changed setImage to setPersonImage below
                 setPersonImage({ url: URL.createObjectURL(file), base64 });
             } else { alert("Please drop a valid image file."); }
         }
@@ -77,7 +87,20 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const handleGenerate = async () => {
         if (!personImage || !auth.user) return; if (!topGarment && !bottomGarment) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
-        try { const res = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, topGarment ? topGarment.base64 : null, bottomGarment ? bottomGarment.base64 : null, undefined, { tuck, sleeve, fit, accessories }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+        try { 
+            const res = await generateApparelTryOn(
+                personImage.base64.base64, 
+                personImage.base64.mimeType, 
+                topGarment ? topGarment.base64 : null, 
+                bottomGarment ? bottomGarment.base64 : null, 
+                undefined, 
+                { tuck, sleeve, fit, accessories }, 
+                auth.activeBrandKit
+            ); 
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); 
+            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn'); setLastCreationId(creationId); 
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
+        } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
 
     const handleClaimBonus = async () => {
@@ -87,7 +110,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Virtual Try-On", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck(''); setSleeve(''); setFit(''); setAccessories(''); };
+    const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck('Untucked'); setSleeve('Long'); setFit('Regular'); setAccessories(''); };
     
     const handleEditorSave = async (newUrl: string) => { 
         setResultImage(newUrl); 
@@ -106,9 +129,9 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     return (
         <>
             <FeatureLayout 
-                title="Pixa TryOn" description="Virtual dressing room. Try clothes on any person instantly." icon={<PixaTryOnIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
+                title="Pixa TryOn" description="Virtual dressing room with advanced fabric physics. Pixa simulates gravity, weight, and light bleed for seamless renders." icon={<PixaTryOnIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
-                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} resultHeightClass="h-[800px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Try On Now" }} scrollRef={scrollRef}
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} resultHeightClass="h-[800px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Simulate & Render" }} scrollRef={scrollRef}
                 leftContent={
                     personImage ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -117,7 +140,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                         <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                     </div>
-                                    <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                                    <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-6">{loadingText}</p>
                                 </div>
                             )}
                             <img src={personImage.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Model" />
@@ -137,38 +160,28 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     <CompactUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-44" />
                                     <CompactUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-purple-400"/>} heightClass="h-44" />
                                 </div>
-                                <div className="mt-4 px-1 space-y-1.5 animate-fadeIn">
-                                    <p className="text-[10px] text-gray-400 font-medium leading-tight flex items-start gap-2">
-                                        <span className="w-1 h-1 bg-indigo-300 rounded-full mt-1.5 shrink-0"></span>
-                                        Upload at least one garment to proceed.
-                                    </p>
-                                    <p className="text-[10px] text-gray-400 font-medium leading-tight flex items-start gap-2">
-                                        <span className="w-1 h-1 bg-indigo-300 rounded-full mt-1.5 shrink-0"></span>
-                                        To transfer a full outfit, upload the same image to both slots.
-                                    </p>
-                                </div>
                             </div>
                             <div className="border-t border-gray-100 pt-6 space-y-4">
                                 <div className="flex items-center gap-2 pb-2 border-b border-gray-100 mb-4">
                                     <span className={ApparelStyles.stepBadge}>3</span>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling Preferences</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling & Fit Logic</label>
                                 </div>
-                                <SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In']} value={tuck} onChange={setTuck} />
-                                <SelectionGrid label="Sleeve" options={['Long', 'Rolled Up']} value={sleeve} onChange={setSleeve} />
-                                <SelectionGrid label="Fit" options={['Regular', 'Slim Fit', 'Oversized']} value={fit} onChange={setFit} />
+                                <SelectionGrid label="Tuck Logic" options={['Untucked', 'Full Tuck', 'Half Tuck']} value={tuck} onChange={(val) => setTuck(val as any)} />
+                                <SelectionGrid label="Fabric Tension (Fit)" options={['Regular', 'Slim Fit', 'Oversized']} value={fit} onChange={(val) => setFit(val as any)} />
+                                <SelectionGrid label="Sleeve Detail" options={['Long', 'Rolled Up', 'Short']} value={sleeve} onChange={(val) => setSleeve(val as any)} />
                                 
                                 <div className="relative pt-2">
                                     <InputField 
-                                        label="Accessories & Additional Styling (Optional)" 
-                                        placeholder="e.g. wearing a gold watch, holding a black leather bag, add sunglasses" 
+                                        label="Accessories & Add-ons (Optional)" 
+                                        placeholder="e.g. wearing a gold watch, holding a leather bag..." 
                                         value={accessories} 
                                         onChange={(e: any) => setAccessories(e.target.value)} 
                                     />
                                     <div className="flex items-center gap-1.5 absolute top-2 right-1">
                                         <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Smart Stylist Active</span>
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Physics Active</span>
                                     </div>
-                                    <p className="text-[9px] text-gray-400 px-1 -mt-4 italic">Pixa will intelligently anchor these items to your model.</p>
+                                    <p className="text-[9px] text-gray-400 px-1 -mt-4 italic">Pixa calculates contact shadows for these items.</p>
                                 </div>
                             </div>
                         </div>

@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon, CameraIcon, CheckIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
-import { generateApparelTryOn } from '../services/apparelService';
+import { generateApparelTryOn, ApparelStylingOptions } from '../services/apparelService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
@@ -25,9 +24,11 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
     const [personImage, setPersonImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [tuck, setTuck] = useState('');
-    const [sleeve, setSleeve] = useState('');
-    const [fit, setFit] = useState('');
+    
+    // Fix: Properly type the styling state to match ApparelStylingOptions and provide valid initial values
+    const [tuck, setTuck] = useState<ApparelStylingOptions['tuck']>('Untucked');
+    const [sleeve, setSleeve] = useState<ApparelStylingOptions['sleeve']>('Long');
+    const [fit, setFit] = useState<ApparelStylingOptions['fit']>('Regular');
     const [accessories, setAccessories] = useState('');
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -149,10 +150,16 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
 
     const handleGenerate = async () => {
         if (!personImage || !auth.user) return; if (!topGarment && !bottomGarment) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
-        try { const res = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, topGarment ? topGarment.base64 : null, bottomGarment ? bottomGarment.base64 : null, undefined, { tuck, sleeve, fit, accessories }, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn (Staging)'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+        try { 
+            // Fix: ensure the styling options match the interface exactly by using specific state variables
+            const options: ApparelStylingOptions = { tuck, sleeve, fit, accessories };
+            const res = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, topGarment ? topGarment.base64 : null, bottomGarment ? bottomGarment.base64 : null, undefined, options, auth.activeBrandKit); 
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn (Staging)'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
+        } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
 
-    const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck(''); setSleeve(''); setFit(''); setAccessories(''); handleExitMirror(); };
+    // Fix: Updated reset values to match literal types allowed in ApparelStylingOptions
+    const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck('Untucked'); setSleeve('Long'); setFit('Regular'); setAccessories(''); handleExitMirror(); };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     
     const canGenerate = !!personImage && (!!topGarment || !!bottomGarment) && !isLowCredits;
@@ -307,9 +314,9 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                                     <span className={ApparelStyles.stepBadge}>3</span>
                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Styling Preferences</label>
                                 </div>
-                                <SelectionGrid label="Tuck Style" options={['Untucked', 'Tucked In']} value={tuck} onChange={setTuck} />
-                                <SelectionGrid label="Sleeve" options={['Long', 'Rolled Up']} value={sleeve} onChange={setSleeve} />
-                                <SelectionGrid label="Fit" options={['Regular', 'Slim Fit', 'Oversized']} value={fit} onChange={setFit} />
+                                <SelectionGrid label="Tuck Style" options={['Untucked', 'Full Tuck', 'Half Tuck']} value={tuck || ''} onChange={(val) => setTuck(val as any)} />
+                                <SelectionGrid label="Sleeve" options={['Long', 'Rolled Up', 'Short']} value={sleeve || ''} onChange={(val) => setSleeve(val as any)} />
+                                <SelectionGrid label="Fit" options={['Regular', 'Slim Fit', 'Oversized']} value={fit || ''} onChange={(val) => setFit(val as any)} />
                                 
                                 <div className="relative pt-2">
                                     <InputField 
