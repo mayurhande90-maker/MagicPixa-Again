@@ -1,4 +1,3 @@
-
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -215,7 +214,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
-            parts.push({ text: `VAULT REFERENCE ${i+1} (AESTHETIC SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+            parts.push({ text: `VAULT REFERENCE ${i+1} (MASTER AESTHETIC SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
@@ -231,26 +230,35 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
 
+    const vaultProtocol = vaultDna ? `
+    *** SIGNATURE INDUSTRY PROTOCOL (VAULT DNA - HIGH PRIORITY) ***
+    - **MANDATORY RULES**: ${vaultDna}
+    - **AESTHETIC DOMINANCE**: The resulting ad MUST perfectly mirror the lighting, material physics, and atmospheric quality of the VAULT REFERENCE images. This is the "Soul" of the generation.
+    ` : "";
+
     let styleInstructions = "";
     if (optRef) {
         styleInstructions = `
         *** HYBRID PRODUCTION PROTOCOL (MANDATORY) ***
         1. **GEOMETRIC SOURCE**: Follow the strict spatial coordinates of: ${blueprintInstruction}
         2. **AESTHETIC SOURCE**: Use the attached USER STYLE REFERENCE for lighting, color grading, and environmental texture ONLY. 
-        3. **RULE**: Spatial Template (Geometry) OVERRIDES Reference Image (Layout). Do NOT copy the reference image's layout; copy its SOUL.`;
+        3. **RULE**: Spatial Template (Geometry) OVERRIDES Reference Image (Layout). Do NOT copy the reference image's layout; copy its spirit.`;
         parts.push({ text: "USER STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic.";
         styleInstructions = `
         *** PRODUCTION PROTOCOL ***
         - **LAYOUT**: ${blueprintInstruction}
-        - **VIBE**: ${vibeDesc}`;
+        - **VIBE**: ${vibeDesc} (Use this only to fill in gaps not covered by Vault DNA)`;
     }
 
     const finalPrompt = `You are a High-Precision Ad Production Engine. 
     
+    ${vaultProtocol}
+
     *** VISUAL HIERARCHY (STRICT) ***
     1. **LEVEL 1 (TITLE)**: Render the Headline: "${brief.strategicCopy.headline}" as the most dominant text element. 
+       - **FORBIDDEN**: Do NOT use "${inputs.productName}" as the title.
     2. **LEVEL 2 (PRODUCT)**: The USER PRODUCT photo must be the central visual hero.
     3. **LEVEL 3 (IDENTITY)**: The Product Name "${inputs.productName}" is SECONDARY. 
        - **STRATEGY**: ${brief.identityStrategy.weight === 'Hidden' ? 'DO NOT overlay the name as text.' : `Apply as ${brief.identityStrategy.weight}: ${brief.identityStrategy.placementRecommendation}.`}
