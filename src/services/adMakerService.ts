@@ -91,6 +91,10 @@ interface CreativeBrief {
         placementRecommendation: string;
         styling: string;
     };
+    industryLogic: {
+        categoryBadgeText: string;
+        forbiddenKeywords: string[];
+    };
     visualDirection: string;
 }
 
@@ -113,25 +117,30 @@ const performAdIntelligence = async (
     Examine the product image closely. Is the product name or brand logo already clearly visible and legible on the packaging or item itself?
     
     **TASK 2: IDENTITY STRATEGY**
-    Determine the 'identityWeight' for the text overlay of the product name:
-    - **Hidden**: If the name is already large and clear on the product.
-    - **Footnote**: If the name is visible but needs a small, elegant reinforcement in a corner.
-    - **Secondary**: If the product is raw/unbranded and the name serves as a supporting anchor.
-    - **Primary**: Only if the name is the core focus of the ad (rare in high-end production).
-
-    **TASK 3: AD COPY**
-    Generate high-conversion ad copy (Headline, Subheadline, CTA).
+    Determine the 'identityWeight' for the text overlay:
+    - **Hidden**: If name is large/clear on product.
+    - **Footnote**: Small reinforcement in a corner.
+    - **Secondary**: Supporting anchor.
+    
+    **TASK 3: CONTEXTUAL FIREWALLING**
+    Identify specific "Safety Badges" or "Marketing Claims" appropriate for the ${inputs.industry} category.
+    - If food: e.g., '100% Organic', 'Gluten Free'.
+    - If SaaS: e.g., 'SSO Enabled', 'Cloud Native'.
     
     RETURN JSON ONLY:
     {
         "strategicCopy": { "headline": "STRING", "subheadline": "STRING", "cta": "STRING" },
         "identityStrategy": {
             "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Technical explanation based on visual audit",
-            "placementRecommendation": "X, Y zone recommendation (e.g., 'Opposite axis to hero weight')",
-            "styling": "Typography rules (e.g., 'Spaced-out Serif at 15% opacity')"
+            "reasoning": "Technical explanation",
+            "placementRecommendation": "Zone",
+            "styling": "Rules"
         },
-        "visualDirection": "Technical notes on how to showcase this product in a ${inputs.vibe} setting"
+        "industryLogic": {
+            "categoryBadgeText": "Category appropriate trust claim",
+            "forbiddenKeywords": ["List keywords from other industries to avoid, like 'tested on animals' for food"]
+        },
+        "visualDirection": "Technical notes"
     }`;
 
     const parts: any[] = lowResAssets.map((asset, i) => ({ text: `PRODUCT IMAGE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -150,7 +159,8 @@ const performAdIntelligence = async (
     } catch (e) {
         return { 
             strategicCopy: { headline: inputs.productName || "Premium Quality", subheadline: inputs.description || "", cta: "Order Now" }, 
-            identityStrategy: { weight: 'Secondary', reasoning: 'Default fallback', placementRecommendation: 'Bottom Right', styling: 'Clean Sans' },
+            identityStrategy: { weight: 'Secondary', reasoning: 'Default', placementRecommendation: 'Bottom Right', styling: 'Clean Sans' },
+            industryLogic: { categoryBadgeText: 'Quality Assured', forbiddenKeywords: [] },
             visualDirection: "Professional commercial lighting." 
         };
     }
@@ -190,7 +200,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
-            parts.push({ text: `VAULT REFERENCE ${i+1} (LAYOUT SOURCE):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+            parts.push({ text: `VAULT REFERENCE ${i+1} (LAYOUT & LIGHTING ONLY):` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
@@ -206,7 +216,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     let styleInstructions = "";
     if (optRef) {
-        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the specific layout, lighting, and aesthetic of the attached USER REFERENCE image with 90% fidelity.`;
+        styleInstructions = `*** USER-PROVIDED STYLE REFERENCE ***\nCopy the structural layout of this reference image with 90% fidelity.`;
         parts.push({ text: "USER STYLE REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic.";
@@ -215,32 +225,26 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const finalPrompt = `You are a High-Precision Ad Production Engine.
     
-    *** THE 80/20 PRODUCTION RULE (STRICT) ***
-    1. **80% FIDELITY TO VAULT**: Strictly follow layout, text positioning, and image weight of 'VAULT REFERENCES'.
-    2. **20% CREATIVE INNOVATION**: Adjust lighting, reflections, and color grading to blend the 'USER PRODUCT' natively.
+    *** THE CONTEXTUAL FIREWALL (CRITICAL) ***
+    1. **STRUCTURAL SOURCE**: Use 'VAULT REFERENCES' for spatial geometry, lighting angles, and composition ONLY.
+    2. **SEMANTIC PURGE**: You are strictly FORBIDDEN from copying any text, icons, badges, or marketing claims found in the VAULT REFERENCES. They are from different product ranges.
+    3. **CATEGORY SYNC**: The user's industry is ${inputs.industry.toUpperCase()}. 
+       - DO NOT use claims like "Not tested on animals" if the product is food.
+       - DO NOT use claims like "100% Organic" if the product is SaaS.
+       - Use ONLY the provided 'Strategic Copy' and the Category Badge: "${brief.industryLogic.categoryBadgeText}".
+    4. **FORBIDDEN KEYWORDS**: Never use these words in this ad: ${brief.industryLogic.forbiddenKeywords.join(', ')}.
 
-    *** THE 3% IDENTITY RULE (SMART BRANDING) ***
-    Based on our forensic audit, the Product Name "${inputs.productName}" is assigned weight: **${brief.identityStrategy.weight}**.
-    - **INSTRUCTION**: ${brief.identityStrategy.reasoning}. 
-    - **PLACEMENT**: ${brief.identityStrategy.placementRecommendation}. Use 'Negative Space Anchor' logic (place text on the opposite visual axis to the product).
-    - **STYLING**: ${brief.identityStrategy.styling}. Ensure utility text occupies < 3% of total canvas area.
-    - **INTEGRATION**: If applicable, use 'Perspective Matching' (render text as if it's embossed/engraved on the environment surface like a table or wall).
-
-    *** INDUSTRY PROTOCOL: ${inputs.industry.toUpperCase()} ***
-    ${vaultDna ? `DNA RULES: ${vaultDna}` : ''}
-    ${styleInstructions}
-    
     *** PRODUCTION BRIEF ***
-    - **Identity Lock**: Do NOT modify the USER PRODUCT pixels or logos.
+    - **Identity Lock**: Do NOT modify user product pixels.
     - **Copy Integration**: 
-        - Headline: "${brief.strategicCopy.headline}" (Hero focus).
-        - Subheadline: "${brief.strategicCopy.subheadline}" (Supporting).
-        - CTA Button: "${brief.strategicCopy.cta}" (Interactive element).
-    - **Product Name**: Apply based on weight "${brief.identityStrategy.weight}".
+        - Headline: "${brief.strategicCopy.headline}"
+        - Subheadline: "${brief.strategicCopy.subheadline}"
+        - CTA Button: "${brief.strategicCopy.cta}"
+    - **Product Name Weight**: **${brief.identityStrategy.weight}**.
 
     *** VISUAL REQUIREMENTS ***
     - Output a single, finished, magazine-quality 4K ad.
-    - Perfect contact shadows and ray-traced material physics.
+    - Perfect contact shadows and realistic blending.
     
     FINAL OUTPUT: High-fidelity image only.`;
 
@@ -263,7 +267,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         }));
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Ad Production engine failed. Please try again.");
+        throw new Error("Ad Production engine failed.");
     } catch (e) { throw e; }
 };
 
@@ -275,17 +279,7 @@ export const refineAdCreative = async (
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
-    const prompt = `You are a Precision Ad Editor.
-    
-    *** CURRENT VERSION ***
-    Modify the provided image based on this specific user feedback: "${instruction}".
-    
-    *** EDITING RULES ***
-    1. **Preservation**: Keep the core product, environment, and vibe identical.
-    2. **Transformation**: Apply the user's specific requested change.
-    3. **Seamlessness**: Ensure the edited area blends perfectly with the rest of the high-fidelity ad.
-    
-    OUTPUT: A single 4K refined image.`;
+    const prompt = `You are a Precision Ad Editor. Modify image based on: "${instruction}". Keep core identity intact.`;
 
     try {
         const response = await ai.models.generateContent({
