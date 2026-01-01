@@ -229,6 +229,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [productName, setProductName] = useState('');
     const [offer, setOffer] = useState('');
     const [desc, setDesc] = useState('');
+    const [productSpecs, setProductSpecs] = useState(''); // New field for USPs
     const [project, setProject] = useState('');
     const [location, setLocation] = useState('');
     const [config, setConfig] = useState('');
@@ -386,7 +387,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const inputs: AdMakerInputs = { 
                 industry, visualFocus: visualFocus || undefined, aspectRatio: aspectRatio || undefined, mainImages: mainImages.map(m => m.base64), logoImage: logoImage?.base64, 
                 vibe: vibe === CUSTOM_VIBE_KEY ? customVibeText : vibe, 
-                productName, offer, description: desc, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
+                productName, offer, description: desc, productSpecs, project, location, config, features, dishName, restaurant, headline, cta, subheadline, 
                 occasion: vibe, 
                 audience: vibe, 
                 layoutTemplate: referenceImage ? undefined : layoutTemplate,
@@ -441,7 +442,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setVibe(''); setCustomVibeText(''); setTemplate(''); setLastCreationId(null); setModelSource(null); setModelImage(null); setIsRefineActive(false); };
+    const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProductSpecs(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setVibe(''); setCustomVibeText(''); setTemplate(''); setLastCreationId(null); setModelSource(null); setModelImage(null); setIsRefineActive(false); };
     
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
 
@@ -610,11 +611,38 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div>
                                                 <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Campaign Copy</label></div>
                                                 {industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (
-                                                    <div className="space-y-3"><InputField placeholder={`${item} Name`} value={productName} onChange={(e:any) => setProductName(e.target.value)} /><InputField placeholder="Highlights / Offer" value={desc} onChange={(e:any) => setDesc(e.target.value)} /></div>
+                                                    <div className="space-y-3">
+                                                        <InputField placeholder={`${item} Name`} value={productName} onChange={(e:any) => setProductName(e.target.value)} />
+                                                        <InputField placeholder="Short Offer / Catchy Hook" value={desc} onChange={(e:any) => setDesc(e.target.value)} />
+                                                        <TextAreaField 
+                                                            label="Product Specifications & USPs" 
+                                                            placeholder="Describe the product details (e.g. 100% organic cotton, waterproof, 24h delivery). Pixa will transform these into high-conversion ad lines." 
+                                                            value={productSpecs} 
+                                                            onChange={(e:any) => setProductSpecs(e.target.value)} 
+                                                        />
+                                                    </div>
                                                 ) : industry === 'realty' ? (
-                                                    <div className="space-y-3"><InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} /><InputField placeholder="Location & Details" value={location} onChange={(e:any) => setLocation(e.target.value)} /></div>
+                                                    <div className="space-y-3">
+                                                        <InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} />
+                                                        <InputField placeholder="Location & Details" value={location} onChange={(e:any) => setLocation(e.target.value)} />
+                                                        <TextAreaField 
+                                                            label="Property USPs & Details" 
+                                                            placeholder="Enter amenities, key selling points, and specifications." 
+                                                            value={productSpecs} 
+                                                            onChange={(e:any) => setProductSpecs(e.target.value)} 
+                                                        />
+                                                    </div>
                                                 ) : (
-                                                    <div className="space-y-3"><InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} /><InputField placeholder="CTA Text" value={cta} onChange={(e:any) => setCta(e.target.value)} /></div>
+                                                    <div className="space-y-3">
+                                                        <InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} />
+                                                        <InputField placeholder="CTA Text" value={cta} onChange={(e:any) => setCta(e.target.value)} />
+                                                        <TextAreaField 
+                                                            label="Full Context / Services" 
+                                                            placeholder="Tell Pixa more about your service or business to generate superior ad lines." 
+                                                            value={productSpecs} 
+                                                            onChange={(e:any) => setProductSpecs(e.target.value)} 
+                                                        />
+                                                    </div>
                                                 )}
                                             </div>
                                         </>

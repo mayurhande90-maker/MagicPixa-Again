@@ -1,9 +1,10 @@
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
+// FIX: Import BrandKit type
 import { BrandKit } from "../types";
-import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
+// Helper: Resize image with customizable width
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -25,7 +26,7 @@ const VIBE_PROMPTS: Record<string, string> = {
     "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk.",
     "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers.",
     "Lifestyle": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional.",
-    "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting.",
+    "Big Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting.",
     "Nature": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones.",
     "Cinematic": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel.",
 
@@ -76,30 +77,37 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 2).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a World-Class Advertising Director for a high-end agency.
+    const prompt = `You are a World-Class Advertising Director.
     
     *** AD BRIEF ***
-    Product: ${inputs.productName || 'Unknown'}
+    Product: ${inputs.productName || 'Unknown Item'}
+    Context: ${inputs.description || 'General Marketing'}
+    Specifications/USPs: ${inputs.productSpecs || 'Not provided'}
     Vibe requested: ${inputs.vibe || 'Professional'}
     Target Industry: ${inputs.industry}
     
     **TASK 1: VISUAL SCAN**
-    Analyze the attached photo(s). Detect material type and camera perspective (e.g. eye-level, low-angle).
+    Analyze the attached photo(s). Detect material type (glass, metal, fabric) and camera perspective (eye-level, top-down).
     
     **TASK 2: TREND PULSE (Google Search)**
-    Search for trending 2025 ${inputs.industry} ads matching "${inputs.vibe}".
+    Search for trending 2025 ${inputs.industry} ads for ${inputs.productName}. Identify what typography and layout hooks are converting best.
     
-    **TASK 3: STRATEGIC COPY**
-    Rewrite the ad copy for maximum conversion based on the vibe.
+    **TASK 3: STRATEGIC COPY (CRITICAL)**
+    Transform the 'Specifications/USPs' into a high-conversion hook.
+    1. **Headline**: One powerful, verb-led 3-6 word headline.
+    2. **Subheadline**: A supporting 5-8 word line highlighting the biggest benefit.
+    3. **CTA**: A standard conversion button text.
+    
+    Avoid AI fluff like "Discover" or "Unleash". Use human, punchy, "Apple-style" or "Nike-style" direct copy.
     
     OUTPUT JSON ONLY:
     {
-        "forensicReport": "Technical physics report...",
-        "marketTrends": "Trend summary...",
-        "strategicCopy": { "headline": "string", "subheadline": "string", "cta": "string" },
-        "visualDirection": "Style notes...",
-        "interactionLogic": "How items relate...",
-        "perspectiveAnchor": "Camera angle"
+        "forensicReport": "Physics audit of the product pixels...",
+        "marketTrends": "Summary of current industry design cues...",
+        "strategicCopy": { "headline": "STRICT_HEADLINE", "subheadline": "STRICT_SUB", "cta": "STRICT_CTA" },
+        "visualDirection": "Detailed style notes for the image generator...",
+        "interactionLogic": "How the product relates to the environment...",
+        "perspectiveAnchor": "Specific camera angle to maintain"
     }`;
 
     const parts: any[] = lowResAssets.map((asset, i) => ({ text: `ASSET ${i+1}:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -116,7 +124,7 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        return { forensicReport: "", marketTrends: "", strategicCopy: { headline: inputs.productName || "Premium", subheadline: "", cta: "Order Now" }, visualDirection: "", interactionLogic: "", perspectiveAnchor: "" };
+        return { forensicReport: "", marketTrends: "", strategicCopy: { headline: inputs.productName || "Premium Quality", subheadline: inputs.description || "", cta: "Order Now" }, visualDirection: "", interactionLogic: "", perspectiveAnchor: "" };
     }
 };
 
@@ -127,10 +135,11 @@ export interface AdMakerInputs {
     mainImages: { base64: string; mimeType: string }[];
     logoImage?: { base64: string; mimeType: string } | null;
     referenceImage?: { base64: string; mimeType: string } | null;
-    vibe?: string; // Preset name OR custom description
+    vibe?: string;
     productName?: string;
     offer?: string;
     description?: string;
+    productSpecs?: string; // New field for deep product knowledge
     project?: string;
     location?: string;
     config?: string;
@@ -169,14 +178,12 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const parts: any[] = [];
     
-    // Style Mapping: Use Reference OR Preset OR Raw User Input
+    // Style Mapping
     let styleInstructions = "";
     if (optRef) {
-        styleInstructions = `*** STYLE GUIDE: REFERENCE IMAGE ***\nCopy the layout and lighting of the reference exactly.`;
+        styleInstructions = `*** STYLE GUIDE: REFERENCE IMAGE ***\nCopy the layout and lighting of the reference exactly. Use the same typography position.`;
         parts.push({ text: "REFERENCE:" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
     } else {
-        // If it's a known preset, use mapped instructions. 
-        // If it's not a known key, it's a custom user description.
         const vibeDesc = VIBE_PROMPTS[inputs.vibe || ''] || inputs.vibe || "Professional studio lighting.";
         styleInstructions = `*** THE VIBE: ${inputs.vibe} ***\n${vibeDesc}`;
     }
@@ -185,7 +192,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         parts.push({ text: `PRODUCT ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
     
-    if (optLogo) parts.push({ text: "LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
+    if (optLogo) parts.push({ text: "BRAND LOGO:" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     if (optModel) parts.push({ text: "MODEL:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
     const finalPrompt = `You are a High-End Ad Production Engine.
@@ -194,25 +201,26 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ${styleInstructions}
     ${brief.visualDirection}
     
-    *** DESIGN RULES ***
-    1. **Identity**: Do NOT alter the product pixels. Keep labels sharp.
-    2. **Interaction**: ${brief.interactionLogic}
-    3. **Perspective**: Background MUST match camera angle: ${brief.perspectiveAnchor}.
-    4. **Typography**: Render "${brief.strategicCopy.headline}" and "${brief.strategicCopy.subheadline}" professionally.
+    *** DESIGN & TYPOGRAPHY MANDATE (STRICT) ***
+    1. **Identity**: Do NOT alter the product pixels. Maintain all label legibility.
+    2. **Headline**: Render "${brief.strategicCopy.headline}" in bold, premium typography in the primary optical zone (Top or Center-Left).
+    3. **Subheadline**: Render "${brief.strategicCopy.subheadline}" directly under the headline with elegant hierarchy.
+    4. **CTA**: Add a professional button-style call to action saying "${brief.strategicCopy.cta}" at the bottom.
+    5. **Contextual Realism**: Ensure the product feels grounded in the environment with realistic contact shadows.
     
-    OUTPUT: A single 4K commercial-grade image.`;
+    OUTPUT: A single 4K commercial-grade image that looks like a finished, designed advertisement.`;
 
     parts.push({ text: finalPrompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
                 imageConfig: { aspectRatio: inputs.aspectRatio || "1:1" }
             },
-        });
+        }));
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("No image generated.");
