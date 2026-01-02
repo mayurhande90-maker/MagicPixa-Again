@@ -406,9 +406,9 @@ export const FeatureLayout: React.FC<{
                                  </div>
                              )}
 
-                             {/* Refinement Overlay (Canvas Centered) */}
+                             {/* Refinement Overlay (Canvas Bottom Centered) */}
                              {canvasOverlay && !isGenerating && (
-                                 <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none px-6">
+                                 <div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none px-6 pb-28">
                                      <div className="pointer-events-auto w-full max-w-lg">
                                          {canvasOverlay}
                                      </div>
