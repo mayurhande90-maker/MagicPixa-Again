@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
@@ -253,7 +254,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Refinement Panel
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const refineCost = 5;
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);

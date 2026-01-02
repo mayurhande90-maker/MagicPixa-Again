@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -157,7 +158,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const refineCost = 5;
 
     const cost = appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 8;
     const userCredits = auth.user?.credits || 0;
@@ -348,6 +349,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
+                                    {/* Fix: Replaced comparison with 'individual' with isSingleSubject toggle check */}
                                     <PremiumUpload label={isSingleSubject ? "Subject" : "Person A"} uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
                                     
                                     {!isSingleSubject && (

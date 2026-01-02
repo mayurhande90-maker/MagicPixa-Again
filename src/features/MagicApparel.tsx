@@ -44,7 +44,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const refineCost = 5;
 
     const cost = appConfig?.featureCosts['Pixa TryOn'] || 8;
     const userCredits = auth.user?.credits || 0;

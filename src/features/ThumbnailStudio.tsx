@@ -62,7 +62,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const refineCost = 5;
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);

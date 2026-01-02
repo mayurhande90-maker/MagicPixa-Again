@@ -34,7 +34,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const refineCost = 5;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);

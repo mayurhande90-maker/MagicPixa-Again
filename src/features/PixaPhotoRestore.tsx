@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -114,7 +115,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const refineCost = 5;
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);

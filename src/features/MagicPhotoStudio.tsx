@@ -27,7 +27,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         ? (appConfig?.featureCosts['Model Shot'] || 10) 
         : (appConfig?.featureCosts['Pixa Product Shots'] || appConfig?.featureCosts['Magic Photo Studio'] || 10);
     
-    const refineCost = 2;
+    const refineCost = 5;
 
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
