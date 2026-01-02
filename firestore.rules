@@ -18,20 +18,39 @@ service cloud.firestore {
     // --- USERS & SUBCOLLECTIONS ---
     match /users/{userId} {
       
-      // Core Profile Rule: Owners and Admins have full access.
-      allow read, write: if isOwner(userId) || isAdmin();
+      // Core Profile Rule
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if request.auth != null && isOwner(userId);
       
-      // Referral Check: Allow any authenticated user to check if a referral code exists
-      allow get: if request.auth != null;
+      // RESTRICTED UPDATE: 
+      // Only allow updating non-sensitive metadata from the client.
+      // Credits, Plan, Admin Status, and Bans MUST be handled by Server-Side SDKs.
+      allow update: if (isOwner(userId) || isAdmin()) && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'avatar', 'lastActive', 'brandKit', 'referralCode', 'referredBy', 'creditGrantNotification'
+        ])
+      );
+      
+      // Admin can update everything
+      allow write: if isAdmin();
 
-      // Third-Party Updates: (e.g., Referrals) 
-      allow update: if request.auth != null && 
-                   !isOwner(userId) && 
-                   !isAdmin() &&
-                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits', 'referralCount', 'totalCreditsAcquired', 'referredBy', 'creditGrantNotification', 'lastAutomatedRefund']);
+      // Sub-collections: Creations are owned by the user
+      match /creations/{creationId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
 
-      // Explicitly allow all sub-collections for the owner/admin
-      match /{allPaths=**} {
+      // Sub-collections: Brands are owned by the user
+      match /brands/{brandId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Transactions are READ-ONLY for users, WRITE-ONLY for Admin SDK
+      match /transactions/{txId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      match /support_chat/{msgId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
     }

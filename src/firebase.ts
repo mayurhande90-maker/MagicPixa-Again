@@ -4,6 +4,7 @@ import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction, VaultReference, VaultFolderConfig } from './types';
 import { resizeImage } from './utils/imageUtils';
+import { USE_SECURE_BACKEND } from './services/geminiClient';
 
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
@@ -234,62 +235,51 @@ export const deleteCreation = async (uid: string, creation: Creation) => {
     await db.collection('users').doc(uid).collection('creations').doc(creation.id).delete();
 };
 
+/**
+ * Deduct Credits logic - SECURE REFACTOR
+ * If USE_SECURE_BACKEND is enabled, this function acts as an "Optimistic UI Update".
+ * It calculates the next state so the user sees their balance drop immediately,
+ * while the server-side API handles the actual Firestore transaction.
+ */
 export const deductCredits = async (userId: string, amount: number, featureName: string) => {
     if (!db) throw new Error("Database not initialized.");
     if (!userId) throw new Error("User ID is missing.");
     
     const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) throw new Error("User profile not found");
     
-    return await db.runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-        let userData: User;
+    const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+    const currentCredits = userData.credits || 0;
+    
+    if (currentCredits < amount) {
+        throw new Error(`Insufficient credits. You need ${amount} but have ${currentCredits}.`);
+    }
 
-        if (!userDoc.exists) {
-            userData = {
-                uid: userId,
-                name: 'Creator',
-                email: '',
-                avatar: 'C',
-                credits: 50,
-                totalCreditsAcquired: 50,
-                lifetimeGenerations: 0,
-                plan: 'Free',
-                signUpDate: firebase.firestore.FieldValue.serverTimestamp() as any,
-                lastActive: firebase.firestore.FieldValue.serverTimestamp() as any,
-                storageTier: 'limited',
-                referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-                referralCount: 0,
-                isAdmin: false,
-                isBanned: false,
-            };
-            transaction.set(userRef, sanitizeData(userData));
-        } else {
-            userData = { uid: userDoc.id, ...userDoc.data() } as User;
-        }
-        
-        const currentCredits = userData.credits || 0;
-        if (currentCredits < amount) {
-            throw new Error(`Insufficient credits. You need ${amount} but have ${currentCredits}.`);
-        }
-        
-        const newCredits = currentCredits - amount;
-        const newGens = (userData.lifetimeGenerations || 0) + 1;
-        
-        transaction.update(userRef, sanitizeData({ 
-            credits: newCredits,
-            lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
-            lastActive: firebase.firestore.FieldValue.serverTimestamp()
-        }));
-        
-        const transactionRef = userRef.collection('transactions').doc();
-        transaction.set(transactionRef, sanitizeData({
-            feature: featureName,
-            cost: amount,
-            date: firebase.firestore.FieldValue.serverTimestamp()
-        }));
-        
-        return { ...userData, credits: newCredits, lifetimeGenerations: newGens } as User;
-    });
+    const newCredits = currentCredits - amount;
+    const newGens = (userData.lifetimeGenerations || 0) + 1;
+
+    // OPTIMISTIC UPDATE / FALLBACK
+    // If we are NOT using the secure backend, we attempt a client-side write (legacy/dev mode).
+    // If we ARE using the secure backend, we skip this to prevent double-spending.
+    if (!USE_SECURE_BACKEND) {
+        await db.runTransaction(async (transaction) => {
+            transaction.update(userRef, sanitizeData({ 
+                credits: newCredits,
+                lifetimeGenerations: firebase.firestore.FieldValue.increment(1),
+                lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            }));
+            
+            const transactionRef = userRef.collection('transactions').doc();
+            transaction.set(transactionRef, sanitizeData({
+                feature: featureName,
+                cost: amount,
+                date: firebase.firestore.FieldValue.serverTimestamp()
+            }));
+        });
+    }
+    
+    return { ...userData, credits: newCredits, lifetimeGenerations: newGens } as User;
 };
 
 export const getCreditHistory = async (uid: string) => {
@@ -313,6 +303,7 @@ export const getCreditHistory = async (uid: string) => {
 export const purchaseTopUp = async (uid: string, packName: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
+    // Note: In production, this write should be triggered by a Stripe/Razorpay Webhook for security.
     await userRef.update(sanitizeData({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
@@ -512,15 +503,18 @@ export const getGlobalFeatureUsage = async () => { return []; };
 export const claimMilestoneBonus = async (uid: string, amount: number) => {
     if (!db) return;
     const userRef = db.collection('users').doc(uid);
-    await userRef.update({
-        credits: firebase.firestore.FieldValue.increment(amount)
-    });
-    await userRef.collection('transactions').add(sanitizeData({
-        feature: 'Milestone Bonus',
-        creditChange: `+${amount}`,
-        cost: 0,
-        date: firebase.firestore.FieldValue.serverTimestamp()
-    }));
+    // Optimistic UI logic: Only write if secure backend is off
+    if (!USE_SECURE_BACKEND) {
+        await userRef.update({
+            credits: firebase.firestore.FieldValue.increment(amount)
+        });
+        await userRef.collection('transactions').add(sanitizeData({
+            feature: 'Milestone Bonus',
+            creditChange: `+${amount}`,
+            cost: 0,
+            date: firebase.firestore.FieldValue.serverTimestamp()
+        }));
+    }
     const snap = await userRef.get();
     return { uid: snap.id, ...snap.data() } as User;
 };

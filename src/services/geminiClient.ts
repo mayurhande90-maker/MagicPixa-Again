@@ -1,11 +1,10 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { logApiError, auth } from '../firebase';
 
 // --- SECURITY TOGGLE ---
 // Set to TRUE to use the secure Vercel backend (api/generate.ts)
 // Set to FALSE to use the exposed client-side key (Development/Fallback)
-const USE_SECURE_BACKEND = false; 
+export const USE_SECURE_BACKEND = true; 
 
 /**
  * Helper function to get a fresh AI client on every call.
