@@ -1,13 +1,15 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, AppConfig, Page, View } from '../types';
+import { createPortal } from 'react-dom';
+import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, ImageModal } from '../components/FeatureLayout';
 import { 
     ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon,
-    BrandKitIcon
+    BrandKitIcon, InformationCircleIcon, PlusIcon, PlusCircleIcon
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus } from '../firebase';
+import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
 import JSZip from 'jszip';
@@ -23,13 +25,8 @@ const FeedbackSparkle = () => (
 
 const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; cost: number; selected: boolean; onClick: () => void; isPopular?: boolean; }> = ({ size, label, subLabel, cost, selected, onClick, isPopular }) => (
     <button onClick={onClick} className={`${MerchantStyles.packCard} ${selected ? MerchantStyles.packCardSelected : MerchantStyles.packCardInactive}`}>
-        {/* Animated Glow Orb */}
         <div className={`${MerchantStyles.packOrb} ${selected ? MerchantStyles.packOrbSelected : MerchantStyles.packOrbInactive}`}></div>
-        
-        {/* Popular Badge (Top Right) */}
         {isPopular && <div className={MerchantStyles.packPopular}>Best Value</div>}
-        
-        {/* Selection Checkmark - Moved to Bottom Right to avoid overlapping with Badge */}
         {selected && (
             <div className="absolute bottom-3 right-3 z-20">
                 <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-fadeIn ring-2 ring-white">
@@ -37,9 +34,7 @@ const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; co
                 </div>
             </div>
         )}
-
         <div className={MerchantStyles.packContent}>
-            {/* Header */}
             <div>
                 <span className={`${MerchantStyles.packLabel} ${selected ? MerchantStyles.packLabelSelected : MerchantStyles.packLabelInactive}`}>
                     {label}
@@ -51,8 +46,6 @@ const PackCard: React.FC<{ size: 5 | 7 | 10; label: string; subLabel: string; co
                     <span className={MerchantStyles.packUnit}>Assets</span>
                 </div>
             </div>
-            
-            {/* Footer / Cost */}
             <div className={`${MerchantStyles.packCost} ${selected ? MerchantStyles.packCostSelected : MerchantStyles.packCostInactive}`}>
                 {selected ? <SparklesIcon className="w-3 h-3 text-yellow-300"/> : <CreditCoinIcon className="w-3 h-3 text-current opacity-70"/>} 
                 {cost} Credits
@@ -83,21 +76,79 @@ const CompactUpload: React.FC<{ label: string; subLabel?: string; image: { url: 
     );
 };
 
+// FIX: Define BrandSelectionModal to resolve ReferenceError
+const BrandSelectionModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    userId: string;
+    currentBrandId?: string;
+    onSelect: (brand: BrandKit) => Promise<void>;
+    onCreateNew: () => void;
+}> = ({ isOpen, onClose, userId, currentBrandId, onSelect, onCreateNew }) => {
+    const [brands, setBrands] = useState<BrandKit[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activatingId, setActivatingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setLoading(true);
+            getUserBrands(userId).then(list => {
+                setBrands(list);
+                setLoading(false);
+            });
+        }
+    }, [isOpen, userId]);
+
+    const handleSelect = async (brand: BrandKit) => {
+        if (!brand.id) return;
+        setActivatingId(brand.id);
+        await new Promise(r => setTimeout(r, 500));
+        try {
+            await onSelect(brand);
+        } catch (e) {
+            console.error("Selection failed", e);
+            setActivatingId(null);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return createPortal(
+        <div className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn ${activatingId ? 'cursor-wait' : ''}`} onClick={onClose}>
+            <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all scale-100 relative" onClick={e => e.stopPropagation()}>
+                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 z-10 relative">
+                    <div className="flex items-center gap-3">
+                         <div className="flex items-center justify-center"><BrandKitIcon className="w-7 h-7 text-indigo-600" /></div>
+                         <div><h3 className="text-lg font-black text-gray-900 tracking-tight">Select Identity</h3><p className="text-xs text-gray-500 font-medium">Apply a brand kit to your ad.</p></div>
+                    </div>
+                    <button onClick={onClose} disabled={!!activatingId} className={`p-2 rounded-full transition-colors ${activatingId ? 'text-gray-200 cursor-not-allowed' : 'hover:bg-gray-100 text-gray-400'}`}><XIcon className="w-5 h-5" /></button>
+                </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 flex-1 relative">
+                     {loading ? (<div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-600 border-t-indigo-600 rounded-full animate-spin"></div></div>) : brands.length === 0 ? (<div className="text-center py-10 flex flex-col items-center"><div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><BrandKitIcon className="w-8 h-8 text-gray-400" /></div><p className="text-gray-500 font-medium text-sm mb-6">No brand kits found.</p><button onClick={onCreateNew} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button></div>) : (
+                        <div className={`grid grid-cols-2 gap-4 ${activatingId ? 'pointer-events-none' : ''}`}>{brands.map(brand => {
+                                const isActive = currentBrandId === brand.id;
+                                const isActivating = activatingId === brand.id;
+                                return (<button key={brand.id} onClick={(e) => { e.stopPropagation(); handleSelect(brand); }} disabled={!!activatingId || isActive} className={`group relative flex flex-col h-40 rounded-2xl border transition-all duration-300 overflow-hidden text-left ${isActive ? 'border-indigo-600 ring-2 ring-indigo-600/20 shadow-md scale-[1.01]' : 'border-gray-200 hover:border-indigo-400 hover:shadow-lg bg-white'} ${isActivating ? 'ring-2 ring-indigo-600' : ''}`}>
+                                        <div className={`h-20 shrink-0 flex items-center justify-center p-2 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>{brand.logos.primary ? (<img src={brand.logos.primary} className="max-w-[70%] max-h-[70%] object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300" alt="Logo" />) : (<span className="text-2xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>)}{isActive && !isActivating && (<div className="absolute top-2 right-2 bg-indigo-600 text-white p-1 rounded-full shadow-sm animate-scaleIn"><CheckIcon className="w-2.5 h-2.5" /></div>)}{isActivating && (<div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>)}</div>
+                                        <div className={`px-4 py-2 flex-1 min-h-0 flex flex-col justify-center ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}><div><h4 className={`font-bold text-xs truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>{brand.companyName || brand.name || 'Untitled'}</h4><p className="text-[9px] text-gray-500 font-medium truncate opacity-80 uppercase tracking-wide">{brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'General'}</p></div>{brand.colors && (<div className="flex gap-1 mt-1.5"><div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary || '#ccc' }}></div><div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary || '#eee' }}></div><div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent || '#999' }}></div></div>)}</div></button>);
+                            })}<button onClick={onCreateNew} disabled={!!activatingId} className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 transition-all duration-300 flex flex-col items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md ${activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200"><PlusCircleIcon className="w-5 h-5" /></div><span className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-700 transition-colors uppercase tracking-wide">Create New</span></button></div>)}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [mode, setMode] = useState<'apparel' | 'product' | null>(null);
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    
-    // Changed: Initialize as null so no box is pre-selected
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
-    
-    // Removed Default Values - User must select
     const [aiGender, setAiGender] = useState('');
     const [aiEthnicity, setAiEthnicity] = useState('');
     const [aiSkinTone, setAiSkinTone] = useState('');
     const [aiBodyType, setAiBodyType] = useState('');
-    
     const [productType, setProductType] = useState('');
     const [productVibe, setProductVibe] = useState('');
     const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
@@ -107,16 +158,17 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [viewIndex, setViewIndex] = useState<number | null>(null);
     const [isZipping, setIsZipping] = useState(false);
-
-    // Feedback State
     const [heroCreationId, setHeroCreationId] = useState<string | null>(null);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
     const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
     const [showThankYou, setShowThankYou] = useState(false);
 
-    const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || appConfig?.featureCosts['Merchant Studio'] || 25;
+    // FIX: Define showBrandModal state to resolve ReferenceError
+    const [showBrandModal, setShowBrandModal] = useState(false);
+
+    const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || 25;
     let cost = baseCost;
-    if (packSize === 5 && appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)']) cost = appConfig.featureCosts['Pixa Ecommerce Kit (5 Assets)'];
+    if (packSize === 5) cost = appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)'] || baseCost;
     else if (packSize === 7) cost = appConfig?.featureCosts['Pixa Ecommerce Kit (7 Assets)'] || Math.ceil(baseCost * 1.4);
     else if (packSize === 10) cost = appConfig?.featureCosts['Pixa Ecommerce Kit (10 Assets)'] || Math.ceil(baseCost * 2.0);
 
@@ -131,14 +183,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     useEffect(() => { return () => { results.forEach(url => URL.revokeObjectURL(url)); }; }, [results]);
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa Vision mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
-
-    const autoScroll = () => {
-        if (scrollRef.current) {
-            setTimeout(() => {
-                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-            }, 100);
-        }
-    };
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -158,12 +202,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 type: mode, mainImage: mainImage.base64, backImage: backImage?.base64, modelImage: modelSource === 'upload' ? modelImage?.base64 : undefined,
                 modelParams: modelSource === 'ai' ? { gender: aiGender, ethnicity: aiEthnicity, age: 'Young Adult', skinTone: aiSkinTone, bodyType: aiBodyType } : undefined,
                 productType: productType, productVibe: productVibe, packSize: packSize
-            }, auth.activeBrandKit); // Passed brand kit
+            }, auth.activeBrandKit);
             if (!outputBase64Images || outputBase64Images.length === 0) throw new Error("Generation failed.");
-            
             const blobUrls = await Promise.all(outputBase64Images.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
             setResults(blobUrls);
-            
             const creationIds = [];
             for (let i = 0; i < outputBase64Images.length; i++) {
                 const label = getLabel(i, mode); 
@@ -173,61 +215,17 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 creationIds.push(id);
             }
             if (creationIds.length > 0) setHeroCreationId(creationIds[0]);
-
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Ecommerce Kit');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
-        } catch (e: any) { console.error(e); logApiError('Pixa Ecommerce Kit UI', e.message || 'Generation Failed', auth.user?.uid); alert(`Generation failed: ${e.message}. No credits deducted.`); } finally { setLoading(false); }
-    };
-
-    const handleClaimBonus = async () => {
-        if (!auth.user || !milestoneBonus) return;
-        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        } catch (e: any) { console.error(e); logApiError('Pixa Ecommerce Kit UI', e.message || 'Generation Failed', auth.user?.uid); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
 
     const handleNewSession = () => { 
-        results.forEach(url => URL.revokeObjectURL(url)); 
-        setMainImage(null); 
-        setBackImage(null); 
-        setModelImage(null); 
-        setResults([]); 
-        setMode(null); 
-        setViewIndex(null); 
-        setPackSize(5); 
-        setModelSource(null); 
-        setHeroCreationId(null);
-        setFeedbackGiven(null);
-        setAnimatingFeedback(null);
-        setShowThankYou(false);
-        setIsZipping(false);
-        
-        // Reset to empty
-        setAiGender(''); 
-        setAiEthnicity(''); 
-        setAiSkinTone(''); 
-        setAiBodyType(''); 
-        
-        setProductType(''); 
-        setProductVibe(''); 
+        results.forEach(url => URL.revokeObjectURL(url)); setMainImage(null); setBackImage(null); setModelImage(null); setResults([]); setMode(null); setViewIndex(null); setPackSize(5); setModelSource(null); setHeroCreationId(null); setFeedbackGiven(null); setAnimatingFeedback(null); setShowThankYou(false); setIsZipping(false);
+        setAiGender(''); setAiEthnicity(''); setAiSkinTone(''); setAiBodyType(''); setProductType(''); setProductVibe(''); 
     };
 
-    const handleFeedback = async (type: 'up' | 'down') => {
-        if (animatingFeedback) return;
-        setAnimatingFeedback(type);
-        
-        if (auth.user && heroCreationId && results.length > 0) {
-            submitFeedback(auth.user.uid, heroCreationId, type, 'Pixa Ecommerce Kit', results[0], auth.user.email, auth.user.name);
-        }
-
-        setTimeout(() => {
-            setFeedbackGiven(type); 
-            setAnimatingFeedback(null); 
-            setShowThankYou(true);
-            setTimeout(() => setShowThankYou(false), 3000);
-        }, 1000);
-    };
-    
     const handleDownloadAll = async () => {
         if (results.length === 0 || !mode) return;
         setIsZipping(true);
@@ -235,8 +233,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             const zip = new JSZip();
             const promises = results.map(async (url, index) => {
                 const label = getLabel(index, mode);
-                const cleanLabel = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                const filename = `pixa_${cleanLabel}_${index + 1}.jpg`;
+                const filename = `pixa_${label.replace(/\s+/g, '_').toLowerCase()}_${index + 1}.jpg`;
                 const response = await fetch(url);
                 const blob = await response.blob();
                 zip.file(filename, blob);
@@ -246,32 +243,47 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             const zipUrl = URL.createObjectURL(content);
             const link = document.createElement('a');
             link.href = zipUrl;
-            link.download = `pixa-ecommerce-pack-${new Date().toISOString().slice(0,10)}.zip`;
+            link.download = `pixa-ecommerce-pack.zip`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(zipUrl);
-        } catch (e) {
-            console.error("Zip failed", e);
-            alert("Failed to create zip file. Downloading individually.");
-            for (let i = 0; i < results.length; i++) {
-                downloadImage(results[i], `merchant-asset-${i+1}.jpg`);
-                await new Promise(r => setTimeout(r, 500));
-            }
-        } finally {
-            setIsZipping(false);
-        }
+        } catch (e) { alert("Zip failed."); } finally { setIsZipping(false); }
     };
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
     
-    const canGenerate = !!mainImage && !isLowCredits && (
-        (mode === 'product' && !!productVibe) || 
-        (mode === 'apparel' && (
-            (modelSource === 'upload' && !!modelImage) || 
-            (modelSource === 'ai' && !!aiGender && !!aiEthnicity && !!aiSkinTone && !!aiBodyType)
-        ))
-    );
+    // FIX: Define handleBrandSelect to resolve ReferenceError
+    const handleBrandSelect = async (brand: BrandKit) => { 
+        if (auth.user && brand.id) { 
+            try { 
+                const brandData = await activateBrand(auth.user.uid, brand.id); 
+                auth.setActiveBrandKit(brandData || null); 
+                setShowBrandModal(false); 
+            } catch (error) { 
+                console.error(error); 
+            } 
+        } 
+    };
+
+    // VALIDATION LOGIC
+    const isModelRequired = mode === 'apparel' && modelSource === null;
+    const isAiParamsIncomplete = mode === 'apparel' && modelSource === 'ai' && !(aiGender && aiEthnicity && aiSkinTone && aiBodyType);
+    const isModelUploadIncomplete = mode === 'apparel' && modelSource === 'upload' && !modelImage;
+    const isProductVibeIncomplete = mode === 'product' && !productVibe;
+    
+    const canGenerate = !!mainImage && !isLowCredits && !isModelRequired && !isAiParamsIncomplete && !isModelUploadIncomplete && !isProductVibeIncomplete;
+
+    const getButtonLabel = () => {
+        if (!mainImage) return "Upload Product First";
+        if (isLowCredits) return "Insufficient Credits";
+        if (mode === 'apparel') {
+            if (isModelRequired) return "Select Model Type";
+            if (isModelUploadIncomplete) return "Upload Model Photo";
+            if (isAiParamsIncomplete) return "Need 4 AI Params";
+        }
+        if (mode === 'product' && isProductVibeIncomplete) return "Select Product Vibe";
+        return `Generate ${packSize} Assets`;
+    };
 
     return (
         <>
@@ -279,7 +291,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
                 activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: `Generate ${packSize} Assets` }} scrollRef={scrollRef}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: getButtonLabel() }} scrollRef={scrollRef}
                 leftContent={
                     <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
                         {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
@@ -289,50 +301,20 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 <div className={MerchantStyles.heroResultContainer} onClick={() => setViewIndex(0)}>
                                     <div className={MerchantStyles.heroLabel}>{getLabel(0, mode)}</div>
                                     <img src={results[0]} className="w-full h-full object-contain p-6 transition-transform group-hover/hero:scale-[1.02]" alt="Hero" />
-                                    
-                                    {/* Feedback UI */}
-                                    <div className="absolute bottom-6 left-6 z-20 flex flex-col items-start gap-2 pointer-events-none">
-                                        {showThankYou && (
-                                            <div className="pointer-events-auto animate-[fadeInUp_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)] bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-2xl mb-1 flex items-center gap-2 transform origin-bottom">
-                                                <SparklesIcon className="w-4 h-4 text-yellow-300" /> 
-                                                <span>Thanks for feedback!</span>
-                                            </div>
-                                        )}
-                                        
-                                        {!feedbackGiven && heroCreationId && (
-                                            <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'up' ? 'bg-green-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Good Result">
-                                                    <ThumbUpIcon className="w-5 h-5" />
-                                                    {animatingFeedback === 'up' && <FeedbackSparkle />}
-                                                </button>
-                                                <div className="w-px bg-white/10 my-1"></div>
-                                                <button onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'down' ? 'bg-red-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Bad Result">
-                                                    <ThumbDownIcon className="w-5 h-5" />
-                                                    {animatingFeedback === 'down' && <FeedbackSparkle />}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
                                     <div className="absolute bottom-6 right-6 pointer-events-none"><button onClick={(e) => { e.stopPropagation(); downloadImage(results[0], 'merchant-hero.png'); }} className={MerchantStyles.heroDownloadBtn}><DownloadIcon className="w-4 h-4"/> Download</button></div>
                                 </div>
                                 <div className={MerchantStyles.resultGridContainer}>
                                     <div className="p-4 space-y-4 pb-20">
                                         <div className="flex justify-between items-center mb-2">
                                             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asset Pack ({results.length})</span>
-                                            {results.length > 0 && (
-                                                <button onClick={handleDownloadAll} disabled={isZipping} className="text-[10px] font-bold text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-wait">
-                                                    {isZipping ? 'Zipping...' : 'Download All (ZIP)'}
-                                                </button>
-                                            )}
+                                            <button onClick={handleDownloadAll} disabled={isZipping} className="text-[10px] font-bold text-blue-600 hover:underline">{isZipping ? 'Zipping...' : 'Download All (ZIP)'}</button>
                                         </div>
-                                        {results.slice(1).map((res, idx) => (<div key={idx} className={MerchantStyles.resultThumbnail} onClick={() => setViewIndex(idx + 1)}><div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">{getLabel(idx + 1, mode)}</div><div className="aspect-[4/3]"><img src={res} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={`Variant ${idx+1}`} /></div><div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => { e.stopPropagation(); downloadImage(res, `merchant-variant-${idx+1}.png`); }} className="bg-white p-1.5 rounded-full shadow-md text-gray-700 hover:text-blue-600"><DownloadIcon className="w-4 h-4"/></button></div></div>))}
+                                        {results.slice(1).map((res, idx) => (<div key={idx} className={MerchantStyles.resultThumbnail} onClick={() => setViewIndex(idx + 1)}><div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-600 text-[9px] font-bold px-2 py-1 rounded-md z-10 border border-gray-100">{getLabel(idx + 1, mode)}</div><div className="aspect-[4/3]"><img src={res} className="w-full h-full object-cover transition-transform group-hover:scale-105" /></div><div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => { e.stopPropagation(); downloadImage(res, `merchant-variant-${idx+1}.png`); }} className="bg-white p-1.5 rounded-full shadow-md text-gray-700 hover:text-blue-600"><DownloadIcon className="w-4 h-4"/></button></div></div>))}
                                     </div>
                                     <div className={MerchantStyles.scrollCue}><div className={MerchantStyles.scrollCueBadge}>Scroll for more</div></div>
                                 </div>
                             </div>
                         )}
-                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
@@ -342,80 +324,43 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         <div className="space-y-8 p-1 animate-fadeIn">
                             {!mode && (
                                 <div className={MerchantStyles.modeGrid}>
-                                    {/* Apparel Card */}
                                     <button onClick={() => setMode('apparel')} className={`${MerchantStyles.modeCard} ${MerchantStyles.modeCardApparel}`}>
                                         <div className={`${MerchantStyles.orb} ${MerchantStyles.orbApparel}`}></div>
-                                        <div className={MerchantStyles.iconGlass}>
-                                            <ApparelIcon className="w-6 h-6 text-purple-600" />
-                                        </div>
-                                        <div className={MerchantStyles.contentWrapper}>
-                                            <h3 className={MerchantStyles.title}>Apparel</h3>
-                                            <p className={MerchantStyles.desc}>Virtual Model Shoot</p>
-                                        </div>
-                                        <div className={MerchantStyles.actionBtn}>
-                                            <ArrowRightIcon className={MerchantStyles.actionIcon} />
-                                        </div>
+                                        <div className={MerchantStyles.iconGlass}><ApparelIcon className="w-6 h-6 text-purple-600" /></div>
+                                        <div className={MerchantStyles.contentWrapper}><h3 className={MerchantStyles.title}>Apparel</h3><p className={MerchantStyles.desc}>Virtual Model Shoot</p></div>
+                                        <div className={MerchantStyles.actionBtn}><ArrowRightIcon className={MerchantStyles.actionIcon} /></div>
                                     </button>
-
-                                    {/* Product Card */}
                                     <button onClick={() => setMode('product')} className={`${MerchantStyles.modeCard} ${MerchantStyles.modeCardProduct}`}>
                                         <div className={`${MerchantStyles.orb} ${MerchantStyles.orbProduct}`}></div>
-                                        <div className={MerchantStyles.iconGlass}>
-                                            <CubeIcon className="w-6 h-6 text-blue-600" />
-                                        </div>
-                                        <div className={MerchantStyles.contentWrapper}>
-                                            <h3 className={MerchantStyles.title}>Product</h3>
-                                            <p className={MerchantStyles.desc}>E-com Pack</p>
-                                        </div>
-                                        <div className={MerchantStyles.actionBtn}>
-                                            <ArrowRightIcon className={MerchantStyles.actionIcon} />
-                                        </div>
+                                        <div className={MerchantStyles.iconGlass}><CubeIcon className="w-6 h-6 text-blue-600" /></div>
+                                        <div className={MerchantStyles.contentWrapper}><h3 className={MerchantStyles.title}>Product</h3><p className={MerchantStyles.desc}>E-com Pack</p></div>
+                                        <div className={MerchantStyles.actionBtn}><ArrowRightIcon className={MerchantStyles.actionIcon} /></div>
                                     </button>
                                 </div>
                             )}
                             {mode && (
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="flex items-center justify-between"><button onClick={handleNewSession} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">← BACK TO MODE</button><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{mode} Mode</span></div>
-                                    
-                                    {/* Pack Selection */}
-                                    <div className="mb-4">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block ml-1">Pack Size</label>
-                                        <div className={MerchantStyles.packGrid}>
-                                            <PackCard size={5} label="Standard" subLabel="Essentials" cost={costStandard} selected={packSize === 5} onClick={() => setPackSize(5)} />
-                                            <PackCard size={7} label="Extended" subLabel="+ Creative" cost={costExtended} selected={packSize === 7} onClick={() => setPackSize(7)} />
-                                            <PackCard size={10} label="Ultimate" subLabel="Complete Kit" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} />
-                                        </div>
-                                    </div>
-
-                                    {/* BRAND KIT ACTIVE PILL - Pill handled by FeatureLayout, but we need isBrandCritical */}
-
+                                    <div className="mb-4"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block ml-1">Pack Size</label><div className={MerchantStyles.packGrid}><PackCard size={5} label="Standard" subLabel="Essentials" cost={costStandard} selected={packSize === 5} onClick={() => setPackSize(5)} /><PackCard size={7} label="Extended" subLabel="+ Creative" cost={costExtended} selected={packSize === 7} onClick={() => setPackSize(7)} /><PackCard size={10} label="Ultimate" subLabel="Complete Kit" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} /></div></div>
                                     <CompactUpload label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
                                     {mode === 'apparel' && (
                                         <>
                                             <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-gray-400"/>} heightClass="h-24" />
-                                            
-                                            {/* Model Selection - Updated to Bento Style */}
                                             <div className="border-t border-gray-100 pt-6">
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Model Selection</label>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Model Selection</label>
+                                                    {isModelRequired && mainImage && <span className="text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full animate-pulse">REQUIRED</span>}
+                                                </div>
                                                 <div className={MerchantStyles.modelSelectionGrid}>
-                                                    <button onClick={() => { setModelSource('ai'); autoScroll(); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'ai' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
-                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
-                                                            <SparklesIcon className="w-5 h-5"/>
-                                                        </div>
-                                                        <span className={`text-xs font-bold ${modelSource === 'ai' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>Pixa Model</span>
-                                                        {modelSource === 'ai' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    <button onClick={() => { setModelSource('ai'); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'ai' ? MerchantStyles.modelSelectionCardSelected : isModelRequired && mainImage ? 'border-indigo-300 animate-pulse' : MerchantStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white text-indigo-600' : 'bg-gray-100 text-gray-400'}`}><SparklesIcon className="w-5 h-5"/></div>
+                                                        <span className="text-xs font-bold">Pixa Model</span>
                                                     </button>
-                                                    
-                                                    <button onClick={() => { setModelSource('upload'); autoScroll(); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'upload' ? MerchantStyles.modelSelectionCardSelected : MerchantStyles.modelSelectionCardInactive}`}>
-                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white shadow-sm text-indigo-600' : 'bg-gray-100 text-gray-400 group-hover:text-indigo-500 group-hover:bg-indigo-50'}`}>
-                                                            <UserIcon className="w-5 h-5"/>
-                                                        </div>
-                                                        <span className={`text-xs font-bold ${modelSource === 'upload' ? 'text-indigo-900' : 'text-gray-500 group-hover:text-gray-700'}`}>My Model</span>
-                                                        {modelSource === 'upload' && <div className="absolute bottom-2 right-2 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm animate-fadeIn"><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    <button onClick={() => { setModelSource('upload'); }} className={`${MerchantStyles.modelSelectionCard} ${modelSource === 'upload' ? MerchantStyles.modelSelectionCardSelected : isModelRequired && mainImage ? 'border-indigo-300 animate-pulse' : MerchantStyles.modelSelectionCardInactive}`}>
+                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white text-indigo-600' : 'bg-gray-100 text-gray-400'}`}><UserIcon className="w-5 h-5"/></div>
+                                                        <span className="text-xs font-bold">My Model</span>
                                                     </button>
                                                 </div>
-
-                                                {/* CONDITIONAL RENDERING BASED ON SELECTION */}
                                                 {modelSource === 'ai' && (
                                                     <div className="space-y-4 animate-fadeIn">
                                                         <SelectionGrid label="Gender" options={['Female', 'Male']} value={aiGender} onChange={setAiGender} />
@@ -424,20 +369,15 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                                         <SelectionGrid label="Body Type" options={['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size']} value={aiBodyType} onChange={setAiBodyType} />
                                                     </div>
                                                 )}
-                                                
-                                                {modelSource === 'upload' && (
-                                                    <div className="animate-fadeIn">
-                                                        <CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} />
-                                                    </div>
-                                                )}
+                                                {modelSource === 'upload' && <div className="animate-fadeIn"><CompactUpload label="Your Model" image={modelImage} onUpload={handleUpload(setModelImage)} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} /></div>}
                                             </div>
                                         </>
                                     )}
                                     {mode === 'product' && (
                                         <>
-                                            <CompactUpload label="Back View" subLabel="Optional (Recommended)" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>} heightClass="h-24" />
+                                            <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>} heightClass="h-24" />
                                             <div className="border-t border-gray-100 pt-6 space-y-4 mb-4">
-                                                <div className="mb-6"><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Product Type</label><input type="text" placeholder="e.g. Headphones, Serum Bottle" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-gray-100 hover:border-gray-300 focus:border-[#4D7CFF] rounded-2xl outline-none transition-all font-medium text-[#1A1A1E]" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Product Type</label><input type="text" placeholder="e.g. Headphones" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl outline-none focus:border-[#4D7CFF] font-medium" /></div>
                                                 <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
                                             </div>
                                         </>
@@ -448,9 +388,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {viewIndex !== null && results.length > 0 && (<ImageModal imageUrl={results[viewIndex]} onClose={() => setViewIndex(null)} onDownload={() => downloadImage(results[viewIndex], 'merchant-asset.png')} hasNext={viewIndex < results.length - 1} hasPrev={viewIndex > 0} onNext={() => setViewIndex(viewIndex + 1)} onPrev={() => setViewIndex(viewIndex - 1)} />)}
+            {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
         </>
     );
 };

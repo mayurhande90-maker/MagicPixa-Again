@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, Suspense, lazy, useEffect } from 'react';
 import { User, Page, View, AuthProps, AppConfig } from './types';
 import Sidebar from './components/Sidebar';
@@ -38,7 +37,7 @@ const CaptionAI = lazy(() => import('./features/CaptionAI').then(module => ({ de
 const DailyMissionStudio = lazy(() => import('./features/DailyMissionStudio').then(module => ({ default: module.DailyMissionStudio })));
 const ThumbnailStudio = lazy(() => import('./features/ThumbnailStudio').then(module => ({ default: module.ThumbnailStudio })));
 const MerchantStudio = lazy(() => import('./features/MerchantStudio').then(module => ({ default: module.MerchantStudio })));
-const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.PixaAdMaker }))); // Updated Import
+const PixaAdMaker = lazy(() => import('./features/PixaAdMaker').then(module => ({ default: module.PixaAdMaker }))); 
 const BrandKitManager = lazy(() => import('./features/BrandKitManager').then(module => ({ default: module.BrandKitManager })));
 const SupportCenter = lazy(() => import('./features/SupportCenter').then(module => ({ default: module.SupportCenter })));
 const PixaTogether = lazy(() => import('./features/PixaTogether').then(module => ({ default: module.PixaTogether })));
@@ -46,7 +45,6 @@ const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(m
 const PixaHeadshotPro = lazy(() => import('./features/PixaHeadshotPro').then(module => ({ default: module.PixaHeadshotPro })));
 const CampaignStudio = lazy(() => import('./features/PixaPlanner').then(module => ({ default: module.PixaPlanner })));
 
-// Loading Spinner for Suspense Fallback
 const PageLoader = () => (
     <div className="h-full w-full flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
@@ -68,8 +66,9 @@ interface DashboardPageProps {
     setAppConfig: (config: AppConfig) => void;
 }
 
-// 10 Minutes in Milliseconds
-const SESSION_TIMEOUT = 10 * 60 * 1000; 
+// 3 Minutes for standard users to prevent heavy background OOM crashes
+const SESSION_TIMEOUT = 3 * 60 * 1000; 
+const MAX_CONCURRENT_SESSIONS = 3;
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     navigateTo, 
@@ -84,63 +83,50 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 }) => {
     const [showReferralModal, setShowReferralModal] = useState(false);
     
-    // --- SMART SESSION MANAGEMENT ---
-    // Tracks which features are currently 'mounted' in the DOM (hidden or visible)
-    const [activeSessions, setActiveSessions] = useState<Set<View>>(new Set(['home_dashboard']));
-    // Tracks the last time a view was the 'activeView'
+    const [activeSessions, setActiveSessions] = useState<View[]>(['home_dashboard']);
     const lastActiveRef = useRef<Record<string, number>>({ 'home_dashboard': Date.now() });
 
-    // Sync activeView prop changes (e.g. from Home page navigation) to activeSessions
     useEffect(() => {
         setActiveSessions(prev => {
-            if (prev.has(activeView)) return prev;
-            const next = new Set(prev);
-            next.add(activeView);
+            if (prev.includes(activeView)) {
+                lastActiveRef.current[activeView] = Date.now();
+                return prev;
+            }
+            
+            // Limit total sessions to prevent memory bloat
+            let next = [...prev, activeView];
+            if (next.length > MAX_CONCURRENT_SESSIONS) {
+                // Remove the oldest non-active session
+                const oldestView = next.find(v => v !== activeView);
+                next = next.filter(v => v !== oldestView);
+            }
+            
             lastActiveRef.current[activeView] = Date.now();
             return next;
         });
-        // Update timestamp for existing view
-        lastActiveRef.current[activeView] = Date.now();
     }, [activeView]);
 
-    // Intercept View Changes to Manage Sessions
     const handleViewChange = (newView: View) => {
         setActiveView(newView);
-        // The useEffect above will handle adding it to activeSessions
     };
 
-    // Garbage Collector: Remove inactive sessions to save memory
     useEffect(() => {
         const interval = setInterval(() => {
             const now = Date.now();
             setActiveSessions(prev => {
-                const next = new Set(prev);
-                let hasChanges = false;
-
-                next.forEach(viewId => {
-                    // CRITICAL: NEVER kill the view currently on screen
-                    if (viewId === activeView) {
-                        lastActiveRef.current[viewId] = now; // Refresh timestamp
-                        return;
-                    }
-
-                    // Check timeout
+                const next = prev.filter(viewId => {
+                    if (viewId === activeView) return true;
                     const lastActive = lastActiveRef.current[viewId] || 0;
-                    if (now - lastActive > SESSION_TIMEOUT) {
-                        console.log(`[Session GC] Killing inactive session: ${viewId}`);
-                        next.delete(viewId);
-                        hasChanges = true;
-                    }
+                    return (now - lastActive < SESSION_TIMEOUT);
                 });
 
-                return hasChanges ? next : prev;
+                return next.length !== prev.length ? next : prev;
             });
-        }, 60000); // Run every 60 seconds
+        }, 30000);
 
         return () => clearInterval(interval);
-    }, [activeView]); // Dependency on activeView ensures we have the latest ref
+    }, [activeView]);
 
-    // Component Factory
     const renderFeatureComponent = (viewId: View) => {
         switch (viewId) {
             case 'home_dashboard':
@@ -198,7 +184,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
 
-    // Standard list views that still need outer scrolling
     const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'billing', 'admin'];
     const isStandardView = standardViews.includes(activeView);
 
@@ -223,11 +208,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     openReferralModal={() => setShowReferralModal(true)}
                 />
                 
-                {/* Main Content Area - Supports Multi-Session Rendering */}
                 <main className={`flex-1 bg-white custom-scrollbar relative ${isStandardView ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                     <Suspense fallback={<PageLoader />}>
-                        {/* Map over all active sessions and render them. Only the active one is visible. */}
-                        {Array.from(activeSessions).map(viewId => {
+                        {activeSessions.map(viewId => {
                             const isViewStandard = standardViews.includes(viewId);
                             return (
                                 <div 

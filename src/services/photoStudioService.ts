@@ -4,11 +4,11 @@ import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
-// Helper: Resize to custom width (default 1280px for HD generation)
-const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
+// Helper: Resize to custom width (Bumping to 2048px for production accuracy)
+const optimizeImage = async (base64: string, mimeType: string, width: number = 2048): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, width, 0.85);
+        const resizedUri = await resizeImage(dataUri, width, 0.9);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -28,19 +28,13 @@ const getBrandDNA = (brand?: BrandKit | null) => {
     `;
 };
 
-/**
- * PHASE 1: MATERIAL-AWARE PHYSICS AUDIT (ELITE RETOUCHER UPGRADE)
- * Performs an Optical Profiling session to classify materials and light transport.
- */
 const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): Promise<string> => {
     const prompt = `Perform a Deep Forensic Physics & Material Audit of this product image.
-    
-    1. **OPTICAL CLASSIFICATION**: Classify into a technical bucket: Specular (Reflective/Metal/Chrome), Diffuse (Matte/Fabric/Paper), or Refractive (Translucent/Glass/Liquid).
-    2. **GLOBAL ILLUMINATION (GI) SPILL**: Predict how the environment light will "bleed" onto the bottom edges of the product based on its material response.
-    3. **LIGHTING TOPOLOGY**: Map the primary light source direction and intensity.
-    4. **GEOMETRIC GRID**: Identify the exact contact points with the ground for Ambient Occlusion (AO) calculation.
-    
-    Output a concise "Technical Optical Blueprint" paragraph of physics commands.`;
+    1. **OPTICAL CLASSIFICATION**: Specular, Diffuse, or Refractive.
+    2. **GLOBAL ILLUMINATION (GI) SPILL**: Predict environmental bleed.
+    3. **LIGHTING TOPOLOGY**: Map light source.
+    4. **GEOMETRIC GRID**: identify contact points for AO.
+    Output a concise "Technical Optical Blueprint" paragraph.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
@@ -99,9 +93,6 @@ export const analyzeProductForModelPrompts = async (
     } catch (e) { return [{ display: "Studio", prompt: "Model holding product" }]; }
 };
 
-/**
- * PHASE 2: HYPER-REALISTIC PRODUCTION ENGINE
- */
 export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
@@ -126,7 +117,7 @@ export const editImageWithPrompt = async (
         }));
     } catch (e) { console.warn("Vault fetch failed", e); }
 
-    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1536);
+    const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 2048);
     const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
     const brandContext = getBrandDNA(brand);
 
@@ -145,18 +136,14 @@ export const editImageWithPrompt = async (
     GOAL: "${styleInstructions}"
 
     *** IDENTITY LOCK 2.0 (SACRED ASSET PROTOCOL) ***
-    The product in the source image is a 'Sacred Asset'. You are permitted to change the lighting wrap and environment, but you are FORBIDDEN from altering its geometry, typography, logo placement, or material identity. Preserve 1:1 pixel structure of the product label.
+    The product in the source image is a 'Sacred Asset'. Preserve 1:1 pixel structure of labels.
 
-    *** COMMERCIAL OPTIC BLOCK (HYPER-REALISM MANDATE) ***
-    1. **RAY-TRACED CONTACT SHADOWS**: Calculate the exact ambient occlusion where the product meets the new surface. Ensure a dark, sharp, high-fidelity crease shadow to prevent the product from "floating".
-    2. **GLOBAL ILLUMINATION (COLOR SPILL)**: Calculate light bouncing from the environment onto the product. If placed on marble, the marble's white/grey light must "bleed" onto the bottom of the product.
-    3. **MATERIAL PHYSICS**:
-       - If Specular: High-specular sharp highlights.
-       - If Diffuse: Soft sub-surface scattering.
-       - If Refractive: Caustics and realistic distortion.
-    4. **FRESNEL SILHOUETTES**: Apply realistic edge-highlighting on the product's silhouette based on the new environment's light sources.
+    *** COMMERCIAL OPTIC BLOCK ***
+    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp crease shadows.
+    2. **GLOBAL ILLUMINATION**: Calculate light bouncing from environment.
+    3. **MATERIAL PHYSICS**: Reflective sharp highlights for specular, soft scattering for diffuse.
 
-    OUTPUT: A hyper-realistic 8K commercial product photograph. No AI artifacts, zero noise, pristine 2025 production quality.`;
+    OUTPUT: A hyper-realistic 8K commercial product photograph.`;
     
     const parts: any[] = [{ inlineData: { data: data, mimeType: optimizedMime } }];
     if (vaultAssets.length > 0) {
@@ -194,7 +181,7 @@ export const generateModelShot = async (
   ): Promise<string> => {
     const ai = getAiClient();
     try {
-      const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 1536);
+      const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 2048);
       const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
       const brandContext = getBrandDNA(brand);
 
@@ -204,16 +191,12 @@ export const generateModelShot = async (
       *** PRODUCT TECHNICAL SPECS ***
       ${technicalBlueprint}
       ${brandContext}
-
       GOAL: Render a high-fashion model interacting with the product. ${userDirection}
-
       *** REALISM PROTOCOL ***
-      1. **IDENTITY LOCK**: Keep the product pixels 100% real. Do not alter branding or labels.
-      2. **SKIN FIDELITY**: Render photorealistic skin (visible pores, fine lines, micro-textures) without artificial smoothing.
-      3. **PHYSICS ANCHORING**: Calculate realistic contact shadows where the model touches the product.
-      4. **GLOBAL ILLUMINATION**: The model's skin and the product surface must reflect the surrounding light sources perfectly.
-
-      OUTPUT: A hyper-realistic 8K fashion portrait. Captured on a Hasselblad H6D-400c. Commercial grade, ultra-detailed fashion shoot.`;
+      1. **IDENTITY LOCK**: Keep the product pixels 100% real.
+      2. **SKIN FIDELITY**: Render photorealistic skin.
+      3. **PHYSICS ANCHORING**: Calculate realistic contact shadows.
+      OUTPUT: A hyper-realistic 8K fashion portrait.`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
@@ -234,41 +217,21 @@ export const generateModelShot = async (
     } catch (error) { throw error; }
   };
 
-/**
- * PHASE 3: ELITE REFINEMENT (ITERATIVE LOOP)
- */
 export const refineStudioImage = async (
     base64Result: string,
     mimeType: string,
     instruction: string
 ): Promise<string> => {
     const ai = getAiClient();
-    const optResult = await optimizeImage(base64Result, mimeType, 1536);
-
-    const prompt = `You are an Elite Commercial Retoucher.
-    
-    *** CURRENT IMAGE ***
-    Modify the provided image based on this specific "Creative Director" feedback: "${instruction}".
-    
-    *** REFINEMENT RULES ***
-    1. **Preserve State**: Keep the core product, environment, and 90% of the lighting identical.
-    2. **Iterative Physics**: Only modify the specific elements requested while maintaining consistent scene physics.
-    3. **Asset Lock**: Do NOT alter the sacred product pixels.
-    
-    OUTPUT: A single 8K refined commercial photograph.`;
-
+    const optResult = await optimizeImage(base64Result, mimeType, 2048);
+    const prompt = `You are an Elite Commercial Retoucher. 
+    Modify image based on feedback: "${instruction}". 
+    Preserve state and sacred product pixels.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
-            contents: {
-                parts: [
-                    { inlineData: { data: optResult.data, mimeType: optResult.mimeType } },
-                    { text: prompt }
-                ]
-            },
-            config: { 
-                responseModalities: [Modality.IMAGE]
-            },
+            contents: { parts: [{ inlineData: { data: optResult.data, mimeType: optResult.mimeType } }, { text: prompt }] },
+            config: { responseModalities: [Modality.IMAGE] },
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
