@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, AppConfig } from '../types';
+import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
     PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon, InformationCircleIcon, MagicWandIcon
 } from '../components/icons';
@@ -134,7 +134,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             try {
                 const prompts = await analyzeProductImage(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
                 setSuggestedPrompts(prompts);
-            } catch (err) { setSuggestedPrompts(["Put this on a clean white table", "Show this product on a luxury gold podium"]); } finally { setIsAnalyzing(false); }
+            } catch (err) { setSuggestedPrompts(["Clean white studio", "Luxury marble table", "Natural sunlight wood", "Modern minimalist podium"]); } finally { setIsAnalyzing(false); }
         } else if (mode === 'model') {
              setIsAnalyzingModel(true); 
              try {
@@ -523,6 +523,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
         {/* Hidden inputs for file uploads */}
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+        
+        <style>{`
+            @keyframes scan-horizontal {
+                0% { left: 0%; }
+                100% { left: 100%; }
+            }
+        `}</style>
         </>
     );
 };
