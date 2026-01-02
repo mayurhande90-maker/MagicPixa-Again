@@ -1,9 +1,12 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
+import { RefinementPanel } from '../components/RefinementPanel';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
+import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
@@ -28,6 +31,11 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const refineCost = 2;
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,25 +53,19 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     useEffect(() => { 
         let interval: any; 
-        if (loading) { 
-            // Enhanced "Physics" Loading Steps
-            const steps = [
-                "Pixa Vision: Calculating room geometry...",
-                "Pixa Vision: Triangulating vanishing points...",
-                "Pixa Vision: Extracting 3D depth map...",
-                "Design Engine: Simulating light transport...",
-                "Design Engine: Rendering physical materials...",
-                "Design Engine: Finalizing photorealistic output..."
-            ]; 
+        if (loading || isRefining) { 
+            const steps = isRefining 
+                ? ["Analyzing floor plan...", "Synthesizing new materials...", "Recalculating lighting spill...", "Polishing 4K render..."]
+                : ["Pixa Vision: Calculating room geometry...", "Pixa Vision: Extracting 3D depth map...", "Design Engine: Simulating light transport...", "Design Engine: Finalizing photorealistic output..."]; 
             let step = 0; 
             setLoadingText(steps[0]); 
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 2500); // Slower steps to show "deep work"
+            }, 2500); 
         } 
         return () => clearInterval(interval); 
-    }, [loading]);
+    }, [loading, isRefining]);
 
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
     const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
@@ -84,6 +86,38 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
     };
 
+    const handleRefine = async (refineText: string) => {
+        if (!result || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
+        
+        setIsRefining(true);
+        setIsRefineActive(false); 
+        try {
+            const currentB64 = await urlToBase64(result);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering");
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
+            
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            } else {
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior (Refined)');
+                setLastCreationId(id);
+            }
+            
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setNotification({ msg: "Elite Interior Retoucher: Design refined!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            alert("Refinement failed.");
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
     const handleClaimBonus = async () => {
         if (!auth.user || !milestoneBonus) return;
         const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
@@ -91,7 +125,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Interior Design", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setImage(null); setResult(null); setRoomType(''); setStyle(''); setLastCreationId(null); };
+    const handleNewSession = () => { setImage(null); setResult(null); setRoomType(''); setStyle(''); setLastCreationId(null); setIsRefineActive(false); };
     
     const handleEditorSave = async (newUrl: string) => { 
         setResult(newUrl); 
@@ -109,17 +143,26 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : () => setResult(null)} onNewSession={result ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
+                customActionButtons={result ? (
+                    <button 
+                        onClick={() => setIsRefineActive(!isRefineActive)}
+                        className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                    >
+                        <span>Make Changes</span>
+                    </button>
+                ) : null}
                 resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }} scrollRef={scrollRef}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
+                            {(loading || isRefining) && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
                             <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} />
-                            {!loading && (<><button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40" title="Cancel"><XIcon className="w-5 h-5"/></button><button onClick={() => redoFileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Photo"><UploadIcon className="w-5 h-5"/></button></>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
+                            {!loading && !isRefining && (<><button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40" title="Cancel"><XIcon className="w-5 h-5"/></button><button onClick={() => redoFileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Photo"><UploadIcon className="w-5 h-5"/></button></>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
                         <div className="w-full h-full flex justify-center"><div onClick={() => fileInputRef.current?.click()} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${isDragging ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'}`}>
@@ -142,7 +185,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b]">Recharge Now</button>
                         </div>
                     ) : (
-                        <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${!image ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
+                        <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${!image || loading || isRefining ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                             <div>
                                 <div className="flex items-center justify-between mb-3 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">1. Space Type</label></div>
                                 <div className="flex gap-4">
@@ -161,7 +204,6 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {/* FIX: Changed resultImage to result on the following line */}
             {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Interior Design" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}

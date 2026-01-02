@@ -3,10 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon, DownloadIcon, InformationCircleIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
+import { RefinementPanel } from '../components/RefinementPanel';
 import { MagicEditorModal } from '../components/MagicEditorModal';
-import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage, urlToBase64 } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
-import { saveCreation, deductCredits, claimMilestoneBonus } from '../firebase';
+import { refineStudioImage } from '../services/photoStudioService';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
@@ -57,13 +59,18 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const refineCost = 2;
+
     const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || appConfig?.featureCosts['Thumbnail Studio'] || 8;
     const regenCost = 3;
     const userCredits = auth.user?.credits || 0;
     const isPodcast = category === 'Podcast';
     
-    // REQUIRED LOGIC: Mood is mandatory only if NO reference image is uploaded.
     const hasRequirements = format && (referenceImage ? true : !!mood) && (isPodcast ? (!!hostImage && !!guestImage && !!title) : (!!title));
     const isLowCredits = userCredits < cost;
     
@@ -71,21 +78,10 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const moods = ['Viral', 'Cinematic', 'Luxury/Premium', 'Minimalist/Clean', 'Gamer', 'Dark Mystery', 'Retro Style', 'Bright & Natural'];
     const podcastGears = ['Professional Mics', 'No Mic'];
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is blending elements...", "Pixa is designing layout...", "Pixa is polishing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
+    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing headline depth...", "Refining visual hook...", "Polishing clickbait aesthetics...", "Finalizing production..."] : ["Pixa is analyzing trend data...", "Pixa is enhancing photos...", "Pixa is blending elements...", "Pixa is designing layout...", "Pixa is polishing..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading, isRefining]);
     useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
     
-    const autoScroll = () => { 
-        if (scrollRef.current) {
-            setTimeout(() => {
-                const container = scrollRef.current;
-                if (container) {
-                    const targetScroll = container.scrollTop + 150;
-                    const maxScroll = container.scrollHeight - container.clientHeight;
-                    container.scrollTo({ top: Math.min(targetScroll, maxScroll), behavior: 'smooth' });
-                }
-            }, 150); 
-        } 
-    };
+    const autoScroll = () => { if (scrollRef.current) setTimeout(() => { const container = scrollRef.current; if (container) { const targetScroll = container.scrollTop + 150; const maxScroll = container.scrollHeight - container.clientHeight; container.scrollTo({ top: Math.min(targetScroll, maxScroll), behavior: 'smooth' }); } }, 150); };
 
     const processFile = async (file: File) => { const base64 = await fileToBase64(file); return { url: URL.createObjectURL(file), base64 }; };
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const data = await processFile(e.target.files[0]); setter(data); autoScroll(); e.target.value = ''; } };
@@ -94,22 +90,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (!hasRequirements || !auth.user || !format) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
-        
-        const currentInputs = {
-            format, 
-            category, 
-            mood: mood || undefined, 
-            micMode: isPodcast ? podcastGear : undefined,
-            title, 
-            customText: customText || undefined, 
-            referenceImage: referenceImage?.base64, 
-            subjectImage: subjectImage?.base64, 
-            hostImage: hostImage?.base64, 
-            guestImage: guestImage?.base64,
-            elementImage: elementImage?.base64,
-            requestId: Math.random().toString(36).substring(7) 
-        };
-
+        const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try {
             const res = await generateThumbnail(currentInputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
@@ -118,6 +99,38 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
+    };
+
+    const handleRefine = async (refineText: string) => {
+        if (!result || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
+        
+        setIsRefining(true);
+        setIsRefineActive(false); 
+        try {
+            const currentB64 = await urlToBase64(result);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "YouTube/Social Media Thumbnail");
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
+            
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            } else {
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail (Refined)');
+                setLastCreationId(id);
+            }
+            
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setNotification({ msg: "Thumbnail Retoucher: Masterpiece updated!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            alert("Refinement failed.");
+        } finally {
+            setIsRefining(false);
+        }
     };
 
     const handleClaimBonus = async () => {
@@ -130,15 +143,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (!hasRequirements || !auth.user || !format) return; 
         if (userCredits < regenCost) { alert("Insufficient credits."); return; } 
         setLoading(true); setResult(null); setLastCreationId(null); 
-        
-        const currentInputs = { 
-            format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, 
-            customText: customText || undefined, referenceImage: referenceImage?.base64, 
-            subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, 
-            guestImage: guestImage?.base64, elementImage: elementImage?.base64,
-            requestId: Math.random().toString(36).substring(7)
-        };
-
+        const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try { 
             const res = await generateThumbnail(currentInputs, auth.activeBrandKit); 
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); 
@@ -150,32 +155,39 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Thumbnail Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); };
-    const handleEditorSave = (newUrl: string) => { setResult(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa Thumbnail Pro (Edited)'); };
+    const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); setIsRefineActive(false); };
+    const handleEditorSave = (newUrl: string) => { setResult(newUrl); if (lastCreationId && auth.user) updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const handleFormatSelect = (val: 'landscape' | 'portrait') => { setFormat(val); if (val !== format) { setCategory(''); setMood(''); setPodcastGear(''); setTitle(''); setCustomText(''); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setReferenceImage(null); } autoScroll(); };
 
     return (
         <>
             <FeatureLayout 
-                title="Pixa Thumbnail Pro" description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results." icon={<ThumbnailIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={!!hasRequirements && !isLowCredits} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                title="Pixa Thumbnail Pro" description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results." icon={<ThumbnailIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={!!hasRequirements && !isLowCredits} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleRegenerate} onNewSession={result ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
-                isBrandCritical={true}
+                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit} isBrandCritical={true}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
+                customActionButtons={result ? (
+                    <button 
+                        onClick={() => setIsRefineActive(!isRefineActive)}
+                        className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                    >
+                        <span>Make Changes</span>
+                    </button>
+                ) : null}
                 resultHeightClass={format === 'portrait' ? "h-[1000px]" : "h-[850px]"} hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Thumbnail" }} scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading ? (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>) : (<div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><ThumbnailIcon className="w-10 h-10 text-red-500" /></div><h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3><p className="text-sm text-gray-300 mt-1">{format === 'portrait' ? '9:16 Vertical Preview' : (format === 'landscape' ? '16:9 Landscape Preview' : 'Select a format to begin')}</p></div>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style></div>
+                        {(loading || isRefining) ? (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>) : (<div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><ThumbnailIcon className="w-10 h-10 text-red-500" /></div><h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3><p className="text-sm text-gray-300 mt-1">{format === 'portrait' ? '9:16 Vertical Preview' : (format === 'landscape' ? '16:9 Landscape Preview' : 'Select a format to begin')}</p></div>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style></div>
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className={`space-y-8 p-1 animate-fadeIn transition-all duration-300 ${loading ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
+                        <div className={`space-y-8 p-1 animate-fadeIn transition-all duration-300 ${loading || isRefining ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                             <FormatSelector selected={format} onSelect={handleFormatSelect} />
                             {format && (
                                 <div className="animate-fadeIn space-y-8">
                                     <SelectionGrid label="2. Select Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
-                                    
                                     {category && (
                                         <div className="animate-fadeIn space-y-8">
                                             <div>
@@ -198,20 +210,15 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                     </div>
                                                 )}
                                             </div>
-
                                             <div className="h-px w-full bg-gray-200"></div>
-
-                                            {/* Visual Mood is hidden when a reference image is present */}
                                             {!referenceImage && (
                                                 <SelectionGrid label="4. Visual Mood" options={moods} value={mood} onChange={(val) => { setMood(val); autoScroll(); }} />
                                             )}
-
                                             {isPodcast && (
                                                 <div className="animate-fadeIn">
                                                     <SelectionGrid label="5. Podcast Studio Gear" options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
                                                 </div>
                                             )}
-
                                             <div className="animate-fadeIn"><InputField label={(isPodcast ? '6.' : '5.') + " What is the video about? (Context)"} placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
                                             <div className="animate-fadeIn"><InputField label={(isPodcast ? '7.' : '6.') + " Exact Title Text (Optional)"} placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
                                         </div>

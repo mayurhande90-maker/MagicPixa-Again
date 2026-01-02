@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
+import { RefinementPanel } from '../components/RefinementPanel';
 import { 
     UploadIcon, 
     XIcon, 
@@ -27,8 +28,9 @@ import {
     RealtorSalesIcon,
     LocationIcon
 } from '../components/icons/headshotIcons';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
+import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
@@ -47,7 +49,6 @@ const ARCHETYPES = [
     { id: 'Realtor', label: 'Realtor / Sales', icon: <RealtorSalesIcon className="w-12 h-12"/>, desc: 'Friendly Professional' }
 ];
 
-// DYNAMIC BACKGROUND MAPPING
 const PERSONA_BACKGROUNDS: Record<string, string[]> = {
     'Executive': ['Studio Photoshoot', 'Modern Office', 'Meeting Room', 'Building Lobby', 'Personal Cabin'],
     'Tech': ['Studio Photoshoot', 'Startup Office', 'Server Room', 'Cool Lounge', 'City Street'],
@@ -90,7 +91,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
-    // Modified: Initialized to empty string for manual selection requirement
     const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     
@@ -105,24 +105,26 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const refineCost = 2;
+
     const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 4;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
     
-    // Check if required uploads are present to enable other controls
     const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
 
-    // AUTO-CORRECTION: Reset background to EMPTY when persona changes
     useEffect(() => {
         setBackground('');
         setCustomBackgroundPrompt('');
     }, [archetype]);
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Scanning facial biometrics...", "Applying professional lighting...", "Styling attire...", "Retouching skin texture...", "Finalizing headshot..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading]);
+    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing facial structure...", "Modifying attire/lighting...", "Retouching micro-details...", "Finalizing refined portrait..."] : ["Scanning facial biometrics...", "Applying professional lighting...", "Styling attire...", "Retouching skin texture...", "Finalizing headshot..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading, isRefining]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
-    // Handle Uploads
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -151,21 +153,45 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
-            const res = await generateProfessionalHeadshot(
-                image.base64.base64, 
-                image.base64.mimeType, 
-                archetype, 
-                finalBackground, 
-                customDesc,
-                mode === 'duo' ? partnerImage?.base64.base64 : undefined,
-                mode === 'duo' ? partnerImage?.base64.mimeType : undefined
-            );
+            const res = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot Pro'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot Pro'); 
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+    };
+
+    const handleRefine = async (refineText: string) => {
+        if (!resultImage || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
+        
+        setIsRefining(true);
+        setIsRefineActive(false); 
+        try {
+            const currentB64 = await urlToBase64(resultImage);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Executive Headshot");
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResultImage(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
+            
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            } else {
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot (Refined)');
+                setLastCreationId(id);
+            }
+            
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setNotification({ msg: "Headshot Retoucher: Features polished!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            alert("Refinement failed.");
+        } finally {
+            setIsRefining(false);
+        }
     };
 
     const handleClaimBonus = async () => {
@@ -176,13 +202,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Headshot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     
-    const handleNewSession = () => { 
-        setImage(null); 
-        setPartnerImage(null);
-        setResultImage(null); 
-        setLastCreationId(null); 
-        setCustomDesc(''); 
-    };
+    const handleNewSession = () => { setImage(null); setPartnerImage(null); setResultImage(null); setLastCreationId(null); setCustomDesc(''); setIsRefineActive(false); };
     
     const handleEditorSave = async (newUrl: string) => { 
         setResultImage(newUrl); 
@@ -202,13 +222,22 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     return (
         <>
             <FeatureLayout 
-                title="Pixa Headshot Pro" description="Create studio-quality professional headshots instantly." icon={<PixaHeadshotIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage}
+                title="Pixa Headshot Pro" description="Create studio-quality professional headshots instantly." icon={<PixaHeadshotIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
+                customActionButtons={resultImage ? (
+                    <button 
+                        onClick={() => setIsRefineActive(!isRefineActive)}
+                        className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                    >
+                        <span>Make Changes</span>
+                    </button>
+                ) : null}
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Headshot" }} scrollRef={scrollRef}
                 creationId={lastCreationId}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading && (
+                        {(loading || isRefining) && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
@@ -249,7 +278,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
                 rightContent={
                     isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className={`space-y-6 p-2 animate-fadeIn transition-all duration-300 ${loading ? 'opacity-50 pointer-events-none select-none grayscale-[0.2]' : ''}`}>
+                        <div className={`space-y-6 p-2 animate-fadeIn transition-all duration-300 ${loading || isRefining ? 'opacity-50 pointer-events-none select-none grayscale-[0.2]' : ''}`}>
                             
                             {/* 1. Subjects & Mode */}
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-visible">

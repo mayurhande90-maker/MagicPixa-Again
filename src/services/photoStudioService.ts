@@ -1,3 +1,4 @@
+
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -243,14 +244,21 @@ export const generateModelShot = async (
 export const refineStudioImage = async (
     base64Result: string,
     mimeType: string,
-    instruction: string
+    instruction: string,
+    featureContext: string = "Commercial Product Shot"
 ): Promise<string> => {
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 2048);
-    const prompt = `You are an Elite Commercial Retoucher. 
-    Modify image based on feedback: "${instruction}". 
-    ${IDENTITY_LOCK_MANDATE}
-    Maintain current scene lighting and state unless requested otherwise.`;
+    const prompt = `You are an Elite Commercial AI Retoucher. 
+    CURRENT TASK: Refine this ${featureContext} based on feedback: "${instruction}". 
+    
+    *** CORE MANDATES ***
+    1. **PIXEL PRESERVATION**: Keep 95% of the original image identical.
+    2. **IDENTITY LOCK**: Maintain the exact identity of the primary subject (product or person).
+    3. **INTELLIGENT MODIFICATION**: Apply the requested change while ensuring it blends perfectly with existing lighting and shadows.
+    
+    OUTPUT: A single 4K photorealistic refined image.`;
+    
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -6,6 +7,7 @@ import {
 import { 
     FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField 
 } from '../components/FeatureLayout';
+import { RefinementPanel } from '../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt, refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, logApiError } from '../firebase';
@@ -41,13 +43,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
-    const [refineText, setRefineText] = useState('');
     const [isRefining, setIsRefining] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const refineTextareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -68,7 +68,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [modelComposition, setModelComposition] = useState('');
     const [modelFraming, setModelFraming] = useState('');
 
-    // Updated Categories: Packaged Products -> Medical Product + Added Custom
     const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Medical Product', 'Jewellery', 'Footwear', 'Toys', 'Automotive', 'Other / Custom'];
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
@@ -81,14 +80,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < currentCost;
-
-    // Fluid height effect for refinement textarea
-    useEffect(() => {
-        if (refineTextareaRef.current) {
-            refineTextareaRef.current.style.height = 'auto';
-            refineTextareaRef.current.style.height = `${refineTextareaRef.current.scrollHeight}px`;
-        }
-    }, [refineText, isRefineActive]);
 
     useEffect(() => {
         let interval: any;
@@ -207,7 +198,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         }
     };
 
-    const handleRefine = async () => {
+    const handleRefine = async (refineText: string) => {
         if (!result || !refineText.trim() || !auth.user) return;
         if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
         
@@ -215,24 +206,25 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(result);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText);
+            const featureContext = studioMode === 'model' ? 'Model Photography' : 'Product Photography';
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, featureContext);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;
             
-            const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
+            // Latest version only: Update existing record
             if (lastCreationId) {
                 await updateCreation(auth.user.uid, lastCreationId, dataUri);
             } else {
+                const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
                 const id = await saveCreation(auth.user.uid, dataUri, `${featureName} (Refined)`);
                 setLastCreationId(id);
             }
             
-            const updatedUser = await deductCredits(auth.user.uid, refineCost, `${featureName} (Refinement)`);
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             
-            setRefineText('');
             setNotification({ msg: "Elite Retoucher: Refinement complete!", type: 'success' });
         } catch (e: any) {
             console.error(e);
@@ -294,53 +286,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             onEdit={() => setShowMagicEditor(true)}
             activeBrandKit={auth.activeBrandKit}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
-            canvasOverlay={isRefineActive && result && !isRefining ? (
-                <div className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)]">
-                    <div className="flex items-center justify-between px-3 pt-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Pixa Retoucher Active</span>
-                        </div>
-                        <button onClick={() => setIsRefineActive(false)} className="text-white/40 hover:text-white transition-colors">
-                            <XIcon className="w-4 h-4"/>
-                        </button>
-                    </div>
-                    
-                    <div className="bg-white/5 rounded-2xl p-1.5 flex gap-3 items-start border border-white/5">
-                        <textarea 
-                            ref={refineTextareaRef}
-                            rows={1}
-                            value={refineText}
-                            onChange={(e) => setRefineText(e.target.value)}
-                            placeholder="Describe your changes... (e.g. Add water droplets, make lighting warmer)"
-                            className="flex-1 bg-transparent border-none px-4 py-3 text-[clamp(13px,1.8vh,15px)] font-medium text-white placeholder-gray-500 outline-none focus:ring-0 resize-none max-h-40 custom-scrollbar overflow-y-auto"
-                            autoFocus
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleRefine();
-                                }
-                            }}
-                        />
-                        <button 
-                            onClick={handleRefine}
-                            disabled={!refineText.trim()}
-                            className="bg-[#F9D230] hover:bg-[#dfbc2b] text-black px-6 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95 mt-1"
-                        >
-                            Apply <ArrowRightIcon className="w-4 h-4 ml-2" />
-                        </button>
-                    </div>
-
-                    <div className="flex justify-center pb-2">
-                        <div className="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10 shadow-xl">
-                            <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
-                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">
-                                {refineCost} Credits Per Iteration
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            ) : null}
+            canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
             customActionButtons={result ? (
                 <button 
                     onClick={() => setIsRefineActive(!isRefineActive)}

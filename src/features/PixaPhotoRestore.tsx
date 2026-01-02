@@ -1,10 +1,12 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { PixaRestoreIcon, UploadIcon, XIcon, CreditCoinIcon, MagicWandIcon, PaletteIcon, CheckIcon, InformationCircleIcon, ShieldCheckIcon, ArrowUpCircleIcon } from '../components/icons';
-import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
+import { RefinementPanel } from '../components/RefinementPanel';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+// Fix: Import refineStudioImage from photoStudioService as it is not available in imageToolsService
 import { colourizeImage } from '../services/imageToolsService';
+import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
@@ -65,20 +67,15 @@ const ModeCard: React.FC<{
                 ${selected ? RestoreStyles.modeCardSelected : RestoreStyles.modeCardInactive}
             `}
         >
-            {/* Background Decoration */}
             <div className={`
                 ${RestoreStyles.orb} 
                 ${variant === 'restore' ? RestoreStyles.orbRestore : RestoreStyles.orbColor}
             `}></div>
-
-            {/* Glass Icon Container */}
             <div className={RestoreStyles.iconGlass}>
                 <div className={`${selected ? 'scale-110' : ''} transition-all duration-300 w-full h-full flex items-center justify-center`}>
                     {icon}
                 </div>
             </div>
-
-            {/* Selection Indicator */}
             {selected && (
                 <div className={RestoreStyles.checkBadge}>
                     <div className={RestoreStyles.checkIconBox}>
@@ -86,8 +83,6 @@ const ModeCard: React.FC<{
                     </div>
                 </div>
             )}
-
-            {/* Text Content */}
             <div className={RestoreStyles.contentWrapper}>
                 <h3 className={RestoreStyles.title}>{title}</h3>
                 <p className={RestoreStyles.desc}>{description}</p>
@@ -101,8 +96,6 @@ const ModeCard: React.FC<{
         </button>
     );
 };
-
-const SmartWarning: React.FC<{ issues: string[] }> = ({ issues }) => { if (issues.length === 0) return null; return (<div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4 flex items-start gap-2 animate-fadeIn mx-auto max-w-sm"><InformationCircleIcon className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" /><div><p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide mb-1">Low Resolution Detected</p><ul className="list-disc list-inside text-xs text-orange-600 space-y-0.5">{issues.map((issue, idx) => (<li key={idx}>{issue}</li>))}</ul></div></div>); };
 
 export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [image, setImage] = useState<{ url: string; base64: Base64File; warnings?: string[] } | null>(null);
@@ -118,25 +111,61 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const refineCost = 2;
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts['Pixa Photo Restore'] || appConfig?.featureCosts['Magic Photo Colour'] || 5;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Scanning damage patterns...", "Forensic analysis...", "Historical era matching...", "Reconstructing biometrics...", "Finalizing details..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading]);
+    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing restoration state...", "Refining color balance...", "Polishing forensic details...", "Finalizing refined output..."] : ["Scanning damage patterns...", "Forensic analysis...", "Historical era matching...", "Reconstructing biometrics...", "Finalizing details..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading, isRefining]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
-    const validateImage = async (file: File): Promise<string[]> => { return new Promise((resolve) => { const img = new Image(); img.src = URL.createObjectURL(file); img.onload = () => { const warnings = []; if (img.width < 300 || img.height < 300) warnings.push("Image is very small. Restoration quality might be limited."); resolve(warnings); }; }); };
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); const warnings = await validateImage(file); setImage({ url: URL.createObjectURL(file), base64, warnings }); setResultImage(null); } e.target.value = ''; };
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setImage({ url: URL.createObjectURL(file), base64 }); setResultImage(null); } e.target.value = ''; };
     const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
     const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
     const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
-    const handleDrop = async (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { const file = e.dataTransfer.files[0]; if (file.type.startsWith('image/')) { const base64 = await fileToBase64(file); const warnings = await validateImage(file); setImage({ url: URL.createObjectURL(file), base64, warnings }); setResultImage(null); } else { alert("Please drop a valid image file."); } }; };
+    const handleDrop = async (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { const file = e.dataTransfer.files[0]; if (file.type.startsWith('image/')) { const base64 = await fileToBase64(file); setImage({ url: URL.createObjectURL(file), base64 }); setResultImage(null); } else { alert("Please drop a valid image file."); } }; };
 
     const handleGenerate = async () => {
         if (!image || !restoreMode || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
         try { const res = await colourizeImage(image.base64.base64, image.base64.mimeType, restoreMode, auth.activeBrandKit); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); try { const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Photo Restore'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (persistenceError) { console.warn("Persistence/Credit deduction failed:", persistenceError); } } catch (e) { console.error(e); alert("Restoration failed. Please try again with a simpler image."); } finally { setLoading(false); }
+    };
+
+    const handleRefine = async (refineText: string) => {
+        if (!resultImage || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
+        
+        setIsRefining(true);
+        setIsRefineActive(false); 
+        try {
+            const currentB64 = await urlToBase64(resultImage);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Restored Historical Photo");
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResultImage(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
+            
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            } else {
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Restore (Refined)');
+                setLastCreationId(id);
+            }
+            
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setNotification({ msg: "Restoration Retoucher: Pixels polished!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            alert("Refinement failed.");
+        } finally {
+            setIsRefining(false);
+        }
     };
 
     const handleClaimBonus = async () => {
@@ -146,34 +175,32 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Restored Image", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setImage(null); setResultImage(null); setRestoreMode(null); setLastCreationId(null); };
-    
-    const handleEditorSave = async (newUrl: string) => { 
-        setResultImage(newUrl); 
-        if (lastCreationId && auth.user) {
-            await updateCreation(auth.user.uid, lastCreationId, newUrl);
-        } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Photo Restore'); 
-            setLastCreationId(id);
-        }
-    };
-    
+    const handleNewSession = () => { setImage(null); setResultImage(null); setRestoreMode(null); setLastCreationId(null); setIsRefineActive(false); };
+    const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const canGenerate = !!image && !!restoreMode && !isLowCredits;
 
     return (
         <>
             <FeatureLayout 
-                title="Pixa Photo Restore" description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                title="Pixa Photo Restore" description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)}
-                activeBrandKit={auth.activeBrandKit}
+                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
                 resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Begin Restoration" }} scrollRef={scrollRef}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
+                customActionButtons={resultImage ? (
+                    <button 
+                        onClick={() => setIsRefineActive(!isRefineActive)}
+                        className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                    >
+                        <span>Make Changes</span>
+                    </button>
+                ) : null}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            {loading && (
+                            {(loading || isRefining) && (
                                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/40 backdrop-blur-sm animate-fadeIn">
                                     <div className="w-64 h-2 bg-white/50 rounded-full overflow-hidden shadow-lg mt-6 border border-white/20">
                                         <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 animate-[progress_2s_ease-in-out_infinite] rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
@@ -182,8 +209,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                 </div>
                             )}
                             <img src={image.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Original" />
-                            {!loading && (<><button onClick={() => fileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Image"><UploadIcon className="w-5 h-5"/></button>{image.warnings && image.warnings.length > 0 && (<div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-full max-w-sm"><SmartWarning issues={image.warnings} /></div>)}</>)}
-                            <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
+                            {!loading && !isRefining && (<><button onClick={() => fileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Image"><UploadIcon className="w-5 h-5"/></button></>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
                     ) : (
                         <div onClick={() => fileInputRef.current?.click()} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${isDragging ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'}`}>
