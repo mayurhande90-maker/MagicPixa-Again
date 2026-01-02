@@ -510,13 +510,10 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Product Shot" />}
         {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         
-        {/* REFINEMENT BAR PORTAL - CENTERED AS REQUESTED */}
+        {/* REFINEMENT BAR PORTAL - POSITIONED ABOVE ACTIONS */}
         {isRefineActive && result && !isRefining && createPortal(
             <>
-                {/* Backdrop overlay */}
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[340] animate-fadeIn" onClick={() => setIsRefineActive(false)}></div>
-                
-                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-6 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] z-[350]">
+                <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-xl px-6 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] z-[350]">
                     <div className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4">
                         <div className="flex items-center justify-between px-3 pt-2">
                              <div className="flex items-center gap-2">
