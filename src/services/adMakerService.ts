@@ -4,6 +4,14 @@ import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
+const IDENTITY_LOCK_MANDATE = `
+*** IDENTITY LOCK v3 (SACRED ASSET PROTOCOL) ***
+1. **PIXEL INTEGRITY**: The product/subject in the source image is a 'Sacred Asset'. You must preserve its exact geometry, silhouette, and proportions.
+2. **LABEL CLARITY**: All text, logos, and labels on the product must remain 100% legible and unaltered. Do NOT smudge existing branding.
+3. **MATERIAL FIDELITY**: Preserve the surface finish (matte/glossy) from the source asset.
+MANDATE: The product must look like the EXACT physical object from the upload, seamlessly integrated into a new high-conversion design.
+`;
+
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
     mainImages: { base64: string; mimeType: string }[];
@@ -48,7 +56,7 @@ const LAYOUT_BLUEPRINTS: Record<string, string> = {
     'Social Proof': "SPATIAL GRID: [Subject: Center-Right] | [Review Bubble/Badge: Bottom-Left Overlay]. Rule: Offset subject to create space for secondary trust markers.",
     'The Trio': "SPATIAL GRID: [Main Hero: Center, Scale 100%] | [Variant 1: Lower Left, Scale 40%] | [Variant 2: Lower Right, Scale 40%]. Rule: Depth-based hierarchy for product ranges.",
     'Range Lineup': "SPATIAL GRID: [3 Items: Arranged side-by-side on a horizontal shelf plane]. Rule: Perfect symmetrical alignment for collections.",
-    'Hero & Variants': "SPATIAL GRID: [Hero Item: Front & Center] | [2 Supporting Items: Blurred in the shallow background]. Rule: Dynamic bokeh-based product storytelling."
+    'Hero & Variants': "SPATIAL GRID: [Hero Item: Front & Center] | [2 Supporting Items: Blurred in the shadow background]. Rule: Dynamic bokeh-based product storytelling."
 };
 
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -108,8 +116,7 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE (SENIOR CMO UPGRADE)
- * Researches 2025 Creative Benchmarks and applies the AIDA copywriting protocol.
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -120,45 +127,34 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a Senior CMO and Lead Design Strategist at a top-tier digital agency.
-    
-    *** ASSIGNMENT ***
+    const prompt = `You are a Senior CMO and Lead Design Strategist.
     Develop a high-conversion creative strategy for the ${inputs.industry} product: "${inputs.productName || 'Unnamed Asset'}".
-    Context: "${inputs.description || 'N/A'}"
-    Specifications: "${inputs.productSpecs || 'N/A'}"
-
+    
     *** STEP 1: MARKET-INTELLIGENCE GROUNDING (GOOGLE SEARCH) ***
-    1. Search for "2025 Creative Ad Benchmarks and High-Performing Layouts for ${inputs.industry}".
-    2. Research trending "Emotional Hooks" and "Consumer Anxiety Points" for ${inputs.productName} in the current year.
-    3. Identify color-theory trends for ${inputs.industry} in 2025.
+    1. Search for "2025 Creative Ad Benchmarks for ${inputs.industry}".
+    2. Research trending "Emotional Hooks" for ${inputs.productName}.
 
     *** STEP 2: AIDA COPYWRITING PROTOCOL ***
-    Craft ad copy that follows the Attention-Interest-Desire-Action framework:
-    1. **ATTENTION (Headline)**: A scroll-stopping "Hook" (2-5 words). Avoid generic labels. Focus on benefits or transformation.
-    2. **DESIRE (Subheadline)**: Convert product features into human benefits. Solve a specific problem identified in research.
-    3. **ACTION (CTA)**: A definitive, high-intent command.
-
-    *** STEP 3: DESIGN STRATEGY ***
-    Determine the optimal visual hierarchy.
+    Craft ad copy that follows the Attention-Interest-Desire-Action framework.
     
     RETURN JSON ONLY:
     {
         "strategicCopy": { 
-            "headline": "Research-backed AIDA hook", 
+            "headline": "AIDA hook", 
             "subheadline": "Benefit-driven desire builder", 
-            "cta": "Conversion-focused action" 
+            "cta": "Conversion action" 
         },
         "identityStrategy": {
             "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Why this specific copy will convert based on 2025 trends",
-            "placementRecommendation": "Optimal focus zone for the headline",
-            "styling": "Typography weight and mood"
+            "reasoning": "Strategy note",
+            "placementRecommendation": "Placement note",
+            "styling": "Typography style"
         },
         "industryLogic": {
-            "categoryBadgeText": "Authority marker text (e.g. '2025 Industry Standard')",
-            "forbiddenKeywords": ["Buzzwords to avoid that sound 'too AI'"]
+            "categoryBadgeText": "Tagline",
+            "forbiddenKeywords": []
         },
-        "visualDirection": "Detailed art direction based on 2025 performance data"
+        "visualDirection": "Art direction notes"
     }`;
 
     const parts: any[] = lowResAssets.map((asset) => ({ text: `PRODUCT SOURCE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -175,7 +171,6 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        console.warn("Marketing intelligence failed, using agency heuristics", e);
         return { 
             strategicCopy: { headline: "Defined by Excellence", subheadline: inputs.description || "The new standard in performance.", cta: "Shop Collection" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
@@ -186,7 +181,7 @@ const performAdIntelligence = async (
 };
 
 /**
- * --- PHASE 2: THE PRODUCTION ENGINE (PROTOTYPE TO ASSET) ---
+ * --- PHASE 2: THE PRODUCTION ENGINE ---
  */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
@@ -199,7 +194,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             getVaultFolderConfig('brand_stylist', inputs.industry)
         ]);
         if (conf) vaultDna = conf.dna;
-        
         const selectedRefs = refs.slice(0, 3);
         vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
             const res = await urlToBase64(r.imageUrl);
@@ -234,30 +228,23 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const prompt = `You are a World-Class Ad Production Engine.
     
-    *** IDENTITY LOCK 2.0 (SACRED ASSET PROTOCOL) ***
-    The "SACRED PRODUCT ASSET" and "BRAND LOGO" provided are fixed production assets. 
-    1. **GEOMETRY**: Do NOT alter the physical shape, proportions, or label alignment of the product.
-    2. **TYPOGRAPHY**: Preserve all text exactly as it appears on the product pixels.
-    3. **LOGOS**: Do NOT redraw logos. Use 1:1 pixel transfers for branding.
-    4. **MATERIAL**: Preserve the surface finish (matte/glossy) from the source asset.
+    ${IDENTITY_LOCK_MANDATE}
 
-    *** DESIGN-OPTICS BLOCK (HYPER-REALISM) ***
-    1. **Z-AXIS DEPTH (BOKEH)**: Place text elements in a distinct Z-layer. If text is behind the product, apply a slight blur to the text to match the depth of field.
-    2. **LIGHT-TO-TEXT BLEEDING**: If the scene has strong lighting (e.g. Neon, Sunlight), this light must physically reflect onto the edges of the text overlays.
-    3. **GLOBAL ILLUMINATION**: Calculate bounce light between the environment and the product surface. If the product is next to a red wall, show a subtle red "spill" on the product's edge.
-    4. **SHADOW ANCHORING**: The product MUST have a realistic contact shadow (ambient occlusion) on its ground plane, ensuring it is perfectly "grounded" in the design.
+    *** DESIGN-OPTICS BLOCK ***
+    1. **Z-AXIS DEPTH**: Place text elements in a distinct Z-layer. If text is behind the product, apply slight blur to text.
+    2. **GLOBAL ILLUMINATION**: Calculate bounce light between environment and product surface.
+    3. **SHADOW ANCHORING**: The product MUST have a realistic contact shadow (ambient occlusion).
 
     *** VISUAL BRIEF ***
     - Industry: ${inputs.industry.toUpperCase()}
-    - Layout Architecture: ${blueprintInstruction}
+    - Layout: ${blueprintInstruction}
     - AI-Researched Direction: ${brief.visualDirection}
-    ${optRef ? `**REFERENCE STYLE**: Match the lighting and atmosphere of the provided Style Reference.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
+    ${optRef ? `**REFERENCE STYLE**: Match lighting and atmosphere of the provided Style Reference.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
 
     *** COPYWRITING EXECUTION (AIDA) ***
     1. **HEADLINE**: Render "${brief.strategicCopy.headline}" in the ${brief.identityStrategy.placementRecommendation}.
     2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}" as supporting text.
-    3. **CTA**: Render a high-conversion button for "${brief.strategicCopy.cta}".
-    4. **PRODUCT NAME**: ${brief.identityStrategy.weight === 'Hidden' ? 'Product is already clearly branded - do not overlay name.' : `Render "${inputs.productName}" as a ${brief.identityStrategy.weight} element.`}
+    3. **CTA**: Render high-conversion button for "${brief.strategicCopy.cta}".
 
     OUTPUT: A single 8K masterpiece ad. Pristine pixels, agency-grade composition.`;
 
@@ -292,29 +279,15 @@ export const refineAdCreative = async (
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
-    const prompt = `You are a Precision Ad Editor.
-    
-    *** CURRENT VERSION ***
-    Modify the provided image based on this specific user feedback: "${instruction}".
-    
-    *** EDITING RULES ***
-    1. **Preservation**: Keep the core product, environment, and vibe identical.
-    2. **Transformation**: Apply the user's specific requested change while maintaining commercial quality.
-    
-    OUTPUT: A single 4K refined image.`;
+    const prompt = `You are a Precision Ad Editor. Modify providing image based on: "${instruction}". 
+    ${IDENTITY_LOCK_MANDATE}
+    Maintain commercial quality and existing vibe.`;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
-            contents: {
-                parts: [
-                    { inlineData: { data: optResult.data, mimeType: optResult.mimeType } },
-                    { text: prompt }
-                ]
-            },
-            config: { 
-                responseModalities: [Modality.IMAGE]
-            },
+            contents: { parts: [{ inlineData: { data: optResult.data, mimeType: optResult.mimeType } }, { text: prompt }] },
+            config: { responseModalities: [Modality.IMAGE] },
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;

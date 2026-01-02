@@ -1,4 +1,3 @@
-
 import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
@@ -8,7 +7,7 @@ export interface ApparelStylingOptions {
     tuck?: string;
     fit?: string;
     sleeve?: string;
-    accessories?: string; // New field for text-based accessories
+    accessories?: string;
 }
 
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -36,47 +35,47 @@ export const generateApparelTryOn = async (
   const ai = getAiClient();
   try {
     const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
-    const personPromise = optimizeImage(personBase64, personMimeType);
-    let topPromise = topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
-    let bottomPromise = bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
-    const [optPerson, optTop, optBottom] = await Promise.all([personPromise, topPromise, bottomPromise]);
+    const [optPerson, optTop, optBottom] = await Promise.all([
+        optimizeImage(personBase64, personMimeType),
+        topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null),
+        bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null)
+    ]);
 
     const brandDNA = brand ? `
     *** BRAND FASHION CONTEXT ***
     Brand: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Professional'}.
-    Guidelines: The model should look as if they are in a '${brand.industry}' professional photo shoot.
+    Guidelines: The model should look like they are in a '${brand.industry}' professional photo shoot.
     ` : "";
 
-    const parts: any[] = [{ text: `Task: Virtual Try-On. ${brandDNA} Maintain face/body/bg exactly.` }];
-    parts.push({ text: "MODEL:" }, { inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
+    const prompt = `You are a High-End Virtual Tailor and Fashion Photographer.
+    TASK: Virtual Try-On. 
+    ${brandDNA}
+    
+    *** PRODUCTION MANDATE ***
+    1. **IDENTITY LOCK**: Maintain the model's face, body structure, and background environment EXACTLY from the MODEL source.
+    2. **FABRIC PHYSICS**: Apply realistic fabric drape, folds, and wrinkles based on the model's pose.
+    3. **SEAMLESS INTEGRATION**: Calculate contact shadows between skin and garment.
+    
+    *** STYLING ***
+    ${stylingOptions?.tuck ? `Fit Style: ${stylingOptions.tuck}. ` : ''}
+    ${stylingOptions?.fit ? `Fit Type: ${stylingOptions.fit}. ` : ''}
+    ${stylingOptions?.sleeve ? `Sleeve Style: ${stylingOptions.sleeve}. ` : ''}
+    ${stylingOptions?.accessories ? `ACCESSORIES: ${stylingOptions.accessories}` : ''}
+
+    OUTPUT: A single hyper-realistic fashion render.`;
+
+    const parts: any[] = [];
+    parts.push({ text: "MODEL (Preserve Face/BG):" }, { inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
     if (isSameGarmentImage && optTop) {
         parts.push({ text: "OUTFIT SOURCE:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        parts.push({ text: "INSTRUCTION: Extract both top and bottom from source and apply to model." });
+        parts.push({ text: "INSTRUCTION: Extract both top and bottom from this source and apply to model." });
     } else {
-        if (optTop) { parts.push({ text: "TOP:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } }); } 
-        if (optBottom) { parts.push({ text: "BOTTOM:" }, { inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } }); }
+        if (optTop) parts.push({ text: "TOP:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
+        if (optBottom) parts.push({ text: "BOTTOM:" }, { inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
     }
-
-    let stylingDirectives = "";
-    if (stylingOptions) {
-        if (stylingOptions.tuck) stylingDirectives += `Fit Style: ${stylingOptions.tuck}. `;
-        if (stylingOptions.fit) stylingDirectives += `Fit Type: ${stylingOptions.fit}. `;
-        if (stylingOptions.sleeve) stylingDirectives += `Sleeve Style: ${stylingOptions.sleeve}. `;
-        
-        if (stylingOptions.accessories) {
-            stylingDirectives += `
-            *** ACCESSORIES PROTOCOL (HIGH PRIORITY) ***
-            - Add items: ${stylingOptions.accessories}
-            - Execution: Physically ground these items to the model. (e.g. If bag, place in hand. If watch, place on wrist). 
-            - Physics: Ensure contact shadows and lighting match the overall scene.
-            `;
-        }
-    }
-
-    if (stylingDirectives) {
-        parts.push({ text: stylingDirectives });
-    }
+    
+    parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',

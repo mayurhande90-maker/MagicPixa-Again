@@ -4,7 +4,16 @@ import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
-// Helper: Resize to custom width (Bumping to 2048px for production accuracy)
+// Global Identity Lock Fragment to be reused
+const IDENTITY_LOCK_MANDATE = `
+*** IDENTITY LOCK v3 (SACRED ASSET PROTOCOL) ***
+1. **PIXEL INTEGRITY**: The product/subject in the source image is a 'Sacred Asset'. You must preserve its exact geometry, silhouette, and proportions.
+2. **LABEL CLARITY**: All text, logos, and labels on the product must remain 100% legible and unaltered. Do NOT "hallucinate" or smudge existing branding.
+3. **MATERIAL FIDELITY**: If the product is glass, it must remain refractive. If metal, specular. If matte, diffuse.
+MANDATE: The product must look like the EXACT physical object from the upload, now placed in a new high-end environment.
+`;
+
+// Helper: Resize to custom width
 const optimizeImage = async (base64: string, mimeType: string, width: number = 2048): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -133,14 +142,13 @@ export const editImageWithPrompt = async (
     ${technicalBlueprint}
     ${brandContext}
     
+    ${IDENTITY_LOCK_MANDATE}
+    
     GOAL: "${styleInstructions}"
 
-    *** IDENTITY LOCK 2.0 (SACRED ASSET PROTOCOL) ***
-    The product in the source image is a 'Sacred Asset'. Preserve 1:1 pixel structure of labels.
-
     *** COMMERCIAL OPTIC BLOCK ***
-    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp crease shadows.
-    2. **GLOBAL ILLUMINATION**: Calculate light bouncing from environment.
+    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp crease shadows where product meets surface.
+    2. **GLOBAL ILLUMINATION**: Calculate light bouncing from environment (e.g., if surface is wood, subtle warm bounce on product bottom).
     3. **MATERIAL PHYSICS**: Reflective sharp highlights for specular, soft scattering for diffuse.
 
     OUTPUT: A hyper-realistic 8K commercial product photograph.`;
@@ -191,11 +199,14 @@ export const generateModelShot = async (
       *** PRODUCT TECHNICAL SPECS ***
       ${technicalBlueprint}
       ${brandContext}
+      
+      ${IDENTITY_LOCK_MANDATE}
+      
       GOAL: Render a high-fashion model interacting with the product. ${userDirection}
       *** REALISM PROTOCOL ***
-      1. **IDENTITY LOCK**: Keep the product pixels 100% real.
-      2. **SKIN FIDELITY**: Render photorealistic skin.
-      3. **PHYSICS ANCHORING**: Calculate realistic contact shadows.
+      1. **SKIN FIDELITY**: Render photorealistic skin (pores, natural texture, no plastic look).
+      2. **PHYSICS ANCHORING**: Calculate realistic contact shadows between model's hands and the product.
+      3. **ENVIRONMENTAL HARMONY**: Match the lighting on the model to the product's pre-existing light source.
       OUTPUT: A hyper-realistic 8K fashion portrait.`;
       
       const response = await ai.models.generateContent({
@@ -226,7 +237,8 @@ export const refineStudioImage = async (
     const optResult = await optimizeImage(base64Result, mimeType, 2048);
     const prompt = `You are an Elite Commercial Retoucher. 
     Modify image based on feedback: "${instruction}". 
-    Preserve state and sacred product pixels.`;
+    ${IDENTITY_LOCK_MANDATE}
+    Maintain current scene lighting and state unless requested otherwise.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',

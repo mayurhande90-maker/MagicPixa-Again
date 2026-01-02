@@ -1,6 +1,5 @@
-
 import { getAiClient, callWithRetry } from "./geminiClient";
-import { urlToBase64 } from "../utils/imageUtils";
+import { urlToBase64, resizeImage } from "../utils/imageUtils";
 
 /**
  * AI-Powered Visual DNA Analysis
@@ -17,34 +16,30 @@ export const analyzeVaultDNA = async (
     
     const imageParts = await Promise.all(selectedUrls.map(async (url) => {
         const res = await urlToBase64(url);
+        // RESIZE TO 512px for token efficiency and faster analysis
+        const resizedUri = await resizeImage(`data:${res.mimeType};base64,${res.base64}`, 512, 0.7);
+        const data = resizedUri.split(',')[1];
         return {
             inlineData: {
-                data: res.base64,
-                mimeType: res.mimeType
+                data: data,
+                mimeType: 'image/jpeg'
             }
         };
     }));
 
-    const prompt = `You are a World-Class Creative Director and Visual Strategist for an AI Design Agency.
+    const prompt = `You are a World-Class Creative Director.
     
-    TASK: Perform a "Forensic Aesthetic Audit" on these ${selectedUrls.length} reference images for the feature: "${featureLabel}".
+    TASK: Perform a "Forensic Aesthetic Audit" on these reference images for: "${featureLabel}".
     
-    GOAL: Extract the "Visual DNA" — the specific design rules that make these images look premium and consistent.
+    GOAL: Extract the "Visual DNA" — specific design rules that make these images look premium and consistent.
     
-    Please analyze and identify:
-    1. **Compositional Logic**: Where do subjects sit? (e.g., Centered, Rule of Thirds, extreme close-ups).
-    2. **Lighting Architecture**: What is the light source? (e.g., Rim lighting, softbox diffusion, dramatic natural shadows).
-    3. **Color Science**: Identify the dominant palette, saturation levels, and contrast ratios.
-    4. **Environmental Physics**: Describe background textures, depth of field (bokeh), and setting.
-    5. **Material Fidelity**: How are surfaces rendered? (e.g., Matte, glossy, high-specular highlights).
-    6. **Typography Standards (If applicable)**: Style, weight, and placement of text.
+    Identify:
+    1. **Compositional Logic**: (e.g., Centered, Rule of Thirds).
+    2. **Lighting Architecture**: (e.g., Rim lighting, softbox).
+    3. **Color Science**: Dominant palette and contrast.
+    4. **Environmental Physics**: Background depth/bokeh.
     
-    OUTPUT REQUIREMENT:
-    Return a single, comprehensive "DNA Report" (approx 150-200 words). 
-    Write it as a DIRECT TECHNICAL COMMAND for a generative AI model. 
-    Use strong, authoritative language like "Always utilize...", "Enforce a strict...", "Prioritize...".
-    
-    Avoid generic fluff. Focus on the hard visual rules seen in these specific examples.`;
+    OUTPUT: A single comprehensive "DNA Report" (150-200 words) as a DIRECT TECHNICAL COMMAND for an AI model. Use strong language like "Always utilize...", "Enforce...".`;
 
     try {
         const response = await ai.models.generateContent({

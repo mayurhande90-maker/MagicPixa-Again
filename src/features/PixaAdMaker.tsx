@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
@@ -15,7 +14,6 @@ import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
 
-// --- CONSTANTS ---
 const MODEL_TYPES = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
 const MODEL_REGIONS = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
 const SKIN_TONES = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
@@ -23,7 +21,6 @@ const BODY_TYPES = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size 
 const COMPOSITION_TYPES = ['Single Model', 'Group Shot'];
 const SHOT_TYPES = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
 
-// --- HELPERS ---
 const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
     switch (type) {
         case 'physical': return 'ecommerce';
@@ -49,9 +46,7 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
     'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
 };
 
-// --- EXPANDED LEHMAN FRIENDLY VIBES ---
 const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
-
 const VIBE_MAP: Record<string, string[]> = {
     'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
     'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
@@ -202,7 +197,6 @@ const CompactUpload: React.FC<{ label: string; image: { url: string } | null; on
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
-            <style>{`@keyframes scan-vertical { 0% { top: 0%; } 100% { top: 100%; } }`}</style>
         </div>
     );
 };
@@ -260,12 +254,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     const [showBrandModal, setShowBrandModal] = useState(false);
     
-    // Iterative Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [refineText, setRefineText] = useState('');
     const [isRefining, setIsRefining] = useState(false);
 
-    // Forensic Model State
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [aiModelType, setAiModelType] = useState('');
@@ -282,23 +274,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const isLowCredits = userCredits < cost;
     const hasBrandProducts = !!auth.activeBrandKit && auth.activeBrandKit.products && auth.activeBrandKit.products.length > 0;
     
-    const isIndustryMismatch = useMemo(() => {
-        if (!auth.activeBrandKit || !industry) return false;
-        const mappedIndustry = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry);
-        if (!mappedIndustry) return false;
-        if (mappedIndustry === 'ecommerce' && (industry === 'ecommerce' || industry === 'fmcg')) return false;
-        return mappedIndustry !== industry;
-    }, [auth.activeBrandKit?.id, auth.activeBrandKit?.industry, industry]);
-
-    useEffect(() => { if (auth.activeBrandKit) { const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry); if (mapped) setIndustry(mapped); } }, [auth.activeBrandKit?.id, auth.activeBrandKit?.industry]);
+    useEffect(() => { if (auth.activeBrandKit) { const mapped = MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry); if (mapped) setIndustry(mapped); } }, [auth.activeBrandKit?.id]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     useEffect(() => {
         let interval: any;
         if (loading || isRefining) {
             const steps = isRefining 
-                ? ["Analyzing current image...", "Identifying modification zones...", "Heal-painting pixels...", "Applying instruction logic...", "Finalizing refined output..."]
-                : ["Pixa is analyzing structure...", "Pixa is researching market trends...", "Pixa is drafting intelligent copy...", "Pixa is harmonizing layout & light...", "Pixa is polishing pixels..."];
+                ? ["Analyzing ad layout...", "Updating visual hierarchy...", "Refining typography...", "Optimizing lighting blend...", "Finalizing pixels..."]
+                : ["Pixa is analyzing brand kit...", "Researching campaign strategy...", "Architecting AIDA copy...", "Relighting sacred assets...", "Polishing masterpiece..."];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
@@ -316,9 +300,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             case 'food': return { label: 'Menu Items', uploadText: 'Add Food Photo', item: 'Dish', items: 'Dishes' }; 
             case 'fashion': return { label: 'Fashion Collection', uploadText: 'Add Outfit', item: 'Outfit', items: 'Outfits' }; 
             case 'saas': return { label: 'Feature Screenshots', uploadText: 'Add Screenshot', item: 'Screenshot', items: 'Screens' }; 
-            case 'fmcg': return { label: 'Product Range', uploadText: 'Add Product Image', item: 'Product', items: 'Products' }; 
-            case 'education': return { label: 'Institution Assets', uploadText: 'Add Image', item: 'Asset', items: 'Assets' }; 
-            case 'services': return { label: 'Service Portfolio', uploadText: 'Add Project', item: 'Work', items: 'Projects' }; 
             default: return { label: 'Main Assets', uploadText: 'Add Hero', item: 'Asset', items: 'Assets' }; 
         } 
     };
@@ -428,29 +409,24 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleRefine = async () => {
         if (!resultImage || !refineText.trim() || !auth.user) return;
         if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
-        
         setIsRefining(true);
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
             const res = await refineAdCreative(currentB64.base64, currentB64.mimeType, refineText);
-            
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;
-            
             if (lastCreationId) {
                 await updateCreation(auth.user.uid, lastCreationId, dataUri);
             } else {
                 const id = await saveCreation(auth.user.uid, dataUri, `Pixa AdMaker (Refined)`);
                 setLastCreationId(id);
             }
-            
             const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa AdMaker (Refinement)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            
             setRefineText('');
-            setNotification({ msg: "Image refined successfully!", type: 'success' });
+            setNotification({ msg: "Elite Designer: Ad refined!", type: 'success' });
         } catch (e: any) {
             console.error(e);
             alert("Refinement failed: " + e.message);
@@ -461,43 +437,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleNewSession = () => { setIndustry(null); setMainImages([]); setResultImage(null); setReferenceImage(null); setVisualFocus(null); setAspectRatio(null); setProductName(''); setOffer(''); setDesc(''); setProductSpecs(''); setProject(''); setLocation(''); setConfig(''); setFeatures([]); setDishName(''); setRestaurant(''); setHeadline(''); setCta(''); setSubheadline(''); setVibe(''); setCustomVibeText(''); setTemplate(''); setLastCreationId(null); setModelSource(null); setModelImage(null); setIsRefineActive(false); };
     const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
-
-    const handleClaimBonus = async () => {
-        if (auth.user && milestoneBonus) {
-            const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        }
-    };
-
-    const handleDeductEditCredit = async () => {
-        if (auth.user) {
-            const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser (AdMaker)');
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        }
-    };
-
-    const handleRefundRequest = async (reason: string) => {
-        if (!auth.user || !resultImage) return;
-        setIsRefunding(true);
-        try {
-            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "AdMaker Image", lastCreationId || undefined);
-            if (res.success) {
-                if (res.type === 'refund') {
-                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
-                    setResultImage(null);
-                    setNotification({ msg: res.message, type: 'success' });
-                } else {
-                    setNotification({ msg: res.message, type: 'info' });
-                }
-            }
-            setShowRefundModal(false);
-        } catch (e: any) {
-            alert("Refund processing failed: " + e.message);
-        } finally {
-            setIsRefunding(false);
-        }
-    };
-
+    const handleClaimBonus = async () => { if (auth.user && milestoneBonus) { const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
+    const handleDeductEditCredit = async () => { if (auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser (AdMaker)'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "AdMaker Image", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
 
     const canGenerate = mainImages.length > 0 && !!industry && !!vibe && (vibe !== CUSTOM_VIBE_KEY || !!customVibeText.trim()) && (referenceImage ? true : !!layoutTemplate) && (
@@ -518,7 +460,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         onClick={() => setIsRefineActive(!isRefineActive)}
                         className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
                     >
-                        <span>Make Changes</span>
+                        <SparklesIcon className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
+                        <span>Refine Ad</span>
                     </button>
                 ) : null}
                 resultHeightClass={aspectRatio === '9:16' ? "h-[950px]" : "h-[750px]"} hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Ad" }} scrollRef={scrollRef}
@@ -529,15 +472,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{isFetchingProduct ? 'Loading from inventory...' : loadingText}</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{isFetchingProduct ? 'Syncing Brand Identity...' : loadingText}</p>
                             </div>
                         ) : resultImage ? null : (
                             <div className="text-center opacity-50 select-none">
                                 <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-gray-50`}>
                                     <MagicAdsIcon className="w-12 h-12 text-gray-400" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-2">{industry ? 'Enter details on the right' : 'Select an industry to start'}</p>
+                                <h3 className="text-xl font-bold text-gray-300">Ad Production Canvas</h3>
+                                <p className="text-sm text-gray-300 mt-2">{industry ? 'Configure campaign details on the right' : 'Select your industry segment to begin'}</p>
                             </div>
                         )}
                     </div>
@@ -622,39 +565,26 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     <div className="animate-fadeIn mt-4 px-1">
                                                         <TextAreaField 
                                                             label="Describe Your Vision" 
-                                                            placeholder="e.g. A futuristic cyberpunk laboratory with neon purple lighting and floating holograms..." 
+                                                            placeholder="e.g. A high-end luxury marble set with soft golden hour window shadows..." 
                                                             value={customVibeText} 
                                                             onChange={(e: any) => setCustomVibeText(e.target.value)}
                                                             autoFocus
                                                         />
-                                                        <div className="flex items-center gap-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 mt-2">
-                                                            <InformationCircleIcon className="w-4 h-4 text-indigo-600 shrink-0"/>
-                                                            <p className="text-[10px] text-indigo-700 font-medium leading-relaxed">
-                                                                Describe the lighting, background, and mood. Pixa's design agents will optimize this for high conversion.
-                                                            </p>
-                                                        </div>
                                                     </div>
                                                 )}
 
-                                                {/* FIXED: Layout templates are now hybrid-aware. We show them even with a reference image. */}
                                                 {vibe && (
                                                     <div className="mt-4">
                                                         <SelectionGrid label="Layout Composition" options={isRangeMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES} value={layoutTemplate} onChange={setTemplate} />
-                                                        {referenceImage && (
-                                                            <p className="text-[9px] text-indigo-400 mt-1 italic ml-1">
-                                                                <LightningIcon className="w-3 h-3 inline mr-1" />
-                                                                <b>Hybrid Logic Active</b>: Applying {layoutTemplate} geometry to your Style Reference.
-                                                            </p>
-                                                        )}
                                                     </div>
                                                 )}
                                             </div>
 
                                             {/* DETAILS */}
                                             <div>
-                                                <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Ad Settings</label></div>
+                                                <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>3</span><label className={AdMakerStyles.sectionTitle}>Production Settings</label></div>
                                                 <div className="grid grid-cols-3 gap-2 mb-4"><RatioCard label="Square" sub="Feed" ratio="1:1" selected={aspectRatio === '1:1'} onClick={() => setAspectRatio('1:1')} colorBase={activeConfig?.base || 'indigo'} /><RatioCard label="Portrait" sub="4:5" ratio="4:5" selected={aspectRatio === '4:5'} onClick={() => setAspectRatio('4:5')} colorBase={activeConfig?.base || 'indigo'} /><RatioCard label="Story" sub="Reels" ratio="9:16" selected={aspectRatio === '9:16'} onClick={() => setAspectRatio('9:16')} colorBase={activeConfig?.base || 'indigo'} /></div>
-                                                <div className="flex gap-2 mb-4"><FocusCard title={item} desc="Studio lighting focus" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Model using item" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div>
+                                                <div className="flex gap-2 mb-4"><FocusCard title={item} desc="Pure studio focus" icon={<CubeIcon className="w-5 h-5"/>} selected={visualFocus === 'product'} onClick={() => setVisualFocus('product')} colorClass={activeConfig?.color || "text-indigo-600"} /><FocusCard title="Lifestyle" desc="Held/used by model" icon={<UserIcon className="w-5 h-5"/>} selected={visualFocus === 'lifestyle'} onClick={() => setVisualFocus('lifestyle')} colorClass={activeConfig?.color || "text-indigo-600"} /></div>
                                                 
                                                 {visualFocus === 'lifestyle' && (
                                                     <div className="animate-fadeInUp space-y-4 pt-2">
@@ -675,8 +605,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                                 {aiModelType && <SelectionGrid label="2. Regional Identity" options={MODEL_REGIONS} value={aiRegion} onChange={(val) => { setAiRegion(val); autoScroll(); }} />}
                                                                 {aiRegion && <SelectionGrid label="3. Skin & Build" options={SKIN_TONES} value={aiSkinTone} onChange={(val) => { setAiSkinTone(val); autoScroll(); }} />}
                                                                 {aiSkinTone && <SelectionGrid label="4. Body Archetype" options={BODY_TYPES} value={aiBodyType} onChange={(val) => { setAiBodyType(val); autoScroll(); }} />}
-                                                                {aiBodyType && <SelectionGrid label="5. Shot Composition" options={COMPOSITION_TYPES} value={aiComposition} onChange={(val) => { setAiComposition(val); autoScroll(); }} />}
-                                                                {aiComposition && <SelectionGrid label="6. Camera Framing" options={SHOT_TYPES} value={aiFraming} onChange={setAiFraming} />}
                                                             </div>
                                                         )}
                                                         {modelSource === 'upload' && <CompactUpload label="Model Photo" image={modelImage} onUpload={handleUploadModel} onClear={() => setModelImage(null)} icon={<UserIcon className="w-6 h-6 text-blue-400"/>} heightClass="h-40" />}
@@ -687,41 +615,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             {/* COPY */}
                                             <div>
                                                 <div className={AdMakerStyles.sectionHeader}><span className={AdMakerStyles.stepBadge}>4</span><label className={AdMakerStyles.sectionTitle}>Campaign Copy</label></div>
-                                                {industry === 'ecommerce' || industry === 'fmcg' || industry === 'fashion' ? (
-                                                    <div className="space-y-3">
-                                                        <InputField placeholder={`${item} Name`} value={productName} onChange={(e:any) => setProductName(e.target.value)} />
-                                                        <InputField placeholder="Short Offer / Catchy Hook" value={desc} onChange={(e:any) => setDesc(e.target.value)} />
-                                                        <TextAreaField 
-                                                            label="Product Specifications & USPs" 
-                                                            placeholder="Describe the product details (e.g. 100% organic cotton, waterproof, 24h delivery). Pixa will transform these into high-conversion ad lines." 
-                                                            value={productSpecs} 
-                                                            onChange={(e:any) => setProductSpecs(e.target.value)} 
-                                                        />
-                                                    </div>
-                                                ) : industry === 'realty' ? (
-                                                    <div className="space-y-3">
-                                                        <InputField placeholder="Project Name" value={project} onChange={(e:any) => setProject(e.target.value)} />
-                                                        <InputField placeholder="Location & Details" value={location} onChange={(e:any) => setLocation(e.target.value)} />
-                                                        <InputField placeholder="Hero Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} />
-                                                        <TextAreaField 
-                                                            label="Property USPs & Details" 
-                                                            placeholder="Enter amenities, key selling points, and specifications." 
-                                                            value={productSpecs} 
-                                                            onChange={(e:any) => setProductSpecs(e.target.value)} 
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-3">
-                                                        <InputField placeholder="Main Headline" value={headline} onChange={(e:any) => setHeadline(e.target.value)} />
-                                                        <InputField placeholder="CTA Text" value={cta} onChange={(e:any) => setCta(e.target.value)} />
-                                                        <TextAreaField 
-                                                            label="Full Context / Services" 
-                                                            placeholder="Tell Pixa more about your service or business to generate superior ad lines." 
-                                                            value={productSpecs} 
-                                                            onChange={(e:any) => setProductSpecs(e.target.value)} 
-                                                        />
-                                                    </div>
-                                                )}
+                                                <div className="space-y-3">
+                                                    <InputField placeholder={`${item} Name`} value={productName} onChange={(e:any) => setProductName(e.target.value)} />
+                                                    <InputField placeholder="Headline (Optional - AI will auto-generate if empty)" value={headline} onChange={(e:any) => setHeadline(e.target.value)} />
+                                                    <TextAreaField 
+                                                        label="Brief Context / Selling Points" 
+                                                        placeholder="Describe your product's key benefits. Pixa's AI agency will craft viral AIDA copy based on this." 
+                                                        value={desc} 
+                                                        onChange={(e:any) => setDesc(e.target.value)} 
+                                                    />
+                                                </div>
                                             </div>
                                         </>
                                     );
@@ -737,9 +640,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
             {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
 
-            {/* REFINED INPUT BAR - Fixed Overlap by raising z-index and adjusting bottom position */}
+            {/* REFINED INPUT BAR - Floating UI for post-gen edits */}
             {isRefineActive && resultImage && !isRefining && createPortal(
-                <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-lg px-6 animate-fadeInUp z-[350]">
+                <div className="fixed bottom-32 left-1/2 -translate-x-1/2 w-full max-w-lg px-6 animate-fadeInUp z-[400]">
                     <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 p-2.5 rounded-[1.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex gap-3 items-center">
                         <div className="p-3 bg-white/10 rounded-2xl text-yellow-400">
                             <SparklesIcon className="w-5 h-5"/>
@@ -748,7 +651,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             type="text"
                             value={refineText}
                             onChange={(e) => setRefineText(e.target.value)}
-                            placeholder="Example: Move logo to top right, make lighting warmer..."
+                            placeholder="Example: Make background a bit darker, add more lens flare..."
                             className="flex-1 bg-transparent border-none px-2 py-2 text-sm font-medium text-white placeholder-gray-500 outline-none focus:ring-0"
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
@@ -764,7 +667,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="mt-3 flex justify-center">
                          <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.25em] bg-black/60 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md shadow-xl flex items-center gap-2">
                             <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
-                            {refineCost} Credits / Refinement
+                            {refineCost} Credits / Modification
                          </span>
                     </div>
                 </div>,
