@@ -280,12 +280,13 @@ export const FeatureLayout: React.FC<{
     rawIcon?: boolean; 
     activeBrandKit?: BrandKit | null; 
     isBrandCritical?: boolean; // New prop to control pill visibility
+    canvasOverlay?: React.ReactNode; // New prop for refinement UI
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, creationId, onResetResult, onNewSession, onEdit, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
     disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon,
-    activeBrandKit, isBrandCritical
+    activeBrandKit, isBrandCritical, canvasOverlay
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
@@ -402,6 +403,15 @@ export const FeatureLayout: React.FC<{
                              {resultOverlay && !isGenerating && (
                                  <div className="absolute top-4 right-4 z-30">
                                      {resultOverlay}
+                                 </div>
+                             )}
+
+                             {/* Refinement Overlay (Canvas Centered) */}
+                             {canvasOverlay && !isGenerating && (
+                                 <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none px-6">
+                                     <div className="pointer-events-auto w-full max-w-lg">
+                                         {canvasOverlay}
+                                     </div>
                                  </div>
                              )}
 

@@ -15,7 +15,6 @@ import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
-import { createPortal } from 'react-dom';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
     // Mode Selection State
@@ -48,6 +47,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const refineTextareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -81,6 +81,14 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = image && userCredits < currentCost;
+
+    // Fluid height effect for refinement textarea
+    useEffect(() => {
+        if (refineTextareaRef.current) {
+            refineTextareaRef.current.style.height = 'auto';
+            refineTextareaRef.current.style.height = `${refineTextareaRef.current.scrollHeight}px`;
+        }
+    }, [refineText, isRefineActive]);
 
     useEffect(() => {
         let interval: any;
@@ -286,6 +294,56 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             onEdit={() => setShowMagicEditor(true)}
             activeBrandKit={auth.activeBrandKit}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+            canvasOverlay={isRefineActive && result && !isRefining ? (
+                <div className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)]">
+                    <div className="flex items-center justify-between px-3 pt-2">
+                        <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Pixa Retoucher Active</span>
+                        </div>
+                        <button onClick={() => setIsRefineActive(false)} className="text-white/40 hover:text-white transition-colors">
+                        <XIcon className="w-4 h-4"/>
+                        </button>
+                    </div>
+                    
+                    <div className="bg-white/5 rounded-2xl p-1.5 flex gap-3 items-start border border-white/5">
+                        <div className="p-3 bg-indigo-500 rounded-xl text-white shadow-lg shadow-indigo-500/20 mt-1">
+                            <MagicWandIcon className="w-5 h-5"/>
+                        </div>
+                        <textarea 
+                            ref={refineTextareaRef}
+                            rows={1}
+                            value={refineText}
+                            onChange={(e) => setRefineText(e.target.value)}
+                            placeholder="Describe your changes... (e.g. Add water droplets, make lighting warmer)"
+                            className="flex-1 bg-transparent border-none px-2 py-3 text-[clamp(13px,1.8vh,15px)] font-medium text-white placeholder-gray-500 outline-none focus:ring-0 resize-none max-h-40 custom-scrollbar overflow-y-auto"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleRefine();
+                                }
+                            }}
+                        />
+                        <button 
+                            onClick={handleRefine}
+                            disabled={!refineText.trim()}
+                            className="bg-[#F9D230] hover:bg-[#dfbc2b] text-black px-6 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95 mt-1"
+                        >
+                            Apply <ArrowRightIcon className="w-4 h-4 ml-2" />
+                        </button>
+                    </div>
+
+                    <div className="flex justify-center pb-2">
+                        <div className="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10 shadow-xl">
+                            <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
+                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">
+                                {refineCost} Credits Per Iteration
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
             customActionButtons={result ? (
                 <button 
                     onClick={() => setIsRefineActive(!isRefineActive)}
@@ -510,57 +568,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Product Shot" />}
         {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         
-        {/* REFINEMENT BAR PORTAL - POSITIONED ABOVE ACTIONS */}
-        {isRefineActive && result && !isRefining && createPortal(
-            <>
-                <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-xl px-6 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] z-[350]">
-                    <div className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4">
-                        <div className="flex items-center justify-between px-3 pt-2">
-                             <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
-                                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Pixa Retoucher Active</span>
-                             </div>
-                             <button onClick={() => setIsRefineActive(false)} className="text-white/40 hover:text-white transition-colors">
-                                <XIcon className="w-4 h-4"/>
-                             </button>
-                        </div>
-                        
-                        <div className="bg-white/5 rounded-2xl p-1.5 flex gap-3 items-center border border-white/5">
-                            <div className="p-3 bg-indigo-500 rounded-xl text-white shadow-lg shadow-indigo-500/20">
-                                <MagicWandIcon className="w-5 h-5"/>
-                            </div>
-                            <input 
-                                type="text"
-                                value={refineText}
-                                onChange={(e) => setRefineText(e.target.value)}
-                                placeholder="Describe your changes... (e.g. Add water droplets, make lighting warmer)"
-                                className="flex-1 bg-transparent border-none px-2 py-2 text-[clamp(13px,1.8vh,15px)] font-medium text-white placeholder-gray-500 outline-none focus:ring-0"
-                                autoFocus
-                                onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
-                            />
-                            <button 
-                                onClick={handleRefine}
-                                disabled={!refineText.trim()}
-                                className="bg-[#F9D230] hover:bg-[#dfbc2b] text-black px-6 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center shadow-lg active:scale-95"
-                            >
-                                Apply Changes <ArrowRightIcon className="w-4 h-4 ml-2" />
-                            </button>
-                        </div>
-
-                        <div className="flex justify-center pb-2">
-                            <div className="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10 shadow-xl">
-                                <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
-                                <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">
-                                    {refineCost} Credits Per Iteration
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </>,
-            document.body
-        )}
-
         {/* Hidden inputs for file uploads */}
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
         
