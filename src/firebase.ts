@@ -237,6 +237,9 @@ export const deleteCreation = async (uid: string, creation: Creation) => {
 
 /**
  * Deduct Credits logic - SECURE REFACTOR
+ * If USE_SECURE_BACKEND is enabled, this function acts as an "Optimistic UI Update".
+ * It calculates the next state so the user sees their balance drop immediately,
+ * while the server-side API handles the actual Firestore transaction.
  */
 export const deductCredits = async (userId: string, amount: number, featureName: string) => {
     if (!db) throw new Error("Database not initialized.");
@@ -256,8 +259,9 @@ export const deductCredits = async (userId: string, amount: number, featureName:
     const newCredits = currentCredits - amount;
     const newGens = (userData.lifetimeGenerations || 0) + 1;
 
-    // FOR PUBLIC LAUNCH: We wait for the Backend API to do the deduction if USE_SECURE_BACKEND is true.
-    // If not, we do a client-side transaction (fallback/development).
+    // OPTIMISTIC UPDATE / FALLBACK
+    // If we are NOT using the secure backend, we attempt a client-side write (legacy/dev mode).
+    // If we ARE using the secure backend, we skip this to prevent double-spending.
     if (!USE_SECURE_BACKEND) {
         await db.runTransaction(async (transaction) => {
             transaction.update(userRef, sanitizeData({ 
@@ -275,7 +279,6 @@ export const deductCredits = async (userId: string, amount: number, featureName:
         });
     }
     
-    // Calculate the expected next state for local UI update
     return { ...userData, credits: newCredits, lifetimeGenerations: newGens } as User;
 };
 
@@ -300,6 +303,7 @@ export const getCreditHistory = async (uid: string) => {
 export const purchaseTopUp = async (uid: string, packName: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
+    // Note: In production, this write should be triggered by a Stripe/Razorpay Webhook for security.
     await userRef.update(sanitizeData({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),
@@ -499,6 +503,7 @@ export const getGlobalFeatureUsage = async () => { return []; };
 export const claimMilestoneBonus = async (uid: string, amount: number) => {
     if (!db) return;
     const userRef = db.collection('users').doc(uid);
+    // Optimistic UI logic: Only write if secure backend is off
     if (!USE_SECURE_BACKEND) {
         await userRef.update({
             credits: firebase.firestore.FieldValue.increment(amount)
@@ -535,22 +540,33 @@ export const getVaultImages = async (featureId: string, subCategoryId?: string):
 
 export const uploadVaultImage = async (adminUid: string, featureId: string, dataUri: string, subCategoryId?: string): Promise<string> => {
     if (!storage || !db) throw new Error("Init error");
+    
+    // 1. Upload to Storage
     const response = await fetch(dataUri);
     const blob = await response.blob();
     const ext = blob.type.split('/')[1] || 'jpg';
+    
     const storagePath = subCategoryId 
         ? `global_vault/${featureId}/categories/${subCategoryId}/${Date.now()}.${ext}`
         : `global_vault/${featureId}/${Date.now()}.${ext}`;
+        
     const ref = storage.ref().child(storagePath);
     await ref.put(blob);
     const url = await ref.getDownloadURL();
+
+    // 2. Add to Firestore
     let collRef;
     if (subCategoryId) {
         collRef = db.collection('global_vault').doc(featureId).collection('categories').doc(subCategoryId).collection('references');
     } else {
         collRef = db.collection('global_vault').doc(featureId).collection('references');
     }
-    const docRef = await collRef.add({ imageUrl: url, addedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    
+    const docRef = await collRef.add({
+        imageUrl: url,
+        addedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
     await logAudit(adminUid, 'Vault Upload', `Feature: ${featureId}, SubCat: ${subCategoryId || 'None'}, ID: ${docRef.id}`);
     return docRef.id;
 };
@@ -575,6 +591,7 @@ export const getVaultFolderConfig = async (featureId: string, subCategoryId?: st
     } else {
         docRef = db.collection('global_vault').doc(featureId);
     }
+    
     const doc = await docRef.get();
     if (!doc.exists) return null;
     return { featureId: doc.id, ...doc.data() } as VaultFolderConfig;
@@ -588,6 +605,10 @@ export const updateVaultFolderConfig = async (adminUid: string, featureId: strin
     } else {
         docRef = db.collection('global_vault').doc(featureId);
     }
-    await docRef.set({ dna, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    
+    await docRef.set({
+        dna,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
     await logAudit(adminUid, 'Vault Update DNA', `Feature: ${featureId}, SubCat: ${subCategoryId || 'None'}`);
 };

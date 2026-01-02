@@ -3,6 +3,7 @@ import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
+// Helper: Resize to 1280px (HD)
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -17,14 +18,14 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 };
 
 const MATERIAL_PHYSICS: Record<string, string> = {
-    'Standard Ink': 'screen printed ink texture, matte finish, follows fabric threads.',
-    'Embroidery': '3D raised stitching, high thread count texture, individual stitches visible.',
-    'Gold Foil': 'reflective metallic gold foil, premium specular highlights, micro-crinkle texture.',
-    'Silver Foil': 'reflective metallic silver foil, chrome finish, high contrast highlights.',
-    'Deboss': 'pressed INTO the material, deep inner shadows, textured material grain inside press.',
-    'Emboss': 'raised OUT of the material, 3D relief, highlights on top edges.',
-    'Laser Etch': 'burnt/frosted texture, precise high-contrast edges.',
-    'Smart Object': 'perfect digital screen replacement, glowing pixels, screen-door effect if close.'
+    'Standard Ink': 'screen printed ink texture, matte finish.',
+    'Embroidery': '3D raised stitching, thread texture.',
+    'Gold Foil': 'reflective metallic gold foil, premium high specular highlights.',
+    'Silver Foil': 'reflective metallic silver foil, chrome finish.',
+    'Deboss': 'pressed INTO the material, inner shadows.',
+    'Emboss': 'raised OUT of the material, 3D relief.',
+    'Laser Etch': 'burnt/frosted texture, precise edges.',
+    'Smart Object': 'perfect digital screen replacement, glowing pixels.'
 };
 
 const VIBE_SETTINGS: Record<string, string> = {
@@ -52,7 +53,7 @@ export const analyzeMockupSuggestions = async (
     const ai = getAiClient();
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
-        const prompt = `Analyze design. Suggest 3 product mockups. Return JSON array.`;
+        const prompt = `Analyze design. Suggest 3 product mockups. ${brand ? `This is for brand '${brand.companyName}' in '${brand.industry}'.` : ''} Return JSON array.`;
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
@@ -96,19 +97,17 @@ export const generateMagicMockup = async (
         const physics = MATERIAL_PHYSICS[material] || 'realistic texture';
         const vibe = VIBE_SETTINGS[sceneVibe] || 'pro lighting';
         
-        const brandDNA = brand ? `Brand: '${brand.companyName}'. Tone: ${brand.toneOfVoice}.` : "";
+        const brandDNA = brand ? `
+        *** BRAND MOCKUP RULES ***
+        Client: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Professional'}.
+        Visual Vibe: Align the environment with their '${brand.industry}' industry standards.
+        ` : "";
 
-        const prompt = `You are a High-End Visualization Engine. ${brandDNA}
+        const prompt = `You are a Visualization Engine. ${brandDNA}
         TASK: Generate photorealistic mockup of ${objectColor ? objectColor + ' ' : ''}${targetObject}.
-        
-        *** MATERIAL & WRAP PHYSICS ***
-        1. **GEOMETRY WRAPPING**: Wrap the design perfectly around the curvature of the ${targetObject} using UV mapping principles.
-        2. **FABRIC/SURFACE DISTORTION**: If object has folds or curves (e.g. T-Shirt, Mug), the design must distort realistically to follow the surface geometry.
-        3. **APPLICATION**: Apply design using ${material} (${physics}).
-        4. **SHADOWS/LIGHT**: The object shadows and environmental lighting MUST pass OVER and THROUGH the design elements.
-
         STYLE: ${vibe}.
-        OUTPUT: High-res single image masterpiece.`;
+        APPLICATION: Design using ${material} (${physics}). Wrap around object curvature.
+        OUTPUT: High-res single image.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',

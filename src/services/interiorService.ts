@@ -3,14 +3,6 @@ import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
-const IDENTITY_LOCK_MANDATE = `
-*** SPATIAL IDENTITY LOCK v3 ***
-1. **STRUCTURAL ANCHOR**: You must keep the fixed architectural elements (walls, windows, floor, ceiling) in their exact uploaded positions.
-2. **PERSPECTIVE LOCK**: Do NOT change the camera angle or FOV. Maintain the original vanishing points.
-3. **OBJECT PRESERVATION**: If there is existing furniture the user wants to "restyle", preserve its core silhouette while changing textures and fabrics.
-MANDATE: The room must feel like the SAME physical space, just professionally redesigned.
-`;
-
 // Helper: Resize to 1280px (HD)
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
@@ -42,7 +34,7 @@ export const STYLE_PROMPTS: Record<string, string> = {
 };
 
 const performDeepSpatialAnalysis = async (ai: any, base64: string, mimeType: string, style: string, roomType: string): Promise<string> => {
-    const prompt = `Analyze this ${roomType}. Locate vanishing points, structure, lighting, and scale. Output a concise Spatial Blueprint.`;
+    const prompt = `Analyze this ${roomType}. Locate vanishing points, struktur, lighting, and scale. Output a concise Spatial Blueprint.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
@@ -76,12 +68,10 @@ export const generateInteriorDesign = async (
     const prompt = `You are Pixa Interior Design — hyper-realistic Interior rendering AI.
     ${renovationBlueprint}
     ${brandDNA}
-    
-    ${IDENTITY_LOCK_MANDATE}
-    
     GOAL: Transform room to ${style} style.
-    1.Physics: Match existing light source from windows or lamps.
-    2.Materials: High-fidelity textures (wood grain, fabric weave, stone vein).
+    1.Structure Lock: Wall/Windows must stay same.
+    2.Physics: Match existing light source.
+    3.Materials: High-fidelity textures.
     OUTPUT: A single 4K photorealistic image.`;
 
     const response = await ai.models.generateContent({
