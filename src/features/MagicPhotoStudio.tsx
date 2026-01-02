@@ -4,7 +4,7 @@ import {
     PhotoStudioIcon, CubeIcon, UsersIcon, CreditCoinIcon, SparklesIcon, ArrowLeftIcon, XIcon, UploadIcon, ArrowUpCircleIcon, PixaProductIcon, ArrowRightIcon, InformationCircleIcon, MagicWandIcon
 } from '../components/icons';
 import { 
-    FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone 
+    FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField 
 } from '../components/FeatureLayout';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt, refineStudioImage } from '../services/photoStudioService';
@@ -58,6 +58,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     // Manual Refinement State
     const [category, setCategory] = useState('');
+    const [customCategory, setCustomCategory] = useState('');
     const [brandStyle, setBrandStyle] = useState('');
     const [visualType, setVisualType] = useState('');
     const [modelType, setModelType] = useState('');
@@ -67,7 +68,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [modelComposition, setModelComposition] = useState('');
     const [modelFraming, setModelFraming] = useState('');
 
-    const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Packaged Products', 'Jewellery', 'Footwear', 'Toys', 'Automotive'];
+    // Updated Categories: Packaged Products -> Medical Product + Added Custom
+    const categories = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Medical Product', 'Jewellery', 'Footwear', 'Toys', 'Automotive', 'Other / Custom'];
     const brandStyles = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
     const visualTypes = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
     const modelTypes = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
@@ -147,7 +149,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const handlePromptSelect = (prompt: string) => {
         if (selectedPrompt === prompt) { setSelectedPrompt(null); } else {
              setSelectedPrompt(prompt);
-             if (studioMode === 'product') { setCategory(''); setBrandStyle(''); setVisualType(''); } else { setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); }
+             if (studioMode === 'product') { setCategory(''); setCustomCategory(''); setBrandStyle(''); setVisualType(''); } else { setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); }
         }
     };
 
@@ -165,7 +167,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             if (studioMode === 'model') {
                  res = await generateModelShot(image.base64.base64, image.base64.mimeType, { modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming, freeformPrompt: selectedPrompt || undefined }, auth.activeBrandKit);
             } else {
-                let generationDirection = selectedPrompt || (category ? `${visualType || 'Professional'} shot of ${category} product. Style: ${brandStyle || 'Clean'}.` : "Professional studio lighting");
+                const finalCategory = category === 'Other / Custom' ? customCategory : category;
+                let generationDirection = selectedPrompt || (finalCategory ? `${visualType || 'Professional'} shot of ${finalCategory} product. Style: ${brandStyle || 'Clean'}.` : "Professional studio lighting");
                 res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit);
             }
             
@@ -243,7 +246,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     };
 
     const handleNewSession = () => {
-        setImage(null); setResult(null); setStudioMode(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); setSuggestedPrompts([]); setSuggestedModelPrompts([]); setSelectedPrompt(null); setLastCreationId(null); setIsRefineActive(false);
+        setImage(null); setResult(null); setStudioMode(null); setCategory(''); setCustomCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); setSuggestedPrompts([]); setSuggestedModelPrompts([]); setSelectedPrompt(null); setLastCreationId(null); setIsRefineActive(false);
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -259,7 +262,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
 
-    const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (studioMode === 'product' ? (!!selectedPrompt || (!!category && !!brandStyle && !!visualType)) : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming)));
+    const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (
+        studioMode === 'product' 
+        ? (!!selectedPrompt || (!!category && (category !== 'Other / Custom' || !!customCategory.trim()) && !!brandStyle && !!visualType)) 
+        : (!!selectedPrompt || (!!modelType && !!modelRegion && !!skinTone && !!bodyType && !!modelComposition && !!modelFraming))
+    );
 
     return (
         <>
@@ -315,7 +322,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                 </>
                                 <div className={PhotoStudioStyles.analysisBadge}>
                                     <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                    <span className="text-xs font-bold tracking-widest uppercase">{isAnalyzingModel ? 'Generating AI Suggestions...' : 'Pixa Vision Scanning...'}</span>
+                                    <span className="text-xs font-bold tracking-widest uppercase">Pixa Vision Scanning...</span>
                                 </div>
                             </div>
                         )}
@@ -376,7 +383,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                         {studioMode && (
                             <div className="animate-fadeIn relative flex flex-col h-full">
                                 <div className="flex items-center mb-4 -ml-2 shrink-0"> 
-                                    <button onClick={() => { setStudioMode(null); setSelectedPrompt(null); setCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); }} className={PhotoStudioStyles.backButton}>
+                                    <button onClick={() => { setStudioMode(null); setSelectedPrompt(null); setCategory(''); setCustomCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); }} className={PhotoStudioStyles.backButton}>
                                         <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
                                     </button>
                                 </div>
@@ -443,8 +450,25 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                             {studioMode === 'product' ? (
                                                 <>
                                                     <SelectionGrid label="2. Product Category" options={categories} value={category} onChange={(val) => { setCategory(val); autoScroll(); }} />
-                                                    {category && <SelectionGrid label="3. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); autoScroll(); }} />}
-                                                    {brandStyle && <SelectionGrid label="4. Visual Theme" options={visualTypes} value={visualType} onChange={setVisualType} />}
+                                                    
+                                                    {category === 'Other / Custom' && (
+                                                        <div className="animate-fadeIn mt-2">
+                                                            <InputField 
+                                                                label="Define Custom Product Type" 
+                                                                placeholder="e.g. Handmade Ceramic Bowl, Smart Watch..." 
+                                                                value={customCategory} 
+                                                                onChange={(e: any) => setCustomCategory(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {category && (category !== 'Other / Custom' || !!customCategory.trim()) && (
+                                                        <>
+                                                            <SelectionGrid label="3. Brand Style" options={brandStyles} value={brandStyle} onChange={(val) => { setBrandStyle(val); autoScroll(); }} />
+                                                            {brandStyle && <SelectionGrid label="4. Visual Theme" options={visualTypes} value={visualType} onChange={setVisualType} />}
+                                                        </>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <>
