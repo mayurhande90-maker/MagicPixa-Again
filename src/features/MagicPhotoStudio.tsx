@@ -295,25 +295,25 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             activeBrandKit={auth.activeBrandKit}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
             canvasOverlay={isRefineActive && result && !isRefining ? (
-                <div className="bg-white/95 backdrop-blur-2xl border border-gray-200 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)]">
+                <div className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)]">
                     <div className="flex items-center justify-between px-3 pt-2">
                         <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-black text-gray-800 uppercase tracking-[0.2em]">Pixa Retoucher Active</span>
+                            <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Pixa Retoucher Active</span>
                         </div>
-                        <button onClick={() => setIsRefineActive(false)} className="text-gray-400 hover:text-red-500 transition-colors">
-                        <XIcon className="w-4 h-4"/>
+                        <button onClick={() => setIsRefineActive(false)} className="text-white/40 hover:text-white transition-colors">
+                            <XIcon className="w-4 h-4"/>
                         </button>
                     </div>
                     
-                    <div className="bg-gray-50 rounded-2xl p-1.5 flex gap-3 items-start border border-gray-100">
+                    <div className="bg-white/5 rounded-2xl p-1.5 flex gap-3 items-start border border-white/5">
                         <textarea 
                             ref={refineTextareaRef}
                             rows={1}
                             value={refineText}
                             onChange={(e) => setRefineText(e.target.value)}
                             placeholder="Describe your changes... (e.g. Add water droplets, make lighting warmer)"
-                            className="flex-1 bg-transparent border-none px-4 py-3 text-[clamp(13px,1.8vh,15px)] font-medium text-gray-900 placeholder-gray-400 outline-none focus:ring-0 resize-none max-h-40 custom-scrollbar overflow-y-auto"
+                            className="flex-1 bg-transparent border-none px-4 py-3 text-[clamp(13px,1.8vh,15px)] font-medium text-white placeholder-gray-500 outline-none focus:ring-0 resize-none max-h-40 custom-scrollbar overflow-y-auto"
                             autoFocus
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -332,9 +332,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                     </div>
 
                     <div className="flex justify-center pb-2">
-                        <div className="flex items-center gap-2 bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">
-                            <CreditCoinIcon className="w-3 h-3 text-indigo-600"/>
-                            <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                        <div className="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10 shadow-xl">
+                            <CreditCoinIcon className="w-3 h-3 text-yellow-400"/>
+                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">
                                 {refineCost} Credits Per Iteration
                             </span>
                         </div>
