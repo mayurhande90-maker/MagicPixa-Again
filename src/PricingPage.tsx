@@ -89,9 +89,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 {/* HERO SECTION - Matching HomePage Hero Style */}
                 <section className="bg-white py-16 px-4">
                     <div className="max-w-4xl mx-auto text-center">
-                        <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full mb-6">
-                            <LightningIcon className="w-3.5 h-3.5 text-[#4D7CFF]" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#4D7CFF]">Flexible Pricing</span>
+                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 border border-transparent px-3 py-1 rounded-full mb-6 shadow-sm">
+                            <LightningIcon className="w-3.5 h-3.5 text-white" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-white">Flexible Pricing</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-4 leading-tight">
                             Choose Your <span className="text-[#4D7CFF]">Creative Fuel</span>
@@ -180,9 +180,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                                     ? (isCurrent 
                                                         ? HomeStyles.pricingButtonActive
                                                         : (isUpgrade 
-                                                            ? (pack.popular && !isDowngrade ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
+                                                            ? HomeStyles.pricingButtonPopular
                                                             : 'bg-gray-100 text-gray-500 cursor-default hover:bg-gray-100'))
-                                                    : (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
+                                                    : HomeStyles.pricingButtonPopular
                                                 }
                                             `}
                                         >
@@ -226,9 +226,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 <section className="py-24 bg-[#F6F7FA] px-4">
                     <div className="max-w-3xl mx-auto">
                         <div className="text-center mb-12">
-                            <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-sm mb-4">
-                                <InformationCircleIcon className="w-7 h-7 text-[#4D7CFF]" />
-                            </div>
                             <h2 className="text-3xl font-bold text-[#1A1A1E] mb-2 tracking-tight">Got Questions?</h2>
                             <p className="text-[#5F6368] font-medium">Everything you need to know about credits and billing.</p>
                         </div>
