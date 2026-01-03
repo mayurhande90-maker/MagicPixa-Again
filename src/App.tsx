@@ -6,6 +6,8 @@ import ProfessionalHome from './ProfessionalHome'; // New Staging Home
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import PricingPage from './PricingPage';
+import PrivacyPolicyPage from './PrivacyPolicyPage';
+import TermsConditionsPage from './TermsConditionsPage';
 import AuthModal from './components/AuthModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
@@ -120,6 +122,8 @@ function App() {
     const path = window.location.pathname;
     if (path.toLowerCase() === '/about') return 'about';
     if (path.toLowerCase() === '/pricing') return 'pricing';
+    if (path.toLowerCase() === '/privacy') return 'privacy';
+    if (path.toLowerCase() === '/terms') return 'terms';
     if (getViewFromPath(path)) return 'dashboard';
     
     // Check for legacy param but we will clean it up in the first effect
@@ -223,6 +227,8 @@ function App() {
     let path = '/';
     if (page === 'about') path = '/About';
     else if (page === 'pricing') path = '/Pricing';
+    else if (page === 'privacy') path = '/Privacy';
+    else if (page === 'terms') path = '/Terms';
     else if (page === 'dashboard') {
         path = VIEW_TO_PATH[view || currentView] || '/Dashboard';
     }
@@ -368,6 +374,10 @@ function App() {
           setCurrentPage('about');
       } else if (path.toLowerCase() === '/pricing') {
           setCurrentPage('pricing');
+      } else if (path.toLowerCase() === '/privacy') {
+          setCurrentPage('privacy');
+      } else if (path.toLowerCase() === '/terms') {
+          setCurrentPage('terms');
       } else {
           const view = getViewFromPath(path);
           if (view) {
@@ -532,6 +542,20 @@ function App() {
             navigateTo={navigateTo} 
             auth={authProps} 
             appConfig={appConfig}
+        />
+      )}
+
+      {currentPage === 'privacy' && (
+        <PrivacyPolicyPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+        />
+      )}
+
+      {currentPage === 'terms' && (
+        <TermsConditionsPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
         />
       )}
 

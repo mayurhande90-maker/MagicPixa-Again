@@ -25,6 +25,10 @@ const Footer: React.FC<FooterProps> = ({ navigateTo }) => {
                             <button onClick={() => navigateTo('pricing')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Pricing</button>
                             <button onClick={() => navigateTo('about')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">About Us</button>
                         </div>
+                        <div className="flex flex-col gap-4 items-start">
+                            <button onClick={() => navigateTo('privacy')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Privacy Policy</button>
+                            <button onClick={() => navigateTo('terms')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Terms of Service</button>
+                        </div>
                     </div>
                 </div>
                  <div className="mt-12 border-t border-gray-200/80 pt-8 text-center text-sm">
