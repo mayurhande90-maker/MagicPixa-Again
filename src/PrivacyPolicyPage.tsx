@@ -15,7 +15,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ navigateTo, auth 
             <Header navigateTo={navigateTo} auth={auth} />
             <main className="flex-grow max-w-4xl mx-auto px-6 py-16">
                 <h1 className="text-4xl font-bold text-slate-900 mb-8 tracking-tight">Privacy Policy</h1>
-                <p className="text-sm text-slate-400 mb-10 font-medium italic">Last Updated: October 2024</p>
+                <p className="text-sm text-slate-400 mb-10 font-medium italic">Last Updated: December 2025</p>
 
                 <div className="space-y-12 prose prose-slate max-w-none">
                     <section>
@@ -47,7 +47,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ navigateTo, auth 
                         <h2 className="text-2xl font-bold text-slate-800 mb-4">3. AI Data Processing & Storage</h2>
                         <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-2xl">
                             <p className="text-blue-900 font-medium leading-relaxed">
-                                **Transient Storage Policy**: Images uploaded and generated on MagicPixa are stored in a secure cloud gallery for a period of **15 days**. This allows you to review and download your creations. After 15 days, these images are automatically and permanently deleted from our primary storage to ensure your privacy and maintain system performance.
+                                <strong className="font-bold">Transient Storage Policy</strong>: Images uploaded and generated on MagicPixa are stored in a secure cloud gallery for a period of <strong className="font-bold">15 days</strong>. This allows you to review and download your creations. After 15 days, these images are automatically and permanently deleted from our primary storage to ensure your privacy and maintain system performance.
                             </p>
                         </div>
                         <p className="text-slate-600 leading-relaxed mt-6">
