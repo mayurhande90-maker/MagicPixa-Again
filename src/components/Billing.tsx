@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { purchaseTopUp, purchaseCreditRefill, getCreditHistory } from '../firebase';
@@ -165,17 +164,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
       name: `MagicPixa: ${type === 'plan' ? pkg.name : 'Credit Refill'}`,
       description: `Purchase of ${pkg.totalCredits} credits.`,
       image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
-      // CRITICAL: Webhook identifies the transaction via these notes
-      notes: {
-        userId: user.uid,
-        packName: pkg.name,
-        credits: pkg.totalCredits,
-        price: pkg.price,
-        type: type
-      },
       handler: async (response: any) => {
         try {
-            // Frontend optimistic update
             let updatedProfile;
             if (type === 'plan') updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
             else updatedProfile = await purchaseCreditRefill(user.uid, pkg.totalCredits, pkg.price);
@@ -186,7 +176,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
             setTransactions(history as Transaction[]);
         } catch (error) {
             console.error("Failed to process purchase:", error);
-            // We don't alert here because the Webhook will handle the retry silently in the background
+            alert("Payment successful but account update failed. Contact support.");
         } finally {
             setLoadingPackage(null);
         }
