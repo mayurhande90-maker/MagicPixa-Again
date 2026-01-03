@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { MagicPixaLogo } from './icons';
 import { Page, View } from '../types';
@@ -21,7 +22,7 @@ const Footer: React.FC<FooterProps> = ({ navigateTo }) => {
                             <button onClick={() => navigateTo('home', undefined, 'features')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Features</button>
                         </div>
                         <div className="flex flex-col gap-4 items-start">
-                            <button onClick={() => navigateTo('home', undefined, 'pricing')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Pricing</button>
+                            <button onClick={() => navigateTo('pricing')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">Pricing</button>
                             <button onClick={() => navigateTo('about')} className="text-sm font-semibold text-[#5F6368] hover:text-[#1E1E1E] transition-colors">About Us</button>
                         </div>
                     </div>

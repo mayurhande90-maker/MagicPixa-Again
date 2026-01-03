@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
 import ProfessionalHome from './ProfessionalHome'; // New Staging Home
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
+import PricingPage from './PricingPage';
 import AuthModal from './components/AuthModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
@@ -117,6 +119,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     const path = window.location.pathname;
     if (path.toLowerCase() === '/about') return 'about';
+    if (path.toLowerCase() === '/pricing') return 'pricing';
     if (getViewFromPath(path)) return 'dashboard';
     
     // Check for legacy param but we will clean it up in the first effect
@@ -219,6 +222,7 @@ function App() {
     // Sync URL using Clean Paths
     let path = '/';
     if (page === 'about') path = '/About';
+    else if (page === 'pricing') path = '/Pricing';
     else if (page === 'dashboard') {
         path = VIEW_TO_PATH[view || currentView] || '/Dashboard';
     }
@@ -362,6 +366,8 @@ function App() {
           setCurrentPage('home');
       } else if (path.toLowerCase() === '/about') {
           setCurrentPage('about');
+      } else if (path.toLowerCase() === '/pricing') {
+          setCurrentPage('pricing');
       } else {
           const view = getViewFromPath(path);
           if (view) {
@@ -518,6 +524,14 @@ function App() {
         <AboutUsPage 
             navigateTo={navigateTo} 
             auth={authProps} 
+        />
+      )}
+
+      {currentPage === 'pricing' && (
+        <PricingPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            appConfig={appConfig}
         />
       )}
 
