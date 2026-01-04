@@ -37,7 +37,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({ credit
                 </div>
                 <button
                     onClick={onClose}
-                    className="w-full bg-[#1A1A1E] text-white font-bold py-4 rounded-2xl hover:bg-black transition-all shadow-lg hover:scale-[1.02] active:scale-95"
+                    className="w-full bg-[#F9D230] text-[#1A1A1E] font-bold py-4 rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-lg shadow-yellow-500/20 hover:scale-[1.02] active:scale-95"
                 >
                     Start Creating
                 </button>
