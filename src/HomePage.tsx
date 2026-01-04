@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon, CubeIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
@@ -201,6 +201,164 @@ const MagneticCard: React.FC<{
     );
 };
 
+// --- Keyword Trap Animation (Left Side) ---
+const KeywordTrap: React.FC = () => {
+    const [text, setText] = useState('');
+    const fullPrompt = "8k, ultra-hd, cinematic lighting, photorealistic, octane render, masterpiece, high-end commercial photography, intricate details, depth of field, sharp focus, volumetric lighting, unreal engine 5, ray tracing, studio background, bokeh, highly detailed, 4k resolution...";
+    
+    useEffect(() => {
+        let timer: any;
+        const type = () => {
+            if (text.length < fullPrompt.length) {
+                setText(fullPrompt.slice(0, text.length + 1));
+                timer = setTimeout(type, 30);
+            } else {
+                timer = setTimeout(() => setText(''), 2000);
+            }
+        };
+        timer = setTimeout(type, 1000);
+        return () => clearTimeout(timer);
+    }, [text]);
+
+    return (
+        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-sm relative overflow-hidden flex flex-col h-full group">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-red-50 text-red-500 rounded-lg"><XIcon className="w-5 h-5"/></div>
+                <h4 className="font-bold text-xs uppercase tracking-widest text-red-700">Traditional AI Prompting</h4>
+            </div>
+            
+            <div className="flex-1 flex flex-col justify-center">
+                <div className={`bg-gray-50 p-6 rounded-2xl border border-gray-200 font-mono text-[11px] text-gray-400 leading-relaxed italic border-dashed relative min-h-[140px] ${text.length === fullPrompt.length ? 'animate-shake-gentle border-red-200 text-red-400' : ''}`}>
+                    {text}
+                    <span className="w-2 h-4 bg-indigo-400 inline-block ml-1 animate-pulse"></span>
+                    
+                    {text.length === fullPrompt.length && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-red-50/10 backdrop-blur-[1px]">
+                            <p className="bg-red-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-lg">Manual Labor Required</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="mt-6">
+                <p className="text-sm text-gray-500 font-medium">Requires you to learn technical terminology and spend hours "prompting" until it looks right.</p>
+            </div>
+        </div>
+    );
+};
+
+// --- Pixa Vision Engine Animation (Right Side) ---
+const PixaVisionEngine: React.FC = () => {
+    const [phase, setPhase] = useState<'scan' | 'select' | 'final'>('scan');
+    const [scanPos, setScanPos] = useState(0);
+
+    useEffect(() => {
+        let timer: any;
+        if (phase === 'scan') {
+            timer = setInterval(() => {
+                setScanPos(prev => {
+                    if (prev >= 100) {
+                        setPhase('select');
+                        clearInterval(timer);
+                        return 100;
+                    }
+                    return prev + 1;
+                });
+            }, 30);
+        } else if (phase === 'select') {
+            timer = setTimeout(() => setPhase('final'), 1500);
+        } else if (phase === 'final') {
+            timer = setTimeout(() => {
+                setPhase('scan');
+                setScanPos(0);
+            }, 4000);
+        }
+        return () => {
+            clearInterval(timer);
+            clearTimeout(timer);
+        };
+    }, [phase]);
+
+    const tags = [
+        { top: '20%', label: '[Object: Glass]', minScan: 20 },
+        { top: '45%', label: '[Material: Gold]', minScan: 45 },
+        { top: '70%', label: '[Physics: Refractive]', minScan: 70 },
+    ];
+
+    return (
+        <div className="bg-white p-8 rounded-[2.5rem] border border-indigo-200 shadow-xl relative overflow-hidden flex flex-col h-full">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-12 -mt-12 blur-2xl opacity-50"></div>
+            
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-lg"><SparklesIcon className="w-5 h-5"/></div>
+                    <h4 className="font-bold text-xs uppercase tracking-widest text-indigo-600">The MagicPixa Way</h4>
+                </div>
+                <div className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Intelligent</div>
+            </div>
+
+            <div className="flex-1 flex flex-col gap-6">
+                {/* Visual Area */}
+                <div className="relative aspect-square rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center p-8 group">
+                    <div className={`relative transition-all duration-1000 ${phase === 'final' ? 'scale-105' : 'scale-100 grayscale-[0.5] opacity-60'}`}>
+                        <div className={`absolute inset-0 bg-indigo-500/10 blur-2xl rounded-full transition-opacity duration-1000 ${phase === 'final' ? 'opacity-100' : 'opacity-0'}`}></div>
+                        <img 
+                            src="https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1000&auto=format&fit=crop" 
+                            className="max-h-48 relative z-10 drop-shadow-2xl" 
+                            alt="Perfume"
+                        />
+                    </div>
+
+                    {/* Scan HUD */}
+                    {phase === 'scan' && (
+                        <>
+                            <div className="absolute left-0 w-full h-[2px] bg-indigo-500 shadow-[0_0_15px_#6366f1] z-20" style={{ top: `${scanPos}%` }}></div>
+                            <div className="absolute left-0 w-full h-20 bg-gradient-to-b from-transparent to-indigo-500/10 -translate-y-full z-10" style={{ top: `${scanPos}%` }}></div>
+                        </>
+                    )}
+
+                    {/* Logic Tags */}
+                    {tags.map((tag, i) => (
+                        <div 
+                            key={i}
+                            className={`absolute right-4 bg-black/80 text-white px-2 py-1 rounded-lg text-[8px] font-mono border border-white/20 transition-all duration-300 z-30 ${scanPos >= tag.minScan ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`}
+                            style={{ top: tag.top }}
+                        >
+                            {tag.label}
+                        </div>
+                    ))}
+
+                    {/* Cursor Action */}
+                    {phase === 'select' && (
+                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-8 h-8 z-40 animate-mouse-move-mini">
+                            <svg viewBox="0 0 24 24" fill="white" stroke="black" strokeWidth="1" className="drop-shadow-lg">
+                                <path d="M5.5,2l13,11l-5,1l5,7l-3,1l-5-7l-5,4V2z" />
+                            </svg>
+                        </div>
+                    )}
+                </div>
+
+                {/* Mood Selector Simulation */}
+                <div className="grid grid-cols-3 gap-2">
+                    {['Luxury', 'Nature', 'Urban'].map((m) => (
+                        <div key={m} className={`px-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-center border transition-all ${
+                            (phase === 'select' || phase === 'final') && m === 'Luxury' 
+                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' 
+                            : 'bg-white border-gray-100 text-gray-400'
+                        }`}>
+                            {m}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="mt-6">
+                <p className="text-sm text-gray-700 font-bold leading-relaxed">Pixa Vision audits material physics and lighting to apply the perfect rig automatically. No typing required.</p>
+            </div>
+        </div>
+    );
+};
+
 // --- Intersection Observer Hook for Reveals ---
 const useReveal = (delay: number = 0) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -297,33 +455,22 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   return (
     <>
       <style>{`
-        @keyframes mouse-pointer-move {
-          0%, 10% { transform: translate(80px, 80px); opacity: 0; }
+        @keyframes mouse-pointer-move-mini {
+          0% { transform: translate(40px, 40px); opacity: 0; }
           20% { opacity: 1; }
           45% { transform: translate(0, 0); }
           50% { transform: translate(0, 0) scale(0.85); }
           55% { transform: translate(0, 0) scale(1); }
           85% { opacity: 1; }
-          95%, 100% { transform: translate(80px, 80px); opacity: 0; }
+          95%, 100% { transform: translate(40px, 40px); opacity: 0; }
         }
-        @keyframes luxury-button-activate {
-          0%, 49% { background-color: #ffffff; color: #9ca3af; border-color: #e5e7eb; box-shadow: none; }
-          50%, 90% { background-color: #F9D230; color: #1A1A1E; border-color: transparent; box-shadow: 0 20px 25px -5px rgba(249, 210, 48, 0.3); }
-          91%, 100% { background-color: #ffffff; color: #9ca3af; border-color: #e5e7eb; box-shadow: none; }
+        @keyframes shake-gentle {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-2px); }
+          75% { transform: translateX(2px); }
         }
-        @keyframes click-ripple {
-          0%, 49% { transform: scale(0); opacity: 0; }
-          50% { transform: scale(1); opacity: 0.4; }
-          70% { transform: scale(2); opacity: 0; }
-          100% { opacity: 0; }
-        }
-        @keyframes line-draw {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-        .animate-mouse-move { animation: mouse-pointer-move 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-        .animate-luxury-btn { animation: luxury-button-activate 4s infinite step-end; }
-        .animate-ripple { animation: click-ripple 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-mouse-move-mini { animation: mouse-pointer-move-mini 2s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-shake-gentle { animation: shake-gentle 0.3s infinite; }
         .reveal-item {
             opacity: 0;
             transform: translateY(30px);
@@ -396,7 +543,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
             {/* Comparison Section - Why Logic Beats Prompts */}
             <section className="py-24 px-4 bg-[#F6F7FA]">
-                <div className="max-w-5xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Why Logic Beats Prompts</h2>
                         <p className="text-lg text-[#5F6368] font-medium">MagicPixa is an expert photographer, not a chat bot.</p>
@@ -404,48 +551,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
                     <div className="grid md:grid-cols-2 gap-8 items-stretch">
                         {/* Traditional AI */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-200 shadow-sm opacity-60">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="p-2 bg-red-50 text-red-500 rounded-lg"><XIcon className="w-5 h-5"/></div>
-                                <h4 className="font-bold text-xs uppercase tracking-widest text-red-700">Traditional AI Tools</h4>
-                            </div>
-                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-6 font-mono text-[11px] text-gray-400 leading-relaxed italic border-dashed">
-                                "Hyper-realistic 8k studio lighting, cinematic shadows, bokeh background, marble table, high-end commercial photography, intricate details, phase one camera..."
-                            </div>
-                            <p className="text-sm text-gray-500 font-medium">Requires you to learn technical terminology and spend hours "prompting" until it looks right.</p>
-                        </div>
+                        <KeywordTrap />
 
                         {/* MagicPixa Way */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-indigo-200 shadow-lg relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-12 -mt-12 blur-2xl opacity-50"></div>
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-lg"><SparklesIcon className="w-5 h-5"/></div>
-                                    <h4 className="font-bold text-xs uppercase tracking-widest text-indigo-600">The MagicPixa Way</h4>
-                                </div>
-                                <div className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Intelligent</div>
-                            </div>
-                            
-                            {/* Animated Interaction Container */}
-                            <div className="relative flex justify-center py-6 mb-6">
-                                {/* The Button */}
-                                <div className="animate-luxury-btn border border-gray-100 px-8 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 relative z-10 transition-colors">
-                                    <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
-                                    LUXURY MODE
-                                    {/* Click Ripple */}
-                                    <div className="absolute inset-0 bg-yellow-400/40 rounded-2xl animate-ripple pointer-events-none"></div>
-                                </div>
-
-                                {/* Animated Cursor */}
-                                <div className="absolute top-1/2 left-1/2 w-8 h-8 z-20 pointer-events-none animate-mouse-move">
-                                    <svg viewBox="0 0 24 24" fill="white" stroke="black" strokeWidth="1" className="drop-shadow-lg">
-                                        <path d="M5.5,2l13,11l-5,1l5,7l-3,1l-5-7l-5,4V2z" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <p className="text-sm text-gray-700 font-bold leading-relaxed">Pixa Vision audits your product's physics and material to apply the perfect rig automatically. No typing required.</p>
-                        </div>
+                        <PixaVisionEngine />
                     </div>
                 </div>
             </section>
