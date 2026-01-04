@@ -317,13 +317,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
           70% { transform: scale(2); opacity: 0; }
           100% { opacity: 0; }
         }
-        @keyframes pixa-vision-scan {
-            0% { top: 0%; opacity: 0; }
-            5% { opacity: 1; }
-            50% { top: 100%; opacity: 1; }
-            95% { opacity: 1; }
-            100% { top: 0%; opacity: 0; }
-        }
         @keyframes line-draw {
             from { width: 0; }
             to { width: 100%; }
@@ -331,15 +324,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         .animate-mouse-move { animation: mouse-pointer-move 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
         .animate-luxury-btn { animation: luxury-button-activate 4s infinite step-end; }
         .animate-ripple { animation: click-ripple 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-        .pixa-scan-line {
-            height: 2px;
-            width: 100%;
-            background: linear-gradient(90deg, transparent, #4D7CFF, transparent);
-            box-shadow: 0 0 15px #4D7CFF;
-            position: absolute;
-            z-index: 5;
-            animation: pixa-vision-scan 8s infinite ease-in-out;
-        }
         .reveal-item {
             opacity: 0;
             transform: translateY(30px);
@@ -356,9 +340,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         <section id="home" className={HomeStyles.heroSection}>
             <div className={HomeStyles.heroContainer}>
                 <div className={HomeStyles.heroBackgroundGrid}></div>
-                
-                {/* Pixa Vision Hero Scan Line */}
-                <div className="pixa-scan-line"></div>
                 
                 <div className={HomeStyles.heroBlob1}></div>
                 <div className={HomeStyles.heroBlob2}></div>
@@ -399,7 +380,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                         ].map((item, i) => {
                             const { ref, visible } = useReveal(i * 200);
                             return (
-                                <div key={i} ref={ref} className={`bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all flex flex-col items-center text-center reveal-item ${visible ? 'visible' : ''} relative z-10`}>
+                                <div key={i} ref={ref} className={`reveal-item ${visible ? 'visible' : ''} bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all flex flex-col items-center text-center relative z-10`}>
                                     <div className="w-16 h-16 bg-[#F6F7FA] rounded-2xl flex items-center justify-center mb-6 text-indigo-600">
                                         {item.icon}
                                     </div>
