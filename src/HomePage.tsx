@@ -221,77 +221,6 @@ const useReveal = (delay: number = 0) => {
     return { ref, visible };
 };
 
-// --- Prompt Typing Animation Component ---
-const PromptTypingVisual: React.FC = () => {
-    const [state, setState] = useState<'typing' | 'impact' | 'button'>('typing');
-    const [typedText, setTypedText] = useState('');
-    const fullPrompt = "--ar 16:9 --v 6.0 --chaos 20 cinematic lighting, product shot, studio background...";
-
-    useEffect(() => {
-        let timeout: any;
-        
-        if (state === 'typing') {
-            if (typedText.length < fullPrompt.length) {
-                timeout = setTimeout(() => {
-                    setTypedText(fullPrompt.slice(0, typedText.length + 1));
-                }, 40);
-            } else {
-                // Done typing, trigger impact
-                timeout = setTimeout(() => setState('impact'), 500);
-            }
-        } else if (state === 'impact') {
-            // Animation for sparkle hit
-            timeout = setTimeout(() => setState('button'), 600);
-        } else if (state === 'button') {
-            // Hold for 3s, then reset
-            timeout = setTimeout(() => {
-                setState('typing');
-                setTypedText('');
-            }, 3000);
-        }
-
-        return () => clearTimeout(timeout);
-    }, [state, typedText]);
-
-    return (
-        <div className="relative h-24 flex items-center justify-center max-w-xl mx-auto my-8">
-            {state === 'typing' && (
-                <div className="flex flex-col items-center animate-fadeIn">
-                    <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl w-full flex items-center gap-3 shadow-inner">
-                        <span className="text-xs font-mono text-gray-400 select-none">{'>'}</span>
-                        <p className="text-xs font-mono text-gray-500 text-left line-clamp-1">
-                            {typedText}
-                            <span className="inline-block w-2 h-4 bg-indigo-500 ml-1 animate-pulse"></span>
-                        </p>
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-3">Manual Prompting (Slow)</p>
-                </div>
-            )}
-
-            {state === 'impact' && (
-                <div className="relative flex items-center justify-center w-full">
-                    <div className="w-full h-12 bg-gray-50 rounded-2xl border border-gray-200 opacity-20"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="animate-ping text-indigo-500">
-                             <SparklesIcon className="w-12 h-12" />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {state === 'button' && (
-                <div className="flex flex-col items-center animate-bounce-slight">
-                    <div className="bg-[#F9D230] text-[#1A1A1E] px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-yellow-500/30 flex items-center gap-3 border border-yellow-400">
-                        <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
-                        LUXURY MODE
-                    </div>
-                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-4 animate-pulse">One Click (MagicPixa)</p>
-                </div>
-            )}
-        </div>
-    );
-};
-
 const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; auth: AuthProps; }> = ({ navigateTo, auth }) => {
     const handleNav = (view: View) => {
         if (!auth.isAuthenticated) {
@@ -423,9 +352,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                         MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
                     </p>
                     
-                    {/* NEW: Prompt-less Typing Reveal Concept */}
-                    <PromptTypingVisual />
-
                     <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
                       className={HomeStyles.heroButton}
