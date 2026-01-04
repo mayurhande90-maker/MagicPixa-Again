@@ -39,9 +39,9 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-100/50 rounded-full blur-3xl opacity-50"></div>
                         
                         <div className="relative z-10 max-w-4xl mx-auto">
-                            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-full mb-8 shadow-sm">
-                                <SparklesIcon className="w-4 h-4 text-[#4D7CFF]" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-[#4D7CFF]">About MagicPixa</span>
+                            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 border border-transparent px-4 py-1.5 rounded-full mb-8 shadow-sm">
+                                <SparklesIcon className="w-4 h-4 text-white" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-white">About MagicPixa</span>
                             </div>
                             <h1 className="text-4xl md:text-6xl font-bold text-[#1A1A1E] mb-6 leading-tight tracking-tight">
                                 Create Stunning Visuals, <span className="text-[#4D7CFF]">Built for Speed.</span>
