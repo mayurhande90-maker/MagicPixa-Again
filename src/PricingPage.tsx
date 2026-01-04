@@ -80,6 +80,7 @@ const FAQItem: React.FC<{ item: typeof FAQ_ITEMS[0] }> = ({ item }) => {
 const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }) => {
     const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
     const [successCredits, setSuccessCredits] = useState<number | null>(null);
+    const [successPackName, setSuccessPackName] = useState<string>('');
 
     const creditPacks = appConfig?.creditPacks || [];
     const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
@@ -97,7 +98,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
             user: auth.user,
             pkg: pack,
             type: 'plan',
-            onSuccess: (updatedUser, totalCredits) => {
+            onSuccess: (updatedUser, totalCredits, packName) => {
+                setSuccessPackName(packName);
                 setSuccessCredits(totalCredits);
                 auth.setUser(updatedUser);
                 setLoadingPackId(null);
@@ -300,6 +302,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
             {successCredits !== null && (
                 <PaymentSuccessModal 
                     creditsAdded={successCredits} 
+                    packName={successPackName}
                     onClose={() => {
                         setSuccessCredits(null);
                         navigateTo('dashboard');

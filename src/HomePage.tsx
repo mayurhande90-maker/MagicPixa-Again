@@ -172,6 +172,7 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
   const [successCredits, setSuccessCredits] = useState<number | null>(null);
+  const [successPackName, setSuccessPackName] = useState<string>('');
 
   const creditPacks = appConfig?.creditPacks || [];
   const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
@@ -189,7 +190,8 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
           user: auth.user,
           pkg: pack,
           type: 'plan',
-          onSuccess: (updatedUser, totalCredits) => {
+          onSuccess: (updatedUser, totalCredits, packName) => {
+              setSuccessPackName(packName);
               setSuccessCredits(totalCredits);
               auth.setUser(updatedUser);
               setLoadingPackId(null);
@@ -399,6 +401,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
       {successCredits !== null && (
           <PaymentSuccessModal 
             creditsAdded={successCredits} 
+            packName={successPackName}
             onClose={() => {
                 setSuccessCredits(null);
                 navigateTo('dashboard');

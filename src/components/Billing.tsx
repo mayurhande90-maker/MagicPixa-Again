@@ -32,6 +32,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [successCredits, setSuccessCredits] = useState<number | null>(null);
+  const [successPackName, setSuccessPackName] = useState<string>('');
 
   const defaultCreditPacks: CreditPack[] = [
     { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: '1 Brand Kit included. For personal use.', popular: false, value: 1.98 },
@@ -123,7 +124,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         user,
         pkg,
         type,
-        onSuccess: (updatedProfile, totalCredits) => {
+        onSuccess: (updatedProfile, totalCredits, packName) => {
+            setSuccessPackName(packName);
             setSuccessCredits(totalCredits);
             setUser(updatedProfile);
             setLoadingPackage(null);
@@ -266,7 +268,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
             </div>
         </div>
       </div>
-      {successCredits !== null && <PaymentSuccessModal creditsAdded={successCredits} onClose={() => { setSuccessCredits(null); setActiveView('home_dashboard'); }} />}
+      {successCredits !== null && <PaymentSuccessModal creditsAdded={successCredits} packName={successPackName} onClose={() => { setSuccessCredits(null); setActiveView('home_dashboard'); }} />}
     </>
   );
 };

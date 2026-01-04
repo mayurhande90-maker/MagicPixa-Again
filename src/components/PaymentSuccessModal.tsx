@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom';
 
 interface PaymentSuccessModalProps {
     creditsAdded: number;
+    packName: string;
     onClose: () => void;
 }
 
-export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({ creditsAdded, onClose }) => {
+export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({ creditsAdded, packName, onClose }) => {
     return createPortal(
         <div 
             className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn"
@@ -23,9 +24,17 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({ credit
                     </svg>
                 </div>
                 <h2 id="payment-success-title" className="text-2xl font-black text-[#1A1A1E] mb-2 tracking-tight">Payment Successful!</h2>
-                <p className="text-[#5F6368] mb-8 font-medium">
-                    Excellent! We've added <span className="font-bold text-[#1A1A1E]">{creditsAdded} credits</span> to your account. You're ready to create magic.
-                </p>
+                <div className="mb-8">
+                    <p className="text-[#5F6368] font-medium leading-relaxed">
+                        {packName === 'Credit Refill' ? (
+                            <>Your <span className="font-bold text-[#1A1A1E]">{packName}</span> was processed.</>
+                        ) : (
+                            <>Your <span className="font-bold text-[#1A1A1E]">{packName}</span> is now active.</>
+                        )}
+                        <br />
+                        We've added <span className="font-bold text-[#1A1A1E]">{creditsAdded} credits</span> to your account.
+                    </p>
+                </div>
                 <button
                     onClick={onClose}
                     className="w-full bg-[#1A1A1E] text-white font-bold py-4 rounded-2xl hover:bg-black transition-all shadow-lg hover:scale-[1.02] active:scale-95"

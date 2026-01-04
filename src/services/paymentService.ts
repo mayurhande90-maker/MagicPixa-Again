@@ -5,7 +5,7 @@ export interface CheckoutOptions {
     user: User;
     pkg: any;
     type: 'plan' | 'refill';
-    onSuccess: (updatedUser: User, totalCredits: number) => void;
+    onSuccess: (updatedUser: User, totalCredits: number, packName: string) => void;
     onCancel: () => void;
     onError: (error: string) => void;
 }
@@ -37,13 +37,15 @@ export const triggerCheckout = async (options: CheckoutOptions) => {
         handler: async (response: any) => {
             try {
                 let updatedProfile;
+                const packName = type === 'plan' ? pkg.name : 'Credit Refill';
+                
                 if (type === 'plan') {
                     updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
                 } else {
                     updatedProfile = await purchaseCreditRefill(user.uid, pkg.totalCredits, pkg.price);
                 }
                 
-                onSuccess(updatedProfile as User, pkg.totalCredits);
+                onSuccess(updatedProfile as User, pkg.totalCredits, packName);
             } catch (error: any) {
                 console.error("Failed to process purchase:", error);
                 onError("Payment successful but account update failed. Please contact support@magicpixa.com");
