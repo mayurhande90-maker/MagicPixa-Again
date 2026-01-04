@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
@@ -270,6 +270,47 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                 </div>
             </section>
 
+            {/* Why MagicPixa Section - Added from AboutUsPage */}
+            <section className="py-24 px-4 bg-white">
+                <div className="max-w-6xl mx-auto">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                        <div>
+                            <h2 className="text-4xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Why MagicPixa</h2>
+                            <p className="text-[#5F6368] text-lg font-medium mb-12 leading-relaxed">
+                                Creating professional content traditionally requires an entire team of specialists. <span className="text-indigo-600 font-bold">MagicPixa replaces all of that with a single intelligent platform.</span>
+                            </p>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {['Designers', 'Editors', 'Copywriters', 'Social Media Managers', 'Marketing Agencies'].map((role, i) => (
+                                    <div key={i} className="flex items-center gap-4 group bg-[#F6F7FA] p-4 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-md">
+                                        <div className="w-6 h-6 rounded-full border-2 border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-400 group-hover:bg-red-500 group-hover:border-red-500 group-hover:text-white transition-all">{i+1}</div>
+                                        <span className="text-base font-bold text-gray-500 group-hover:text-gray-400 line-through decoration-gray-400 decoration-2">{role}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            {[
+                                { title: "Saves Time", icon: <ClockIcon className="w-6 h-6"/>, desc: "Instantly turn ideas into ready-to-use content.", color: "text-blue-600", bg: "bg-blue-50" },
+                                { title: "Saves Cost", icon: <CreditCoinIcon className="w-6 h-6"/>, desc: "Eliminate expensive freelance retainers forever.", color: "text-amber-600", bg: "bg-amber-50" },
+                                { title: "Pro Consistency", icon: <CheckIcon className="w-6 h-6"/>, desc: "Consistent, professional output on every single run.", color: "text-green-600", bg: "bg-green-50" }
+                            ].map((box, i) => (
+                                <div key={i} className="flex items-start gap-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 transition-all hover:shadow-md">
+                                    <div className={`w-12 h-12 ${box.bg} ${box.color} rounded-2xl flex items-center justify-center shrink-0 shadow-inner`}>
+                                        {box.icon}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xl font-bold text-[#1A1A1E] mb-2">{box.title}</h4>
+                                        <p className="text-[#5F6368] font-medium text-sm leading-relaxed">{box.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Reviews Section */}
             <section id="reviews" className={HomeStyles.reviewsSection}>
                 <div className={HomeStyles.reviewsContainer}>
@@ -390,6 +431,24 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                             );
                         })}
                     </div>
+                </div>
+            </section>
+
+            {/* Impact CTA Section - Added from AboutUsPage */}
+            <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-200/50">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 leading-tight tracking-tight">
+                        Built for speed. For growth. For impact.
+                    </h2>
+                    <p className="text-lg text-[#5F6368] mb-12 font-medium">Ready to transform your creative workflow?</p>
+                    <button 
+                        onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
+                        className="bg-[#F9D230] text-[#1A1A1E] font-bold py-5 px-12 rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/30 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
+                    >
+                        Start Creating Now
+                        <ArrowRightIcon className="w-6 h-6" />
+                    </button>
+                    <p className="text-sm text-gray-500 mt-6 font-medium">Get 50 free credits on sign up!</p>
                 </div>
             </section>
         </div>
