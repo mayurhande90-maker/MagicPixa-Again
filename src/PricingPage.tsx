@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -10,7 +9,8 @@ import {
     InformationCircleIcon, ArrowRightIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
-import { Theme } from './styles/theme';
+import { triggerCheckout } from './services/paymentService';
+import { PaymentSuccessModal } from './components/PaymentSuccessModal';
 
 interface PricingPageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -78,8 +78,37 @@ const FAQItem: React.FC<{ item: typeof FAQ_ITEMS[0] }> = ({ item }) => {
 };
 
 const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }) => {
+    const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
+    const [successCredits, setSuccessCredits] = useState<number | null>(null);
+
     const creditPacks = appConfig?.creditPacks || [];
     const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
+
+    const handleCheckout = (pack: any) => {
+        if (!auth.isAuthenticated) {
+            auth.openAuthModal();
+            return;
+        }
+        
+        if (!auth.user) return;
+
+        setLoadingPackId(pack.name);
+        triggerCheckout({
+            user: auth.user,
+            pkg: pack,
+            type: 'plan',
+            onSuccess: (updatedUser, totalCredits) => {
+                auth.setUser(updatedUser);
+                setLoadingPackId(null);
+                setSuccessCredits(totalCredits);
+            },
+            onCancel: () => setLoadingPackId(null),
+            onError: (err) => {
+                alert(err);
+                setLoadingPackId(null);
+            }
+        });
+    };
 
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans">
@@ -118,6 +147,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                     isCurrent = packWeight === currentPlanWeight;
                                     isDowngrade = packWeight < currentPlanWeight;
                                 }
+
+                                const isLoading = loadingPackId === pack.name;
 
                                 return (
                                     <div 
@@ -170,10 +201,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                                 if (!auth.isAuthenticated) {
                                                     auth.openAuthModal();
                                                 } else if (isUpgrade) {
-                                                    navigateTo('dashboard', 'billing');
+                                                    handleCheckout(pack);
                                                 }
                                             }}
-                                            disabled={auth.isAuthenticated && !isUpgrade}
+                                            disabled={(auth.isAuthenticated && !isUpgrade) || isLoading}
                                             className={`
                                                 ${HomeStyles.pricingButton} 
                                                 ${auth.isAuthenticated 
@@ -186,7 +217,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                                 }
                                             `}
                                         >
-                                            {auth.isAuthenticated 
+                                            {isLoading ? (
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            ) : auth.isAuthenticated 
                                                 ? (isCurrent ? <><CheckIcon className="w-4 h-4"/> Active</> : isDowngrade ? "Included" : "Upgrade Now")
                                                 : "Get Started"
                                             }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
-import { purchaseTopUp, purchaseCreditRefill, getCreditHistory } from '../firebase';
+import { getCreditHistory } from '../firebase';
 import { 
     SparklesIcon, CheckIcon, TicketIcon, XIcon, PlusCircleIcon, 
     PixaProductIcon, ThumbnailIcon, BuildingIcon,
@@ -8,6 +8,8 @@ import {
     CreditCoinIcon, PixaHeadshotIcon, LightningIcon, MagicWandIcon, CampaignStudioIcon
 } from './icons';
 import { BillingStyles } from '../styles/Billing.styles';
+import { triggerCheckout } from '../services/paymentService';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
 
 interface BillingProps {
   user: User;
@@ -15,36 +17,6 @@ interface BillingProps {
   appConfig: AppConfig | null;
   setActiveView: (view: View) => void;
 }
-
-const PaymentConfirmationModal: React.FC<{ creditsAdded: number; onClose: () => void; }> = ({ creditsAdded, onClose }) => {
-    return (
-        <div 
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            aria-labelledby="payment-success-title"
-            role="dialog"
-            aria-modal="true"
-        >
-            <div className="bg-white w-full max-w-sm m-4 p-8 rounded-2xl shadow-xl text-center">
-                <div className="checkmark">
-                    <svg className="w-full h-full" viewBox="0 0 52 52">
-                        <circle className="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
-                        <path className="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-                    </svg>
-                </div>
-                <h2 id="payment-success-title" className="text-2xl font-bold text-[#1A1A1E] mt-6 mb-2">Payment Successful!</h2>
-                <p className="text-[#5F6368] mb-6">
-                    You're all set! We've added <span className="font-bold text-[#1A1A1E]">{creditsAdded} credits</span> to your account.
-                </p>
-                <button
-                    onClick={onClose}
-                    className="w-full bg-[#F9D230] text-[#1A1A1E] font-semibold py-3 rounded-lg hover:bg-[#dfbc2b] transition-colors"
-                >
-                    Start Creating
-                </button>
-            </div>
-        </div>
-    );
-};
 
 // Plan Hierarchy Definition
 const PLAN_WEIGHTS: Record<string, number> = {
@@ -59,8 +31,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
   const [loadingPackage, setLoadingPackage] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [confirmedPurchase, setConfirmedPurchase] = useState<{ totalCredits: number } | null>(null);
+  const [successCredits, setSuccessCredits] = useState<number | null>(null);
 
   const defaultCreditPacks: CreditPack[] = [
     { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: '1 Brand Kit included. For personal use.', popular: false, value: 1.98 },
@@ -126,73 +97,44 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
       return groups;
   };
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-        if (user) {
-            setIsLoadingHistory(true);
-            try {
-                const history = await getCreditHistory(user.uid);
-                setTransactions(history as Transaction[]);
-            } catch (error) {
-                console.error("Failed to fetch credit history:", error);
-            } finally {
-                setIsLoadingHistory(false);
-            }
+  const fetchHistory = async () => {
+    if (user) {
+        setIsLoadingHistory(true);
+        try {
+            const history = await getCreditHistory(user.uid);
+            setTransactions(history as Transaction[]);
+        } catch (error) {
+            console.error("Failed to fetch credit history:", error);
+        } finally {
+            setIsLoadingHistory(false);
         }
-    };
+    }
+  };
+
+  useEffect(() => {
     fetchHistory();
-  }, [user]);
+  }, [user.uid]);
 
   const handlePurchase = async (pkg: any, type: 'plan' | 'refill', index: number) => {
     const loadingId = `${type}-${index}`;
     setLoadingPackage(loadingId);
-    if (!window.Razorpay) {
-        alert("Payment gateway is not available. Please check your internet connection.");
-        setLoadingPackage(null);
-        return;
-    }
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
-    if (!razorpayKey || razorpayKey === 'undefined') {
-        alert("Payment gateway configuration error.");
-        setLoadingPackage(null);
-        return;
-    }
-    const options = {
-      key: razorpayKey,
-      amount: pkg.price * 100,
-      currency: "INR",
-      name: `MagicPixa: ${type === 'plan' ? pkg.name : 'Credit Refill'}`,
-      description: `Purchase of ${pkg.totalCredits} credits.`,
-      image: "https://aistudio.google.com/static/img/workspace/gemini-pro-icon.svg",
-      handler: async (response: any) => {
-        try {
-            let updatedProfile;
-            if (type === 'plan') updatedProfile = await purchaseTopUp(user.uid, pkg.name, pkg.totalCredits, pkg.price);
-            else updatedProfile = await purchaseCreditRefill(user.uid, pkg.totalCredits, pkg.price);
-            setUser(prev => prev ? { ...prev, ...updatedProfile } : null);
-            setConfirmedPurchase({ totalCredits: pkg.totalCredits });
-            setShowConfirmation(true);
-            const history = await getCreditHistory(user.uid);
-            setTransactions(history as Transaction[]);
-        } catch (error) {
-            console.error("Failed to process purchase:", error);
-            alert("Payment successful but account update failed. Contact support.");
-        } finally {
+    
+    triggerCheckout({
+        user,
+        pkg,
+        type,
+        onSuccess: (updatedProfile, totalCredits) => {
+            setUser(updatedProfile);
+            setLoadingPackage(null);
+            setSuccessCredits(totalCredits);
+            fetchHistory(); // Refresh history
+        },
+        onCancel: () => setLoadingPackage(null),
+        onError: (err) => {
+            alert(err);
             setLoadingPackage(null);
         }
-      },
-      prefill: { name: user.name, email: user.email },
-      theme: { color: "#4D7CFF" },
-      modal: { ondismiss: () => setLoadingPackage(null) }
-    };
-    try {
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-    } catch (error) {
-        console.error("Error opening Razorpay:", error);
-        alert("Could not initiate payment.");
-        setLoadingPackage(null);
-    }
+    });
   };
   
   const currentCredits = user.credits || 0;
@@ -248,6 +190,8 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                     const isUpgrade = packWeight > currentPlanWeight;
                     const isCurrent = packWeight === currentPlanWeight;
                     const isDowngrade = packWeight < currentPlanWeight;
+                    const isLoading = loadingPackage === `plan-${index}`;
+
                     return (
                         <div key={index} className={`${BillingStyles.packCard} ${isCurrent ? BillingStyles.packCardActive : (pack.popular && !isDowngrade ? BillingStyles.packCardPopular : BillingStyles.packCardStandard)} ${!isUpgrade && !isCurrent ? 'opacity-70 bg-gray-50' : ''}`}>
                             {isCurrent && <div className={BillingStyles.activeBadge}>Current Plan</div>}
@@ -258,7 +202,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                             <div className="my-2"><span className="text-4xl font-bold text-[#1A1A1E]">{pack.totalCredits}</span><span className="text-[#5F6368] ml-1">Credits</span></div>
                             <div className="h-5 mb-4">{pack.bonus > 0 && (<p className="text-sm font-semibold text-emerald-500">{pack.credits} + {pack.bonus} Bonus!</p>)}</div>
                             <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-3 text-center mb-6"><span className={BillingStyles.packPrice}>₹{pack.price}</span><p className="text-xs text-gray-500">One-time payment</p></div>
-                            <button onClick={() => isUpgrade && handlePurchase(pack, 'plan', index)} disabled={!isUpgrade || loadingPackage !== null} className={`${BillingStyles.packButton} ${loadingPackage === `plan-${index}` ? 'cursor-wait opacity-80' : ''} ${isCurrent ? BillingStyles.packButtonActive : (isUpgrade ? (pack.popular && !isDowngrade ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard) : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200')}`}>{loadingPackage === `plan-${index}` ? (<div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>) : (isCurrent ? (<><CheckIcon className="w-5 h-5"/> Active</>) : isDowngrade ? "Included" : "Upgrade")}</button>
+                            <button onClick={() => isUpgrade && handlePurchase(pack, 'plan', index)} disabled={(!isUpgrade && !isCurrent) || loadingPackage !== null} className={`${BillingStyles.packButton} ${isLoading ? 'cursor-wait opacity-80' : ''} ${isCurrent ? BillingStyles.packButtonActive : (isUpgrade ? (pack.popular && !isDowngrade ? BillingStyles.packButtonPopular : BillingStyles.packButtonStandard) : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200')}`}>{isLoading ? (<div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>) : (isCurrent ? (<><CheckIcon className="w-5 h-5"/> Active</>) : isDowngrade ? "Included" : "Upgrade")}</button>
                         </div>
                     );
                 })}
@@ -276,7 +220,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
                     </div>
                     <div className="flex flex-wrap justify-center gap-4">
                         {refillPacks.map((pack, index) => (
-                            <button key={`refill-${index}`} onClick={() => handlePurchase({ name: 'Credit Refill', price: pack.price, totalCredits: pack.credits }, 'refill', index)} disabled={loadingPackage !== null} className="group relative w-32 h-44 bg-gray-800/50 hover:bg-gray-700/50 backdrop-blur-md rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-300 flex flex-col items-center justify-between p-1 overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/20">
+                            <button key={`refill-${index}`} onClick={() => handlePurchase({ name: 'Credit Refill', price: pack.price, totalCredits: pack.credits }, 'refill', index)} disabled={loadingPackage !== null} className="group relative w-32 h-44 bg-gray-800/50 hover:bg-gray-700/50 backdrop-blur-md rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-300 flex flex-col items-center justify-between p-1 overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-50/20">
                                 {loadingPackage === `refill-${index}` && (<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"><div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div></div>)}
                                 <div className="w-full h-full bg-[#1A1C23] rounded-xl flex flex-col items-center justify-between p-4 relative group-hover:bg-[#20232A] transition-colors">
                                     <div className="text-center"><div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${pack.iconColor} opacity-80 group-hover:opacity-100`}>{pack.label}</div></div>
@@ -322,7 +266,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
             </div>
         </div>
       </div>
-      {showConfirmation && confirmedPurchase && <PaymentConfirmationModal creditsAdded={confirmedPurchase.totalCredits} onClose={() => { setShowConfirmation(false); setActiveView('home_dashboard'); }} />}
+      {successCredits !== null && <PaymentSuccessModal creditsAdded={successCredits} onClose={() => { setSuccessCredits(null); setActiveView('home_dashboard'); }} />}
     </>
   );
 };

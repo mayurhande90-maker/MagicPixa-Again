@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -7,6 +6,8 @@ import {
   SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
+import { triggerCheckout } from './services/paymentService';
+import { PaymentSuccessModal } from './components/PaymentSuccessModal';
 
 interface HomePageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -169,10 +170,37 @@ const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; a
 
 
 const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
+  const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
+  const [successCredits, setSuccessCredits] = useState<number | null>(null);
+
   const creditPacks = appConfig?.creditPacks || [];
-  
-  // Calculate weights
   const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
+
+  const handleCheckout = (pack: any) => {
+      if (!auth.isAuthenticated) {
+          auth.openAuthModal();
+          return;
+      }
+      
+      if (!auth.user) return;
+
+      setLoadingPackId(pack.name);
+      triggerCheckout({
+          user: auth.user,
+          pkg: pack,
+          type: 'plan',
+          onSuccess: (updatedUser, totalCredits) => {
+              auth.setUser(updatedUser);
+              setLoadingPackId(null);
+              setSuccessCredits(totalCredits);
+          },
+          onCancel: () => setLoadingPackId(null),
+          onError: (err) => {
+              alert(err);
+              setLoadingPackId(null);
+          }
+      });
+  };
 
   const featuresWithConfig = features.map(f => {
     if (f.id && appConfig?.featureToggles && f.id in appConfig.featureToggles) {
@@ -283,6 +311,8 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 isDowngrade = packWeight < currentPlanWeight;
                             }
 
+                            const isLoading = loadingPackId === pack.name;
+
                             return (
                                 <div 
                                     key={index} 
@@ -331,10 +361,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                             if (!auth.isAuthenticated) {
                                                 auth.openAuthModal();
                                             } else if (isUpgrade) {
-                                                navigateTo('dashboard', 'billing');
+                                                handleCheckout(pack);
                                             }
                                         }}
-                                        disabled={auth.isAuthenticated && !isUpgrade}
+                                        disabled={(auth.isAuthenticated && !isUpgrade) || isLoading}
                                         className={`
                                             ${HomeStyles.pricingButton} 
                                             ${auth.isAuthenticated 
@@ -347,7 +377,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                             }
                                         `}
                                     >
-                                        {auth.isAuthenticated 
+                                        {isLoading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : auth.isAuthenticated 
                                             ? (isCurrent ? <><CheckIcon className="w-5 h-5"/> Active</> : isDowngrade ? "Included" : "Upgrade")
                                             : "Buy Now"
                                         }
@@ -364,6 +396,15 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
       <div className="hidden lg:block">
         <Footer navigateTo={navigateTo} />
       </div>
+      {successCredits !== null && (
+          <PaymentSuccessModal 
+            creditsAdded={successCredits} 
+            onClose={() => {
+                setSuccessCredits(null);
+                navigateTo('dashboard');
+            }} 
+          />
+      )}
     </>
   );
 };
