@@ -5,7 +5,6 @@ import { Page, View, AuthProps } from './types';
 import { 
     SparklesIcon, 
     CheckIcon, 
-    StarIcon, 
     ThumbnailIcon, 
     PixaProductIcon, 
     PixaCaptionIcon, 
@@ -14,10 +13,11 @@ import {
     ArrowRightIcon,
     ShieldCheckIcon,
     LightningIcon,
-    UsersIcon,
     ClockIcon,
     CreditCoinIcon,
-    FlagIcon
+    FlagIcon,
+    MagicAdsIcon,
+    MagicPixaLogo
 } from './components/icons';
 
 interface AboutUsPageProps {
@@ -31,138 +31,175 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
             <Header navigateTo={navigateTo} auth={auth} />
             
             <main className="flex-grow">
-                {/* Hero Section */}
-                <section className="py-24 px-4 bg-[#F6F7FA] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] -mr-48 -mt-48"></div>
-                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] -ml-48 -mb-48"></div>
-                    
-                    <div className="max-w-4xl mx-auto text-center relative z-10">
-                        <div className="inline-flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full mb-8 shadow-sm">
-                            <SparklesIcon className="w-4 h-4 text-indigo-600" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">The Creative Standard</span>
+                {/* Hero Section - Matching HomePage style */}
+                <section className="text-center py-20 px-4">
+                    <div className="relative max-w-5xl mx-auto bg-white p-8 sm:p-12 md:p-20 rounded-3xl shadow-sm border border-gray-200/80 overflow-hidden">
+                        {/* Background Blobs matching Home */}
+                        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl opacity-50"></div>
+                        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-100/50 rounded-full blur-3xl opacity-50"></div>
+                        
+                        <div className="relative z-10 max-w-4xl mx-auto">
+                            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-full mb-8 shadow-sm">
+                                <SparklesIcon className="w-4 h-4 text-[#4D7CFF]" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-[#4D7CFF]">About MagicPixa</span>
+                            </div>
+                            <h1 className="text-4xl md:text-6xl font-bold text-[#1A1A1E] mb-6 leading-tight tracking-tight">
+                                Create Stunning Visuals, <span className="text-[#4D7CFF]">Built for Speed.</span>
+                            </h1>
+                            <p className="text-lg md:text-xl text-[#5F6368] max-w-3xl mx-auto leading-relaxed font-medium">
+                                MagicPixa is an AI-powered creative platform built for people who need stunning designs, videos, content and visuals — <span className="text-[#1A1A1E] font-bold underline decoration-[#F9D230] decoration-4 underline-offset-4">without spending hours, hiring multiple freelancers, or learning complicated software.</span>
+                            </p>
+                            <p className="mt-6 text-[#5F6368] text-base leading-relaxed">
+                                MagicPixa helps creators, entrepreneurs, businesses, marketers, and agencies generate professional creative assets in minutes using artificial intelligence.
+                            </p>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black text-[#1A1A1E] mb-8 tracking-tighter leading-tight">
-                            About <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">MagicPixa</span>
-                        </h1>
-                        <p className="text-xl md:text-2xl text-[#5F6368] max-w-3xl mx-auto leading-relaxed font-medium">
-                            MagicPixa is an AI-powered creative platform built for people who need stunning designs, videos, content and visuals — <span className="text-[#1A1A1E] font-bold">without spending hours, hiring multiple freelancers, or learning complicated software.</span>
-                        </p>
                     </div>
                 </section>
 
-                {/* All-in-One Engine Section */}
-                <section className="py-24 px-4 bg-white">
+                {/* What Is MagicPixa - Feature Cards matching Home */}
+                <section className="py-20 px-4 bg-[#F6F7FA]">
                     <div className="max-w-6xl mx-auto">
                         <div className="text-center mb-16">
-                            <h2 className="text-3xl font-black text-[#1A1A1E] mb-4">What Is MagicPixa?</h2>
-                            <p className="text-[#5F6368] font-medium text-lg">Your all-in-one AI design and content engine.</p>
+                            <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">What Is MagicPixa?</h2>
+                            <p className="text-lg text-[#5F6368] font-medium">Your all-in-one AI design and content engine.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                             {[
-                                { title: "YouTube & Social", icon: <ThumbnailIcon className="w-10 h-10"/>, color: "orange", text: "Generate high-CTR thumbnails and banners instantly." },
-                                { title: "Professional Shots", icon: <PixaProductIcon className="w-10 h-10"/>, color: "blue", text: "Produce studio-quality visuals for products and brands." },
-                                { title: "Viral Copywriting", icon: <PixaCaptionIcon className="w-10 h-10"/>, color: "indigo", text: "Generate reels ideas, scripts, captions and ad copies." },
-                                { title: "Marketing Kits", icon: <BuildingIcon className="w-10 h-10"/>, color: "purple", text: "Create posters, banners, and full promotional creatives." },
-                                { title: "Brand Identity", icon: <PaletteIcon className="w-10 h-10"/>, color: "pink", text: "Design brand visuals without any design or editing skills." },
-                                { title: "High Speed", icon: <LightningIcon className="w-10 h-10"/>, color: "yellow", text: "Designed for speed, simplicity and professional results." }
+                                { title: "YouTube & Social", icon: <ThumbnailIcon className="w-10 h-10"/>, text: "Generate high-CTR thumbnails for YouTube, Instagram and social media." },
+                                { title: "Marketing Creatives", icon: <MagicAdsIcon className="w-10 h-10"/>, text: "Create posters, banners, and marketing creatives instantly." },
+                                { title: "Viral Copywriting", icon: <PixaCaptionIcon className="w-10 h-10"/>, text: "Generate reels ideas, scripts, captions and ad copies." },
+                                { title: "Brand Identity", icon: <PaletteIcon className="w-10 h-10"/>, text: "Design brand visuals and promotional creatives without design skills." },
+                                { title: "Studio Quality", icon: <PixaProductIcon className="w-10 h-10"/>, text: "Produce high-quality visuals for products without editing skills." }
                             ].map((item, i) => (
-                                <div key={i} className="p-8 bg-[#F8FAFC] rounded-[2rem] border border-gray-100 hover:border-indigo-200 transition-all group">
-                                    <div className={`w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform`}>
+                                <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all group">
+                                    <div className="w-16 h-16 bg-[#F6F7FA] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                         {item.icon}
                                     </div>
                                     <h3 className="text-xl font-bold text-[#1A1A1E] mb-3">{item.title}</h3>
-                                    <p className="text-[#5F6368] font-medium text-sm leading-relaxed">{item.text}</p>
+                                    <p className="text-[#5F6368] text-sm leading-relaxed font-medium">{item.text}</p>
                                 </div>
                             ))}
+                            {/* Final Speed Block */}
+                            <div className="bg-[#1A1A1E] p-8 rounded-2xl shadow-lg border-none flex flex-col justify-center text-white relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <LightningIcon className="w-10 h-10 text-[#F9D230] mb-4" />
+                                <h3 className="text-xl font-bold mb-2">Maximum Speed</h3>
+                                <p className="text-gray-400 text-sm leading-relaxed">MagicPixa is designed for speed, simplicity and results — helping you publish faster, look professional, and grow online.</p>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Studio Section */}
-                <section className="py-24 px-4 bg-[#F8FAFC]">
+                {/* Who Built MagicPixa - Studio Section */}
+                <section className="py-24 px-4 bg-white">
                     <div className="max-w-5xl mx-auto">
-                        <div className="bg-white p-10 md:p-16 rounded-[3rem] shadow-xl border border-gray-100 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                            
-                            <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
-                                <div>
-                                    <h2 className="text-3xl font-black text-[#1A1A1E] mb-6">Who Built MagicPixa?</h2>
-                                    <p className="text-gray-600 font-medium leading-relaxed mb-6">
-                                        MagicPixa is built and owned by <span className="text-indigo-600 font-bold">Magic Peacock Studios</span>, a creative studio and media production company working with brands, creators, and businesses across India.
-                                    </p>
-                                    <p className="text-gray-600 font-medium leading-relaxed">
-                                        With years of experience in branding and content strategy, we created MagicPixa to solve a simple problem: <span className="text-[#1A1A1E] font-bold italic">professional production is often too expensive, slow, and complicated.</span> We've made it accessible to everyone.
+                        <div className="flex flex-col md:flex-row items-center gap-12">
+                            <div className="md:w-1/2">
+                                <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-lg mb-6">
+                                    <BuildingIcon className="w-4 h-4 text-indigo-600" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700">The Studio Background</span>
+                                </div>
+                                <h2 className="text-3xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Who Built MagicPixa?</h2>
+                                <p className="text-[#5F6368] font-medium leading-relaxed mb-6 text-lg">
+                                    MagicPixa is built and owned by <span className="text-indigo-600 font-bold">Magic Peacock Studios</span>, a creative studio and media production company known for storytelling, design, and digital marketing.
+                                </p>
+                                <p className="text-[#5F6368] font-medium leading-relaxed mb-6">
+                                    Working with brands, creators, real estate companies, startups and businesses across India, Magic Peacock Studios created MagicPixa to solve a simple problem:
+                                </p>
+                                <div className="bg-[#F6F7FA] p-6 rounded-2xl border-l-4 border-[#F9D230]">
+                                    <p className="text-[#1A1A1E] font-bold italic text-lg leading-relaxed">
+                                        "Most businesses need constant content — but design, editing and production are expensive, slow and complicated."
                                     </p>
                                 </div>
-                                <div className="bg-[#F6F7FA] p-8 rounded-[2rem] border border-indigo-50">
-                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mb-6 shadow-sm">
-                                        <BuildingIcon className="w-6 h-6 text-indigo-600" />
+                            </div>
+                            <div className="md:w-1/2 w-full">
+                                <div className="bg-[#F6F7FA] p-10 rounded-[3rem] border border-gray-100 flex flex-col items-center text-center">
+                                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-gray-200/50">
+                                        <BuildingIcon className="w-10 h-10 text-indigo-600" />
                                     </div>
-                                    <h4 className="text-lg font-black text-[#1A1A1E] mb-2 uppercase tracking-tight">Magic Peacock Studios</h4>
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-4">Production • Design • Digital Marketing</p>
-                                    <div className="h-px bg-gray-200 w-12 mb-4"></div>
-                                    <p className="text-sm text-gray-600 italic">"Making professional creative production accessible to everyone."</p>
+                                    <h4 className="text-xl font-bold text-[#1A1A1E] mb-2 uppercase tracking-tight">Magic Peacock Studios</h4>
+                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-6">India's Leading Production House</p>
+                                    <div className="w-full space-y-4">
+                                        {['Branding & Identity', 'Advertising Visuals', 'Video Production', 'Content Strategy'].map(service => (
+                                            <div key={service} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200">
+                                                <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                                                    <CheckIcon className="w-3 h-3 text-indigo-600" />
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-700">{service}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Mission & Vision */}
-                <section className="py-24 px-4 bg-white">
+                {/* Mission & Vision - Two Columns */}
+                <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12">
-                        <div className="space-y-6">
-                            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
+                        <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-200/80 space-y-6">
+                            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
                                 <FlagIcon className="w-7 h-7" />
                             </div>
-                            <h2 className="text-3xl font-black text-[#1A1A1E]">Our Mission</h2>
-                            <p className="text-gray-600 font-medium text-lg leading-relaxed">
+                            <h2 className="text-3xl font-bold text-[#1A1A1E]">Our Mission</h2>
+                            <p className="text-[#5F6368] font-medium text-lg leading-relaxed">
                                 To make powerful creative tools available to <span className="text-indigo-600 font-bold">every business, creator and entrepreneur</span> — so they can build their brand, tell their story, and grow online without limitations.
                             </p>
+                            <p className="text-[#5F6368] font-medium">
+                                We believe creativity should not be restricted by budget, skills or time. MagicPixa exists to <span className="font-bold text-[#1A1A1E]">remove those barriers.</span>
+                            </p>
                         </div>
-                        <div className="space-y-6">
-                            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+                        <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-200/80 space-y-6">
+                            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
                                 <ShieldCheckIcon className="w-7 h-7" />
                             </div>
-                            <h2 className="text-3xl font-black text-[#1A1A1E]">Our Vision</h2>
-                            <p className="text-gray-600 font-medium text-lg leading-relaxed">
-                                To become the most trusted AI creative platform for content creation, branding and marketing — <span className="text-emerald-600 font-bold">empowering millions of people</span> to build strong digital identities and successful businesses.
+                            <h2 className="text-3xl font-bold text-[#1A1A1E]">Our Vision</h2>
+                            <p className="text-[#5F6368] font-medium text-lg leading-relaxed">
+                                To become the most trusted AI creative platform for content creation, branding and marketing — <span className="text-emerald-600 font-bold">empowering millions of people</span> to build strong digital identities and successful online businesses.
+                            </p>
+                            <p className="text-[#5F6368] font-medium">
+                                We envision a world where anyone can <span className="font-bold text-[#1A1A1E]">create, market and scale</span> their brand with confidence.
                             </p>
                         </div>
                     </div>
                 </section>
 
-                {/* Why Section */}
-                <section className="py-24 px-4 bg-[#1A1A1E] text-white">
+                {/* Why Section - The Team Replacement */}
+                <section className="py-24 px-4 bg-white">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
                             <div>
-                                <h2 className="text-4xl font-black mb-8 tracking-tight">Why MagicPixa Exists</h2>
-                                <p className="text-gray-400 text-lg font-medium mb-12">
-                                    Traditional content creation requires an entire team. MagicPixa replaces the heavy lifting with a single intelligent platform.
+                                <h2 className="text-4xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Why MagicPixa Exists</h2>
+                                <p className="text-[#5F6368] text-lg font-medium mb-12 leading-relaxed">
+                                    Creating professional content traditionally requires an entire team of specialists. <span className="text-indigo-600 font-bold">MagicPixa replaces all of that with a single intelligent platform.</span>
                                 </p>
                                 
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {['Designers', 'Editors', 'Copywriters', 'Social Media Managers', 'Marketing Agencies'].map((role, i) => (
-                                        <div key={i} className="flex items-center gap-4 group">
-                                            <div className="w-6 h-6 rounded-full border border-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-500 group-hover:bg-red-500 group-hover:border-red-500 group-hover:text-white transition-all">{i+1}</div>
-                                            <span className="text-lg font-bold text-gray-300 group-hover:text-white transition-colors line-through decoration-gray-600">{role}</span>
+                                        <div key={i} className="flex items-center gap-4 group bg-[#F6F7FA] p-4 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-md">
+                                            <div className="w-6 h-6 rounded-full border-2 border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-400 group-hover:bg-red-500 group-hover:border-red-500 group-hover:text-white transition-all">{i+1}</div>
+                                            <span className="text-base font-bold text-gray-500 group-hover:text-gray-400 line-through decoration-gray-400 decoration-2">{role}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-6">
+                            <div className="space-y-6">
                                 {[
-                                    { title: "Saves Time", icon: <ClockIcon className="w-6 h-6"/>, desc: "Go from idea to finished asset in under 60 seconds." },
-                                    { title: "Saves Cost", icon: <CreditCoinIcon className="w-6 h-6"/>, desc: "Eliminate expensive retainers and per-project freelancer fees." },
-                                    { title: "Pro Output", icon: <CheckIcon className="w-6 h-6"/>, desc: "Consistent, agency-grade quality every single time." }
+                                    { title: "Saves Time", icon: <ClockIcon className="w-6 h-6"/>, desc: "Instantly turn ideas into ready-to-use content.", color: "text-blue-600", bg: "bg-blue-50" },
+                                    { title: "Saves Cost", icon: <CreditCoinIcon className="w-6 h-6"/>, desc: "Eliminate expensive freelance retainers forever.", color: "text-amber-600", bg: "bg-amber-50" },
+                                    { title: "Pro Consistency", icon: <CheckIcon className="w-6 h-6"/>, desc: "Consistent, professional output on every single run.", color: "text-green-600", bg: "bg-green-50" }
                                 ].map((box, i) => (
-                                    <div key={i} className="bg-white/5 border border-white/10 p-8 rounded-[2rem] hover:bg-white/10 transition-colors">
-                                        <div className="text-indigo-400 mb-4">{box.icon}</div>
-                                        <h4 className="text-xl font-bold mb-2">{box.title}</h4>
-                                        <p className="text-gray-400 font-medium text-sm">{box.desc}</p>
+                                    <div key={i} className="flex items-start gap-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 transition-all hover:shadow-md">
+                                        <div className={`w-12 h-12 ${box.bg} ${box.color} rounded-2xl flex items-center justify-center shrink-0 shadow-inner`}>
+                                            {box.icon}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-bold text-[#1A1A1E] mb-2">{box.title}</h4>
+                                            <p className="text-[#5F6368] font-medium text-sm leading-relaxed">{box.desc}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -170,19 +207,21 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                     </div>
                 </section>
 
-                {/* Final CTA */}
-                <section className="py-32 px-4 text-center">
-                    <div className="max-w-3xl mx-auto">
-                        <h2 className="text-4xl md:text-5xl font-black text-[#1A1A1E] mb-12 leading-tight tracking-tight">
-                            Built for speed. <br/> For growth. For impact.
+                {/* Final CTA - Matching Home Style */}
+                <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-200/50">
+                    <div className="max-w-4xl mx-auto">
+                        <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 leading-tight tracking-tight">
+                            Built for speed. For growth. For impact.
                         </h2>
+                        <p className="text-lg text-[#5F6368] mb-12 font-medium">Ready to transform your creative workflow?</p>
                         <button 
                             onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                            className="bg-[#F9D230] text-[#1A1A1E] font-black py-5 px-12 rounded-[2rem] hover:bg-[#dfbc2b] transition-all shadow-2xl shadow-yellow-500/20 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
+                            className="bg-[#F9D230] text-[#1A1A1E] font-bold py-5 px-12 rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/30 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
                         >
                             Start Creating Now
                             <ArrowRightIcon className="w-6 h-6" />
                         </button>
+                        <p className="text-sm text-gray-500 mt-6 font-medium">Get 50 free credits on sign up!</p>
                     </div>
                 </section>
             </main>
