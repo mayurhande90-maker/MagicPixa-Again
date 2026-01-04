@@ -8,7 +8,7 @@ import {
     ThumbnailIcon, 
     PixaProductIcon, 
     PixaCaptionIcon, 
-    PaletteIcon, 
+    BrandKitIcon, 
     BuildingIcon,
     ArrowRightIcon,
     ShieldCheckIcon,
@@ -69,7 +69,7 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                                 { title: "YouTube & Social", icon: <ThumbnailIcon className="w-10 h-10"/>, text: "Generate high-CTR thumbnails for YouTube, Instagram and social media." },
                                 { title: "Marketing Creatives", icon: <MagicAdsIcon className="w-10 h-10"/>, text: "Create posters, banners, and marketing creatives instantly." },
                                 { title: "Viral Copywriting", icon: <PixaCaptionIcon className="w-10 h-10"/>, text: "Generate reels ideas, scripts, captions and ad copies." },
-                                { title: "Brand Identity", icon: <PaletteIcon className="w-10 h-10"/>, text: "Design brand visuals and promotional creatives without design skills." },
+                                { title: "Brand Identity", icon: <BrandKitIcon className="w-10 h-10"/>, text: "Design brand visuals and promotional creatives without design skills." },
                                 { title: "Studio Quality", icon: <PixaProductIcon className="w-10 h-10"/>, text: "Produce high-quality visuals for products without editing skills." }
                             ].map((item, i) => (
                                 <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all group">
