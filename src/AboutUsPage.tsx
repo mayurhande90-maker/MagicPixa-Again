@@ -80,12 +80,12 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                                     <p className="text-[#5F6368] text-sm leading-relaxed font-medium">{item.text}</p>
                                 </div>
                             ))}
-                            {/* Final Speed Block */}
-                            <div className="bg-[#1A1A1E] p-8 rounded-2xl shadow-lg border-none flex flex-col justify-center text-white relative overflow-hidden">
+                            {/* Final Speed Block - Now with Colorful Light Gradient */}
+                            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8 rounded-2xl shadow-sm border border-blue-100 flex flex-col justify-center text-[#1A1A1E] relative overflow-hidden group hover:shadow-md transition-all">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                                 <LightningIcon className="w-10 h-10 text-[#F9D230] mb-4" />
                                 <h3 className="text-xl font-bold mb-2">Maximum Speed</h3>
-                                <p className="text-gray-400 text-sm leading-relaxed">MagicPixa is designed for speed, simplicity and results — helping you publish faster, look professional, and grow online.</p>
+                                <p className="text-[#5F6368] text-sm leading-relaxed font-medium">MagicPixa is designed for speed, simplicity and results — helping you publish faster, look professional, and grow online.</p>
                             </div>
                         </div>
                     </div>
