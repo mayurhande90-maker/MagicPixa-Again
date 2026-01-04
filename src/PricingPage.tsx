@@ -98,9 +98,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
             pkg: pack,
             type: 'plan',
             onSuccess: (updatedUser, totalCredits) => {
+                setSuccessCredits(totalCredits);
                 auth.setUser(updatedUser);
                 setLoadingPackId(null);
-                setSuccessCredits(totalCredits);
             },
             onCancel: () => setLoadingPackId(null),
             onError: (err) => {
@@ -297,6 +297,15 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
             </main>
 
             <Footer navigateTo={navigateTo} />
+            {successCredits !== null && (
+                <PaymentSuccessModal 
+                    creditsAdded={successCredits} 
+                    onClose={() => {
+                        setSuccessCredits(null);
+                        navigateTo('dashboard');
+                    }} 
+                />
+            )}
         </div>
     );
 };

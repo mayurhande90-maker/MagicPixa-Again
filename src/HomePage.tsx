@@ -190,9 +190,9 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
           pkg: pack,
           type: 'plan',
           onSuccess: (updatedUser, totalCredits) => {
+              setSuccessCredits(totalCredits);
               auth.setUser(updatedUser);
               setLoadingPackId(null);
-              setSuccessCredits(totalCredits);
           },
           onCancel: () => setLoadingPackId(null),
           onError: (err) => {

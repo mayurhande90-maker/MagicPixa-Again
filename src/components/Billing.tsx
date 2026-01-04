@@ -124,9 +124,9 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
         pkg,
         type,
         onSuccess: (updatedProfile, totalCredits) => {
+            setSuccessCredits(totalCredits);
             setUser(updatedProfile);
             setLoadingPackage(null);
-            setSuccessCredits(totalCredits);
             fetchHistory(); // Refresh history
         },
         onCancel: () => setLoadingPackage(null),
