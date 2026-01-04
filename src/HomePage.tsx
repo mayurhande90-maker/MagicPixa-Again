@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -138,6 +138,89 @@ const reviews = [
     },
 ];
 
+// --- Magnetic Feature Card Component ---
+const MagneticCard: React.FC<{ 
+    children: React.ReactNode; 
+    onClick?: () => void; 
+    className?: string;
+    disabled?: boolean;
+}> = ({ children, onClick, className, disabled }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState({});
+    const [spotlight, setSpotlight] = useState({ opacity: 0, x: 0, y: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (disabled || !cardRef.current) return;
+        
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Spotlight position
+        setSpotlight({ opacity: 1, x, y });
+        
+        // Magnetic Tilt
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = (y - centerY) / 25;
+        const rotateY = (centerX - x) / 25;
+        
+        setStyle({
+            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+            transition: 'none'
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setStyle({
+            transform: `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
+            transition: 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)'
+        });
+        setSpotlight(prev => ({ ...prev, opacity: 0 }));
+    };
+
+    return (
+        <div 
+            ref={cardRef}
+            onClick={onClick}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={style}
+            className={`${className} relative overflow-hidden`}
+        >
+            {/* Spotlight Overlay */}
+            <div 
+                className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-300"
+                style={{
+                    opacity: spotlight.opacity,
+                    background: `radial-gradient(400px circle at ${spotlight.x}px ${spotlight.y}px, rgba(77, 124, 255, 0.08), transparent 80%)`
+                }}
+            />
+            {children}
+        </div>
+    );
+};
+
+// --- Intersection Observer Hook for Reveals ---
+const useReveal = (delay: number = 0) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => setVisible(true), delay);
+                observer.unobserve(entry.target);
+            }
+        }, { threshold: 0.15 });
+
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, [delay]);
+
+    return { ref, visible };
+};
+
 const HomeMobileNav: React.FC<{ navigateTo: (page: Page, view?: View) => void; auth: AuthProps; }> = ({ navigateTo, auth }) => {
     const handleNav = (view: View) => {
         if (!auth.isAuthenticated) {
@@ -234,9 +317,38 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
           70% { transform: scale(2); opacity: 0; }
           100% { opacity: 0; }
         }
+        @keyframes pixa-vision-scan {
+            0% { top: 0%; opacity: 0; }
+            5% { opacity: 1; }
+            50% { top: 100%; opacity: 1; }
+            95% { opacity: 1; }
+            100% { top: 0%; opacity: 0; }
+        }
+        @keyframes line-draw {
+            from { width: 0; }
+            to { width: 100%; }
+        }
         .animate-mouse-move { animation: mouse-pointer-move 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
         .animate-luxury-btn { animation: luxury-button-activate 4s infinite step-end; }
         .animate-ripple { animation: click-ripple 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .pixa-scan-line {
+            height: 2px;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, #4D7CFF, transparent);
+            box-shadow: 0 0 15px #4D7CFF;
+            position: absolute;
+            z-index: 5;
+            animation: pixa-vision-scan 8s infinite ease-in-out;
+        }
+        .reveal-item {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .reveal-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
       `}</style>
       <Header navigateTo={navigateTo} auth={auth} />
       <main className={HomeStyles.main}>
@@ -244,6 +356,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         <section id="home" className={HomeStyles.heroSection}>
             <div className={HomeStyles.heroContainer}>
                 <div className={HomeStyles.heroBackgroundGrid}></div>
+                
+                {/* Pixa Vision Hero Scan Line */}
+                <div className="pixa-scan-line"></div>
+                
                 <div className={HomeStyles.heroBlob1}></div>
                 <div className={HomeStyles.heroBlob2}></div>
                 
@@ -275,20 +391,23 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                         <p className="text-lg text-[#5F6368] font-medium">Drop your assets, we do the engineering.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
                         {[
                             { step: "01", title: "Upload Asset", icon: <UploadTrayIcon className="w-10 h-10"/>, desc: "Drop your raw product photo or brand logo. Pixa Vision begins a forensic audit immediately." },
                             { step: "02", title: "Select Strategy", icon: <CursorClickIcon className="w-10 h-10"/>, desc: "Choose from pre-engineered visual archetypes (Luxury, Lifestyle, Tech). No text boxes involved." },
                             { step: "03", title: "Download 8K", icon: <SparklesIcon className="w-10 h-10"/>, desc: "Our engine renders a high-fidelity masterpiece with accurate lighting and shadows." }
-                        ].map((item, i) => (
-                            <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all flex flex-col items-center text-center">
-                                <div className="w-16 h-16 bg-[#F6F7FA] rounded-2xl flex items-center justify-center mb-6 text-indigo-600">
-                                    {item.icon}
+                        ].map((item, i) => {
+                            const { ref, visible } = useReveal(i * 200);
+                            return (
+                                <div key={i} ref={ref} className={`bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all flex flex-col items-center text-center reveal-item ${visible ? 'visible' : ''} relative z-10`}>
+                                    <div className="w-16 h-16 bg-[#F6F7FA] rounded-2xl flex items-center justify-center mb-6 text-indigo-600">
+                                        {item.icon}
+                                    </div>
+                                    <h3 className="text-xl font-bold text-[#1A1A1E] mb-3"><span className="text-indigo-200 mr-1">{item.step}.</span> {item.title}</h3>
+                                    <p className="text-[#5F6368] text-sm leading-relaxed font-medium">{item.desc}</p>
                                 </div>
-                                <h3 className="text-xl font-bold text-[#1A1A1E] mb-3"><span className="text-indigo-200 mr-1">{item.step}.</span> {item.title}</h3>
-                                <p className="text-[#5F6368] text-sm leading-relaxed font-medium">{item.desc}</p>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </section>
@@ -397,9 +516,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     <p className={HomeStyles.sectionSubheader}>One powerful toolkit for all your creative needs.</p>
                     <div className={HomeStyles.featureGrid}>
                         {featuresWithConfig.map((feature, index) => (
-                            <div 
+                            <MagneticCard 
                                 key={index} 
                                 onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
+                                disabled={feature.disabled}
                                 className={`${HomeStyles.featureCard} ${feature.disabled ? HomeStyles.featureCardDisabled : HomeStyles.featureCardEnabled}`}
                             >
                                 {feature.disabled && (
@@ -412,7 +532,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 </div>
                                 <h3 className={HomeStyles.featureTitle}>{feature.title}</h3>
                                 <p className={HomeStyles.featureDescription}>{feature.description}</p>
-                            </div>
+                            </MagneticCard>
                         ))}
                     </div>
                 </div>
