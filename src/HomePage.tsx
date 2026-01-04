@@ -311,40 +311,12 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                 </div>
             </section>
 
-            {/* Features Section */}
-            <section id="features" className={HomeStyles.featuresSection}>
-                <div className={HomeStyles.featuresContainer}>
-                    <h2 className={HomeStyles.sectionHeader}>Everything You Need to Create</h2>
-                    <p className={HomeStyles.sectionSubheader}>One powerful toolkit for all your creative needs.</p>
-                    <div className={HomeStyles.featureGrid}>
-                        {featuresWithConfig.map((feature, index) => (
-                            <div 
-                                key={index} 
-                                onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
-                                className={`${HomeStyles.featureCard} ${feature.disabled ? HomeStyles.featureCardDisabled : HomeStyles.featureCardEnabled}`}
-                            >
-                                {feature.disabled && (
-                                    <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                        Coming Soon
-                                    </div>
-                                )}
-                                <div className={`${HomeStyles.featureIconContainer} ${feature.color}`}>
-                                    {feature.icon}
-                                </div>
-                                <h3 className={HomeStyles.featureTitle}>{feature.title}</h3>
-                                <p className={HomeStyles.featureDescription}>{feature.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Why MagicPixa Section - Added from AboutUsPage */}
+            {/* Why MagicPixa Section - Positioned above Features */}
             <section className="py-24 px-4 bg-white">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         <div>
-                            <h2 className="text-4xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Why MagicPixa</h2>
+                            <h2 className="text-4xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Why MagicPixa?</h2>
                             <p className="text-[#5F6368] text-lg font-medium mb-12 leading-relaxed">
                                 Creating professional content traditionally requires an entire team of specialists. <span className="text-indigo-600 font-bold">MagicPixa replaces all of that with a single intelligent platform.</span>
                             </p>
@@ -376,6 +348,34 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Features Section */}
+            <section id="features" className={HomeStyles.featuresSection}>
+                <div className={HomeStyles.featuresContainer}>
+                    <h2 className={HomeStyles.sectionHeader}>Everything You Need to Create</h2>
+                    <p className={HomeStyles.sectionSubheader}>One powerful toolkit for all your creative needs.</p>
+                    <div className={HomeStyles.featureGrid}>
+                        {featuresWithConfig.map((feature, index) => (
+                            <div 
+                                key={index} 
+                                onClick={() => !feature.disabled && feature.id && navigateTo('dashboard', feature.id as View)}
+                                className={`${HomeStyles.featureCard} ${feature.disabled ? HomeStyles.featureCardDisabled : HomeStyles.featureCardEnabled}`}
+                            >
+                                {feature.disabled && (
+                                    <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        Coming Soon
+                                    </div>
+                                )}
+                                <div className={`${HomeStyles.featureIconContainer} ${feature.color}`}>
+                                    {feature.icon}
+                                </div>
+                                <h3 className={HomeStyles.featureTitle}>{feature.title}</h3>
+                                <p className={HomeStyles.featureDescription}>{feature.description}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
