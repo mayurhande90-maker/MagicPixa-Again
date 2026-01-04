@@ -213,6 +213,31 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
   return (
     <>
+      <style>{`
+        @keyframes mouse-pointer-move {
+          0%, 10% { transform: translate(80px, 80px); opacity: 0; }
+          20% { opacity: 1; }
+          45% { transform: translate(0, 0); }
+          50% { transform: translate(0, 0) scale(0.85); }
+          55% { transform: translate(0, 0) scale(1); }
+          85% { opacity: 1; }
+          95%, 100% { transform: translate(80px, 80px); opacity: 0; }
+        }
+        @keyframes luxury-button-activate {
+          0%, 49% { background-color: #ffffff; color: #9ca3af; border-color: #e5e7eb; box-shadow: none; }
+          50%, 90% { background-color: #F9D230; color: #1A1A1E; border-color: transparent; box-shadow: 0 20px 25px -5px rgba(249, 210, 48, 0.3); }
+          91%, 100% { background-color: #ffffff; color: #9ca3af; border-color: #e5e7eb; box-shadow: none; }
+        }
+        @keyframes click-ripple {
+          0%, 49% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1); opacity: 0.4; }
+          70% { transform: scale(2); opacity: 0; }
+          100% { opacity: 0; }
+        }
+        .animate-mouse-move { animation: mouse-pointer-move 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-luxury-btn { animation: luxury-button-activate 4s infinite step-end; }
+        .animate-ripple { animation: click-ripple 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+      `}</style>
       <Header navigateTo={navigateTo} auth={auth} />
       <main className={HomeStyles.main}>
         {/* Hero Section */}
@@ -299,12 +324,25 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 </div>
                                 <div className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Intelligent</div>
                             </div>
-                            <div className="flex justify-center py-6 mb-6">
-                                <div className="bg-[#F9D230] text-[#1A1A1E] px-8 py-4 rounded-2xl font-bold text-sm shadow-xl flex items-center gap-3">
+                            
+                            {/* Animated Interaction Container */}
+                            <div className="relative flex justify-center py-6 mb-6">
+                                {/* The Button */}
+                                <div className="animate-luxury-btn border border-gray-100 px-8 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 relative z-10 transition-colors">
                                     <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
                                     LUXURY MODE
+                                    {/* Click Ripple */}
+                                    <div className="absolute inset-0 bg-yellow-400/40 rounded-2xl animate-ripple pointer-events-none"></div>
+                                </div>
+
+                                {/* Animated Cursor */}
+                                <div className="absolute top-1/2 left-1/2 w-8 h-8 z-20 pointer-events-none animate-mouse-move">
+                                    <svg viewBox="0 0 24 24" fill="white" stroke="black" strokeWidth="1" className="drop-shadow-lg">
+                                        <path d="M5.5,2l13,11l-5,1l5,7l-3,1l-5-7l-5,4V2z" />
+                                    </svg>
                                 </div>
                             </div>
+
                             <p className="text-sm text-gray-700 font-bold leading-relaxed">Pixa Vision audits your product's physics and material to apply the perfect rig automatically. No typing required.</p>
                         </div>
                     </div>
