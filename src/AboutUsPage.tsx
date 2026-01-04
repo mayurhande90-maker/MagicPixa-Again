@@ -5,21 +5,10 @@ import { Page, View, AuthProps } from './types';
 import { 
     SparklesIcon, 
     CheckIcon, 
-    ThumbnailIcon, 
-    PixaProductIcon, 
-    PixaCaptionIcon, 
-    BrandKitIcon, 
     BuildingIcon,
     ArrowRightIcon,
     ShieldCheckIcon,
-    LightningIcon,
-    ClockIcon,
-    CreditCoinIcon,
-    FlagIcon,
-    MagicAdsIcon,
-    UploadTrayIcon,
-    CursorClickIcon,
-    XIcon
+    FlagIcon
 } from './components/icons';
 
 interface AboutUsPageProps {
@@ -60,75 +49,6 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{pill}</span>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* The Workflow Section - 3 Steps matching the feature cards style */}
-                <section className="py-20 px-4">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">The MagicPixa Workflow</h2>
-                            <p className="text-lg text-[#5F6368] font-medium">Drop your assets, we do the engineering.</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {[
-                                { step: "01", title: "Upload Asset", icon: <UploadTrayIcon className="w-10 h-10"/>, desc: "Drop your raw product photo or brand logo. Pixa Vision begins a forensic audit immediately." },
-                                { step: "02", title: "Select Strategy", icon: <CursorClickIcon className="w-10 h-10"/>, desc: "Choose from pre-engineered visual archetypes (Luxury, Lifestyle, Tech). No text boxes involved." },
-                                { step: "03", title: "Download 8K", icon: <SparklesIcon className="w-10 h-10"/>, desc: "Our engine renders a high-fidelity masterpiece with accurate lighting and shadows." }
-                            ].map((item, i) => (
-                                <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 hover:shadow-md transition-all flex flex-col items-center text-center">
-                                    <div className="w-16 h-16 bg-[#F6F7FA] rounded-2xl flex items-center justify-center mb-6 text-indigo-600">
-                                        {item.icon}
-                                    </div>
-                                    <h3 className="text-xl font-bold text-[#1A1A1E] mb-3"><span className="text-indigo-200 mr-1">{item.step}.</span> {item.title}</h3>
-                                    <p className="text-[#5F6368] text-sm leading-relaxed font-medium">{item.desc}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Comparison Section - The Moat (Clean Theme Style) */}
-                <section className="py-24 px-4 bg-[#F6F7FA]">
-                    <div className="max-w-5xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Why Logic Beats Prompts</h2>
-                            <p className="text-lg text-[#5F6368] font-medium">MagicPixa is an expert photographer, not a chat bot.</p>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-8 items-stretch">
-                            {/* Traditional AI */}
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-200 shadow-sm opacity-60">
-                                <div className="flex items-center gap-3 mb-8">
-                                    <div className="p-2 bg-red-50 text-red-500 rounded-lg"><XIcon className="w-5 h-5"/></div>
-                                    <h4 className="font-bold text-xs uppercase tracking-widest text-red-700">Traditional AI Tools</h4>
-                                </div>
-                                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-6 font-mono text-[11px] text-gray-400 leading-relaxed italic border-dashed">
-                                    "Hyper-realistic 8k studio lighting, cinematic shadows, bokeh background, marble table, high-end commercial photography, intricate details, phase one camera..."
-                                </div>
-                                <p className="text-sm text-gray-500 font-medium">Requires you to learn technical terminology and spend hours "prompting" until it looks right.</p>
-                            </div>
-
-                            {/* MagicPixa Way */}
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-indigo-200 shadow-lg relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-12 -mt-12 blur-2xl opacity-50"></div>
-                                <div className="flex items-center justify-between mb-8">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-lg"><SparklesIcon className="w-5 h-5"/></div>
-                                        <h4 className="font-bold text-xs uppercase tracking-widest text-indigo-600">The MagicPixa Way</h4>
-                                    </div>
-                                    <div className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Intelligent</div>
-                                </div>
-                                <div className="flex justify-center py-6 mb-6">
-                                    <div className="bg-[#F9D230] text-[#1A1A1E] px-8 py-4 rounded-2xl font-bold text-sm shadow-xl flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
-                                        LUXURY MODE
-                                    </div>
-                                </div>
-                                <p className="text-sm text-gray-700 font-bold leading-relaxed">Pixa Vision audits your product's physics and material to apply the perfect rig automatically. No typing required.</p>
                             </div>
                         </div>
                     </div>
