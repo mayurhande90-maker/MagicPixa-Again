@@ -297,33 +297,39 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   return (
     <>
       <style>{`
-        @keyframes mouse-pointer-move {
-          0%, 10% { transform: translate(80px, 80px); opacity: 0; }
-          20% { opacity: 1; }
-          45% { transform: translate(0, 0); }
-          50% { transform: translate(0, 0) scale(0.85); }
-          55% { transform: translate(0, 0) scale(1); }
-          85% { opacity: 1; }
-          95%, 100% { transform: translate(80px, 80px); opacity: 0; }
+        @keyframes mouse-move-logic {
+          0% { transform: translate(120px, 120px); opacity: 0; }
+          10% { opacity: 1; }
+          25% { transform: translate(-80px, -45px); } /* On Product Shot Button */
+          40% { transform: translate(-80px, -45px); scale: 0.9; }
+          45% { transform: translate(-80px, -45px); scale: 1; }
+          60% { transform: translate(0, 45px); } /* On Generate Button */
+          65% { transform: translate(0, 45px) scale(0.8); } /* Click */
+          70% { transform: translate(0, 45px) scale(1); }
+          90% { opacity: 1; }
+          100% { transform: translate(120px, 120px); opacity: 0; }
         }
-        @keyframes luxury-button-activate {
-          0%, 49% { background-color: #ffffff; color: #9ca3af; border-color: #e5e7eb; box-shadow: none; }
-          50%, 90% { background-color: #F9D230; color: #1A1A1E; border-color: transparent; box-shadow: 0 20px 25px -5px rgba(249, 210, 48, 0.3); }
-          91%, 100% { background-color: #ffffff; color: #9ca3af; border-color: #e5e7eb; box-shadow: none; }
+        @keyframes btn-product-activate {
+          0%, 25% { background-color: #f9fafb; color: #9ca3af; border-color: #e5e7eb; opacity: 0.3; }
+          26%, 90% { background-color: #4D7CFF; color: #ffffff; border-color: transparent; opacity: 1; box-shadow: 0 10px 15px -3px rgba(77, 124, 255, 0.2); }
+          91%, 100% { background-color: #f9fafb; color: #9ca3af; border-color: #e5e7eb; opacity: 0.3; }
         }
-        @keyframes click-ripple {
-          0%, 49% { transform: scale(0); opacity: 0; }
-          50% { transform: scale(1); opacity: 0.4; }
-          70% { transform: scale(2); opacity: 0; }
+        @keyframes btn-generate-activate {
+          0%, 60% { background-color: #f3f4f6; color: #d1d5db; border-color: #e5e7eb; opacity: 0.3; }
+          61%, 90% { background-color: #F9D230; color: #1A1A1E; border-color: transparent; opacity: 1; box-shadow: 0 10px 15px -3px rgba(249, 210, 48, 0.4); }
+          91%, 100% { background-color: #f3f4f6; color: #d1d5db; border-color: #e5e7eb; opacity: 0.3; }
+        }
+        @keyframes click-ripple-new {
+          0%, 64% { transform: scale(0); opacity: 0; }
+          65% { transform: scale(1); opacity: 0.4; }
+          85% { transform: scale(3); opacity: 0; }
           100% { opacity: 0; }
         }
-        @keyframes line-draw {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-        .animate-mouse-move { animation: mouse-pointer-move 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-        .animate-luxury-btn { animation: luxury-button-activate 4s infinite step-end; }
-        .animate-ripple { animation: click-ripple 4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-mouse-logic { animation: mouse-move-logic 5s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-btn-logic-product { animation: btn-product-activate 5s infinite; }
+        .animate-btn-logic-generate { animation: btn-generate-activate 5s infinite; }
+        .animate-ripple-logic { animation: click-ripple-new 5s infinite; }
+        
         .reveal-item {
             opacity: 0;
             transform: translateY(30px);
@@ -426,21 +432,29 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                 <div className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Intelligent</div>
                             </div>
                             
-                            {/* Animated Interaction Container */}
-                            <div className="relative flex justify-center py-6 mb-6">
-                                {/* The Button */}
-                                <div className="animate-luxury-btn border border-gray-100 px-8 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 relative z-10 transition-colors">
-                                    <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
-                                    LUXURY MODE
-                                    {/* Click Ripple */}
-                                    <div className="absolute inset-0 bg-yellow-400/40 rounded-2xl animate-ripple pointer-events-none"></div>
+                            {/* Animated Interaction Container - NEW DESIGN */}
+                            <div className="relative flex flex-col items-center justify-center py-6 mb-6 gap-6 min-h-[160px]">
+                                {/* Top Row: Options */}
+                                <div className="flex gap-2">
+                                    <div className="animate-btn-logic-product border border-gray-100 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all">Product Shot</div>
+                                    <div className="opacity-30 bg-gray-50 border border-gray-100 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider text-gray-400">Luxury Vibe</div>
+                                    <div className="opacity-30 bg-gray-50 border border-gray-100 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider text-gray-400">Lifestyle Shot</div>
                                 </div>
 
-                                {/* Animated Cursor */}
-                                <div className="absolute top-1/2 left-1/2 w-8 h-8 z-20 pointer-events-none animate-mouse-move">
-                                    <svg viewBox="0 0 24 24" fill="white" stroke="black" strokeWidth="1" className="drop-shadow-lg">
-                                        <path d="M5.5,2l13,11l-5,1l5,7l-3,1l-5-7l-5,4V2z" />
-                                    </svg>
+                                {/* Bottom Button: Generate */}
+                                <div className="relative">
+                                    <div className="animate-btn-logic-generate border border-gray-200 px-12 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.2em] relative overflow-hidden transition-all shadow-sm">
+                                        Generate
+                                        {/* Click Ripple Effect */}
+                                        <div className="absolute inset-0 bg-white/40 rounded-full animate-ripple-logic pointer-events-none scale-0 origin-center"></div>
+                                    </div>
+                                    
+                                    {/* Animated Cursor */}
+                                    <div className="absolute top-0 left-0 w-8 h-8 z-30 pointer-events-none animate-mouse-logic">
+                                        <svg viewBox="0 0 24 24" fill="white" stroke="black" strokeWidth="1.5" className="drop-shadow-lg w-full h-full">
+                                            <path d="M5.5,2l13,11l-5,1l5,7l-3,1l-5-7l-5,4V2z" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
 
