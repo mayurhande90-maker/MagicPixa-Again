@@ -1,4 +1,3 @@
-
 import { Theme } from './theme';
 
 export const BillingStyles = {
@@ -31,7 +30,7 @@ export const BillingStyles = {
   // Buttons
   packButton: `w-full mt-auto py-[min(2vh,16px)] rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2`,
   packButtonPopular: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.colors.primaryHover}`,
-  packButtonStandard: "bg-gray-100 text-[#1A1A1E] hover:bg-gray-200",
+  packButtonStandard: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.colors.primaryHover}`,
   packButtonActive: "bg-indigo-600 text-white cursor-default shadow-md",
 
   // Badges

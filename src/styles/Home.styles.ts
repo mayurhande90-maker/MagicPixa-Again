@@ -46,7 +46,7 @@ export const HomeStyles = {
   // Buttons
   pricingButton: `w-full mt-auto py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2`,
   pricingButtonPopular: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.colors.primaryHover}`,
-  pricingButtonStandard: "bg-gray-100 text-[#1A1A1E] hover:bg-gray-200",
+  pricingButtonStandard: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.colors.primaryHover}`,
   pricingButtonActive: "bg-indigo-600 text-white cursor-default shadow-md",
 
   // Badges
