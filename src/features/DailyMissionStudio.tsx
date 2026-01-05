@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, Page, View } from '../types';
 import { 
@@ -157,7 +156,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 onResetResult={() => { setResult(null); setLastCreationId(null); }}
                 onNewSession={() => { setImage(null); setResult(null); setLastCreationId(null); }}
                 resultHeightClass="h-[750px]"
-                disableScroll={true}
+                disableScroll={false}
                 hideGenerateButton={isLocked}
                 // Redesigned Button: Premium Gold
                 generateButtonStyle={{
@@ -222,16 +221,16 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                     )
                 }
                 rightContent={
-                    <div className="h-full w-full relative overflow-hidden rounded-3xl bg-[#1A1A1E] shadow-2xl flex flex-col border border-gray-800">
+                    <div className="min-h-full w-full relative overflow-hidden rounded-[2rem] bg-[#1A1A1E] shadow-2xl flex flex-col border border-gray-800">
                         {/* Animated Background Gradients - Dark Theme */}
-                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-purple-500/10 rounded-full blur-[60px] -ml-10 -mb-10 pointer-events-none"></div>
+                        <div className="absolute top-0 right-0 w-[clamp(150px,30vh,300px)] h-[clamp(150px,30vh,300px)] bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-[clamp(100px,20vh,200px)] h-[clamp(100px,20vh,200px)] bg-purple-500/10 rounded-full blur-[60px] -ml-10 -mb-10 pointer-events-none"></div>
                         
                         {/* Content */}
-                        <div className="relative z-10 flex flex-col h-full p-8 text-left">
+                        <div className="relative z-10 flex flex-col h-full p-[min(5vh,32px)] text-left">
                             
                             {/* Top Badge */}
-                            <div className="flex justify-between items-start mb-10">
+                            <div className="flex justify-between items-start mb-[min(4vh,24px)]">
                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[10px] font-black uppercase tracking-widest shadow-sm">
                                     <SparklesIcon className="w-3 h-3" />
                                     Daily Challenge
@@ -248,43 +247,45 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                             </div>
 
                             {/* Prominent Typography */}
-                            <div className="mb-8">
-                                <h2 className="text-4xl md:text-5xl font-black text-white leading-[1.1] mb-6 tracking-tight drop-shadow-sm">
+                            <div className="mb-[min(4vh,24px)]">
+                                <h2 className="text-[clamp(28px,6vh,48px)] font-black text-white leading-[1.1] mb-[min(3vh,24px)] tracking-tighter drop-shadow-sm">
                                     {mission.title}
                                 </h2>
-                                <div className="w-20 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mb-8"></div>
+                                <div className="w-16 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mb-[min(4vh,32px)]"></div>
                                 
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                                    <p className="text-gray-300 text-lg leading-relaxed font-medium">
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-[min(3vh,24px)] backdrop-blur-sm shadow-inner">
+                                    <p className="text-gray-300 text-[clamp(14px,1.8vh,18px)] leading-relaxed font-medium">
                                         {mission.description}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Spacer */}
-                            <div className="flex-1"></div>
+                            <div className="flex-1 min-h-[2vh]"></div>
 
                             {/* Premium Reward Card - Dark Version */}
                             <div className="relative group mt-auto">
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur-sm"></div>
-                                <div className="relative flex items-center justify-between bg-[#252529] rounded-xl p-6 border border-white/10 shadow-xl">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 shadow-inner transform group-hover:scale-110 transition-transform duration-300">
-                                            <CheckIcon className="w-7 h-7 text-yellow-400" />
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl opacity-10 group-hover:opacity-30 transition duration-500 blur-sm"></div>
+                                <div className="relative flex items-center justify-between bg-[#252529] rounded-2xl p-[min(3vh,24px)] border border-white/10 shadow-xl overflow-hidden">
+                                    <div className="flex items-center gap-4 relative z-10">
+                                        <div className="w-[clamp(44px,7vh,56px)] h-[clamp(44px,7vh,56px)] rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 shadow-inner transform group-hover:scale-110 transition-transform duration-300">
+                                            <CheckIcon className="w-[50%] h-[50%] text-yellow-400" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reward Bounty</p>
-                                            <p className="text-white font-bold text-base">Upon Completion</p>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Reward Bounty</p>
+                                            <p className="text-white font-black text-sm uppercase tracking-tight">On Success</p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right relative z-10">
                                         <div className="flex items-baseline justify-end gap-1">
-                                            <span className="text-4xl font-black text-white tracking-tight">
+                                            <span className="text-[clamp(32px,5vh,48px)] font-black text-white tracking-tighter">
                                                 +{mission.reward}
                                             </span>
-                                            <span className="text-sm font-bold text-yellow-400">CR</span>
+                                            <span className="text-[clamp(10px,1.2vh,12px)] font-bold text-yellow-400 uppercase">CR</span>
                                         </div>
                                     </div>
+                                    {/* Subtle internal decor */}
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
                                 </div>
                             </div>
                         </div>
@@ -304,3 +305,5 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         </>
     );
 };
+
+export default DailyMissionStudio;
