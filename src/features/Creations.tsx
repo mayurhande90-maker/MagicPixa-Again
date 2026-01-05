@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, Creation } from '../types';
 import { getCreations, deleteCreation } from '../firebase';
@@ -27,7 +26,6 @@ const FILTER_CATEGORIES = [
     { label: 'Pixa Caption Pro', key: 'Caption' },
     { label: 'Pixa Interior Design', key: 'Interior' },
     { label: 'Pixa TryOn', key: 'TryOn' },
-    { label: 'Pixa Mockups', key: 'Mockup' },
     { label: 'Campaign Studio', key: 'Campaign' },
     { label: 'Daily Missions', key: 'Mission' },
 ];

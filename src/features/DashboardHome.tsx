@@ -153,7 +153,6 @@ export const DashboardHome: React.FC<{
             'Pixa Caption Pro': 'caption',
             'Pixa Interior Design': 'interior',
             'Pixa TryOn': 'apparel',
-            'Pixa Mockups': 'mockup',
             'Pixa Headshot Pro': 'headshot',
             'Campaign Studio': 'campaign_studio',
             // Legacy Mappings
@@ -166,7 +165,6 @@ export const DashboardHome: React.FC<{
             'CaptionAI': 'caption',
             'Magic Interior': 'interior',
             'Magic Apparel': 'apparel',
-            'Magic Mockup': 'mockup'
         };
         const exact = map[featureName];
         if (exact) return exact;
@@ -188,7 +186,6 @@ export const DashboardHome: React.FC<{
         { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, color: '' },
         { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, color: '' },
         { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, color: '' },
-        { id: 'mockup', label: 'Pixa Mockups', icon: PixaMockupIcon, color: '' },
     ];
 
     return (

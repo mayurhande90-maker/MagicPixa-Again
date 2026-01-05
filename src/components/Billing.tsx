@@ -71,7 +71,6 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     if (feature.includes('Caption Pro')) return <PixaCaptionIcon className={iconClass} />;
     if (feature.includes('Interior Design')) return <PixaInteriorIcon className={iconClass} />;
     if (feature.includes('TryOn')) return <PixaTryOnIcon className={iconClass} />;
-    if (feature.includes('Mockups')) return <PixaMockupIcon className={iconClass} />;
     if (feature.includes('Headshot Pro')) return <PixaHeadshotIcon className={iconClass} />;
     if (feature.includes('Magic Eraser') || feature.includes('Magic Editor')) return <MagicWandIcon className={iconClass} />;
     if (feature.includes('Campaign Studio')) return <CampaignStudioIcon className={iconClass} />;

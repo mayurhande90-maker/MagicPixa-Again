@@ -25,7 +25,6 @@ const VAULT_FOLDERS = [
     { id: 'interior', label: 'Interior Design', icon: PixaInteriorIcon, color: 'bg-amber-400' },
     { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, color: 'bg-pink-400' },
     { id: 'apparel', label: 'Pixa TryOn', icon: ApparelIcon, color: 'bg-rose-400' },
-    { id: 'mockup', label: 'Pixa Mockups', icon: MagicWandIcon, color: 'bg-teal-400' },
 ];
 
 const ADMAKER_CATEGORIES = [

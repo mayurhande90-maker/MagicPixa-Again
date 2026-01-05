@@ -104,14 +104,6 @@ const features = [
         description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds.",
         color: "",
         disabled: false,
-    },
-    {
-        id: 'mockup',
-        icon: <PixaMockupIcon className="w-16 h-16" />,
-        title: "Pixa Mockups",
-        description: "Upload your logo or design and our AI will automatically generate mockups on notebooks, t-shirts, and more.",
-        color: "",
-        disabled: false,
     }
 ];
 

@@ -21,7 +21,7 @@ const SHOWREEL_IMAGES = [
     { label: "Executive Headshots", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop", span: "md:col-span-1 md:row-span-1" },
     { label: "Luxury Interiors", url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop", span: "md:col-span-1 md:row-span-2" },
     { label: "High-CTR Thumbnails", url: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?q=80&w=2070&auto=format&fit=crop", span: "md:col-span-1 md:row-span-1" },
-    { label: "Pro Mockups", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop", span: "md:col-span-2 md:row-span-1" },
+    { label: "Pro Ad Creatives", url: "https://images.unsplash.com/photo-1586717791821-3f44a563cc4c?q=80&w=2070&auto=format&fit=crop", span: "md:col-span-2 md:row-span-1" },
 ];
 
 const BENTO_FEATURES = [
@@ -64,14 +64,6 @@ const BENTO_FEATURES = [
         icon: <PixaInteriorIcon className="w-10 h-10" />,
         size: "md", // 2x1
         color: "amber"
-    },
-    {
-        id: 'mockup',
-        title: "Mockup Engine",
-        desc: "Physical proofs.",
-        icon: <PixaMockupIcon className="w-6 h-6" />,
-        size: "sm",
-        color: "rose"
     }
 ];
 

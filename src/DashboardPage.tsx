@@ -29,8 +29,6 @@ import {
 const MagicPhotoStudio = lazy(() => import('./features/MagicPhotoStudio').then(module => ({ default: module.MagicPhotoStudio })));
 const MagicInterior = lazy(() => import('./features/MagicInterior').then(module => ({ default: module.MagicInterior })));
 const MagicApparel = lazy(() => import('./features/MagicApparel').then(module => ({ default: module.MagicApparel })));
-const MagicMockup = lazy(() => import('./features/MagicMockup').then(module => ({ default: module.MagicMockup })));
-const MagicMockupStaging = lazy(() => import('./features/MagicMockupStaging').then(module => ({ default: module.MagicMockupStaging })));
 const DashboardHome = lazy(() => import('./features/DashboardHome').then(module => ({ default: module.DashboardHome })));
 const Creations = lazy(() => import('./features/Creations').then(module => ({ default: module.Creations })));
 const CaptionAI = lazy(() => import('./features/CaptionAI').then(module => ({ default: module.CaptionAI })));
@@ -160,10 +158,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                  return <MagicInterior auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'apparel':
                  return <MagicApparel auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
-            case 'mockup':
-                 return <MagicMockup auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
-            case 'mockup_staging':
-                 return <MagicMockupStaging auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
             case 'caption':
                  return <CaptionAI auth={auth} appConfig={appConfig} />;
             case 'headshot':

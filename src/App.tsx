@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
@@ -42,14 +41,12 @@ const VIEW_TO_PATH: Record<string, string> = {
     'caption': '/PixaCaptionPro',
     'interior': '/PixaInteriorDesign',
     'apparel': '/PixaTryOn',
-    'mockup': '/PixaMockups',
     'billing': '/Billing',
     'creations': '/MyCreations',
     'brand_manager': '/MyBrandKit',
     'support_center': '/HelpAndSupport',
     'admin': '/Admin',
     'campaign_studio': '/CampaignStudio',
-    'mockup_staging': '/MockupStaging',
 };
 
 // Create a case-insensitive map for detection
@@ -140,7 +137,7 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') as View;
     // Simple whitelist check
-    const validViews: View[] = ['dashboard', 'studio', 'interior', 'creations', 'billing', 'colour', 'soul', 'apparel', 'mockup', 'profile', 'caption', 'home_dashboard', 'brand_kit', 'brand_stylist', 'admin', 'thumbnail_studio', 'daily_mission', 'magic_realty', 'brand_manager', 'support_center', 'headshot', 'campaign_studio', 'mockup_staging'];
+    const validViews: View[] = ['dashboard', 'studio', 'interior', 'creations', 'billing', 'colour', 'soul', 'apparel', 'profile', 'caption', 'home_dashboard', 'brand_kit', 'brand_stylist', 'admin', 'thumbnail_studio', 'daily_mission', 'magic_realty', 'brand_manager', 'support_center', 'headshot', 'campaign_studio'];
     if (viewParam && validViews.includes(viewParam)) {
         return viewParam;
     }

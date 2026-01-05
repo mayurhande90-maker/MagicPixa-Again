@@ -20,7 +20,6 @@ const DEFAULT_COSTS: Record<string, number> = {
     'Pixa Caption Pro': 2,
     'Pixa Interior Design': 8,
     'Pixa TryOn': 8,
-    'Pixa Mockups': 8,
     'Magic Eraser': 2,
     'Help & Support (Chat)': 0
 };
@@ -58,7 +57,6 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
 *   **Pixa Caption Pro**: Engagement-optimized copy and hashtags.
 *   **Pixa Interior Design**: Photorealistic room transformations.
 *   **Pixa TryOn**: Virtual clothes dressing from photos.
-*   **Pixa Mockups**: Design placement on 3D physical objects.
 
 *** OUTPUT FORMAT ***
 You must return a JSON object:

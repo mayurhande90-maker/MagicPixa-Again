@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, Page, View, AppConfig } from '../types';
 import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CalendarIcon, CampaignStudioIcon, SparklesIcon } from './icons';
@@ -64,12 +63,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, disabled: false, badge: 'NEW' },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     
-    // STAGING ONLY SECTION
-    ...(isStagingMode ? [
-        { type: 'divider', label: 'Staging Lab' },
-        { id: 'mockup_staging', label: 'PRO Mockup Lab', icon: SparklesIcon, disabled: false, badge: 'STAGING', isStaging: true }
-    ] : []),
-
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
@@ -82,7 +75,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'caption', label: 'Pixa Caption Pro', icon: PixaCaptionIcon, disabled: false },
     { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, disabled: false },
     { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, disabled: false },
-    { id: 'mockup', label: 'Pixa Mockups', icon: PixaMockupIcon, disabled: false },
     { type: 'divider', label: 'Account' },
     { id: 'billing', label: 'Billing & Credits', icon: PixaBillingIcon, disabled: false },
     { id: 'support_center', label: 'Help & Support', icon: PixaSupportIcon, disabled: false },
