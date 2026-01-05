@@ -14,12 +14,12 @@ const DEFAULT_COSTS: Record<string, number> = {
     'Pixa Ecommerce Kit (10 Assets)': 50,
     'Pixa AdMaker': 10,
     'Pixa Thumbnail Pro': 8,
-    'Pixa Realty Ads': 10,
     'Pixa Together': 8,
     'Pixa Photo Restore': 5,
     'Pixa Caption Pro': 2,
     'Pixa Interior Design': 8,
     'Pixa TryOn': 8,
+    'Campaign Studio': 10,
     'Magic Eraser': 2,
     'Help & Support (Chat)': 0
 };
@@ -39,24 +39,26 @@ Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority 
 *** MAGICPIXA COMPLETE DOCUMENTATION (KNOWLEDGE BASE) ***
 
 **1. CORE PLATFORM CONCEPTS**
-*   **Credits**: Pay-as-you-go currency. One-time payments via Credit Packs.
+*   **Credits**: Pay-as-you-go currency. One-time payments via Credit Packs. These never expire.
 *   **My Creations**: Storage for 15 days only. Users must download to keep forever.
-*   **Refer & Earn**: Both get +10 Credits when a code is used.
-*   **Daily Mission**: Reset every 24h. Reward: +5 Credits.
+*   **Refer & Earn**: Both get +10 Credits when a referral code is successfully used.
+*   **Daily Mission**: Reset every 24h. Reward: +5 Credits for completing a specific creative task.
+*   **Daily Check-in**: Claim +1 free credit every 24 hours via the sidebar.
 
 **2. CREATIVE FEATURES**
 
-*   **Pixa Headshot Pro**: Create professional headshots from selfies. (Solo/Duo).
-*   **Pixa Product Shots**: Studio-quality photography for products. (Product/Model Modes).
-*   **Pixa Ecommerce Kit**: Full asset packs (5, 7, 10 assets) in one click.
-*   **Pixa AdMaker**: High-conversion ad creatives with intelligent copywriting.
-*   **Pixa Thumbnail Pro**: Viral, high-CTR YouTube/Reel thumbnails.
-*   **Pixa Realty Ads**: Real Estate flyers and property showcases.
-*   **Pixa Together**: Merge people into one photo (Creative/Reenact modes).
-*   **Pixa Photo Restore**: Repair damage and colorize vintage photos.
-*   **Pixa Caption Pro**: Engagement-optimized copy and hashtags.
-*   **Pixa Interior Design**: Photorealistic room transformations.
-*   **Pixa TryOn**: Virtual clothes dressing from photos.
+*   **Pixa Product Shots**: Studio-quality photography for products. Features 'Product Mode' for clean shots and 'Model Mode' to place products with AI humans.
+*   **Pixa Headshot Pro**: Create high-end professional headshots from simple selfies. Supports 'Solo' and 'Duo' modes.
+*   **Pixa Ecommerce Kit**: Generates complete marketplace-ready asset packs (5, 7, or 10 assets) in a single click, including hero and lifestyle shots.
+*   **Pixa AdMaker**: Research-driven ad creative engine. Applies AIDA copywriting and trending visual styles for high-conversion marketing.
+*   **Pixa Thumbnail Pro**: Engineered for high CTR. Generates viral-style thumbnails for YouTube and Social Media (16:9 or 9:16).
+*   **Campaign Studio**: High-fidelity content planning. Auto-generates a full month's strategy and high-res imagery based on your Brand Kit.
+*   **Pixa Together**: Combine two separate people into one realistic photo with custom themes, environments, and timelines.
+*   **Pixa Photo Restore**: Advanced forensic repair and optional colorization for vintage or damaged photos.
+*   **Pixa Caption Pro**: AI copywriting optimized for organic reach and engagement.
+*   **Pixa Interior Design**: Photorealistic room transformations based on spatial analysis.
+*   **Pixa TryOn**: Virtual dressing room to visualize clothes on a person from photos.
+*   **Magic Editor**: High-precision object removal and intelligent scene healing.
 
 *** OUTPUT FORMAT ***
 You must return a JSON object:
