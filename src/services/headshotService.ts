@@ -16,14 +16,14 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-// --- SIMPLIFIED PHOTOGRAPHY DIRECTIVES ---
+// --- PROFESSIONAL PHOTOGRAPHY LIGHTING ARCHETYPES ---
 const ARCHETYPE_LIGHTING: Record<string, string> = {
-    'Executive': 'Professional studio lighting, sharp focus on eyes, clean shadows.',
-    'Tech': 'Soft natural office lighting, approachable and bright.',
-    'Creative': 'Cinematic edge lighting, stylish artistic contrast.',
-    'Medical': 'Clean high-key lighting, bright and trustworthy.',
-    'Legal': 'Formal balanced lighting, authoritative atmosphere.',
-    'Realtor': 'Friendly warm lighting, bright and welcoming.'
+    'Executive': 'Rembrandt lighting setup, key light at 45 degrees, soft wrap-around fill, sharp catchlights in eyes.',
+    'Tech': 'Natural north-facing window light, bright and clean, soft shadows, high-key high-fidelity finish.',
+    'Creative': 'Cinematic low-key lighting, moody shadows, blue-hour rim light, stylish artistic contrast.',
+    'Medical': 'Butterfly lighting, high-key clean studio setup, bright and trustworthy, shadowless medical suite vibe.',
+    'Legal': 'Formal broad lighting, authoritative and balanced, classic wood-paneling context.',
+    'Realtor': 'Friendly warm golden hour lighting, approachable and bright, natural outdoor glow.'
 };
 
 const ENVIRONMENT_PHYSICS: Record<string, string> = {
@@ -56,7 +56,6 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
 
 /**
  * PHASE 1: FORENSIC BIOMETRIC SCAN
- * Identifies the immutable visual markers of the user's face.
  */
 const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
     const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST. 
@@ -97,7 +96,6 @@ export const generateProfessionalHeadshot = async (
     try {
         const { data: optData, mimeType: optMime } = await optimizeImage(base64ImageData, mimeType);
         
-        // Step 1: Lock Identity via Biometric Scan
         const biometricsA = await performDeepIdentityScan(ai, optData, optMime, "Primary Subject");
 
         let partnerData = null;
@@ -114,32 +112,41 @@ export const generateProfessionalHeadshot = async (
         const lighting = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
         const env = background === 'Custom' ? customDescription : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Photoshoot']);
 
-        // --- MASTER ACCURACY PROMPT ---
-        // We use a "Sacred Identity Transfer" protocol to force Gemini to use the face as a template.
+        // --- HYPER-REALISM PHOTOGRAPHY PROMPT ---
         const prompt = `
-        *** SACRED IDENTITY TRANSFER PROTOCOL (V4) ***
-        TASK: Create a professional ${archetype} headshot for the person in the image.
+        *** PRO-PHOTOGRAPHER EMULATION PROTOCOL (V5) ***
+        TASK: Produce a hyper-realistic ${archetype} portrait.
         
-        **CRITICAL IDENTITY LOCK**:
+        **GEAR SPECS (PHYSICS LOCK)**:
+        - Camera: Sony A7R V (61MP Sensor).
+        - Lens: 85mm f/1.2 G-Master Prime.
+        - Optics: Sharp focal plane on the eyes, natural optical compression, organic creamy bokeh.
+        - Imperfections: Subtle 35mm film grain, extremely faint chromatic aberration at edges.
+        
+        **TEXTURE MANDATE (STRICT)**:
+        - **FORBIDDEN**: Do NOT use AI smoothing, plastic skin, or "beauty filters". 
+        - **REQUIRED**: Render VISIBLE skin pores, micro-textures, natural skin oils/highlights, fine facial hair, and realistic imperfections (lines/freckles).
+        
+        **IDENTITY ANCHOR**:
         - **BIOMETRICS**: ${biometricsA}
         ${partnerData ? `- **PARTNER BIOMETRICS**: ${biometricsPartner}` : ''}
         
-        **STRICT EXECUTION RULES**:
-        1. **PIXEL TRANSFER**: Treat the source face as an absolute template. Do NOT "improve", "smooth", or change the person's features. The face in the result MUST be a 1:1 structural replica of the uploaded photo.
-        2. **BONE & HAIR**: Keep the exact jawline, nose shape, and hair texture. Do NOT hallucinate a generic AI model face.
-        3. **PHOTOGRAPHY**: Use ${lighting} in a ${env}.
-        4. **FIDELITY**: Render real skin texture (pores and lines). No "plastic" or "perfected" look.
+        **SCENE EXECUTION**:
+        - **LIGHTING**: ${lighting}
+        - **ENVIRONMENT**: ${env}
+        
+        **MANDATE**: The face MUST be a 1:1 pixel-accurate physical match to the source. It should look like the person went to a real photography studio today.
 
-        OUTPUT: A single 4K hyper-realistic professional portrait. The subject MUST look exactly like the original upload.
+        OUTPUT: A single 4K masterpiece. Pure photography, zero synthetic artifacts.
         `;
 
         const parts: any[] = [
-            { text: "PRIMARY SUBJECT TEMPLATE (PIXEL SOURCE):" },
+            { text: "PRIMARY SUBJECT SOURCE PIXELS:" },
             { inlineData: { data: optData, mimeType: optMime } }
         ];
 
         if (partnerData && partnerMime) {
-             parts.push({ text: "PARTNER SUBJECT TEMPLATE (PIXEL SOURCE):" });
+             parts.push({ text: "PARTNER SUBJECT SOURCE PIXELS:" });
              parts.push({ inlineData: { data: partnerData, mimeType: partnerMime } });
         }
 
@@ -162,7 +169,7 @@ export const generateProfessionalHeadshot = async (
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("AI Engine failed to render. Please try a clearer photo.");
+        throw new Error("Photographic engine failed to render. Please try a clearer selfie.");
 
     } catch (error) {
         console.error("Headshot error:", error);
