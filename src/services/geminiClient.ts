@@ -4,7 +4,7 @@ import { logApiError, auth } from '../firebase';
 // --- SECURITY TOGGLE ---
 // Set to TRUE to use the secure Vercel backend (api/generate.ts)
 // Set to FALSE to use the exposed client-side key (Development/Fallback)
-export const USE_SECURE_BACKEND = true; 
+export const USE_SECURE_BACKEND = false; 
 
 /**
  * Helper function to get a fresh AI client on every call.
