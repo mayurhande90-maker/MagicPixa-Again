@@ -417,7 +417,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
 
                     <div className="grid md:grid-cols-2 gap-8 items-stretch">
                         {/* Traditional AI */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-200 shadow-sm opacity-60">
+                        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-200 shadow-sm opacity-85">
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="p-2 bg-red-50 text-red-500 rounded-lg"><XIcon className="w-5 h-5"/></div>
                                 <h4 className="font-bold text-xs uppercase tracking-widest text-red-700">Traditional AI Tools</h4>
