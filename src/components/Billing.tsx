@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { getCreditHistory } from '../firebase';
@@ -72,7 +73,7 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
     if (feature.includes('Interior Design')) return <PixaInteriorIcon className={iconClass} />;
     if (feature.includes('TryOn')) return <PixaTryOnIcon className={iconClass} />;
     if (feature.includes('Headshot Pro')) return <PixaHeadshotIcon className={iconClass} />;
-    if (feature.includes('Magic Eraser') || feature.includes('Magic Editor')) return <MagicWandIcon className={iconClass} />;
+    if (feature.includes('Magic Eraser') || feature.includes('Magic Editor') || feature.includes('Pixa Refinement')) return <MagicWandIcon className={iconClass} />;
     if (feature.includes('Campaign Studio')) return <CampaignStudioIcon className={iconClass} />;
     
     return <div className="p-2 bg-gray-100 rounded-full"><TicketIcon className={`${bgIconClass} text-gray-500`} /></div>;
