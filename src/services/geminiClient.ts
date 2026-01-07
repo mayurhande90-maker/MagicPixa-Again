@@ -12,15 +12,17 @@ export const USE_SECURE_BACKEND = false;
  */
 export const getAiClient = (): GoogleGenAI => {
     // CRITICAL: Obtained exclusively from process.env.API_KEY per coding guidelines.
+    // If process is undefined, we assume a shim or global provider is active.
     const apiKey = process.env.API_KEY;
     if (!apiKey || apiKey === 'undefined') {
-      throw new Error("API key is not configured. Please ensure process.env.API_KEY is available.");
+      throw new Error("An API Key must be set when running in a browser.");
     }
     return new GoogleGenAI({ apiKey });
 };
 
 /**
  * Executes an async operation with Smart Retries (Exponential Backoff + Jitter).
+ * Now handles automatic API Key selection triggers.
  */
 export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDelay = 2000): Promise<T> => {
     try {
@@ -30,15 +32,28 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
         const status = error.status || error.code;
         const message = (error.message || "").toLowerCase();
 
-        // Handle the specific "Requested entity was not found" error by resetting key selection
-        if (message.includes("requested entity was not found")) {
-            console.error("API Key error: Requested entity was not found. Prompting for key selection.");
+        // 1. Handle API Key Activation/Selection Errors
+        // These specific strings indicate we need to prompt the user for a key.
+        if (message.includes("requested entity was not found") || 
+            message.includes("api key must be set") || 
+            message.includes("api key not found") ||
+            message.includes("invalid api key")) {
+            
+            console.error("API Key Activation Required:", message);
+            
             if (window.aistudio) {
-                 // We don't have a way to 'unselect' but the rules say to prompt user to select again.
-                 window.aistudio.openSelectKey();
+                // Call platform dialog
+                await window.aistudio.openSelectKey();
+                
+                // MITIGATION: Per rules, assume key selection was successful 
+                // and proceed to retry the operation immediately.
+                if (retries > 0) {
+                    return callWithRetry(fn, retries - 1, baseDelay);
+                }
             }
         }
 
+        // 2. Handle Transient Network/Overload Errors
         const isTransientError = 
             status === 503 || 
             status === 429 || 
@@ -55,6 +70,7 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
             return callWithRetry(fn, retries - 1, baseDelay * 2);
         }
         
+        // 3. Log permanent failures
         const userId = auth?.currentUser?.uid;
         logApiError('Gemini API', message || 'Unknown Error', userId).catch(e => console.error("Logging failed", e));
         throw error;
@@ -73,13 +89,10 @@ export const secureGenerateContent = async (params: {
     featureName?: string;
 }) => {
     if (USE_SECURE_BACKEND) {
-        // 1. Get current user token for authentication
         const user = auth?.currentUser;
         if (!user) throw new Error("You must be logged in to use this feature.");
-        
         const token = await user.getIdToken();
 
-        // 2. Call Vercel API Route
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: {
@@ -94,19 +107,15 @@ export const secureGenerateContent = async (params: {
             throw new Error(errorData.error || `Server Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        
-        // The backend returns the raw Gemini response object.
-        // We pass it back as-is so the services don't need to change.
-        return data;
-
+        return await response.json();
     } else {
-        // Fallback to Client-Side
-        const ai = getAiClient();
-        return await ai.models.generateContent({
-            model: params.model,
-            contents: params.contents,
-            config: params.config
+        return await callWithRetry(() => {
+            const ai = getAiClient();
+            return ai.models.generateContent({
+                model: params.model,
+                contents: params.contents,
+                config: params.config
+            });
         });
     }
 };

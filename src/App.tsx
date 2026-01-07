@@ -182,7 +182,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   
   // API Key Selection State
-  const [hasApiKey, setHasApiKey] = useState(true); // Assume true until check fails
+  // FIX: Initialize to false if window.aistudio is present to force the check.
+  const [hasApiKey, setHasApiKey] = useState(() => {
+      if (typeof window.aistudio !== 'undefined') return false;
+      return true; // Outside AI Studio, assume process.env.API_KEY is pre-configured
+  });
 
   // DEEP LINK PERSISTENCE: Store intended destination when bounced to login
   const [pendingDestination, setPendingDestination] = useState<{ page: Page, view?: View } | null>(null);
@@ -299,15 +303,20 @@ function App() {
   // API Key Handlers
   const checkApiKey = async () => {
     if (window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(hasKey);
+        try {
+            const hasKey = await window.aistudio.hasSelectedApiKey();
+            setHasApiKey(hasKey);
+        } catch (e) {
+            console.warn("API Key check failed", e);
+            setHasApiKey(false);
+        }
     }
   };
 
   const handleSelectApiKey = async () => {
     if (window.aistudio) {
         await window.aistudio.openSelectKey();
-        setHasApiKey(true); // Proceed immediately to app
+        setHasApiKey(true); // Proceed immediately to app per rules
     }
   };
 
@@ -439,11 +448,9 @@ function App() {
     };
 
     window.addEventListener('popstate', handlePopState);
-    // Fixed: Correctly close the useEffect and added necessary dependencies.
     return () => window.removeEventListener('popstate', handlePopState);
   }, [handleSetActiveView]);
 
-  // FIX: Added missing destination persistence logic to handle redirects after auth.
   useEffect(() => {
       if (user && pendingDestination) {
           navigateTo(pendingDestination.page, pendingDestination.view);
@@ -481,7 +488,6 @@ function App() {
     impersonateUser: (u) => setImpersonatedUser(u)
   };
 
-  // FIX: Completed the renderPage function with all routes.
   const renderPage = () => {
     // If trying to access AI features, check API Key
     const isAiPage = currentPage === 'dashboard';
@@ -516,7 +522,6 @@ function App() {
     }
   };
 
-  // FIX: Completed the main App return statement and added the default export.
   return (
     <div className="min-h-screen bg-white font-sans text-[#1A1A1E] selection:bg-indigo-100">
       {/* Admin Mode Warning */}
