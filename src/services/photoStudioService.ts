@@ -1,5 +1,5 @@
-import { Type } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { Type, GenerateContentResponse } from "@google/genai";
+import { getAiClient, callWithRetry } from "./geminiClient";
 import { urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages } from "../firebase";
@@ -10,14 +10,13 @@ import { executeImageGeneration } from "./aiCore";
  * Focuses on photography-specific prompt strategies.
  */
 
-// FIX: Updated analyzeProductImage to accept 3 arguments (brand kit) as expected by the frontend.
 export const analyzeProductImage = async (
     base64ImageData: string,
     mimeType: string,
     brand?: BrandKit | null
 ): Promise<string[]> => {
-    const ai = getAiClient();
-    try {
+    return await callWithRetry<string[]>(async () => {
+        const ai = getAiClient();
         // Incorporate brand context if available to sharpen suggestions.
         const brandCtx = brand ? `This is for the brand '${brand.companyName || brand.name}'. ` : "";
         const prompt = `${brandCtx}Analyze product. Suggest 4 high-end commercial photography concepts. Return ONLY a JSON array of strings.`;
@@ -30,19 +29,16 @@ export const analyzeProductImage = async (
             }
         });
         return JSON.parse(response.text || "[]");
-    } catch (e) { 
-        return ["Clean studio shot", "Luxury marble table", "Natural sunlight wood", "Modern minimalist podium"]; 
-    }
+    });
 };
 
-// Added analyzeProductForModelPrompts to satisfy import in MagicPhotoStudio.tsx
 export const analyzeProductForModelPrompts = async (
     base64ImageData: string,
     mimeType: string,
     brand?: BrandKit | null
 ): Promise<{ display: string; prompt: string }[]> => {
-    const ai = getAiClient();
-    try {
+    return await callWithRetry<{ display: string; prompt: string }[]>(async () => {
+        const ai = getAiClient();
         const brandCtx = brand ? `This is for the brand '${brand.companyName || brand.name}'. ` : "";
         const prompt = `${brandCtx}Analyze product. Suggest 3 concepts for model photoshoot where someone is using or holding the product. 
         Return ONLY a JSON array of objects: { "display": "Short Label", "prompt": "Full detailed prompt for AI" }`;
@@ -72,9 +68,7 @@ export const analyzeProductForModelPrompts = async (
         });
         const data = JSON.parse(response.text || "{}");
         return data.results || [{ display: "Lifestyle", prompt: "A model using the product in a natural lifestyle setting." }];
-    } catch (e) {
-        return [{ display: "Lifestyle", prompt: "A model using the product in a natural lifestyle setting." }];
-    }
+    });
 };
 
 export const editImageWithPrompt = async (

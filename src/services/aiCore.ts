@@ -1,4 +1,4 @@
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold, GenerateContentResponse, Modality } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { callWithRetry } from "./geminiClient";
@@ -91,17 +91,11 @@ export const executeImageGeneration = async (params: {
     // 4. Execute with Retry Logic
     // We create the AI instance INSIDE the retry loop to pick up key selection changes.
     const response = await callWithRetry<GenerateContentResponse>(async () => {
-        const apiKey = process.env.API_KEY;
-        if (!apiKey || apiKey === 'undefined') {
-            throw new Error("An API Key must be set when running in a browser.");
-        }
-        
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
         return await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: {
-                responseModalities: [Modality.IMAGE],
                 imageConfig: {
                     aspectRatio: params.aspectRatio || "1:1",
                     imageSize: "1K"

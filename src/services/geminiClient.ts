@@ -12,12 +12,9 @@ export const USE_SECURE_BACKEND = false;
  */
 export const getAiClient = (): GoogleGenAI => {
     // CRITICAL: Obtained exclusively from process.env.API_KEY per coding guidelines.
-    // If process is undefined, we assume a shim or global provider is active.
     const apiKey = process.env.API_KEY;
-    if (!apiKey || apiKey === 'undefined') {
-      throw new Error("An API Key must be set when running in a browser.");
-    }
-    return new GoogleGenAI({ apiKey });
+    // We pass the key (even if undefined) and let the SDK or callWithRetry handle the error.
+    return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
 /**
@@ -34,22 +31,22 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
 
         // 1. Handle API Key Activation/Selection Errors
         // These specific strings indicate we need to prompt the user for a key.
-        if (message.includes("requested entity was not found") || 
+        const isKeyError = 
+            message.includes("requested entity was not found") || 
             message.includes("api key must be set") || 
             message.includes("api key not found") ||
-            message.includes("invalid api key")) {
-            
+            message.includes("invalid api key");
+
+        if (isKeyError && window.aistudio) {
             console.error("API Key Activation Required:", message);
             
-            if (window.aistudio) {
-                // Call platform dialog
-                await window.aistudio.openSelectKey();
-                
-                // MITIGATION: Per rules, assume key selection was successful 
-                // and proceed to retry the operation immediately.
-                if (retries > 0) {
-                    return callWithRetry(fn, retries - 1, baseDelay);
-                }
+            // Call platform dialog
+            await window.aistudio.openSelectKey();
+            
+            // MITIGATION: Per rules, assume key selection was successful 
+            // and proceed to retry the operation immediately.
+            if (retries > 0) {
+                return callWithRetry(fn, retries - 1, baseDelay);
             }
         }
 

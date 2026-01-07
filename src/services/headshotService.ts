@@ -1,12 +1,12 @@
-import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
+import { HarmCategory, HarmBlockThreshold, Type, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Helper: Resize to 1536px (High Fidelity for Headshots)
+// Helper: Optimize image
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1536, 0.95); // High quality for identity retention
+        const resizedUri = await resizeImage(dataUri, 1536, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -16,7 +16,6 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-// --- PROFESSIONAL PHOTOGRAPHY LIGHTING ARCHETYPES ---
 const ARCHETYPE_LIGHTING: Record<string, string> = {
     'Executive': 'Rembrandt lighting setup, key light at 45 degrees, soft wrap-around fill, sharp catchlights in eyes.',
     'Tech': 'Natural north-facing window light, bright and clean, soft shadows, high-key high-fidelity finish.',
@@ -54,36 +53,21 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
     'Nice Street': 'Tree-lined residential street.'
 };
 
-/**
- * PHASE 1: FORENSIC BIOMETRIC SCAN
- * Identifies the immutable visual markers of the user's face.
- */
 const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
     const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST. 
-    Analyze the ${label} in the photo and provide a STERN description of their unique facial features that MUST NOT change.
-    
-    1. **GEOMETRIC MAPPING**: Note the exact distance between eyes, the height of the forehead, and the specific angle of the jawline.
-    2. **OCULAR IDENTITY**: Describe the eyelid shape, pupil distance, and eyebrow arch height.
-    3. **NASAL & ORAL STRUCTURE**: Note the width of the nose bridge and the specific curvature of the lips.
-    4. **HAIR ARCHITECTURE**: Identify the exact hairline, the density/volume of hair, and its natural texture.
-    5. **BODY TOPOLOGY**: Note the neck thickness and shoulder-to-head ratio.
-    
-    MANDATE: This description is a SACRED GEOMETRIC ANCHOR. You will use this to ensure the final result is a 1:1 physical replica. No "improvement" allowed.`;
+    Analyze the ${label} in the photo and provide a description of their unique facial features that MUST NOT change.
+    1. **GEOMETRIC MAPPING**: Note eye distance, forehead height, and jawline.
+    2. **OCULAR IDENTITY**: Describe eyelid shape and pupil distance.
+    3. **NASAL & ORAL STRUCTURE**: Note nose bridge width and lip curvature.
+    MANDATE: Ensure 1:1 physical replica. No "improvement" allowed.`;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview', 
-            contents: {
-                parts: [
-                    { inlineData: { data: base64, mimeType } },
-                    { text: prompt }
-                ]
-            }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
         });
         return response.text || "Preserve facial structure exactly.";
-    } catch (e) {
-        return "Preserve facial structure exactly.";
-    }
+    } catch (e) { return "Preserve facial structure exactly."; }
 };
 
 export const generateProfessionalHeadshot = async (
@@ -95,11 +79,10 @@ export const generateProfessionalHeadshot = async (
     partnerBase64?: string,
     partnerMimeType?: string
 ): Promise<string> => {
-    const ai = getAiClient();
-    try {
+    return await callWithRetry<string>(async () => {
+        const ai = getAiClient();
         const { data: optData, mimeType: optMime } = await optimizeImage(base64ImageData, mimeType);
         
-        // Step 1: Lock Identity via Biometric Scan
         const biometricsA = await performDeepIdentityScan(ai, optData, optMime, "Primary Subject");
 
         let partnerData = null;
@@ -116,36 +99,21 @@ export const generateProfessionalHeadshot = async (
         const lighting = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
         const env = background === 'Custom' ? customDescription : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Photoshoot']);
 
-        // --- MASTER ACCURACY PROMPT (STRUCTURAL LOCK) ---
         const prompt = `
-        *** FORCED IDENTITY PRESERVATION PROTOCOL (V6) ***
-        TASK: Create a professional portrait of the person provided in the source image.
-        
-        **CORE MANDATE: 1:1 STRUCTURAL INTEGRITY**
-        1. **GEOMETRIC TEMPLATE**: Use the source image as a physical template. You are FORBIDDEN from altering the person's bone structure, head shape, jawline, or facial proportions.
-        2. **ZERO CREATIVITY FOR FACE/BODY**: Do NOT "enhance", "beautify", or "smooth" the subject. The person in the output must be the EXACT digital twin of the source. No changes to weight, age, or feature size.
-        3. **HAIR & HAIRLINE**: Copy the exact hairline and hair volume from the source. Do NOT hallucinate a different hairstyle or fuller hair.
-        4. **PHOTOGRAPHIC CLOAKING**: Think of this as "clothing the person" in a new environment. Keep the person identical; only generate the new professional attire (${archetype} style) and the background (${env}).
-        
-        **BIOMETRIC DATA LOCK**:
-        - **PRIMARY BIOMETRICS**: ${biometricsA}
-        ${partnerData ? `- **PARTNER BIOMETRICS**: ${biometricsPartner}` : ''}
-        
-        **PHOTOGRAPHY SPECS**:
-        - **GEAR**: Sony A7R V with 85mm f/1.2 G-Master.
-        - **LIGHTING**: ${lighting}.
-        - **TEXTURE**: Render real skin pores, fine lines, and natural facial hair. Avoid "plastic" or "synthetic" AI skin.
-        
-        OUTPUT: A single 4K photorealistic headshot. The subject MUST be 100% recognizable as the source individual.
+        *** FORCED IDENTITY PRESERVATION PROTOCOL ***
+        TASK: Create a professional portrait.
+        1. **GEOMETRIC TEMPLATE**: Use source as template. Bone structure MUST stay identical.
+        2. **ZERO CREATIVITY**: Do NOT "beautify". Subject must be EXACT digital twin.
+        3. **PHOTOGRAPHIC CLOAKING**: Only generate new attire (${archetype}) and background (${env}).
+        BIOMETRICS: ${biometricsA} ${partnerData ? `| ${biometricsPartner}` : ''}
+        OUTPUT: 4K photorealistic headshot.
         `;
 
         const parts: any[] = [
-            { text: "SACRED SUBJECT TEMPLATE (IMMUTABLE PIXELS):" },
             { inlineData: { data: optData, mimeType: optMime } }
         ];
 
         if (partnerData && partnerMime) {
-             parts.push({ text: "SACRED PARTNER TEMPLATE (IMMUTABLE PIXELS):" });
              parts.push({ inlineData: { data: partnerData, mimeType: partnerMime } });
         }
 
@@ -155,7 +123,6 @@ export const generateProfessionalHeadshot = async (
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
-                responseModalities: [Modality.IMAGE],
                 imageConfig: { aspectRatio: '1:1', imageSize: '1K' },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -168,10 +135,6 @@ export const generateProfessionalHeadshot = async (
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Identity-lock engine failed to render. Please ensure your photo is clear.");
-
-    } catch (error) {
-        console.error("Headshot error:", error);
-        throw error;
-    }
+        throw new Error("Identity-lock engine failed to render.");
+    });
 };
