@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -191,8 +190,9 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             }
         } catch (e: any) { 
             console.error("AI Generation Error:", e); 
-            logApiError("Studio AI Failure", e.message || "Unknown AI Error", auth.user.uid);
-            alert('Generation failed.'); 
+            const errorMsg = e.message || "The AI encountered an issue rendering your request. Please try a different style.";
+            logApiError("Studio AI Failure", errorMsg, auth.user.uid);
+            alert(`Generation failed: ${errorMsg}`); 
         } finally { 
             setLoading(false); 
         }
