@@ -24,7 +24,7 @@ import {
     isConfigValid
 } from './firebase';
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from './types';
-import { ShieldCheckIcon, KeyIcon } from './components/icons';
+import { ShieldCheckIcon } from './components/icons';
 
 // --- Routing Configuration ---
 
@@ -103,31 +103,6 @@ const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
     </div>
 );
 
-const ApiKeyGate: React.FC<{ onSelect: () => void }> = ({ onSelect }) => (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-4 text-center">
-        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-gray-100 max-w-md w-full animate-fadeIn">
-            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-8 text-indigo-600 shadow-inner">
-                <KeyIcon className="w-10 h-10" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">AI Activation Required</h2>
-            <p className="text-gray-500 mb-8 leading-relaxed font-medium">
-                To access professional-grade AI models, you must link your Gemini API key. 
-                <br/><br/>
-                <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold underline hover:text-indigo-800 transition-colors">
-                    Click here to learn about billing.
-                </a>
-            </p>
-            <button 
-                onClick={onSelect}
-                className="w-full bg-[#1A1A1E] text-white py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
-            >
-                <KeyIcon className="w-5 h-5 opacity-70" />
-                Select API Key
-            </button>
-        </div>
-    </div>
-);
-
 // --- Main App Component ---
 
 function App() {
@@ -180,13 +155,6 @@ function App() {
   const [user, setUser] = useState<User | null>(null); // The logged-in user
   const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null); // Admin impersonation target
   const [loading, setLoading] = useState(true);
-  
-  // API Key Selection State
-  // FIX: Initialize to false if window.aistudio is present to force the check.
-  const [hasApiKey, setHasApiKey] = useState(() => {
-      if (typeof window.aistudio !== 'undefined') return false;
-      return true; // Outside AI Studio, assume process.env.API_KEY is pre-configured
-  });
 
   // DEEP LINK PERSISTENCE: Store intended destination when bounced to login
   const [pendingDestination, setPendingDestination] = useState<{ page: Page, view?: View } | null>(null);
@@ -300,26 +268,6 @@ function App() {
       window.history.pushState({}, '', `${path}${search}`);
   }, []);
 
-  // API Key Handlers
-  const checkApiKey = async () => {
-    if (window.aistudio) {
-        try {
-            const hasKey = await window.aistudio.hasSelectedApiKey();
-            setHasApiKey(hasKey);
-        } catch (e) {
-            console.warn("API Key check failed", e);
-            setHasApiKey(false);
-        }
-    }
-  };
-
-  const handleSelectApiKey = async () => {
-    if (window.aistudio) {
-        await window.aistudio.openSelectKey();
-        setHasApiKey(true); // Proceed immediately to app per rules
-    }
-  };
-
   // --- Effects ---
 
   // Cleanup Legacy URL params on load if they exist
@@ -332,9 +280,6 @@ function App() {
           const search = params.toString() ? `?${params.toString()}` : '';
           window.history.replaceState({}, '', `${cleanPath}${search}`);
       }
-      
-      // Check for API Key if using image generation features
-      checkApiKey();
   }, []);
 
   // 1. App Config Subscription
@@ -449,118 +394,189 @@ function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [handleSetActiveView]);
+  }, []);
 
+  // 6. Deep Link Persistence: Effect to handle pending redirects after login success
   useEffect(() => {
-      if (user && pendingDestination) {
-          navigateTo(pendingDestination.page, pendingDestination.view);
-          setPendingDestination(null);
-      }
+    if (user && pendingDestination) {
+      const { page, view } = pendingDestination;
+      // We clear state BEFORE navigating to prevent race conditions or loops
+      setPendingDestination(null);
+      navigateTo(page, view);
+    }
   }, [user, pendingDestination, navigateTo]);
+
+  const handleImpersonate = (targetUser: User | null) => {
+      if (user?.isAdmin) {
+          // Clear active brand kit whenever identity switches to avoid context mixing
+          setActiveBrandKit(null);
+          setImpersonatedUser(targetUser);
+          if (targetUser) {
+              navigateTo('dashboard', 'dashboard');
+          }
+      }
+  };
+
+  // Helper to clear notification
+  const clearNotification = async () => {
+      if (activeUser) {
+          await updateUserProfile(activeUser.uid, { systemNotification: null as any });
+      }
+  };
 
   // --- Render ---
 
-  if (missingKeys.length > 0) {
-    return <ConfigurationError missingKeys={missingKeys} />;
+  if (!isConfigValid) {
+      return <ConfigurationError missingKeys={missingKeys} />;
   }
 
   if (loading) {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
-            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-400 text-sm font-medium animate-pulse">Initializing Pixa...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
     );
   }
 
-  if (activeUser?.isBanned) {
-      return <BannedScreen onLogout={handleLogout} />;
+  // Suspended User Lockout
+  if (activeUser && activeUser.isBanned) {
+      return (
+        <>
+            {impersonatedUser && user && (
+                <ImpersonationBanner 
+                    originalUser={user} 
+                    targetUser={impersonatedUser} 
+                    onExit={() => handleImpersonate(null)} 
+                />
+            )}
+            <BannedScreen onLogout={handleLogout} />
+        </>
+      );
   }
 
   const authProps: AuthProps = {
-    isAuthenticated: !!user,
+    isAuthenticated: !!activeUser,
     user: activeUser,
-    setUser: setUser as any,
+    // FIX: Allow state updates to propagate to the correct user state (Impersonated vs Real)
+    setUser: impersonatedUser ? (setImpersonatedUser as any) : setUser, 
     activeBrandKit,
     setActiveBrandKit,
     handleLogout,
     openAuthModal: () => setIsAuthModalOpen(true),
-    impersonateUser: (u) => setImpersonatedUser(u)
-  };
-
-  const renderPage = () => {
-    // If trying to access AI features, check API Key
-    const isAiPage = currentPage === 'dashboard';
-    if (isAiPage && !hasApiKey) {
-        return <ApiKeyGate onSelect={handleSelectApiKey} />;
-    }
-
-    switch(currentPage) {
-        case 'about': return <AboutUsPage navigateTo={navigateTo} auth={authProps} />;
-        case 'pricing': return <PricingPage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />;
-        case 'privacy': return <PrivacyPolicyPage navigateTo={navigateTo} auth={authProps} />;
-        case 'terms': return <TermsConditionsPage navigateTo={navigateTo} auth={authProps} />;
-        case 'dashboard':
-            return (
-                <DashboardPage 
-                    navigateTo={navigateTo}
-                    auth={authProps}
-                    activeView={currentView}
-                    setActiveView={handleSetActiveView}
-                    openEditProfileModal={() => {}}
-                    isConversationOpen={isConversationOpen}
-                    setIsConversationOpen={setIsConversationOpen}
-                    appConfig={appConfig}
-                    setAppConfig={(c) => setAppConfig(c)}
-                />
-            );
-        case 'home':
-        default:
-            return isStagingMode ? 
-                <ProfessionalHome navigateTo={navigateTo} auth={authProps} appConfig={appConfig} /> : 
-                <HomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />;
-    }
+    impersonateUser: user?.isAdmin ? handleImpersonate : undefined
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-[#1A1A1E] selection:bg-indigo-100">
-      {/* Admin Mode Warning */}
-      {user?.isAdmin && impersonatedUser && (
-          <ImpersonationBanner originalUser={user} targetUser={impersonatedUser} onExit={() => setImpersonatedUser(null)} />
+    <div className={`min-h-screen flex flex-col font-sans text-slate-900 ${impersonatedUser ? 'pt-14' : ''}`}>
+      {impersonatedUser && user && (
+          <ImpersonationBanner 
+            originalUser={user} 
+            targetUser={impersonatedUser} 
+            onExit={() => handleImpersonate(null)} 
+          />
       )}
-
-      {/* App-wide Banner / Announcements */}
-      {showBanner && announcement?.isActive && (
+      
+      {/* 1. Global Announcement Display */}
+      {showBanner && announcement && announcement.isActive && (
           <NotificationDisplay 
-            title={announcement.title}
-            message={announcement.message}
-            type={announcement.type}
-            style={announcement.style}
-            link={announcement.link}
-            onClose={() => setShowBanner(false)}
+              title={announcement.title}
+              message={announcement.message}
+              type={announcement.type}
+              style={announcement.style || 'banner'}
+              link={announcement.link}
+              onClose={() => setShowBanner(false)}
+          />
+      )}
+      
+      {/* 2. User System Notification Display */}
+      {activeUser?.systemNotification && !activeUser.systemNotification.read && (
+          <NotificationDisplay 
+              title={activeUser.systemNotification.title}
+              message={activeUser.systemNotification.message}
+              type={activeUser.systemNotification.type}
+              style={activeUser.systemNotification.style || 'banner'}
+              link={activeUser.systemNotification.link || undefined}
+              onClose={clearNotification}
           />
       )}
 
-      {/* User Grant Notifications */}
-      {user?.creditGrantNotification && (
+      {/* Credit Grant Modal */}
+      {activeUser?.creditGrantNotification && (
           <CreditGrantModal 
-            userId={user.uid}
-            amount={user.creditGrantNotification.amount}
-            message={user.creditGrantNotification.message}
-            type={user.creditGrantNotification.type}
-            packageName={user.creditGrantNotification.packageName}
+              userId={activeUser.uid}
+              amount={activeUser.creditGrantNotification.amount}
+              message={activeUser.creditGrantNotification.message}
+              type={activeUser.creditGrantNotification.type}
+              packageName={activeUser.creditGrantNotification.packageName}
           />
       )}
 
-      {renderPage()}
+      {currentPage === 'home' && (
+        isStagingMode ? (
+          <ProfessionalHome 
+              navigateTo={navigateTo} 
+              auth={authProps} 
+              appConfig={appConfig}
+          />
+        ) : (
+          <HomePage 
+              navigateTo={navigateTo} 
+              auth={authProps} 
+              appConfig={appConfig}
+          />
+        )
+      )}
 
-      {/* Auth Overlay */}
+      {currentPage === 'about' && (
+        <AboutUsPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+        />
+      )}
+
+      {currentPage === 'pricing' && (
+        <PricingPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            appConfig={appConfig}
+        />
+      )}
+
+      {currentPage === 'privacy' && (
+        <PrivacyPolicyPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+        />
+      )}
+
+      {currentPage === 'terms' && (
+        <TermsConditionsPage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+        />
+      )}
+
+      {currentPage === 'dashboard' && (
+        <DashboardPage 
+            key={activeUser?.uid} // CRITICAL: Force remount of whole dashboard when identity switches
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            activeView={currentView}
+            setActiveView={handleSetActiveView}
+            openEditProfileModal={() => {}} // Placeholder if needed
+            isConversationOpen={isConversationOpen}
+            setIsConversationOpen={setIsConversationOpen}
+            appConfig={appConfig}
+            setAppConfig={setAppConfig as any}
+        />
+      )}
+
       {isAuthModalOpen && (
-          <AuthModal 
+        <AuthModal 
             onClose={() => setIsAuthModalOpen(false)} 
             onGoogleSignIn={handleGoogleSignIn}
             error={authError}
-          />
+        />
       )}
     </div>
   );

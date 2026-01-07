@@ -1,5 +1,6 @@
-import { HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+
+import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -7,7 +8,7 @@ export interface ApparelStylingOptions {
     tuck?: string;
     fit?: string;
     sleeve?: string;
-    accessories?: string;
+    accessories?: string; // New field for text-based accessories
 }
 
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -32,33 +33,56 @@ export const generateApparelTryOn = async (
   stylingOptions?: ApparelStylingOptions,
   brand?: BrandKit | null
 ): Promise<string> => {
-  return await callWithRetry<string>(async () => {
-    const ai = getAiClient();
+  const ai = getAiClient();
+  try {
     const isSameGarmentImage = topGarment && bottomGarment && (topGarment.base64 === bottomGarment.base64);
     const personPromise = optimizeImage(personBase64, personMimeType);
     let topPromise = topGarment ? optimizeImage(topGarment.base64, topGarment.mimeType) : Promise.resolve(null);
     let bottomPromise = bottomGarment ? optimizeImage(bottomGarment.base64, bottomGarment.mimeType) : Promise.resolve(null);
     const [optPerson, optTop, optBottom] = await Promise.all([personPromise, topPromise, bottomPromise]);
 
-    const brandDNA = brand ? `Brand: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice}.` : "";
+    const brandDNA = brand ? `
+    *** BRAND FASHION CONTEXT ***
+    Brand: '${brand.companyName || brand.name}'. Tone: ${brand.toneOfVoice || 'Professional'}.
+    Guidelines: The model should look as if they are in a '${brand.industry}' professional photo shoot.
+    ` : "";
 
     const parts: any[] = [{ text: `Task: Virtual Try-On. ${brandDNA} Maintain face/body/bg exactly.` }];
     parts.push({ text: "MODEL:" }, { inlineData: { data: optPerson.data, mimeType: optPerson.mimeType } });
 
     if (isSameGarmentImage && optTop) {
         parts.push({ text: "OUTFIT SOURCE:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
+        parts.push({ text: "INSTRUCTION: Extract both top and bottom from source and apply to model." });
     } else {
-        if (optTop) parts.push({ text: "TOP:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } });
-        if (optBottom) parts.push({ text: "BOTTOM:" }, { inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } });
+        if (optTop) { parts.push({ text: "TOP:" }, { inlineData: { data: optTop.data, mimeType: optTop.mimeType } }); } 
+        if (optBottom) { parts.push({ text: "BOTTOM:" }, { inlineData: { data: optBottom.data, mimeType: optBottom.mimeType } }); }
     }
 
-    const styling = stylingOptions ? `Fit: ${stylingOptions.fit}. ${stylingOptions.tuck}. ${stylingOptions.sleeve}. ${stylingOptions.accessories || ''}` : "";
-    parts.push({ text: styling });
+    let stylingDirectives = "";
+    if (stylingOptions) {
+        if (stylingOptions.tuck) stylingDirectives += `Fit Style: ${stylingOptions.tuck}. `;
+        if (stylingOptions.fit) stylingDirectives += `Fit Type: ${stylingOptions.fit}. `;
+        if (stylingOptions.sleeve) stylingDirectives += `Sleeve Style: ${stylingOptions.sleeve}. `;
+        
+        if (stylingOptions.accessories) {
+            stylingDirectives += `
+            *** ACCESSORIES PROTOCOL (HIGH PRIORITY) ***
+            - Add items: ${stylingOptions.accessories}
+            - Execution: Physically ground these items to the model. (e.g. If bag, place in hand. If watch, place on wrist). 
+            - Physics: Ensure contact shadows and lighting match the overall scene.
+            `;
+        }
+    }
+
+    if (stylingDirectives) {
+        parts.push({ text: stylingDirectives });
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
       config: { 
+          responseModalities: [Modality.IMAGE],
           safetySettings: [
               { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
               { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -68,5 +92,5 @@ export const generateApparelTryOn = async (
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("Failed to generate apparel try-on.");
-  });
+  } catch (error) { throw error; }
 };
