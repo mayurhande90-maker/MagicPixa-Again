@@ -5,7 +5,7 @@ import { callWithRetry } from "./geminiClient";
 
 /**
  * AI CORE: The "Shield" and "Engine Room" of MagicPixa.
- * This service centralizes all AI logic, safety, and realism mandates.
+ * Centralized logic for high-fidelity image production.
  */
 
 // --- GLOBAL MANDATES (THE SECRET SAUCE) ---
@@ -27,10 +27,11 @@ const HYPER_REALISM_MANDATE = `
 
 // --- CORE UTILITIES ---
 
-const optimizeForAi = async (base64: string, mimeType: string, width: number = 2048): Promise<{ data: string; mimeType: string }> => {
+const optimizeForAi = async (base64: string, mimeType: string, width: number = 1536): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, width, 0.9);
+        // Using 1536px as a high-fidelity standard for Pro models
+        const resizedUri = await resizeImage(dataUri, width, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -50,7 +51,7 @@ export const executeImageGeneration = async (params: {
     aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
     additionalAssets?: { base64: string, mimeType: string, role: string }[];
 }): Promise<string> => {
-    // Always create a new instance right before the call as per requirements.
+    // CRITICAL: Always create new instance right before the call per rules
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     // 1. Optimize Main Asset
@@ -66,20 +67,19 @@ export const executeImageGeneration = async (params: {
     ` : "";
 
     // 3. Assemble Payload
+    // Order: [Main Image, Reference Images..., Prompt]
     const parts: any[] = [
-        { text: "SOURCE_ASSET_PRIMARY:" },
         { inlineData: { data: optMain.data, mimeType: optMain.mimeType } }
     ];
 
     // Add Supporting Assets (Vault references, logos, etc)
     if (params.additionalAssets) {
-        params.additionalAssets.forEach((asset, i) => {
-            parts.push({ text: `${asset.role.toUpperCase()}_${i}:` });
+        params.additionalAssets.forEach((asset) => {
             parts.push({ inlineData: { data: asset.base64, mimeType: asset.mimeType } });
         });
     }
 
-    // Add Instructions
+    // Add Instructions (Final part)
     const finalPrompt = `
     You are the Pixa Production Engine.
     
@@ -95,13 +95,14 @@ export const executeImageGeneration = async (params: {
     parts.push({ text: finalPrompt });
 
     // 4. Execute with Retry Logic
-    // Switch to gemini-2.5-flash-image for default generations to ensure high stability.
+    // Using gemini-3-pro-image-preview for maximum "hyper-real" fidelity
     const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: {
             imageConfig: {
-                aspectRatio: params.aspectRatio || "1:1"
+                aspectRatio: params.aspectRatio || "1:1",
+                imageSize: "1K"
             },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -112,8 +113,9 @@ export const executeImageGeneration = async (params: {
         }
     }));
 
+    // Find the image part in the response
     const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
-    if (!imagePart?.inlineData?.data) throw new Error("AI Core failed to render pixels.");
+    if (!imagePart?.inlineData?.data) throw new Error("AI Production Engine failed to render pixels.");
     
     return imagePart.inlineData.data;
 };
