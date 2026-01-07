@@ -1,4 +1,4 @@
-import { GoogleGenAI, Modality, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { callWithRetry } from "./geminiClient";
@@ -50,6 +50,7 @@ export const executeImageGeneration = async (params: {
     aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
     additionalAssets?: { base64: string, mimeType: string, role: string }[];
 }): Promise<string> => {
+    // Always create a new instance right before the call as per requirements.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     // 1. Optimize Main Asset
@@ -94,15 +95,13 @@ export const executeImageGeneration = async (params: {
     parts.push({ text: finalPrompt });
 
     // 4. Execute with Retry Logic
-    // FIX: Added GenerateContentResponse type parameter to resolve unknown type error when accessing response.candidates.
+    // Switch to gemini-2.5-flash-image for default generations to ensure high stability.
     const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-2.5-flash-image',
         contents: { parts },
         config: {
-            responseModalities: [Modality.IMAGE],
             imageConfig: {
-                aspectRatio: params.aspectRatio || "1:1",
-                imageSize: "1K"
+                aspectRatio: params.aspectRatio || "1:1"
             },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },

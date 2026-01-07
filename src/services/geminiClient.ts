@@ -11,9 +11,10 @@ export const USE_SECURE_BACKEND = false;
  * This is used ONLY when USE_SECURE_BACKEND is false.
  */
 export const getAiClient = (): GoogleGenAI => {
-    const apiKey = import.meta.env.VITE_API_KEY;
+    // CRITICAL: Obtained exclusively from process.env.API_KEY per coding guidelines.
+    const apiKey = process.env.API_KEY;
     if (!apiKey || apiKey === 'undefined') {
-      throw new Error("API key is not configured. Please set the VITE_API_KEY environment variable in your project settings.");
+      throw new Error("API key is not configured. Please ensure process.env.API_KEY is available.");
     }
     return new GoogleGenAI({ apiKey });
 };
@@ -28,6 +29,15 @@ export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDe
         // Classify Error Type
         const status = error.status || error.code;
         const message = (error.message || "").toLowerCase();
+
+        // Handle the specific "Requested entity was not found" error by resetting key selection
+        if (message.includes("requested entity was not found")) {
+            console.error("API Key error: Requested entity was not found. Prompting for key selection.");
+            if (window.aistudio) {
+                 // We don't have a way to 'unselect' but the rules say to prompt user to select again.
+                 window.aistudio.openSelectKey();
+            }
+        }
 
         const isTransientError = 
             status === 503 || 
@@ -91,7 +101,7 @@ export const secureGenerateContent = async (params: {
         return data;
 
     } else {
-        // Fallback to Client-Side (Insecure but works for dev)
+        // Fallback to Client-Side
         const ai = getAiClient();
         return await ai.models.generateContent({
             model: params.model,
