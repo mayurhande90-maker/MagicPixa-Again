@@ -194,6 +194,9 @@ export const applyWatermarkToBase64 = async (
   mimeType: string,
   plan?: string
 ): Promise<string> => {
+  // TIER LOGIC VERIFICATION:
+  // Watermark is applied ONLY to Free users and lower paid tiers (Starter, Creator).
+  // Studio Pack and Agency Pack users get white-labeled (no watermark) images.
   const needsWatermark = !plan || ['Free', 'Starter Pack', 'Creator Pack'].includes(plan);
   if (!needsWatermark) return base64;
 
@@ -235,12 +238,21 @@ export const applyWatermarkToBase64 = async (
       gradient.addColorStop(0, '#4D7CFF');
       gradient.addColorStop(1, '#9C6CFE');
 
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = gradient;
+      // INCREASED PROMINENCE
+      ctx.globalAlpha = 0.6; // Increased from 0.3
       
-      // Better visibility shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.1)';
-      ctx.shadowBlur = 4;
+      // ADD STROKE FOR READABILITY ON DARK BACKGROUNDS
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = Math.max(1, fontSize * 0.05);
+      ctx.strokeText(text, x, y);
+      
+      // STRENGTHENED SHADOW
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; // Increased from 0.1
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      
+      ctx.fillStyle = gradient;
       ctx.fillText(text, x, y);
 
       resolve(canvas.toDataURL(mimeType, 0.95).split(',')[1]);
