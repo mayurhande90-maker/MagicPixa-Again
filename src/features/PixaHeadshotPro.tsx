@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
+// Add TextAreaField to imports
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField, TextAreaField } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { 
     UploadIcon, 
@@ -15,7 +16,9 @@ import {
     HomeIcon, 
     PlusIcon, 
     UsersIcon, 
-    PencilIcon
+    PencilIcon,
+    // Add ShieldCheckIcon to imports
+    ShieldCheckIcon
 } from '../components/icons';
 import { 
     PixaHeadshotIcon,
@@ -109,7 +112,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 2;
 
-    const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 4;
+    const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 5;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -215,7 +218,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         }
     };
     
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
+    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
     const canGenerate = !!image && (mode === 'individual' || (mode === 'duo' && !!partnerImage)) && !!background && !isLowCredits;
     const currentAvailableBackgrounds = PERSONA_BACKGROUNDS[archetype] || PERSONA_BACKGROUNDS['Executive'];
@@ -223,7 +226,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     return (
         <>
             <FeatureLayout 
-                title="Pixa Headshot Pro" description="Create studio-quality professional headshots instantly." icon={<PixaHeadshotIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage}
+                title="Pixa Headshot Pro" description="Create studio-quality professional headshots instantly." icon={<PixaHeadshotIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
@@ -235,7 +238,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                     </button>
                 ) : null}
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Headshot" }} scrollRef={scrollRef}
-                creationId={lastCreationId}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {(loading || isRefining) && (
@@ -326,4 +328,60 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 {/* 3. Background Selector (DYNAMIC) */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3 px-1"><LocationIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Location</label></div>
-                               
+                                    <div className="flex flex-wrap gap-2">
+                                        {currentAvailableBackgrounds.map((bg) => (
+                                            <button 
+                                                key={bg} 
+                                                onClick={() => setBackground(bg)}
+                                                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${background === bg ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                                            >
+                                                {bg}
+                                            </button>
+                                        ))}
+                                        <button 
+                                            onClick={() => setBackground('Custom')}
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${background === 'Custom' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                                        >
+                                            Custom...
+                                        </button>
+                                    </div>
+                                    
+                                    {background === 'Custom' && (
+                                        <div className="mt-3 animate-fadeIn">
+                                            <InputField 
+                                                placeholder="Describe your setting (e.g. Modern library, futuristic lab)" 
+                                                value={customBackgroundPrompt} 
+                                                onChange={(e: any) => setCustomBackgroundPrompt(e.target.value)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div className="pt-2">
+                                    <div className="flex items-center gap-2 mb-3 px-1"><PencilIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Additional Styling (Optional)</label></div>
+                                    <TextAreaField 
+                                        placeholder="e.g. wearing silver glasses, subtle smile, slightly outdoorsy look..."
+                                        value={customDesc}
+                                        onChange={(e: any) => setCustomDesc(e.target.value)}
+                                    />
+                                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3 mt-2">
+                                        <ShieldCheckIcon className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-blue-700 font-medium leading-relaxed">
+                                            <b>Identity Lock Protocol:</b> Pixa AI will scan your biometrics to ensure 1:1 facial accuracy while transforming your surroundings.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+            />
+            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} userPlan={auth.user?.plan} />}
+            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Headshot" />}
+            {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+        </>
+    );
+};
+
+export default PixaHeadshotPro;
