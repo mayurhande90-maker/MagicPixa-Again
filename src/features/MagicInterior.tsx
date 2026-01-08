@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
@@ -31,7 +30,6 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
@@ -144,8 +142,9 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         <>
             <FeatureLayout 
                 title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
-                onResetResult={result ? undefined : () => setResult(null)} onNewSession={result ? undefined : handleNewSession}
+                onResetResult={result ? undefined : handleGenerate} onNewSession={result ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
+                userPlan={auth.user?.plan}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={result ? (
@@ -204,7 +203,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
+            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} userPlan={auth.user?.plan} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Interior Design" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>

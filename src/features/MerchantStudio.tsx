@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
@@ -9,7 +8,7 @@ import {
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
 import JSZip from 'jszip';
@@ -76,7 +75,6 @@ const CompactUpload: React.FC<{ label: string; subLabel?: string; image: { url: 
     );
 };
 
-// FIX: Define BrandSelectionModal to resolve ReferenceError
 const BrandSelectionModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -162,8 +160,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
     const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
     const [showThankYou, setShowThankYou] = useState(false);
-
-    // FIX: Define showBrandModal state to resolve ReferenceError
     const [showBrandModal, setShowBrandModal] = useState(false);
 
     const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || 25;
@@ -178,8 +174,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { return () => { results.forEach(url => URL.revokeObjectURL(url)); }; }, [results]);
     useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa Vision mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
@@ -252,7 +248,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
     
-    // FIX: Define handleBrandSelect to resolve ReferenceError
     const handleBrandSelect = async (brand: BrandKit) => { 
         if (auth.user && brand.id) { 
             try { 
@@ -265,12 +260,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         } 
     };
 
-    // VALIDATION LOGIC
     const isModelRequired = mode === 'apparel' && modelSource === null;
     const isAiParamsIncomplete = mode === 'apparel' && modelSource === 'ai' && !(aiGender && aiEthnicity && aiSkinTone && aiBodyType);
     const isModelUploadIncomplete = mode === 'apparel' && modelSource === 'upload' && !modelImage;
     const isProductVibeIncomplete = mode === 'product' && !productVibe;
-    
     const canGenerate = !!mainImage && !isLowCredits && !isModelRequired && !isAiParamsIncomplete && !isModelUploadIncomplete && !isProductVibeIncomplete;
 
     const getButtonLabel = () => {
@@ -289,7 +282,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         <>
             <FeatureLayout
                 title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
-                activeBrandKit={auth.activeBrandKit}
+                activeBrandKit={auth.activeBrandKit} userPlan={auth.user?.plan}
                 isBrandCritical={true}
                 generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: getButtonLabel() }} scrollRef={scrollRef}
                 leftContent={
@@ -389,6 +382,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 }
             />
             {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
+            {viewIndex !== null && <ImageModal imageUrl={results[viewIndex]} onClose={() => setViewIndex(null)} userPlan={auth.user?.plan} />}
         </>
     );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon } from '../components/icons';
@@ -41,7 +40,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
@@ -167,7 +165,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         <>
             <FeatureLayout 
                 title="Pixa TryOn" description="Virtual dressing room. Try clothes on any person instantly." icon={<PixaTryOnIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
+                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit} userPlan={auth.user?.plan}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
@@ -221,7 +219,7 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
+            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} userPlan={auth.user?.plan} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Virtual Try-On" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>

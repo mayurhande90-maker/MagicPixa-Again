@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon, DownloadIcon, InformationCircleIcon } from '../components/icons';
@@ -59,7 +58,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
@@ -165,7 +163,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             <FeatureLayout 
                 title="Pixa Thumbnail Pro" description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results." icon={<ThumbnailIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={!!hasRequirements && !isLowCredits} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleRegenerate} onNewSession={result ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit} isBrandCritical={true}
+                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit} isBrandCritical={true} userPlan={auth.user?.plan}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={result ? (
@@ -219,8 +217,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                     <SelectionGrid label="5. Podcast Studio Gear" options={podcastGears} value={podcastGear} onChange={(val) => { setPodcastGear(val); autoScroll(); }} />
                                                 </div>
                                             )}
-                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '6.' : '5.') + " What is the video about? (Context)"} placeholder={isPodcast ? "e.g. Interview with Sam Altman" : "e.g. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
-                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '7.' : '6.') + " Exact Title Text (Optional)"} placeholder="e.g. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
+                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '6.' : '5.') + " What is the video about? (Context)"} placeholder={isPodcast ? "e. Interview with Sam Altman" : "e. Haunted House Vlog"} value={title} onChange={(e: any) => setTitle(e.target.value)} /></div>
+                                            <div className="animate-fadeIn"><InputField label={(isPodcast ? '7.' : '6.') + " Exact Title Text (Optional)"} placeholder="e. DONT WATCH THIS" value={customText} onChange={(e: any) => setCustomText(e.target.value)} /><p className="text-[10px] text-gray-400 px-1 -mt-4 italic">If empty, Pixa will generate a viral title.</p></div>
                                         </div>
                                     )}
                                 </div>
@@ -230,7 +228,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
+            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} userPlan={auth.user?.plan} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Thumbnail" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
