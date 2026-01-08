@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -30,6 +31,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
@@ -78,10 +80,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
             const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit);
-            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
-            setResult(processed.blobUrl);
-            
-            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
     };
@@ -96,13 +96,14 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const currentB64 = await urlToBase64(result);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering");
             
-            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
-            setResult(processed.blobUrl);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
             } else {
-                const id = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Interior (Refined)');
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior (Refined)');
                 setLastCreationId(id);
             }
             
@@ -123,7 +124,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, result, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Interior Design", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setImage(null); setResult(null); setRoomType(''); setStyle(''); setLastCreationId(null); setIsRefineActive(false); };
     
     const handleEditorSave = async (newUrl: string) => { 
@@ -143,9 +144,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         <>
             <FeatureLayout 
                 title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
-                onResetResult={result ? undefined : handleGenerate} onNewSession={result ? undefined : handleNewSession}
+                onResetResult={result ? undefined : () => setResult(null)} onNewSession={result ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
-                userPlan={auth.user?.plan}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={result ? (
@@ -204,7 +204,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <input ref={redoFileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} userPlan={auth.user?.plan} />}
+            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Interior Design" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -7,7 +8,7 @@ import {
     FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField 
 } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt, refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, logApiError } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -18,8 +19,10 @@ import { MagicEditorModal } from '../components/MagicEditorModal';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
+    // Mode Selection State
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
 
+    // Determine cost
     const currentCost = studioMode === 'model' 
         ? (appConfig?.featureCosts['Model Shot'] || 10) 
         : (appConfig?.featureCosts['Pixa Product Shots'] || appConfig?.featureCosts['Magic Photo Studio'] || 10);
@@ -38,6 +41,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
 
@@ -45,12 +49,14 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Analysis State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isAnalyzingModel, setIsAnalyzingModel] = useState(false);
     const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
     const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<{ display: string; prompt: string }[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
+    // Manual Refinement State
     const [category, setCategory] = useState('');
     const [customCategory, setCustomCategory] = useState('');
     const [brandStyle, setBrandStyle] = useState('');
@@ -165,15 +171,15 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit);
             }
             
-            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
-            setResult(processed.blobUrl);
-            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
             const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
             
             try {
                 const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-                const creationId = await saveCreation(auth.user.uid, processed.dataUri, featureName);
+                const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
                 setLastCreationId(creationId);
                 if (updatedUser.lifetimeGenerations) { 
                     const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
@@ -203,14 +209,16 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             const featureContext = studioMode === 'model' ? 'Model Photography' : 'Product Photography';
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, featureContext);
             
-            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
-            setResult(processed.blobUrl);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResult(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
             
+            // Latest version only: Update existing record
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
             } else {
                 const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
-                const id = await saveCreation(auth.user.uid, processed.dataUri, `${featureName} (Refined)`);
+                const id = await saveCreation(auth.user.uid, dataUri, `${featureName} (Refined)`);
                 setLastCreationId(id);
             }
             
@@ -234,7 +242,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const handleRefundRequest = async (reason: string) => {
         if (!auth.user || !result) return; setIsRefunding(true);
-        try { const res = await processRefundRequest(auth.user.uid, auth.user.email, currentCost, reason, result, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); }
+        try { const res = await processRefundRequest(auth.user.uid, auth.user.email, currentCost, reason, "Product Shot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); }
     };
 
     const handleNewSession = () => {
@@ -277,7 +285,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             onNewSession={result ? undefined : handleNewSession}
             onEdit={() => setShowMagicEditor(true)}
             activeBrandKit={auth.activeBrandKit}
-            userPlan={auth.user?.plan}
             resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
             canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
             customActionButtons={result ? (
@@ -391,6 +398,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                         </div>
                                     ) : (
                                         <>
+                                        {/* Suggested AI Prompts Section */}
                                         {(suggestedPrompts.length > 0 || suggestedModelPrompts.length > 0) && (
                                             <div className={PhotoStudioStyles.promptContainer}>
                                                 <div className={PhotoStudioStyles.promptHeader}>
@@ -437,6 +445,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                             <div className="h-px bg-gray-200 flex-1"></div>
                                         </div>
 
+                                        {/* Manual Configuration based on mode */}
                                         <div className={`space-y-6 ${selectedPrompt ? 'opacity-30 pointer-events-none blur-[1px] grayscale' : ''}`}>
                                             {studioMode === 'product' ? (
                                                 <>
@@ -465,7 +474,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                 <>
                                                     <SelectionGrid label="2. Model Persona" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />
                                                     {modelType && <SelectionGrid label="3. Regional Identity" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
-                                                    {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
+                                                    {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
                                                     {skinTone && <SelectionGrid label="5. Body Archetype" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); }} />}
                                                     {bodyType && <SelectionGrid label="6. Shot Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />}
                                                     {modelComposition && <SelectionGrid label="7. Camera Framing" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
@@ -496,13 +505,13 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 onClose={() => setShowMagicEditor(false)} 
                 onSave={handleEditorSave} 
                 deductCredit={handleDeductEditCredit} 
-                userPlan={auth.user?.plan}
             />
         )}
         
         {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Product Shot" />}
         {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         
+        {/* Hidden inputs for file uploads */}
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
         
         <style>{`

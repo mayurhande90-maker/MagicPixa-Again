@@ -61,20 +61,6 @@ export const SelectionGrid: React.FC<{ label: string; options: string[]; value: 
     </div>
 );
 
-export const WatermarkOverlay: React.FC<{ plan?: string }> = ({ plan }) => {
-    const showWatermark = !plan || ['Free', 'Starter Pack', 'Creator Pack'].includes(plan);
-    
-    if (!showWatermark) return null;
-
-    return (
-        <div className="absolute bottom-5 right-5 z-50 pointer-events-none select-none opacity-30 mix-blend-screen animate-fadeIn">
-            <span className="text-xl md:text-2xl font-black italic tracking-tighter font-logo text-transparent bg-clip-text bg-gradient-to-r from-[#4D7CFF] to-[#9C6CFE] drop-shadow-sm">
-                MagicPixa
-            </span>
-        </div>
-    );
-};
-
 export const ImageModal: React.FC<{ 
     imageUrl: string; 
     onClose: () => void;
@@ -84,9 +70,9 @@ export const ImageModal: React.FC<{
     onPrev?: () => void;
     hasNext?: boolean;
     hasPrev?: boolean;
-    userPlan?: string;
-}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev, userPlan }) => {
+}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev }) => {
     
+    // Keyboard navigation support
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'ArrowRight' && onNext && hasNext) {
@@ -106,6 +92,7 @@ export const ImageModal: React.FC<{
             <div className="relative w-full h-full flex items-center justify-center">
                 <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-50"><XIcon className="w-8 h-8" /></button>
                 
+                {/* Navigation Buttons */}
                 {hasPrev && onPrev && (
                     <button 
                         onClick={(e) => { e.stopPropagation(); onPrev(); }} 
@@ -126,11 +113,9 @@ export const ImageModal: React.FC<{
                     </button>
                 )}
 
-                <div className="relative max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                    <img src={imageUrl} alt="Full view" className="w-full h-full object-contain animate-fadeIn" />
-                    <WatermarkOverlay plan={userPlan} />
-                </div>
+                <img src={imageUrl} alt="Full view" className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain animate-fadeIn" onClick={(e) => e.stopPropagation()} />
                 
+                {/* Bottom Action Bar */}
                 {(onDownload || onDelete) && (
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50" onClick={(e) => e.stopPropagation()}>
                         {onDownload && (
@@ -233,12 +218,14 @@ export const UploadPlaceholder: React.FC<{ label: string; onClick: () => void; i
     </div>
 );
 
+// Improved Sparkle Animation Component
 const FeedbackSparkle = () => (
   <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
     <div className="absolute animate-[ping_0.5s_ease-out_forwards] text-yellow-300 opacity-90 scale-150">✨</div>
     <div className="absolute -top-6 -right-6 text-yellow-200 w-4 h-4 animate-[bounce_0.6s_infinite]">✦</div>
     <div className="absolute -bottom-4 -left-6 text-yellow-400 w-3 h-3 animate-[pulse_0.4s_infinite]">★</div>
     <div className="absolute top-0 left-0 w-full h-full border-2 border-yellow-300 rounded-full animate-[ping_0.6s_ease-out_forwards] opacity-60"></div>
+    {/* Burst Lines */}
     {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
         <div 
             key={deg}
@@ -292,30 +279,33 @@ export const FeatureLayout: React.FC<{
     customActionButtons?: React.ReactNode;
     rawIcon?: boolean; 
     activeBrandKit?: BrandKit | null; 
-    isBrandCritical?: boolean; 
-    canvasOverlay?: React.ReactNode; 
-    userPlan?: string;
+    isBrandCritical?: boolean; // New prop to control pill visibility
+    canvasOverlay?: React.ReactNode; // New prop for refinement UI
 }> = ({ 
     title, icon, leftContent, rightContent, onGenerate, isGenerating, canGenerate, 
     creditCost, resultImage, creationId, onResetResult, onNewSession, onEdit, description,
     generateButtonStyle, resultHeightClass, hideGenerateButton,
     disableScroll, scrollRef, resultOverlay, customActionButtons, rawIcon,
-    activeBrandKit, isBrandCritical, canvasOverlay, userPlan
+    activeBrandKit, isBrandCritical, canvasOverlay
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
     const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
     const [showThankYou, setShowThankYou] = useState(false);
     const [isFeedbackLocked, setIsFeedbackLocked] = useState(false);
+    
+    // New ref for the canvas/left column to enable auto-scroll
     const canvasRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        // Reset Feedback UI when a new image is loaded
         setFeedbackGiven(null);
         setShowThankYou(false);
         setIsFeedbackLocked(false);
         setAnimatingFeedback(null);
     }, [resultImage]);
 
+    // Auto-scroll to canvas when generation starts
     useEffect(() => {
         if (isGenerating && canvasRef.current) {
             setTimeout(() => {
@@ -326,35 +316,63 @@ export const FeatureLayout: React.FC<{
 
     const handleFeedback = async (type: 'up' | 'down') => {
         if (isFeedbackLocked || animatingFeedback) return;
+
         setIsFeedbackLocked(true);
-        setAnimatingFeedback(type);
+        setAnimatingFeedback(type); // Triggers sparkle and animation class (visual state)
+        
+        // Submit to backend immediately (Optimistic UI)
         if (auth?.currentUser) {
             try {
-                submitFeedback(auth.currentUser.uid, creationId || null, type, title, resultImage, auth.currentUser.email || '', auth.currentUser.displayName || 'Unknown');
-            } catch (error) { console.error("Failed to submit feedback:", error); }
+                submitFeedback(
+                    auth.currentUser.uid, 
+                    creationId || null, 
+                    type, 
+                    title, 
+                    resultImage,
+                    auth.currentUser.email || '',
+                    auth.currentUser.displayName || 'Unknown'
+                );
+            } catch (error) {
+                console.error("Failed to submit feedback:", error);
+            }
         }
+
         setTimeout(() => {
             setFeedbackGiven(type); 
             setAnimatingFeedback(null); 
             setShowThankYou(true);
+            
             setTimeout(() => setShowThankYou(false), 3000);
         }, 3000); 
     };
 
     return (
         <div className={FeatureStyles.wrapper}>
+            {/* Header */}
             <div className={FeatureStyles.header}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className={FeatureStyles.titleRow}>
-                        {rawIcon ? <div className="transition-transform hover:scale-105">{icon}</div> : <div className={FeatureStyles.iconContainer}>{icon}</div>}
+                        {rawIcon ? (
+                            <div className="transition-transform hover:scale-105">
+                                {icon}
+                            </div>
+                        ) : (
+                            <div className={FeatureStyles.iconContainer}>
+                                {icon}
+                            </div>
+                        )}
                         <h1 className={FeatureStyles.titleText}>{title}</h1>
                     </div>
+                    {/* Brand Awareness Pill - Only shown for Brand-Critical features */}
                     {activeBrandKit && isBrandCritical && <BrandAwarenessPill brand={activeBrandKit} />}
                 </div>
                 {description && <p className={FeatureStyles.description}>{description}</p>}
             </div>
 
+            {/* Main Content Grid */}
             <div className={FeatureStyles.gridContainer}>
+                
+                {/* LEFT COLUMN: Upload / Preview / Result Canvas */}
                 <div ref={canvasRef} className={`${FeatureStyles.canvasContainer} scroll-mt-24`}>
                     {resultImage ? (
                         <div className={FeatureStyles.resultContainer}>
@@ -365,7 +383,6 @@ export const FeatureLayout: React.FC<{
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
-                             <WatermarkOverlay plan={userPlan} />
                              
                              {isGenerating && (
                                 <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] animate-fadeIn">
@@ -377,49 +394,105 @@ export const FeatureLayout: React.FC<{
                                         <span className="text-xs font-black text-white uppercase tracking-[0.2em] animate-pulse">Reworking Identity</span>
                                         <span className="text-[10px] text-white/60 font-medium italic">Polishing every pixel...</span>
                                     </div>
+                                    
+                                    {/* Scan Line effect during rework */}
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent shadow-[0_0_15px_#facc15] animate-[scan-v_2s_linear_infinite]"></div>
                                 </div>
                              )}
 
-                             {resultOverlay && !isGenerating && <div className="absolute top-4 right-4 z-30">{resultOverlay}</div>}
-                             {canvasOverlay && !isGenerating && (
-                                 <div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none px-6 pb-28">
-                                     <div className="pointer-events-auto w-full max-w-lg">{canvasOverlay}</div>
+                             {resultOverlay && !isGenerating && (
+                                 <div className="absolute top-4 right-4 z-30">
+                                     {resultOverlay}
                                  </div>
                              )}
 
+                             {/* Refinement Overlay (Canvas Bottom Centered) */}
+                             {canvasOverlay && !isGenerating && (
+                                 <div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none px-6 pb-28">
+                                     <div className="pointer-events-auto w-full max-w-lg">
+                                         {canvasOverlay}
+                                     </div>
+                                 </div>
+                             )}
+
+                             {/* Feedback UI - REPOSITIONED to Bottom Left with Label */}
                              <div className="absolute bottom-20 left-4 flex flex-col items-start gap-2 z-30 pointer-events-none">
                                 {showThankYou && (
                                     <div className="pointer-events-auto animate-[fadeInUp_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)] bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-2xl mb-1 flex items-center gap-2 transform origin-bottom">
-                                        <SparklesIcon className="w-4 h-4 text-yellow-300" /> <span>Thank you for your feedback!</span>
+                                        <SparklesIcon className="w-4 h-4 text-yellow-300" /> 
+                                        <span>Thank you for your feedback!</span>
                                     </div>
                                 )}
+                                
+                                {/* Buttons Container - Only show if creationId exists to prevent broken admin links */}
                                 {!feedbackGiven && creationId && !isGenerating && (
                                     <>
                                         <span className="text-[10px] font-bold text-white/90 shadow-black/50 drop-shadow-md ml-1 bg-black/20 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">Do you like this result?</span>
                                         <div className={`pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-2 shadow-xl animate-fadeIn transition-all duration-300 hover:bg-black/90 ${animatingFeedback ? 'scale-105 ring-2 ring-white/20' : ''}`}>
-                                            <button onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'up' ? 'bg-green-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Good Result"><ThumbUpIcon className="w-5 h-5" />{animatingFeedback === 'up' && <FeedbackSparkle />}</button>
+                                            
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleFeedback('up'); }}
+                                                className={`relative p-2 rounded-full transition-all duration-200 ${
+                                                    animatingFeedback === 'up' 
+                                                    ? 'bg-green-50 text-white scale-110 shadow-lg' 
+                                                    : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
+                                                }`}
+                                                title="Good Result"
+                                            >
+                                                <ThumbUpIcon className="w-5 h-5" />
+                                                {animatingFeedback === 'up' && <FeedbackSparkle />}
+                                            </button>
+                                            
                                             <div className="w-px bg-white/10 my-1"></div>
-                                            <button onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }} className={`relative p-2 rounded-full transition-all duration-200 ${animatingFeedback === 'down' ? 'bg-red-50 text-white scale-110 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'}`} title="Bad Result"><ThumbDownIcon className="w-5 h-5" />{animatingFeedback === 'down' && <FeedbackSparkle />}</button>
+                                            
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleFeedback('down'); }}
+                                                className={`relative p-2 rounded-full transition-all duration-200 ${
+                                                    animatingFeedback === 'down' 
+                                                    ? 'bg-red-50 text-white scale-110 shadow-lg' 
+                                                    : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-110'
+                                                }`}
+                                                title="Bad Result"
+                                            >
+                                                <ThumbDownIcon className="w-5 h-5" />
+                                                {animatingFeedback === 'down' && <FeedbackSparkle />}
+                                            </button>
                                         </div>
                                     </>
                                 )}
                              </div>
                              
+                             {/* Result Actions */}
                              {!isGenerating && (
                                 <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
                                     <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
                                         {customActionButtons}
+
                                         {onEdit && (
-                                            <button onClick={onEdit} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"><MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 group-hover:scale-110 transition-transform"/><span className="hidden sm:inline">Magic Editor</span></button>
+                                            <button 
+                                                onClick={onEdit} 
+                                                className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"
+                                            >
+                                                <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 group-hover:scale-110 transition-transform"/>
+                                                <span className="hidden sm:inline">Magic Editor</span>
+                                            </button>
                                         )}
+
                                         {onNewSession && (
-                                            <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"><TrashIcon className="w-4 h-4 sm:w-5 sm:h-5"/><span className="hidden sm:inline">New Project</span></button>
+                                            <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
+                                                <TrashIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
+                                                <span className="hidden sm:inline">New Project</span>
+                                            </button>
                                         )}
                                         {onResetResult && (
-                                            <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"><RegenerateIcon className="w-4 h-4 sm:w-5 sm:h-5"/><span className="hidden sm:inline">Regenerate</span></button>
+                                            <button onClick={onResetResult} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
+                                                <RegenerateIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
+                                                <span className="hidden sm:inline">Regenerate</span>
+                                            </button>
                                         )}
-                                        <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-yellow-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap"><DownloadIcon className="w-4 h-4 sm:w-5 sm:h-5"/> <span>Download</span></button>
+                                        <button onClick={() => resultImage && downloadImage(resultImage, 'magicpixa-creation.png')} className="bg-[#F9D230] hover:bg-[#dfbc2b] text-[#1A1A1E] px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl transition-all shadow-lg shadow-yellow-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 transform hover:scale-105 whitespace-nowrap">
+                                            <DownloadIcon className="w-4 h-4 sm:w-5 sm:h-5"/> <span>Download</span>
+                                        </button>
                                     </div>
                                 </div>
                              )}
@@ -433,21 +506,70 @@ export const FeatureLayout: React.FC<{
                     )}
                 </div>
 
+                {/* RIGHT COLUMN: Control Deck */}
                 <div className={`${FeatureStyles.controlsContainer}`}>
                     <div className={FeatureStyles.controlsBox}>
-                        <div className={FeatureStyles.controlsHeader}><h3 className={FeatureStyles.controlsTitle}>Configuration</h3><div className="h-1 w-12 bg-gray-200 rounded-full"></div></div>
-                        <div ref={scrollRef} className={`${FeatureStyles.controlsScrollArea} ${disableScroll ? 'overflow-hidden' : ''}`}><div className={`flex flex-col h-full justify-start ${disableScroll ? '' : 'pb-12'}`}><div className={`flex-col ${disableScroll ? 'flex h-full' : 'space-y-2'}`}>{rightContent}</div></div></div>
+                        <div className={FeatureStyles.controlsHeader}>
+                            <h3 className={FeatureStyles.controlsTitle}>Configuration</h3>
+                            <div className="h-1 w-12 bg-gray-200 rounded-full"></div>
+                        </div>
+                        
+                        <div ref={scrollRef} className={`${FeatureStyles.controlsScrollArea} ${disableScroll ? 'overflow-hidden' : ''}`}>
+                            <div className={`flex flex-col h-full justify-start ${disableScroll ? '' : 'pb-12'}`}>
+                                <div className={`flex-col ${disableScroll ? 'flex h-full' : 'space-y-2'}`}>
+                                    {rightContent}
+                                </div>
+                            </div>
+                        </div>
+
                         {!hideGenerateButton && (
                             <div className={FeatureStyles.actionArea}>
-                                <button onClick={onGenerate} disabled={isGenerating || !canGenerate} className={`${FeatureStyles.generateButton} ${generateButtonStyle?.className}`}>{isGenerating ? <><div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div><span className="animate-pulse">Generating...</span></> : <>{!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}{generateButtonStyle?.label || "Generate"}</>}</button>
-                                <div className={FeatureStyles.costBadge}>{creditCost === 0 ? <div className="flex items-center gap-1.5 bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-100"><span className="w-1.5 h-1.5 bg-green-50 rounded-full animate-pulse"></span>Sponsored by Daily Mission</div> : <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200"><span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>Cost: {creditCost} Credits</div>}</div>
+                                <button 
+                                    onClick={onGenerate} 
+                                    disabled={isGenerating || !canGenerate}
+                                    className={`${FeatureStyles.generateButton} ${generateButtonStyle?.className}`}
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
+                                            <span className="animate-pulse">Generating...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {!generateButtonStyle?.hideIcon && <SparklesIcon className="w-6 h-6 transition-transform group-hover:rotate-12"/>}
+                                            {generateButtonStyle?.label || "Generate"}
+                                        </>
+                                    )}
+                                </button>
+                                <div className={FeatureStyles.costBadge}>
+                                    {creditCost === 0 ? (
+                                            <div className="flex items-center gap-1.5 bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-100">
+                                                <span className="w-1.5 h-1.5 bg-green-50 rounded-full animate-pulse"></span>
+                                                Sponsored by Daily Mission
+                                            </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-gray-200">
+                                            <span className="w-1.5 h-1.5 bg-[#6EFACC] rounded-full animate-pulse"></span>
+                                            Cost: {creditCost} Credits
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-            {isZoomed && resultImage && <ImageModal imageUrl={resultImage} onClose={() => setIsZoomed(false)} userPlan={userPlan} />}
-            <style>{` @keyframes scan-v { 0% { top: 0%; } 100% { top: 100%; } } `}</style>
+
+            {isZoomed && resultImage && (
+                <ImageModal imageUrl={resultImage} onClose={() => setIsZoomed(false)} />
+            )}
+            
+            <style>{`
+                @keyframes scan-v {
+                    0% { top: 0%; }
+                    100% { top: 100%; }
+                }
+            `}</style>
         </div>
     );
 };
