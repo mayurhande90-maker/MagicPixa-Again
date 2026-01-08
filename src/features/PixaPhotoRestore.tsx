@@ -69,7 +69,8 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    const [mode, setMode] = useState<'restore_color' | 'restore_only'>('restore_color');
+    // FIX: Initialized mode to null to prevent pre-selection
+    const [mode, setMode] = useState<'restore_color' | 'restore_only' | null>(null);
 
     const cost = appConfig?.featureCosts['Pixa Photo Restore'] || appConfig?.featureCosts['Magic Photo Colour'] || 5;
     const userCredits = auth.user?.credits || 0;
@@ -100,7 +101,8 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const handleDrop = async (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { const file = e.dataTransfer.files[0]; if (file.type.startsWith('image/')) { const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } else { alert("Please drop a valid image file."); } } };
 
     const handleGenerate = async () => {
-        if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; }
+        // FIX: Ensure mode is selected before generation
+        if (!image || !auth.user || !mode) return; if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
             const res = await colourizeImage(image.base64.base64, image.base64.mimeType, mode, auth.activeBrandKit);
@@ -149,7 +151,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Photo Restoration", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setImage(null); setResult(null); setLastCreationId(null); setIsRefineActive(false); };
+    const handleNewSession = () => { setImage(null); setResult(null); setLastCreationId(null); setIsRefineActive(false); setMode(null); };
     
     const handleEditorSave = async (newUrl: string) => { 
         setResult(newUrl); 
@@ -162,7 +164,9 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     };
     
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-    const canGenerate = !!image && !isLowCredits;
+    
+    // FIX: canGenerate now requires mode to be selected
+    const canGenerate = !!image && !!mode && !isLowCredits;
 
     return (
         <>
@@ -181,7 +185,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass="h-[700px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Restore Heritage" }} scrollRef={scrollRef}
+                resultHeightClass="h-[700px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: mode ? "Restore Heritage" : "Select Strategy Above" }} scrollRef={scrollRef}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -244,5 +248,4 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     );
 };
 
-// FIX: Ensure default export exists for lazy loading
 export default PixaPhotoRestore;
