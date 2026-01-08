@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { XIcon, UndoIcon, MagicWandIcon, ZoomInIcon, ZoomOutIcon, PencilIcon, CreditCoinIcon, CheckIcon } from './icons';
 import { removeElementFromImage } from '../services/imageToolsService';
+import { WatermarkOverlay } from './FeatureLayout';
 
 interface MagicEditorModalProps {
     imageUrl: string;
@@ -196,7 +197,6 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
             const maskCanvas = maskCanvasRef.current;
             const ctx = maskCanvas?.getContext('2d', { willReadFrequently: true });
             if (maskCanvas && ctx) ctx.putImageData(stateToRestore, 0, 0);
-        // FIX: Replaced typo 'imageHistoryRedoStack' with 'imageRedoStack'
         } else if (imageRedoStack.length > 0) {
             const newRedoStack = [...imageRedoStack];
             const nextImage = newRedoStack.pop()!;
@@ -297,6 +297,7 @@ export const MagicEditorModal: React.FC<MagicEditorModalProps> = ({ imageUrl, on
                 <div className="relative shadow-2xl transition-transform duration-75 ease-out origin-center" style={{ width: imgDims.w, height: imgDims.h, transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})` }}>
                     <canvas ref={imageCanvasRef} className="absolute inset-0 z-10" />
                     <canvas ref={maskCanvasRef} className="absolute inset-0 z-20 pointer-events-none opacity-60" />
+                    <WatermarkOverlay plan={userPlan} />
                 </div>
                 {isProcessing && (
                     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/70 backdrop-blur-md animate-fadeIn">

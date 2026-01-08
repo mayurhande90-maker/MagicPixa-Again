@@ -61,6 +61,20 @@ export const SelectionGrid: React.FC<{ label: string; options: string[]; value: 
     </div>
 );
 
+export const WatermarkOverlay: React.FC<{ plan?: string }> = ({ plan }) => {
+    const showWatermark = !plan || ['Free', 'Starter Pack', 'Creator Pack'].includes(plan);
+    
+    if (!showWatermark) return null;
+
+    return (
+        <div className="absolute bottom-5 right-5 z-50 pointer-events-none select-none opacity-30 mix-blend-screen animate-fadeIn">
+            <span className="text-xl md:text-2xl font-black italic tracking-tighter font-logo text-transparent bg-clip-text bg-gradient-to-r from-[#4D7CFF] to-[#9C6CFE] drop-shadow-sm">
+                MagicPixa
+            </span>
+        </div>
+    );
+};
+
 export const ImageModal: React.FC<{ 
     imageUrl: string; 
     onClose: () => void;
@@ -114,6 +128,7 @@ export const ImageModal: React.FC<{
 
                 <div className="relative max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
                     <img src={imageUrl} alt="Full view" className="w-full h-full object-contain animate-fadeIn" />
+                    <WatermarkOverlay plan={userPlan} />
                 </div>
                 
                 {(onDownload || onDelete) && (
@@ -350,6 +365,7 @@ export const FeatureLayout: React.FC<{
                                 onClick={() => setIsZoomed(true)}
                                 title="Click to zoom"
                              />
+                             <WatermarkOverlay plan={userPlan} />
                              
                              {isGenerating && (
                                 <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] animate-fadeIn">
