@@ -3,7 +3,7 @@ import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../components/icons';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -161,8 +161,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         try {
             const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, customDescription, referencePoseBase64: refPose?.base64.base64, referencePoseMimeType: refPose?.base64.mimeType, faceStrength, clothingMode, locks, autoFix };
             const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
+            
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResultImage(processed.blobUrl);
+            
+            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Together'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
@@ -174,9 +177,11 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         try {
             const currentB64 = await urlToBase64(resultImage);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Couple/Duo Portrait");
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
-            if (lastCreationId) { await updateCreation(auth.user.uid, lastCreationId, dataUri); } else { const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Together (Refined)'); setLastCreationId(id); }
+            
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResultImage(processed.blobUrl);
+            
+            if (lastCreationId) { await updateCreation(auth.user.uid, lastCreationId, processed.dataUri); } else { const id = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Together (Refined)'); setLastCreationId(id); }
             const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             setNotification({ msg: "Together Retoucher: Changes applied!", type: 'success' });
         } catch (e: any) { console.error(e); alert("Refinement failed."); } finally { setIsRefining(false); }
@@ -189,7 +194,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setIsRefunding(true); 
         try { 
             const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, customDescription, faceStrength, clothingMode, locks, autoFix };
-            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Pixa Together", lastCreationId || undefined, config); 
+            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, resultImage, lastCreationId || undefined, config); 
             if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } 
             setShowRefundModal(false); 
         } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } 
@@ -249,7 +254,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonA)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} userPlan={auth.user?.plan} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Pixa Together" />}

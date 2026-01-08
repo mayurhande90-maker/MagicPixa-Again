@@ -3,7 +3,7 @@ import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
 import { generateInteriorDesign } from '../services/interiorService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -78,8 +78,10 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
             const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
+            
+            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
     };
@@ -94,14 +96,13 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const currentB64 = await urlToBase64(result);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering");
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
-            setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
             } else {
-                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior (Refined)');
+                const id = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Interior (Refined)');
                 setLastCreationId(id);
             }
             
@@ -122,7 +123,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Interior Design", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, result, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setImage(null); setResult(null); setRoomType(''); setStyle(''); setLastCreationId(null); setIsRefineActive(false); };
     
     const handleEditorSave = async (newUrl: string) => { 

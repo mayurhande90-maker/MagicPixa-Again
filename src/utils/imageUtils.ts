@@ -1,4 +1,3 @@
-
 export interface Base64File {
   base64: string;
   mimeType: string;
@@ -6,30 +5,18 @@ export interface Base64File {
 
 /**
  * Validates a file before processing.
- * Checks for:
- * 1. File existence
- * 2. File type (must be image)
- * 3. File size (max 50MB to prevent crashes, resized later)
  */
 const validateFile = (file: File): void => {
     if (!file) throw new Error("No file provided.");
-    
-    // Check File Type
     if (!file.type.startsWith('image/')) {
         throw new Error("Invalid file type. Please upload an image (JPG, PNG, WEBP).");
     }
-
-    // Check File Size (Max 50MB)
     const MAX_SIZE_MB = 50;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
         throw new Error(`Image is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please upload an image under ${MAX_SIZE_MB}MB.`);
     }
 };
 
-/**
- * Converts any File to Base64 without image-specific processing.
- * Useful for documents (PDF, CSV).
- */
 export const rawFileToBase64 = (file: File): Promise<Base64File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -42,10 +29,6 @@ export const rawFileToBase64 = (file: File): Promise<Base64File> => {
   });
 };
 
-/**
- * Converts a File to Base64 string.
- * If the image dimension exceeds `maxDimension` (default 1920px), it is resized client-side.
- */
 export const fileToBase64 = (file: File, maxDimension: number = 1920): Promise<Base64File> => {
   return new Promise((resolve, reject) => {
     try {
@@ -201,4 +184,78 @@ export const makeTransparent = (base64Data: string): Promise<string> => {
         img.onerror = () => resolve(base64Data);
         img.src = `data:image/png;base64,${base64Data}`;
     });
+};
+
+/**
+ * Stamps a visual watermark into the image pixels.
+ */
+export const applyWatermarkToBase64 = async (
+  base64: string,
+  mimeType: string,
+  plan?: string
+): Promise<string> => {
+  const needsWatermark = !plan || ['Free', 'Starter Pack', 'Creator Pack'].includes(plan);
+  if (!needsWatermark) return base64;
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(base64);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+
+      const text = 'MagicPixa';
+      const fontSize = Math.max(24, Math.round(canvas.width * 0.04));
+      
+      // Ensure font is loaded before drawing
+      try {
+          await document.fonts.load(`${fontSize}px "Parkinsans"`);
+      } catch (e) {
+          console.warn("Font loading failed, using fallback", e);
+      }
+      
+      ctx.font = `bold italic ${fontSize}px "Parkinsans", sans-serif`;
+      
+      const metrics = ctx.measureText(text);
+      const textWidth = metrics.width;
+      const padding = fontSize * 0.8;
+      
+      const x = canvas.width - textWidth - padding;
+      const y = canvas.height - padding;
+
+      const gradient = ctx.createLinearGradient(x, y - fontSize, x + textWidth, y);
+      gradient.addColorStop(0, '#4D7CFF');
+      gradient.addColorStop(1, '#9C6CFE');
+
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = gradient;
+      
+      // Better visibility shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.1)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(text, x, y);
+
+      resolve(canvas.toDataURL(mimeType, 0.95).split(',')[1]);
+    };
+    img.onerror = (e) => reject(e);
+    img.src = `data:${mimeType};base64,${base64}`;
+  });
+};
+
+/**
+ * Processes an AI generation result: watermarks (if applicable) and prepares data for state.
+ */
+export const processAIResult = async (base64: string, mimeType: string, plan?: string): Promise<{ blobUrl: string, dataUri: string, base64: string }> => {
+    const finalBase64 = await applyWatermarkToBase64(base64, mimeType, plan);
+    const blobUrl = await base64ToBlobUrl(finalBase64, mimeType);
+    const dataUri = `data:${mimeType};base64,${finalBase64}`;
+    return { blobUrl, dataUri, base64: finalBase64 };
 };

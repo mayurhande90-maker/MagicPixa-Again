@@ -6,7 +6,7 @@ import {
     ApparelIcon, CubeIcon, UploadTrayIcon, SparklesIcon, CreditCoinIcon, UserIcon, XIcon, DownloadIcon, CheckIcon, StarIcon, PixaEcommerceIcon, ArrowRightIcon, ThumbUpIcon, ThumbDownIcon,
     BrandKitIcon, InformationCircleIcon, PlusIcon, PlusCircleIcon
 } from '../components/icons';
-import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
+import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage, processAIResult } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
 import { saveCreation, updateCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
@@ -199,17 +199,24 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 modelParams: modelSource === 'ai' ? { gender: aiGender, ethnicity: aiEthnicity, age: 'Young Adult', skinTone: aiSkinTone, bodyType: aiBodyType } : undefined,
                 productType: productType, productVibe: productVibe, packSize: packSize
             }, auth.activeBrandKit);
+            
             if (!outputBase64Images || outputBase64Images.length === 0) throw new Error("Generation failed.");
-            const blobUrls = await Promise.all(outputBase64Images.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
+            
+            const processedImages = await Promise.all(
+                outputBase64Images.map(b64 => processAIResult(b64, 'image/jpeg', auth.user?.plan))
+            );
+            
+            const blobUrls = processedImages.map(p => p.blobUrl);
             setResults(blobUrls);
+            
             const creationIds = [];
-            for (let i = 0; i < outputBase64Images.length; i++) {
+            for (let i = 0; i < processedImages.length; i++) {
                 const label = getLabel(i, mode); 
-                const rawUri = `data:image/jpeg;base64,${outputBase64Images[i]}`;
-                const storedUri = await resizeImage(rawUri, 1024, 0.7);
-                const id = await saveCreation(auth.user.uid, storedUri, `Ecommerce Kit: ${label}`);
+                const dataUri = processedImages[i].dataUri;
+                const id = await saveCreation(auth.user.uid, dataUri, `Ecommerce Kit: ${label}`);
                 creationIds.push(id);
             }
+            
             if (creationIds.length > 0) setHeroCreationId(creationIds[0]);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Ecommerce Kit');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);

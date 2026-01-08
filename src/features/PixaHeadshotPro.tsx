@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -28,7 +27,7 @@ import {
     RealtorSalesIcon,
     LocationIcon
 } from '../components/icons/headshotIcons';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../services/headshotService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -154,8 +153,11 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         
         try {
             const res = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot Pro'); setLastCreationId(creationId);
+            
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResultImage(processed.blobUrl);
+            
+            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Headshot Pro'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot Pro'); 
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -172,14 +174,13 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const currentB64 = await urlToBase64(resultImage);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Executive Headshot");
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
-            setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResultImage(processed.blobUrl);
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
             } else {
-                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot (Refined)');
+                const id = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Headshot (Refined)');
                 setLastCreationId(id);
             }
             
@@ -200,7 +201,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Headshot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, resultImage, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     
     const handleNewSession = () => { setImage(null); setPartnerImage(null); setResultImage(null); setLastCreationId(null); setCustomDesc(''); setIsRefineActive(false); };
     
@@ -325,62 +326,4 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 {/* 3. Background Selector (DYNAMIC) */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3 px-1"><LocationIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Location</label></div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {currentAvailableBackgrounds.map((bg) => (
-                                            <button 
-                                                key={bg}
-                                                onClick={() => setBackground(bg)}
-                                                className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${background === bg ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
-                                            >
-                                                {bg}
-                                            </button>
-                                        ))}
-                                        <button 
-                                            onClick={() => setBackground('Custom')}
-                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${background === 'Custom' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-transparent shadow-lg transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
-                                        >
-                                            <PencilIcon className="w-3 h-3" /> Custom
-                                        </button>
-                                    </div>
-                                    
-                                    {background === 'Custom' && (
-                                        <div className="mt-4 animate-fadeIn">
-                                            <InputField 
-                                                label="Describe Your Perfect Backdrop" 
-                                                placeholder="e.g. A luxury penthouse balcony at sunset, soft bokeh city lights, cinematic lighting" 
-                                                value={customBackgroundPrompt} 
-                                                onChange={(e: any) => setCustomBackgroundPrompt(e.target.value)}
-                                                autoFocus
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* 4. Custom Prompt */}
-                                <div className="space-y-4">
-                                    <div className="relative">
-                                        <InputField 
-                                            label="Additional Details (Optional)" 
-                                            placeholder="e.g. wearing red tie, smiling broadly, add sunglasses" 
-                                            value={customDesc} 
-                                            onChange={(e: any) => setCustomDesc(e.target.value)} 
-                                        />
-                                        <div className="flex items-center gap-1.5 absolute top-0 right-1">
-                                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
-                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pixa Smart Analysis Active</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
-            />
-            
-            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
-            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Headshot Pro" />}
-            {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
-        </>
-    );
-};
+                               

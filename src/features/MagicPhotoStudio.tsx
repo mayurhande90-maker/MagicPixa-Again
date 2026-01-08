@@ -7,7 +7,7 @@ import {
     FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone, InputField 
 } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
 import { analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, editImageWithPrompt, refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, logApiError } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -165,15 +165,15 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                 res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit);
             }
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png');
-            setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
+            
             const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
             
             try {
                 const updatedUser = await deductCredits(auth.user.uid, currentCost, featureName);
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-                const creationId = await saveCreation(auth.user.uid, dataUri, featureName);
+                const creationId = await saveCreation(auth.user.uid, processed.dataUri, featureName);
                 setLastCreationId(creationId);
                 if (updatedUser.lifetimeGenerations) { 
                     const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
@@ -203,15 +203,14 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             const featureContext = studioMode === 'model' ? 'Model Photography' : 'Product Photography';
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, featureContext);
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
-            setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
             } else {
                 const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
-                const id = await saveCreation(auth.user.uid, dataUri, `${featureName} (Refined)`);
+                const id = await saveCreation(auth.user.uid, processed.dataUri, `${featureName} (Refined)`);
                 setLastCreationId(id);
             }
             
@@ -235,7 +234,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
 
     const handleRefundRequest = async (reason: string) => {
         if (!auth.user || !result) return; setIsRefunding(true);
-        try { const res = await processRefundRequest(auth.user.uid, auth.user.email, currentCost, reason, "Product Shot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); }
+        try { const res = await processRefundRequest(auth.user.uid, auth.user.email, currentCost, reason, result, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + currentCost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); }
     };
 
     const handleNewSession = () => {

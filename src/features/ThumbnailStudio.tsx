@@ -4,7 +4,7 @@ import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, Mag
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { MagicEditorModal } from '../components/MagicEditorModal';
-import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage, urlToBase64, processAIResult } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -91,8 +91,10 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try {
             const res = await generateThumbnail(currentInputs, auth.activeBrandKit);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro'); setLastCreationId(creationId);
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
+            
+            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Thumbnail Pro'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail Pro');
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -109,14 +111,13 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const currentB64 = await urlToBase64(result);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "YouTube/Social Media Thumbnail");
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
-            setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
             } else {
-                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail (Refined)');
+                const id = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Thumbnail (Refined)');
                 setLastCreationId(id);
             }
             
@@ -144,15 +145,17 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try { 
             const res = await generateThumbnail(currentInputs, auth.activeBrandKit); 
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); 
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); 
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl); 
+            
+            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); 
             const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)'); 
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
         } catch (e) { console.error(e); alert("Regeneration failed. Please try again."); } finally { setLoading(false); } 
     };
 
-    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Thumbnail Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, result, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); setIsRefineActive(false); };
     const handleEditorSave = (newUrl: string) => { setResult(newUrl); if (lastCreationId && auth.user) updateCreation(auth.user.uid, lastCreationId, newUrl); };
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };

@@ -3,7 +3,7 @@ import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { PixaRestoreIcon, UploadIcon, XIcon, CreditCoinIcon, MagicWandIcon, PaletteIcon, CheckIcon, InformationCircleIcon, ShieldCheckIcon, ArrowUpCircleIcon } from '../components/icons';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, processAIResult } from '../utils/imageUtils';
 import { colourizeImage } from '../services/imageToolsService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -69,7 +69,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const redoFileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // FIX: Initialized mode to null to prevent pre-selection
     const [mode, setMode] = useState<'restore_color' | 'restore_only' | null>(null);
 
     const cost = appConfig?.featureCosts['Pixa Photo Restore'] || appConfig?.featureCosts['Magic Photo Colour'] || 5;
@@ -101,13 +100,15 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const handleDrop = async (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { const file = e.dataTransfer.files[0]; if (file.type.startsWith('image/')) { const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } else { alert("Please drop a valid image file."); } } };
 
     const handleGenerate = async () => {
-        // FIX: Ensure mode is selected before generation
         if (!image || !auth.user || !mode) return; if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
             const res = await colourizeImage(image.base64.base64, image.base64.mimeType, mode, auth.activeBrandKit);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Photo Restore'); setLastCreationId(creationId);
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
+            
+            const creationId = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Photo Restore'); 
+            setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Photo Restore'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
     };
@@ -122,14 +123,13 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
             const currentB64 = await urlToBase64(result);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Photo Restoration & Colorization");
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
-            setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
+            const processed = await processAIResult(res, 'image/png', auth.user?.plan);
+            setResult(processed.blobUrl);
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+                await updateCreation(auth.user.uid, lastCreationId, processed.dataUri);
             } else {
-                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Restore (Refined)');
+                const id = await saveCreation(auth.user.uid, processed.dataUri, 'Pixa Restore (Refined)');
                 setLastCreationId(id);
             }
             
@@ -150,7 +150,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
     };
 
-    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Photo Restoration", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, result, lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setImage(null); setResult(null); setLastCreationId(null); setIsRefineActive(false); setMode(null); };
     
     const handleEditorSave = async (newUrl: string) => { 
@@ -165,7 +165,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
-    // FIX: canGenerate now requires mode to be selected
     const canGenerate = !!image && !!mode && !isLowCredits;
 
     return (
