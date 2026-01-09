@@ -279,7 +279,10 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                         </div>
                                         <p className="text-sm font-bold text-gray-800">{activeTab.logic}</p>
                                     </div>
-                                    <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard', activeTab.id as View) : auth.openAuthModal()} className="w-full flex items-center justify-center gap-2 py-4 bg-[#1A1A1E] text-white font-bold rounded-xl hover:bg-black transition-all group">
+                                    <button 
+                                        onClick={() => auth.isAuthenticated ? navigateTo('dashboard', activeTab.id as View) : auth.openAuthModal()} 
+                                        className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9D230] text-[#1A1A1E] font-bold rounded-xl hover:bg-[#dfbc2b] transition-all shadow-lg active:scale-95 group"
+                                    >
                                         Try this tool <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                     </button>
                                 </div>
