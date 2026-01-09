@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
-import StagingHomePage from './StagingHomePage';
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import PricingPage from './PricingPage';
@@ -109,12 +108,6 @@ function App() {
   // Config Validation
   const [missingKeys] = useState<string[]>(getMissingConfigKeys());
   
-  // Staging Mode Detection
-  const [isStagingMode] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('staging') === 'true';
-  });
-
   // Helper to get view from current path
   const getViewFromPath = (path: string): View | null => {
       return PATH_TO_VIEW[path.toLowerCase()] || null;
@@ -507,19 +500,11 @@ function App() {
       )}
 
       {currentPage === 'home' && (
-        isStagingMode ? (
-            <StagingHomePage 
-                navigateTo={navigateTo} 
-                auth={authProps} 
-                appConfig={appConfig}
-            />
-        ) : (
-            <HomePage 
-                navigateTo={navigateTo} 
-                auth={authProps} 
-                appConfig={appConfig}
-            />
-        )
+        <HomePage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            appConfig={appConfig}
+        />
       )}
 
       {currentPage === 'about' && (
