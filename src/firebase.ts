@@ -96,7 +96,8 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
         : email?.substring(0, 2).toUpperCase() || 'U';
 
     const SUPER_ADMIN_EMAIL = 'mayurhande90@gmail.com';
-    const isSuperAdmin = email === SUPER_ADMIN_EMAIL;
+    // Use case-insensitive comparison for safety
+    const isSuperAdmin = email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
     if (!doc.exists) {
         const newUser: User = {

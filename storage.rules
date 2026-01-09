@@ -24,6 +24,12 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    // Admin Lab Assets (Transformations for Staging Homepage)
+    match /admin/{allPaths=**} {
+      allow read: if true; // Publicly viewable for homepages
+      allow write: if isAdmin();
+    }
+
     // Default deny
     match /{allPaths=**} {
       allow read, write: if false;
