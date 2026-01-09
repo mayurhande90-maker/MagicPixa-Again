@@ -10,7 +10,8 @@ import {
     SystemIcon,
     StarIcon,
     LifebuoyIcon,
-    CloudUploadIcon
+    CloudUploadIcon,
+    ImageIcon
 } from './icons';
 import { AdminStyles } from '../styles/Admin.styles';
 
@@ -23,6 +24,7 @@ import { AdminComms } from './admin/AdminComms';
 import { AdminConfig } from './admin/AdminConfig';
 import { AdminSystem } from './admin/AdminSystem';
 import { AdminVault } from './admin/AdminVault';
+import { AdminLabManager } from './admin/AdminLabManager';
 
 interface AdminPanelProps {
     auth: AuthProps;
@@ -31,7 +33,8 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'vault' | 'users' | 'support' | 'comms' | 'system' | 'config' | 'feedback'>('overview');
+    // FIX: Added 'system' to the allowed tab state types to resolve TypeScript mismatch and unintentional comparison errors.
+    const [activeTab, setActiveTab] = useState<'overview' | 'vault' | 'lab' | 'users' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
 
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
@@ -50,6 +53,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 <div className={AdminStyles.tabsContainer}>
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
                     <TabButton id="vault" label="Style Vault" icon={CloudUploadIcon} />
+                    <TabButton id="lab" label="Lab Manager" icon={ImageIcon} />
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
                     <TabButton id="support" label="Support" icon={LifebuoyIcon} />
                     <TabButton id="users" label="Users" icon={UsersIcon} />
@@ -59,8 +63,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 </div>
             </div>
 
-            {activeTab === 'overview' && <AdminOverview onNavigate={setActiveTab} />}
+            {/* FIX: Use an arrow function for onNavigate to satisfy the type requirement of AdminOverview which expects a simpler function signature than the React state dispatcher. */}
+            {activeTab === 'overview' && <AdminOverview onNavigate={(tab) => setActiveTab(tab)} />}
             {activeTab === 'vault' && <AdminVault auth={auth} />}
+            {activeTab === 'lab' && <AdminLabManager auth={auth} />}
             {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'support' && <AdminSupport auth={auth} />}
             {activeTab === 'users' && <AdminUsers auth={auth} appConfig={appConfig} />}

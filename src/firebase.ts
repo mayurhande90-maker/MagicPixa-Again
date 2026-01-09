@@ -181,6 +181,35 @@ export const getAnnouncement = async () => {
     return doc.exists ? (doc.data() as Announcement) : null;
 };
 
+// --- TRANSFORMATION LAB SYNC FUNCTIONS ---
+
+export const subscribeToLabConfig = (callback: (config: Record<string, { before: string, after: string }>) => void) => {
+    if (!db) return () => {};
+    return db.collection('config').doc('transformation_lab').onSnapshot((doc) => {
+        if (doc.exists) callback(doc.data() as any);
+        else callback({});
+    }, () => callback({}));
+};
+
+export const updateLabConfig = async (featureId: string, data: { before?: string, after?: string }) => {
+    if (!db) return;
+    await db.collection('config').doc('transformation_lab').set({
+        [featureId]: data
+    }, { merge: true });
+};
+
+export const uploadLabAsset = async (uid: string, dataUri: string, featureId: string, type: 'before' | 'after') => {
+    if (!storage) throw new Error("Storage not initialized");
+    const response = await fetch(dataUri);
+    const blob = await response.blob();
+    const ext = blob.type.split('/')[1] || 'png';
+    const filename = `${featureId}_${type}_${Date.now()}.${ext}`;
+    const path = `admin/lab/${filename}`;
+    const ref = storage.ref().child(path);
+    await ref.put(blob, { contentType: blob.type, customMetadata: { uploadedBy: uid, labFeature: featureId, assetType: type } });
+    return await ref.getDownloadURL();
+};
+
 export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;

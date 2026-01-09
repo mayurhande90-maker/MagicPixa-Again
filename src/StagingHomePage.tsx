@@ -13,6 +13,7 @@ import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
 import { PaymentSuccessModal } from './components/PaymentSuccessModal';
+import { subscribeToLabConfig } from './firebase';
 
 // --- CONFIG & CONSTANTS ---
 
@@ -24,7 +25,7 @@ const PLAN_WEIGHTS: Record<string, number> = {
     'Agency Pack': 4
 };
 
-const TRANSFORMATIONS = [
+const TRANSFORMATIONS_STATIC = [
     {
         id: 'studio',
         label: 'Pixa Product Shots',
@@ -87,7 +88,6 @@ const features = [
 
 const reviews = [
     { name: "Priya Sharma", location: "Bangalore", review: "MagicPixa has revolutionized my design workflow. The AI is incredibly intuitive. I can generate stunning product shots in minutes, not hours." },
-    /* Fix: Wrapped "Rohan Mehta" in quotes to resolve 'Cannot find name' and shorthand property errors */
     { name: "Rohan Mehta", location: "Mumbai", review: "As a freelance photographer, I'm always looking for tools to enhance my work. The image upscaler is just magical! The quality is pristine." },
     { name: "Anjali Desai", location: "Delhi", review: "I run a small boutique and creating marketing content was always a struggle. Pixa Product Shots is a lifesaver." },
     { name: "Vikram Singh", location: "Chennai", review: "The background remover is the best I've ever used. Clean edges, super fast, and saved me a ton of time." }
@@ -145,10 +145,25 @@ const useReveal = (delay: number = 0) => {
 };
 
 export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, sectionId?: string) => void; auth: AuthProps; appConfig: AppConfig | null }> = ({ navigateTo, auth, appConfig }) => {
-    const [activeTab, setActiveTab] = useState(TRANSFORMATIONS[0]);
+    const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
+    const [activeTabId, setActiveTabId] = useState(TRANSFORMATIONS_STATIC[0].id);
     const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
     const [successCredits, setSuccessCredits] = useState<number | null>(null);
     const [successPackName, setSuccessPackName] = useState<string>('');
+
+    // Fetch dynamic before/after config
+    useEffect(() => {
+        const unsubscribe = subscribeToLabConfig(setLabConfig);
+        return () => unsubscribe();
+    }, []);
+
+    const transformations = TRANSFORMATIONS_STATIC.map(t => ({
+        ...t,
+        before: labConfig[t.id]?.before || t.before,
+        after: labConfig[t.id]?.after || t.after
+    }));
+
+    const activeTab = transformations.find(t => t.id === activeTabId) || transformations[0];
 
     const creditPacks = appConfig?.creditPacks || [];
     const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
@@ -242,17 +257,17 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                             <p className="text-lg text-[#5F6368] font-medium mb-10">See how Pixa Vision re-engineers reality for every category.</p>
                             
                             <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-gray-200/50 rounded-2xl border border-gray-200 shadow-inner">
-                                {TRANSFORMATIONS.map(t => (
+                                {transformations.map(t => (
                                     <button
                                         key={t.id}
-                                        onClick={() => setActiveTab(t)}
+                                        onClick={() => setActiveTabId(t.id)}
                                         className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                                            activeTab.id === t.id 
+                                            activeTabId === t.id 
                                             ? 'bg-white text-indigo-600 shadow-sm border border-indigo-100' 
                                             : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                     >
-                                        <t.icon className={`w-4 h-4 ${activeTab.id === t.id ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                        <t.icon className={`w-4 h-4 ${activeTabId === t.id ? 'text-indigo-600' : 'text-gray-400'}`} />
                                         <span>{t.label.replace('Pixa ', '')}</span>
                                     </button>
                                 ))}
@@ -290,6 +305,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                             <div className="lg:col-span-8">
                                 <div className="bg-white p-3 rounded-[2.8rem] shadow-xl border border-gray-200/80">
                                     <BeforeAfterSlider 
+                                        key={activeTab.before + activeTab.after}
                                         beforeImage={activeTab.before}
                                         afterImage={activeTab.after}
                                         beforeLabel="Raw Input"
