@@ -251,12 +251,12 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
 
                 {/* 3. REFINED TRANSFORMATION LAB */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
-                    <div className="max-w-6xl mx-auto">
+                    <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-12">
                             <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">The Transformation Lab</h2>
                             <p className="text-lg text-[#5F6368] font-medium mb-10">See how Pixa Vision re-engineers reality for every category.</p>
                             
-                            <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-gray-200/50 rounded-2xl border border-gray-200 shadow-inner">
+                            <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-gray-200/50 rounded-2xl border border-gray-200 shadow-inner mb-12">
                                 {transformations.map(t => (
                                     <button
                                         key={t.id}
@@ -274,9 +274,9 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                             <div className="lg:col-span-4 space-y-6">
-                                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200/80 animate-fadeIn">
+                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn h-full">
                                     <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
                                             <activeTab.icon className="w-7 h-7" />
@@ -303,14 +303,14 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                 </div>
                             </div>
                             <div className="lg:col-span-8">
-                                <div className="bg-white p-3 rounded-[2.8rem] shadow-xl border border-gray-200/80">
+                                <div className="bg-white p-2 rounded-[3rem] shadow-xl border border-gray-200/80">
                                     <BeforeAfterSlider 
-                                        key={activeTab.before + activeTab.after}
+                                        key={activeTab.id} // Key change triggers standard transition
                                         beforeImage={activeTab.before}
                                         afterImage={activeTab.after}
                                         beforeLabel="Raw Input"
                                         afterLabel="MagicPixa Output"
-                                        className="rounded-[2.2rem]"
+                                        className="rounded-[2.4rem]"
                                     />
                                 </div>
                             </div>
