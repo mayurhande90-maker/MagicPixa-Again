@@ -40,36 +40,45 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     return (
         <div 
             ref={containerRef}
-            className={`relative aspect-[4/5] md:aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize ${className}`}
+            className={`relative aspect-[4/5] md:aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-[#0F1115] ${className}`}
             onMouseMove={onMouseMove}
             onTouchMove={onTouchMove}
         >
+            {/* Studio Stage Background Pattern */}
+            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" 
+                 style={{ 
+                     backgroundImage: 'radial-gradient(#334155 1px, transparent 1px)', 
+                     backgroundSize: '24px 24px' 
+                 }}>
+            </div>
+            <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-transparent to-black/40 pointer-events-none"></div>
+
             {/* After Image (Base) */}
-            <div className="absolute inset-0 bg-slate-900">
+            <div className="absolute inset-0 flex items-center justify-center">
                 <img 
                     key={afterImage}
                     src={afterImage} 
                     alt="After AI" 
-                    className="w-full h-full object-cover animate-fadeIn"
+                    className="max-w-full max-h-full object-contain animate-fadeIn z-10"
                 />
             </div>
 
             {/* Before Image (Overlay with Clip) */}
             <div 
-                className="absolute inset-0 z-10 pointer-events-none"
+                className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center overflow-hidden"
                 style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
             >
                 <img 
                     key={beforeImage}
                     src={beforeImage} 
                     alt="Before AI" 
-                    className="w-full h-full object-cover grayscale-[0.2] brightness-75 animate-fadeIn"
+                    className="max-w-full max-h-full object-contain grayscale-[0.2] brightness-75 animate-fadeIn"
                 />
             </div>
 
             {/* Labels */}
-            <div className="absolute top-6 left-6 z-20 pointer-events-none">
-                <div className={`px-4 py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white/70 transition-opacity duration-500 ${position < 15 ? 'opacity-0' : 'opacity-100'}`}>
+            <div className="absolute top-6 left-6 z-40 pointer-events-none">
+                <div className={`px-4 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white/70 transition-opacity duration-500 ${position < 15 ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="flex items-center gap-2">
                         <CameraIcon className="w-3 h-3" />
                         {beforeLabel}
@@ -77,7 +86,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 </div>
             </div>
 
-            <div className="absolute top-6 right-6 z-20 pointer-events-none">
+            <div className="absolute top-6 right-6 z-40 pointer-events-none">
                 <div className={`px-4 py-2 bg-indigo-600/60 backdrop-blur-md border border-indigo-400/30 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white transition-opacity duration-500 ${position > 85 ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="flex items-center gap-2">
                         <SparklesIcon className="w-3 h-3 text-yellow-300" />
@@ -88,7 +97,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
             {/* Slider Line & Handle */}
             <div 
-                className="absolute top-0 bottom-0 z-30 w-1 bg-white/40 backdrop-blur-sm pointer-events-none"
+                className="absolute top-0 bottom-0 z-50 w-1 bg-white/40 backdrop-blur-sm pointer-events-none"
                 style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
             >
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-indigo-500 transition-transform group-hover:scale-110">
@@ -103,7 +112,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             </div>
 
             {/* Instructions */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-opacity duration-700 group-hover:opacity-0">
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-opacity duration-700 group-hover:opacity-0">
                 <div className="bg-black/60 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 shadow-2xl">
                     <p className="text-white font-bold text-[10px] uppercase tracking-[0.3em] flex items-center gap-3">
                         <span className="animate-bounce">←</span>
