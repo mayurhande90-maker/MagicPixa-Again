@@ -40,56 +40,71 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     return (
         <div 
             ref={containerRef}
-            className={`relative aspect-[4/5] md:aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-[#0F1115] ${className}`}
+            className={`relative aspect-[4/5] md:aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-black ${className}`}
             onMouseMove={onMouseMove}
             onTouchMove={onTouchMove}
         >
-            {/* Studio Stage Background Pattern */}
-            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" 
-                 style={{ 
-                     backgroundImage: 'radial-gradient(#334155 1px, transparent 1px)', 
-                     backgroundSize: '24px 24px' 
-                 }}>
-            </div>
-            <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-transparent to-black/40 pointer-events-none"></div>
-
-            {/* After Image (Base) */}
-            <div className="absolute inset-0 flex items-center justify-center">
+            {/* After Image Group (The Base) */}
+            <div className="absolute inset-0 z-0">
+                {/* Blur Background Layer */}
                 <img 
-                    key={afterImage}
                     src={afterImage} 
-                    alt="After AI" 
-                    className="max-w-full max-h-full object-contain animate-fadeIn z-10"
+                    alt="" 
+                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-40 pointer-events-none"
                 />
+                {/* Sharp Foreground Layer */}
+                <div className="relative w-full h-full flex items-center justify-center p-4">
+                    <img 
+                        key={afterImage}
+                        src={afterImage} 
+                        alt="After AI" 
+                        className="max-w-full max-h-full object-contain animate-fadeIn shadow-2xl relative z-10"
+                    />
+                </div>
             </div>
 
-            {/* Before Image (Overlay with Clip) */}
+            {/* Before Image Group (The Overlay with Clip) */}
             <div 
-                className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center overflow-hidden"
+                className="absolute inset-0 z-20 pointer-events-none overflow-hidden"
                 style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
             >
+                {/* Blur Background Layer (Matching clipped portion) */}
                 <img 
-                    key={beforeImage}
                     src={beforeImage} 
-                    alt="Before AI" 
-                    className="max-w-full max-h-full object-contain grayscale-[0.2] brightness-75 animate-fadeIn"
+                    alt="" 
+                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-40 grayscale-[0.2]"
                 />
+                {/* Sharp Foreground Layer */}
+                <div className="relative w-full h-full flex items-center justify-center p-4">
+                    <img 
+                        key={beforeImage}
+                        src={beforeImage} 
+                        alt="Before AI" 
+                        className="max-w-full max-h-full object-contain grayscale-[0.2] brightness-90 animate-fadeIn shadow-2xl relative z-10"
+                    />
+                </div>
             </div>
+
+            {/* Content Divider Gradient (Optional, adds depth to the cut line) */}
+            <div 
+                className="absolute top-0 bottom-0 z-30 w-px bg-white/20"
+                style={{ left: `${position}%` }}
+            ></div>
 
             {/* Labels */}
             <div className="absolute top-6 left-6 z-40 pointer-events-none">
-                <div className={`px-4 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white/70 transition-opacity duration-500 ${position < 15 ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`px-4 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white/70 transition-all duration-500 ${position < 15 ? 'opacity-0 -translate-x-4' : 'opacity-100 translate-x-0'}`}>
                     <div className="flex items-center gap-2">
-                        <CameraIcon className="w-3 h-3" />
+                        <CameraIcon className="w-3.5 h-3.5" />
                         {beforeLabel}
                     </div>
                 </div>
             </div>
 
             <div className="absolute top-6 right-6 z-40 pointer-events-none">
-                <div className={`px-4 py-2 bg-indigo-600/60 backdrop-blur-md border border-indigo-400/30 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white transition-opacity duration-500 ${position > 85 ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`px-4 py-2 bg-indigo-600/60 backdrop-blur-md border border-indigo-400/30 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all duration-500 ${position > 85 ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}`}>
                     <div className="flex items-center gap-2">
-                        <SparklesIcon className="w-3 h-3 text-yellow-300" />
+                        <SparklesIcon className="w-3.5 h-3.5 text-yellow-300" />
                         {afterLabel}
                     </div>
                 </div>
