@@ -20,7 +20,6 @@ import { fileToBase64, Base64File } from './utils/imageUtils';
 import { 
     UsersIcon,
     PaletteIcon,
-    PencilIcon,
     PixaTogetherIcon,
     PixaRestoreIcon
 } from './components/icons';

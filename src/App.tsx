@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; // Import centralized typography
 import HomePage from './HomePage';
-import ProfessionalHome from './ProfessionalHome'; // New Staging Home
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import PricingPage from './PricingPage';
@@ -128,7 +127,7 @@ function App() {
     return params.get('view') ? 'dashboard' : 'home';
   });
 
-  // Deep Link & Staging View Initialization
+  // Deep Link View Initialization
   const [currentView, setCurrentView] = useState<View>(() => {
     const path = window.location.pathname;
     const viewFromPath = getViewFromPath(path);
@@ -142,13 +141,6 @@ function App() {
         return viewParam;
     }
     return 'home_dashboard'; 
-  });
-  
-  // STAGING MODE: Toggle between standard and professional home
-  // Accessible via ?staging=true in URL
-  const [isStagingMode, setIsStagingMode] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('staging') === 'true';
   });
 
   // User State
@@ -360,11 +352,7 @@ function App() {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
-      const params = new URLSearchParams(window.location.search);
       
-      // Update Staging mode if param changed
-      setIsStagingMode(params.get('staging') === 'true');
-
       if (path === '/' || path === '/index.html') {
           setCurrentPage('home');
       } else if (path.toLowerCase() === '/about') {
@@ -512,19 +500,11 @@ function App() {
       )}
 
       {currentPage === 'home' && (
-        isStagingMode ? (
-          <ProfessionalHome 
-              navigateTo={navigateTo} 
-              auth={authProps} 
-              appConfig={appConfig}
-          />
-        ) : (
-          <HomePage 
-              navigateTo={navigateTo} 
-              auth={authProps} 
-              appConfig={appConfig}
-          />
-        )
+        <HomePage 
+            navigateTo={navigateTo} 
+            auth={authProps} 
+            appConfig={appConfig}
+        />
       )}
 
       {currentPage === 'about' && (

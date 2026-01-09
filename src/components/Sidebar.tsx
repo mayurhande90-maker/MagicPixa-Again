@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { User, Page, View, AppConfig } from '../types';
-import { DashboardIcon, PhotoStudioIcon, CreditCardIcon, PaletteIcon, CaptionIcon, MockupIcon, UsersIcon, HomeIcon, BrandKitIcon, LightbulbIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CalendarIcon, CampaignStudioIcon, SparklesIcon } from './icons';
+import { DashboardIcon, BrandKitIcon, ProjectsIcon, ShieldCheckIcon, ThumbnailIcon, CheckIcon, GiftIcon, MagicAdsIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaSupportIcon, PixaBillingIcon, PixaHeadshotIcon, CampaignStudioIcon } from './icons';
 import { claimDailyAttendance } from '../firebase';
 
 interface SidebarProps {
@@ -14,7 +14,7 @@ interface SidebarProps {
 }
 
 const NavButton: React.FC<{
-    item: { id: string; label: string; icon: React.FC<{ className?: string }>; disabled: boolean; badge?: string; isStaging?: boolean };
+    item: { id: string; label: string; icon: React.FC<{ className?: string }>; disabled: boolean; badge?: string };
     activeView: View;
     onClick: () => void;
 }> = ({ item, activeView, onClick }) => (
@@ -27,15 +27,13 @@ const NavButton: React.FC<{
                 ? 'bg-[#4D7CFF]/15 text-[#4D7CFF]'
                 : item.disabled
                 ? 'text-gray-400 cursor-not-allowed'
-                : item.isStaging 
-                ? 'text-indigo-600 hover:bg-indigo-50 hover:shadow-sm'
                 : 'text-[#5F6368] hover:bg-white hover:text-[#4D7CFF] hover:shadow-sm hover:translate-x-1'
         }`}
     >
         <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${activeView === item.id ? '' : 'group-hover:scale-110'}`} />
         <span className="truncate">{item.label}</span>
         {item.badge && (
-            <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse ${item.isStaging ? 'bg-indigo-600 text-white' : 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'}`}>
+            <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse bg-gradient-to-r from-pink-500 to-purple-600 text-white`}>
                 {item.badge}
             </span>
         )}
@@ -51,23 +49,17 @@ const NavButton: React.FC<{
 const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveView, navigateTo, appConfig, openReferralModal }) => {
   const [isClaiming, setIsClaiming] = useState(false);
   
-  const isStagingMode = useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('staging') === 'true';
-  }, []);
-
   const allNavItems = [
     ...(user?.isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheckIcon, disabled: false }] : []),
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon, disabled: false },
     { id: 'creations', label: 'My Creations', icon: ProjectsIcon, disabled: false },
-    { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, disabled: false, badge: 'NEW' },
+    { id: 'campaign_studio', label: 'Campaign Studio', icon: CampaignStudioIcon, disabled: false },
     { id: 'brand_manager', label: 'My Brand Kit', icon: BrandKitIcon, disabled: false },
     
     { type: 'divider', label: 'Features' },
     { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, disabled: false },
     { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, disabled: false },
     { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, disabled: false },
-    // Merged AdMaker & Realty
     { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, disabled: false },
     { id: 'brand_kit', label: 'Pixa Ecommerce Kit', icon: PixaEcommerceIcon, disabled: false }, 
     { id: 'soul', label: 'Pixa Together', icon: PixaTogetherIcon, disabled: false },
@@ -81,7 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
   ];
 
   const navStructure = allNavItems.map(item => {
-    if (item.id && appConfig?.featureToggles && item.id in appConfig.featureToggles) {
+    if ('id' in item && item.id && appConfig?.featureToggles && item.id in appConfig.featureToggles) {
         const isDisabled = appConfig.featureToggles[item.id] === false;
         return { ...item, disabled: isDisabled };
     }
@@ -94,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
 
   const hasClaimedToday = () => {
     if (!user?.lastAttendanceClaim) return false;
-    const last = user.lastAttendanceClaim.toDate();
+    const last = user.lastAttendanceClaim.toDate ? user.lastAttendanceClaim.toDate() : new Date(user.lastAttendanceClaim as any);
     const now = new Date();
     const diffMs = now.getTime() - last.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
@@ -144,7 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
 
         <nav className="flex-1 space-y-1">
             {navStructure.map((item, index) => {
-            if (item.type === 'divider') {
+            if ('type' in item && item.type === 'divider') {
                 return (
                 <div key={`divider-${index}`} className="pt-3 pb-2">
                     {item.label && <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pb-2">{item.label}</span>}
@@ -153,10 +145,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
             }
             return (
                 <NavButton
-                key={item.id}
+                key={(item as any).id}
                 item={item as any}
                 activeView={activeView}
-                onClick={() => handleNavClick(item.id as View)}
+                onClick={() => handleNavClick((item as any).id as View)}
                 />
             );
             })}
