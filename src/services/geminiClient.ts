@@ -1,14 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
-import { logApiError, auth } from '../firebase';
+import { logApiError, logUsage, auth } from '../firebase';
 
 // --- SECURITY TOGGLE ---
-// Set to TRUE to use the secure Vercel backend (api/generate.ts)
-// Set to FALSE to use the exposed client-side key (Development/Fallback)
 export const USE_SECURE_BACKEND = false; 
+
+// GOOGLE AI ESTIMATES (USD) - Internal rates for logging
+const ESTIMATED_RATES: Record<string, number> = {
+    'gemini-3-pro-image-preview': 0.02,
+    'gemini-2.5-flash-image': 0.002, 
+    'gemini-3-pro-preview': 0.0005,
+    'gemini-3-flash-preview': 0.0001
+};
 
 /**
  * Helper function to get a fresh AI client on every call.
- * This is used ONLY when USE_SECURE_BACKEND is false.
  */
 export const getAiClient = (): GoogleGenAI => {
     const apiKey = import.meta.env.VITE_API_KEY;
@@ -19,13 +24,12 @@ export const getAiClient = (): GoogleGenAI => {
 };
 
 /**
- * Executes an async operation with Smart Retries (Exponential Backoff + Jitter).
+ * Executes an async operation with Smart Retries.
  */
 export const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, baseDelay = 2000): Promise<T> => {
     try {
         return await fn();
     } catch (error: any) {
-        // Classify Error Type
         const status = error.status || error.code;
         const message = (error.message || "").toLowerCase();
 
@@ -62,14 +66,19 @@ export const secureGenerateContent = async (params: {
     cost?: number;
     featureName?: string;
 }) => {
+    const user = auth?.currentUser;
+    const userId = user?.uid || 'anonymous';
+    const rate = ESTIMATED_RATES[params.model] || 0.0001;
+
+    // Log usage immediately (Shadow Logging)
+    logUsage(params.model, params.featureName || 'Unknown', userId, rate)
+        .catch(e => console.warn("Financial logging failed", e));
+
     if (USE_SECURE_BACKEND) {
-        // 1. Get current user token for authentication
-        const user = auth?.currentUser;
         if (!user) throw new Error("You must be logged in to use this feature.");
         
         const token = await user.getIdToken();
 
-        // 2. Call Vercel API Route
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: {
@@ -84,14 +93,8 @@ export const secureGenerateContent = async (params: {
             throw new Error(errorData.error || `Server Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        
-        // The backend returns the raw Gemini response object.
-        // We pass it back as-is so the services don't need to change.
-        return data;
-
+        return await response.json();
     } else {
-        // Fallback to Client-Side (Insecure but works for dev)
         const ai = getAiClient();
         return await ai.models.generateContent({
             model: params.model,

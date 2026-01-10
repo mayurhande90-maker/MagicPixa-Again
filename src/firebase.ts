@@ -2,7 +2,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
-import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction, VaultReference, VaultFolderConfig } from './types';
+import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLog, CreditPack, Creation, Transaction, VaultReference, VaultFolderConfig, UsageLog } from './types';
 import { resizeImage } from './utils/imageUtils';
 import { USE_SECURE_BACKEND } from './services/geminiClient';
 
@@ -182,6 +182,87 @@ export const getAnnouncement = async () => {
     return doc.exists ? (doc.data() as Announcement) : null;
 };
 
+// --- FINANCIALS & USAGE LOGGING ---
+
+/**
+ * Logs a specific AI model call for financial tracking.
+ * @param model Model name (e.g., 'gemini-3-pro-image-preview')
+ * @param feature Feature name (e.g., 'Pixa Product Shots')
+ * @param userId UID of the user who made the call
+ * @param estimatedCost Estimated cost in USD based on Google pricing
+ */
+export const logUsage = async (model: string, feature: string, userId: string, estimatedCost: number) => {
+    if (!db) return;
+    try {
+        await db.collection('usage_logs').add({
+            model,
+            feature,
+            userId,
+            estimatedCost,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Usage log failed", e);
+    }
+};
+
+/**
+ * Fetches usage logs for a specific time range.
+ */
+export const getUsageLogs = async (days = 30): Promise<UsageLog[]> => {
+    if (!db) return [];
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() - days);
+    
+    const snap = await db.collection('usage_logs')
+        .where('timestamp', '>=', limitDate)
+        .orderBy('timestamp', 'desc')
+        .get();
+    
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UsageLog));
+};
+
+/**
+ * Scans Firebase Storage to estimate size.
+ * Note: This can be slow for massive buckets.
+ */
+export const scanStorageUsage = async (): Promise<{ totalBytes: number; fileCount: number }> => {
+    if (!storage) return { totalBytes: 0, fileCount: 0 };
+    
+    let totalBytes = 0;
+    let fileCount = 0;
+
+    const scanFolder = async (path: string) => {
+        const listRef = storage!.ref(path);
+        const res = await listRef.listAll();
+        
+        // Count files in current folder
+        const metadataPromises = res.items.map(async (item) => {
+            const meta = await item.getMetadata();
+            totalBytes += meta.size;
+            fileCount++;
+        });
+        await Promise.all(metadataPromises);
+
+        // Recurse into subfolders
+        const subfolderPromises = res.prefixes.map(prefix => scanFolder(prefix.fullPath));
+        await Promise.all(subfolderPromises);
+    };
+
+    // Scan critical folders
+    try {
+        await Promise.all([
+            scanFolder('users'),
+            scanFolder('global_vault'),
+            scanFolder('admin/lab')
+        ]);
+    } catch (e) {
+        console.error("Storage scan error", e);
+    }
+
+    return { totalBytes, fileCount };
+};
+
 // --- TRANSFORMATION LAB SYNC FUNCTIONS ---
 
 export const subscribeToLabConfig = (callback: (config: Record<string, { before: string, after: string }>) => void) => {
@@ -267,9 +348,6 @@ export const deleteCreation = async (uid: string, creation: Creation) => {
 
 /**
  * Deduct Credits logic - SECURE REFACTOR
- * If USE_SECURE_BACKEND is enabled, this function acts as an "Optimistic UI Update".
- * It calculates the next state so the user sees their balance drop immediately,
- * while the server-side API handles the actual Firestore transaction.
  */
 export const deductCredits = async (userId: string, amount: number, featureName: string) => {
     if (!db) throw new Error("Database not initialized.");
@@ -289,9 +367,6 @@ export const deductCredits = async (userId: string, amount: number, featureName:
     const newCredits = currentCredits - amount;
     const newGens = (userData.lifetimeGenerations || 0) + 1;
 
-    // OPTIMISTIC UPDATE / FALLBACK
-    // If we are NOT using the secure backend, we attempt a client-side write (legacy/dev mode).
-    // If we ARE using the secure backend, we skip this to prevent double-spending.
     if (!USE_SECURE_BACKEND) {
         await db.runTransaction(async (transaction) => {
             transaction.update(userRef, sanitizeData({ 
@@ -333,7 +408,6 @@ export const getCreditHistory = async (uid: string) => {
 export const purchaseTopUp = async (uid: string, packName: string, credits: number, price: number) => {
     if (!db) throw new Error("DB not initialized");
     const userRef = db.collection('users').doc(uid);
-    // Note: In production, this write should be triggered by a Stripe/Razorpay Webhook for security.
     await userRef.update(sanitizeData({
         credits: firebase.firestore.FieldValue.increment(credits),
         totalCreditsAcquired: firebase.firestore.FieldValue.increment(credits),

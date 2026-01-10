@@ -26,6 +26,21 @@ export const BRAND_LIMITS: Record<string, number> = {
 export type Page = 'home' | 'dashboard' | 'about' | 'pricing' | 'privacy' | 'terms';
 export type View = 'dashboard' | 'studio' | 'interior' | 'creations' | 'billing' | 'colour' | 'soul' | 'apparel' | 'profile' | 'caption' | 'home_dashboard' | 'brand_kit' | 'brand_stylist' | 'admin' | 'thumbnail_studio' | 'daily_mission' | 'magic_realty' | 'brand_manager' | 'support_center' | 'headshot' | 'campaign_studio';
 
+export interface UsageLog {
+    id?: string;
+    model: string;
+    feature: string;
+    userId: string;
+    timestamp: Timestamp;
+    estimatedCost: number; // in USD
+}
+
+export interface StorageSummary {
+    totalBytes: number;
+    fileCount: number;
+    lastUpdated: number;
+}
+
 export interface ProductAnalysis {
     id: string;
     detectedName: string;

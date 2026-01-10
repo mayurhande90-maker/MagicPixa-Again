@@ -1,11 +1,9 @@
-
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
-// Global Identity Lock Fragment to be reused
 const IDENTITY_LOCK_MANDATE = `
 *** IDENTITY LOCK v3 (SACRED ASSET PROTOCOL) ***
 1. **PIXEL INTEGRITY**: The product/subject in the source image is a 'Sacred Asset'. You must preserve its exact geometry, silhouette, and proportions.
@@ -14,7 +12,6 @@ const IDENTITY_LOCK_MANDATE = `
 MANDATE: The product must look like the EXACT physical object from the upload, now placed in a new high-end environment.
 `;
 
-// Helper: Resize to custom width
 const optimizeImage = async (base64: string, mimeType: string, width: number = 2048): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
@@ -38,7 +35,7 @@ const getBrandDNA = (brand?: BrandKit | null) => {
     `;
 };
 
-const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): Promise<string> => {
+const performPhysicsAudit = async (base64: string, mimeType: string): Promise<string> => {
     const prompt = `Perform a Deep Forensic Physics & Material Audit of this product image.
     1. **OPTICAL CLASSIFICATION**: Specular, Diffuse, or Refractive.
     2. **GLOBAL ILLUMINATION (GI) SPILL**: Predict environmental bleed.
@@ -46,9 +43,10 @@ const performPhysicsAudit = async (ai: any, base64: string, mimeType: string): P
     4. **GEOMETRIC GRID**: identify contact points for AO.
     Output a concise "Technical Optical Blueprint" paragraph.`;
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
+            featureName: 'Product Audit'
         });
         return response.text || "Standard specular profile, eye-level perspective.";
     } catch (e) { return "Standard specular profile, eye-level perspective."; }
@@ -59,20 +57,20 @@ export const analyzeProductImage = async (
     mimeType: string,
     brand?: BrandKit | null
 ): Promise<string[]> => {
-    const ai = getAiClient();
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
         const prompt = `Analyze product. Suggest 4 photography concepts. Return ONLY a JSON array of strings.`;
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', 
             contents: { parts: [{ inlineData: { data, mimeType: optimizedMime } }, { text: prompt }] },
             config: {
                 responseMimeType: "application/json",
                 responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
-            }
+            },
+            featureName: 'Product Concept Analysis'
         });
         return JSON.parse(response.text || "[]");
-    } catch (e) { return ["Clean studio shot", "Natural sunlight table", "Floating on water", "Sleek podium"]; }
+    } catch (e) { return ["Clean studio shot", "Luxury marble table", "Floating on water", "Sleek podium"]; }
 };
 
 export const analyzeProductForModelPrompts = async (
@@ -80,11 +78,10 @@ export const analyzeProductForModelPrompts = async (
     mimeType: string,
     brand?: BrandKit | null
 ): Promise<{ display: string; prompt: string }[]> => {
-    const ai = getAiClient();
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
         const prompt = `Generate 4 "Model Photography Scenarios" for this item. Return JSON Array of objects {display, prompt}.`;
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-flash-preview',
             contents: { parts: [{ inlineData: { data, mimeType: optimizedMime } }, { text: prompt }] },
             config: {
@@ -97,7 +94,8 @@ export const analyzeProductForModelPrompts = async (
                         required: ["display", "prompt"]
                     }
                 }
-            }
+            },
+            featureName: 'Model Scenario Analysis'
         });
         return JSON.parse(response.text || "[]");
     } catch (e) { return [{ display: "Studio", prompt: "Model holding product" }]; }
@@ -109,7 +107,6 @@ export const editImageWithPrompt = async (
   styleInstructions: string,
   brand?: BrandKit | null
 ): Promise<string> => {
-  const ai = getAiClient();
   try {
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
@@ -128,7 +125,7 @@ export const editImageWithPrompt = async (
     } catch (e) { console.warn("Vault fetch failed", e); }
 
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 2048);
-    const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
+    const technicalBlueprint = await performPhysicsAudit(data, optimizedMime);
     const brandContext = getBrandDNA(brand);
 
     const vaultProtocol = vaultDna ? `
@@ -137,7 +134,6 @@ export const editImageWithPrompt = async (
     - Mandate: (80%) Match lighting and atmosphere of VAULT REFERENCES. (20%) Creatively innovate secondary details.
     ` : "";
 
-    // ADDED: Specialized logic for Medical Products
     let specializedContext = "";
     if (styleInstructions.toLowerCase().includes('medical product')) {
         specializedContext = `
@@ -174,7 +170,7 @@ export const editImageWithPrompt = async (
     }
     parts.push({ text: prompt });
 
-    const response = await ai.models.generateContent({
+    const response = await secureGenerateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
       config: { 
@@ -186,6 +182,7 @@ export const editImageWithPrompt = async (
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
       },
+      featureName: 'Pixa Product Shots'
     });
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
@@ -200,10 +197,9 @@ export const generateModelShot = async (
     inputs: { modelType: string; region?: string; skinTone?: string; bodyType?: string; composition?: string; framing?: string; freeformPrompt?: string; },
     brand?: BrandKit | null
   ): Promise<string> => {
-    const ai = getAiClient();
     try {
       const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 2048);
-      const technicalBlueprint = await performPhysicsAudit(ai, data, optimizedMime);
+      const technicalBlueprint = await performPhysicsAudit(data, optimizedMime);
       const brandContext = getBrandDNA(brand);
 
       const userDirection = inputs.freeformPrompt || `Model: ${inputs.modelType}, Region: ${inputs.region}, Skin: ${inputs.skinTone}, Body: ${inputs.bodyType}, Composition: ${inputs.composition}, Framing: ${inputs.framing}`;
@@ -222,7 +218,7 @@ export const generateModelShot = async (
       3. **ENVIRONMENTAL HARMONY**: Match the lighting on the model to the product's pre-existing light source.
       OUTPUT: A hyper-realistic 8K fashion portrait.`;
       
-      const response = await ai.models.generateContent({
+      const response = await secureGenerateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
         config: { 
@@ -234,6 +230,7 @@ export const generateModelShot = async (
                 { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             ] 
         },
+        featureName: 'Pixa Model Shots'
       });
       const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
       if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
@@ -247,7 +244,6 @@ export const refineStudioImage = async (
     instruction: string,
     featureContext: string = "Commercial Product Shot"
 ): Promise<string> => {
-    const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 2048);
     const prompt = `You are an Elite Commercial AI Retoucher. 
     CURRENT TASK: Refine this ${featureContext} based on feedback: "${instruction}". 
@@ -260,10 +256,11 @@ export const refineStudioImage = async (
     OUTPUT: A single 4K photorealistic refined image.`;
     
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts: [{ inlineData: { data: optResult.data, mimeType: optResult.mimeType } }, { text: prompt }] },
             config: { responseModalities: [Modality.IMAGE] },
+            featureName: 'Pixa Refinement'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
