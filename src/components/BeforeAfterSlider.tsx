@@ -40,7 +40,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     return (
         <div 
             ref={containerRef}
-            className={`relative w-full aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-[#0F1115] transition-all duration-300 ${className}`}
+            className={`relative w-full aspect-[4/3] max-h-[min(75vh,600px)] mx-auto rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-[#0F1115] transition-all duration-500 ease-in-out ${className}`}
             onMouseMove={onMouseMove}
             onTouchMove={onTouchMove}
         >
