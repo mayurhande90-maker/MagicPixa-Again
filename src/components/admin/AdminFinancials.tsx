@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, UsageLog, Purchase } from '../../types';
 import { getUsageLogs, getRecentPurchases, getDashboardStats, scanStorageUsage } from '../../firebase';
-// Added missing CheckIcon and SparklesIcon to the imports
 import { 
     CreditCardIcon, LightningIcon, CubeIcon, ShieldCheckIcon, 
     ArrowUpCircleIcon, InformationCircleIcon, RefreshIcon, 
@@ -90,7 +89,7 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         <div className="space-y-8 animate-fadeIn">
             <div className="flex justify-between items-center">
                 <div>
-                    h2 className="text-2xl font-black text-gray-900 tracking-tight">Financial Health</h2>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Financial Health</h2>
                     <p className="text-sm text-gray-500 font-medium">Profit vs. Burn Analysis (Last 30 Days)</p>
                 </div>
                 <button onClick={loadData} className="p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
