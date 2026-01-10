@@ -3,7 +3,7 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, PixaProductIcon, ThumbnailIcon, PixaRestoreIcon, MagicAdsIcon, PixaHeadshotIcon, 
+  SparklesIcon, PixaProductIcon, ThumbnailIcon, MagicAdsIcon, PixaHeadshotIcon, 
   UploadTrayIcon, CursorClickIcon, ArrowRightIcon, ShieldCheckIcon, LightningIcon, 
   CheckIcon, ClockIcon, CreditCoinIcon, StarIcon, XIcon, PixaEcommerceIcon, 
   PixaTogetherIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, 
@@ -46,13 +46,13 @@ const TRANSFORMATIONS_STATIC = [
         description: "Flat video frames engineered into viral, high-contrast YouTube thumbnails."
     },
     {
-        id: 'colour',
-        label: 'Pixa Photo Restore',
-        icon: PixaRestoreIcon,
-        before: "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?q=80&w=2070&auto=format&fit=crop",
-        after: "https://images.unsplash.com/photo-1542362567-b051c63b9a47?q=80&w=2070&auto=format&fit=crop",
-        logic: "Forensic Repair + Neural Colorization",
-        description: "Damaged vintage memories recovered with flawless resolution and accurate color."
+        id: 'apparel',
+        label: 'Pixa TryOn',
+        icon: PixaTryOnIcon,
+        before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2000&auto=format&fit=crop",
+        logic: "AR Silhouette Mapping + Fabric Physics",
+        description: "Virtually try on any garment with realistic texture mapping and physical drape simulation."
     },
     {
         id: 'brand_stylist',
@@ -81,10 +81,9 @@ const features = [
     { id: 'brand_stylist', icon: <MagicAdsIcon className="w-16 h-16" />, title: "Pixa AdMaker", description: "Generate high-converting ad creatives instantly for any industry (Product, Realty, Food, SaaS)." },
     { id: 'thumbnail_studio', icon: <ThumbnailIcon className="w-16 h-16" />, title: "Pixa Thumbnail Pro", description: "Create click-worthy YouTube thumbnails in seconds. No design skills needed." },
     { id: 'soul', icon: <PixaTogetherIcon className="w-16 h-16" />, title: "Pixa Together", description: "Combine two people into one hyper-realistic photo, choosing a theme and environment." },
-    { id: 'colour', icon: <PixaRestoreIcon className="w-16 h-16" />, title: "Pixa Photo Restore", description: "Breathe new life into vintage photos. Convert old black and white images into spotless, high-resolution color." },
+    { id: 'apparel', icon: <PixaTryOnIcon className="w-16 h-16" />, title: "Pixa TryOn", description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds." },
     { id: 'caption', icon: <PixaCaptionIcon className="w-16 h-16" />, title: "Pixa Caption Pro", description: "Upload a photo and instantly get engaging, copy-paste-ready captions and hashtags for social media." },
-    { id: 'interior', icon: <PixaInteriorIcon className="w-16 h-16" />, title: "Pixa Interior Design", description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style." },
-    { id: 'apparel', icon: <PixaTryOnIcon className="w-16 h-16" />, title: "Pixa TryOn", description: "Virtually try on any clothing on a person from a photo, creating a realistic look in seconds." }
+    { id: 'interior', icon: <PixaInteriorIcon className="w-16 h-16" />, title: "Pixa Interior Design", description: "Upload a photo of your home or office and our AI will generate a fully furnished interior in your chosen style." }
 ];
 
 const reviews = [

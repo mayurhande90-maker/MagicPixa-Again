@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProps } from '../../types';
 import { 
@@ -6,8 +5,7 @@ import {
 } from '../../firebase';
 import { fileToBase64 } from '../../utils/imageUtils';
 import { 
-    PixaProductIcon, ThumbnailIcon, PixaRestoreIcon, MagicAdsIcon, PixaHeadshotIcon,
-    // FIX: Added InformationCircleIcon to resolve "Cannot find name" error on line 157.
+    PixaProductIcon, ThumbnailIcon, MagicAdsIcon, PixaHeadshotIcon, PixaTryOnIcon,
     ArrowLeftIcon, CloudUploadIcon, XIcon, CheckIcon, ImageIcon, CameraIcon, SparklesIcon, InformationCircleIcon
 } from '../icons';
 import { VaultStyles as styles } from '../../styles/admin/AdminVault.styles';
@@ -16,7 +14,7 @@ import { BeforeAfterSlider } from '../BeforeAfterSlider';
 const LAB_FOLDERS = [
     { id: 'studio', label: 'Product Shots', icon: PixaProductIcon, color: 'bg-indigo-400' },
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', icon: ThumbnailIcon, color: 'bg-orange-400' },
-    { id: 'colour', label: 'Photo Restore', icon: PixaRestoreIcon, color: 'bg-purple-400' },
+    { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, color: 'bg-pink-400' },
     { id: 'brand_stylist', label: 'AdMaker', icon: MagicAdsIcon, color: 'bg-blue-400' },
     { id: 'headshot', label: 'Headshot Pro', icon: PixaHeadshotIcon, color: 'bg-rose-400' },
 ];
@@ -112,7 +110,7 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     ) : currentAssets.before ? (
                                         <>
                                             <img src={currentAssets.before} className="w-full h-full object-cover rounded-[1.4rem]" alt="Before" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-[1.4rem] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 rounded-[1.4rem] flex items-center justify-center">
                                                 <div className="p-2 bg-white rounded-full text-indigo-600 shadow-xl"><CloudUploadIcon className="w-5 h-5"/></div>
                                             </div>
                                         </>
