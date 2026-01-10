@@ -186,10 +186,6 @@ export const getAnnouncement = async () => {
 
 /**
  * Logs a specific AI model call for financial tracking.
- * @param model Model name (e.g., 'gemini-3-pro-image-preview')
- * @param feature Feature name (e.g., 'Pixa Product Shots')
- * @param userId UID of the user who made the call
- * @param estimatedCost Estimated cost in USD based on Google pricing
  */
 export const logUsage = async (model: string, feature: string, userId: string, estimatedCost: number) => {
     if (!db) return;
@@ -209,22 +205,26 @@ export const logUsage = async (model: string, feature: string, userId: string, e
 /**
  * Fetches usage logs for a specific time range.
  */
-export const getUsageLogs = async (days = 30): Promise<UsageLog[]> => {
+export const getUsageLogs = async (days = 30, start?: Date, end?: Date): Promise<UsageLog[]> => {
     if (!db) return [];
-    const limitDate = new Date();
-    limitDate.setDate(limitDate.getDate() - days);
     
-    const snap = await db.collection('usage_logs')
-        .where('timestamp', '>=', limitDate)
-        .orderBy('timestamp', 'desc')
-        .get();
+    let q = db.collection('usage_logs') as any;
+
+    if (start || end) {
+        if (start) q = q.where('timestamp', '>=', start);
+        if (end) q = q.where('timestamp', '<=', end);
+    } else if (days !== -1) {
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() - days);
+        q = q.where('timestamp', '>=', limitDate);
+    }
     
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UsageLog));
+    const snap = await q.orderBy('timestamp', 'desc').get();
+    return snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as UsageLog));
 };
 
 /**
  * Scans Firebase Storage to estimate size.
- * Note: This can be slow for massive buckets.
  */
 export const scanStorageUsage = async (): Promise<{ totalBytes: number; fileCount: number }> => {
     if (!storage) return { totalBytes: 0, fileCount: 0 };
@@ -236,7 +236,6 @@ export const scanStorageUsage = async (): Promise<{ totalBytes: number; fileCoun
         const listRef = storage!.ref(path);
         const res = await listRef.listAll();
         
-        // Count files in current folder
         const metadataPromises = res.items.map(async (item) => {
             const meta = await item.getMetadata();
             totalBytes += meta.size;
@@ -244,12 +243,10 @@ export const scanStorageUsage = async (): Promise<{ totalBytes: number; fileCoun
         });
         await Promise.all(metadataPromises);
 
-        // Recurse into subfolders
         const subfolderPromises = res.prefixes.map(prefix => scanFolder(prefix.fullPath));
         await Promise.all(subfolderPromises);
     };
 
-    // Scan critical folders
     try {
         await Promise.all([
             scanFolder('users'),
@@ -593,7 +590,14 @@ export const addCreditsToUser = async (adminUid: string, targetUid: string, amou
 export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update(sanitizeData({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } })); await userRef.collection('transactions').add(sanitizeData({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };
 export const toggleUserBan = async (adminUid: string, targetUid: string, isBanned: boolean) => { if (!db) return; await db.collection('users').doc(targetUid).update({ isBanned }); await logAudit(adminUid, isBanned ? 'Ban User' : 'Unban User', `Target: ${targetUid}`); };
 export const getRecentSignups = async (limit = 10) => { if (!db) return []; const snap = await db.collection('users').orderBy('signUpDate', 'desc').limit(limit).get(); return snap.docs.map(d => ({ uid: d.id, ...d.data() } as User)); };
-export const getRecentPurchases = async (limit = 10): Promise<Purchase[]> => { if (!db) return []; const snap = await db.collection('purchases').orderBy('purchaseDate', 'desc').limit(limit).get(); return snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)); };
+export const getRecentPurchases = async (limit = 10, start?: Date, end?: Date): Promise<Purchase[]> => { 
+    if (!db) return []; 
+    let q = db.collection('purchases') as any;
+    if (start) q = q.where('purchaseDate', '>=', start);
+    if (end) q = q.where('purchaseDate', '<=', end);
+    const snap = await q.orderBy('purchaseDate', 'desc').limit(limit).get(); 
+    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Purchase)); 
+};
 export const getDashboardStats = async () => { if (!db) return { revenue: 0, totalUsers: 0 }; try { const pSnap = await db.collection('purchases').get(); const revenue = pSnap.docs.reduce((acc, doc) => acc + (doc.data().amountPaid || 0), 0); const uSnap = await db.collection('users').get(); const totalUsers = uSnap.size; return { revenue, totalUsers }; } catch (e) { return { revenue: 0, totalUsers: 0 }; } };
 export const getTotalRevenue = async (start?: Date, end?: Date) => { if (!db) return 0; let q = db.collection('purchases') as any; if (start) q = q.where('purchaseDate', '>=', start); if (end) q = q.where('purchaseDate', '<=', end); const snap = await q.get(); return snap.docs.reduce((sum: number, doc: any) => sum + (doc.data().amountPaid || 0), 0); };
 export const getRevenueStats = async (days = 7) => { return []; };

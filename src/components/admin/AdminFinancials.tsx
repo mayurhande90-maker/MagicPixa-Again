@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, UsageLog, Purchase } from '../../types';
-import { getUsageLogs, getRecentPurchases, getDashboardStats, scanStorageUsage } from '../../firebase';
+import { getUsageLogs, getRecentPurchases, getDashboardStats, scanStorageUsage, getTotalRevenue } from '../../firebase';
 import { 
     CreditCardIcon, LightningIcon, CubeIcon, ShieldCheckIcon, 
     ArrowUpCircleIcon, InformationCircleIcon, RefreshIcon, 
     ChartBarIcon, CurrencyDollarIcon, CubeIcon as BoxIcon,
-    CheckIcon, SparklesIcon
+    CheckIcon, SparklesIcon, FilterIcon, CalendarIcon, XIcon
 } from '../icons';
 
 // GOOGLE AI ESTIMATES (USD)
@@ -17,29 +17,56 @@ const RATES = {
     'storage_per_gb': 0.026 // Monthly
 };
 
+type FilterType = '7d' | '30d' | 'lifetime' | 'custom';
+
 export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
-    const [stats, setStats] = useState({ revenue: 0, totalUsers: 0 });
+    const [revenue, setRevenue] = useState(0);
     const [storage, setStorage] = useState({ totalBytes: 0, fileCount: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [isScanningStorage, setIsScanningStorage] = useState(false);
+    
+    // Filter State
+    const [filter, setFilter] = useState<FilterType>('30d');
+    const [customRange, setCustomRange] = useState({ start: '', end: '' });
+    const [showCustomRange, setShowCustomRange] = useState(false);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [filter, customRange]);
 
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const [logs, buyHistory, dbStats] = await Promise.all([
-                getUsageLogs(30),
-                getRecentPurchases(100),
-                getDashboardStats()
+            let start: Date | undefined;
+            let end: Date | undefined;
+            let days = 30;
+
+            if (filter === '7d') days = 7;
+            else if (filter === '30d') days = 30;
+            else if (filter === 'lifetime') days = -1;
+            else if (filter === 'custom' && customRange.start && customRange.end) {
+                start = new Date(customRange.start);
+                end = new Date(customRange.end);
+                end.setHours(23, 59, 59, 999);
+            }
+
+            if (days !== -1 && filter !== 'custom') {
+                start = new Date();
+                start.setDate(start.getDate() - days);
+                start.setHours(0, 0, 0, 0);
+            }
+
+            const [logs, buyHistory, filteredRev] = await Promise.all([
+                getUsageLogs(days, start, end),
+                getRecentPurchases(100, start, end),
+                getTotalRevenue(start, end)
             ]);
+
             setUsageLogs(logs);
             setPurchases(buyHistory);
-            setStats(dbStats);
+            setRevenue(filteredRev);
         } catch (e) {
             console.error(e);
         } finally {
@@ -60,62 +87,114 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     };
 
     const financialData = useMemo(() => {
-        // 1. Total Burn (USD to INR approx 84)
         const burnUsd = usageLogs.reduce((acc, log) => acc + (log.estimatedCost || 0), 0);
         const burnInr = burnUsd * 84;
 
-        // 2. Storage Cost (Current Month Estimate)
         const storageGb = storage.totalBytes / (1024 * 1024 * 1024);
         const storageCostUsd = storageGb * RATES.storage_per_gb;
         const storageCostInr = storageCostUsd * 84;
 
-        // 3. Profit
-        const totalBurn = burnInr + storageCostInr;
-        const profit = stats.revenue - totalBurn;
-        const margin = stats.revenue > 0 ? (profit / stats.revenue) * 100 : 0;
+        const totalBurnInr = burnInr + storageCostInr;
+        const profit = revenue - totalBurnInr;
+        const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-        // 4. Feature Breakdown
         const featureBurn: Record<string, number> = {};
         usageLogs.forEach(log => {
             featureBurn[log.feature] = (featureBurn[log.feature] || 0) + (log.estimatedCost * 84);
         });
 
         return { burnInr, storageGb, storageCostInr, profit, margin, featureBurn };
-    }, [usageLogs, stats, storage]);
+    }, [usageLogs, revenue, storage]);
 
-    if (isLoading) return <div className="p-20 text-center animate-pulse text-gray-400">Aggregating Ledgers...</div>;
+    if (isLoading && usageLogs.length === 0) return <div className="p-20 text-center animate-pulse text-gray-400">Aggregating Ledgers...</div>;
 
     return (
         <div className="space-y-8 animate-fadeIn">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Financial Health</h2>
-                    <p className="text-sm text-gray-500 font-medium">Profit vs. Burn Analysis (Last 30 Days)</p>
+                    <p className="text-sm text-gray-500 font-medium">Profit vs. Burn Analysis</p>
                 </div>
-                <button onClick={loadData} className="p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                    <RefreshIcon className="w-5 h-5 text-gray-400" />
-                </button>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Date Filters */}
+                    <div className="flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
+                        {(['7d', '30d', 'lifetime'] as FilterType[]).map((f) => (
+                            <button 
+                                key={f}
+                                onClick={() => { setFilter(f); setShowCustomRange(false); }}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${filter === f && !showCustomRange ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                        <button 
+                            onClick={() => setShowCustomRange(!showCustomRange)}
+                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${showCustomRange ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}
+                        >
+                            <CalendarIcon className="w-3 h-3" />
+                            Custom
+                        </button>
+                    </div>
+
+                    <button onClick={loadData} className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+                        <RefreshIcon className={`w-4 h-4 text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
+
+            {showCustomRange && (
+                <div className="bg-white p-6 rounded-[2rem] border border-indigo-100 shadow-xl shadow-indigo-500/5 flex flex-wrap items-center gap-6 animate-fadeIn">
+                    <div className="flex items-center gap-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">From</label>
+                        <input 
+                            type="date" 
+                            className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500"
+                            value={customRange.start}
+                            onChange={(e) => setCustomRange({ ...customRange, start: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">To</label>
+                        <input 
+                            type="date" 
+                            className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500"
+                            value={customRange.end}
+                            onChange={(e) => setCustomRange({ ...customRange, end: e.target.value })}
+                        />
+                    </div>
+                    <button 
+                        onClick={() => { setFilter('custom'); loadData(); }}
+                        disabled={!customRange.start || !customRange.end}
+                        className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
+                    >
+                        Apply Range
+                    </button>
+                    <button onClick={() => setShowCustomRange(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                        <XIcon className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
 
             {/* TOP METRICS */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
+                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm group hover:border-indigo-100 transition-colors">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Gross Revenue</p>
-                    <p className="text-3xl font-black text-gray-900">₹{stats.revenue.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-gray-900">₹{revenue.toLocaleString()}</p>
                     <div className="mt-2 flex items-center gap-1 text-green-500 font-bold text-[10px]">
-                        <CheckIcon className="w-3 h-3"/> Active Ledger
+                        <CheckIcon className="w-3 h-3"/> {filter === 'lifetime' ? 'All-Time Earnings' : `Revenue in ${filter}`}
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
+                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm group hover:border-red-100 transition-colors">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Estimated Burn</p>
                     <p className="text-3xl font-black text-red-500">₹{Math.ceil(financialData.burnInr).toLocaleString()}</p>
                     <div className="mt-2 flex items-center gap-1 text-red-400 font-bold text-[10px]">
-                        <LightningIcon className="w-3 h-3"/> AI Inference
+                        <LightningIcon className="w-3 h-3"/> {usageLogs.length} AI Calls
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
+                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm group hover:border-amber-100 transition-colors">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Storage Cost</p>
                     <p className="text-3xl font-black text-amber-600">₹{financialData.storageCostInr.toFixed(2)}</p>
                     <div className="mt-2 flex items-center gap-1 text-amber-500 font-bold text-[10px]">
@@ -123,9 +202,9 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                     </div>
                 </div>
 
-                <div className={`p-6 rounded-[2rem] border-2 shadow-xl relative overflow-hidden ${financialData.profit >= 0 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-red-600 border-red-500 text-white'}`}>
+                <div className={`p-6 rounded-[2rem] border-2 shadow-xl relative overflow-hidden transition-all duration-500 ${financialData.profit >= 0 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-red-600 border-red-500 text-white'}`}>
                     <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
-                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Estimated Profit</p>
+                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Net Profit</p>
                     <p className="text-3xl font-black">₹{Math.floor(financialData.profit).toLocaleString()}</p>
                     <div className="mt-2 flex items-center gap-1 font-bold text-[10px]">
                         <SparklesIcon className="w-3 h-3 text-yellow-300"/> Margin: {financialData.margin.toFixed(1)}%
@@ -143,7 +222,7 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         {Object.entries(financialData.featureBurn)
                             .sort(([,a], [,b]) => b - a)
                             .map(([feature, cost]) => {
-                                const percent = (cost / financialData.burnInr) * 100;
+                                const percent = (cost / (financialData.burnInr || 1)) * 100;
                                 return (
                                     <div key={feature}>
                                         <div className="flex justify-between text-[11px] font-bold mb-2">
@@ -221,8 +300,8 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             {/* RECENT PURCHASES MINI LIST */}
             <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Recent Inflow</h3>
-                    <button className="text-[10px] font-bold text-indigo-600 hover:underline">View All Purchases</button>
+                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Filtered Inflow</h3>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{purchases.length} Transactions</div>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                     <table className="w-full text-left text-sm">
@@ -235,7 +314,7 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {purchases.slice(0, 10).map((p) => (
+                            {purchases.map((p) => (
                                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4">
                                         <p className="font-bold text-gray-900 text-xs">{p.userEmail}</p>
@@ -250,6 +329,11 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     <td className="px-6 py-4 text-right font-black text-green-600">₹{p.amountPaid}</td>
                                 </tr>
                             ))}
+                            {purchases.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="p-12 text-center text-gray-400 text-sm italic">No purchases found in this period.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
