@@ -8,7 +8,7 @@ import {
   CheckIcon, ClockIcon, CreditCoinIcon, StarIcon, XIcon, PixaEcommerceIcon, 
   PixaTogetherIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, 
   DashboardIcon, HomeIcon, ProjectsIcon, UserIcon as AvatarUserIcon, CameraIcon,
-  CubeIcon, PencilIcon
+  CubeIcon, PencilIcon, EyeIcon
 } from './components/icons';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { HomeStyles } from './styles/Home.styles';
@@ -291,27 +291,37 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                     <div className="flex-1 space-y-6">
                                         <p className="text-[#5F6368] text-base leading-relaxed font-medium">{activeTab.description}</p>
                                         
-                                        {/* PRODUCTION BLUEPRINT SECTION */}
+                                        {/* PRODUCTION BLUEPRINT SECTION - PROMPT-FREE VERSION */}
                                         <div className="bg-gray-50/80 border border-gray-100 p-6 rounded-3xl">
                                             <div className="flex items-center gap-2 mb-4">
                                                 <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
-                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Production Blueprint</span>
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Pixa Logic Protocol</span>
                                             </div>
                                             
                                             <div className="space-y-3">
                                                 {[
-                                                    { label: "0 Words Typed", icon: PencilIcon, strike: true },
-                                                    { label: "Forensic Physics Audit", icon: CubeIcon },
-                                                    { label: "Studio Lighting Rig", icon: LightningIcon },
-                                                    { label: "Render: 1 Click Only", icon: CursorClickIcon }
+                                                    { label: "No Keywords Typed", icon: PencilIcon, skipped: true },
+                                                    { label: "No Prompt Engineering", icon: CursorClickIcon, skipped: true },
+                                                    { label: "Intelligent Pixa Vision", icon: EyeIcon, active: true },
+                                                    { label: "Instant 8K Render", icon: SparklesIcon, active: true }
                                                 ].map((pill, idx) => (
-                                                    <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-gray-100/50 shadow-sm animate-fadeIn" style={{ animationDelay: `${idx * 100}ms` }}>
-                                                        <div className="w-7 h-7 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
-                                                            <pill.icon className="w-3.5 h-3.5" />
+                                                    <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-2xl border animate-fadeIn transition-all ${pill.active ? 'bg-white border-indigo-100 shadow-sm' : 'bg-gray-50/50 border-transparent opacity-60'}`} style={{ animationDelay: `${idx * 100}ms` }}>
+                                                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${pill.active ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'bg-gray-100 text-gray-400'}`}>
+                                                            {pill.active ? <pill.icon className="w-3.5 h-3.5" /> : (
+                                                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                </svg>
+                                                            )}
                                                         </div>
-                                                        <span className={`text-xs font-bold ${pill.strike ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{pill.label}</span>
-                                                        <div className="ml-auto w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                                            <CheckIcon className="w-2.5 h-2.5 text-white" />
+                                                        <span className={`text-xs font-bold ${pill.active ? 'text-gray-700' : 'text-gray-400 line-through'}`}>{pill.label}</span>
+                                                        <div className="ml-auto flex items-center justify-center">
+                                                            {pill.active ? (
+                                                                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                                                                    <CheckIcon className="w-2.5 h-2.5 text-white" />
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[8px] font-black uppercase tracking-tighter text-gray-300">Skipped</span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}
