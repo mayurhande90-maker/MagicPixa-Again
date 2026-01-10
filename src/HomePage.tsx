@@ -3,11 +3,13 @@ import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon, PencilIcon, EyeIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
 import { PaymentSuccessModal } from './components/PaymentSuccessModal';
+import { BeforeAfterSlider } from './components/BeforeAfterSlider';
+import { subscribeToLabConfig } from './firebase';
 
 interface HomePageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -23,6 +25,54 @@ const PLAN_WEIGHTS: Record<string, number> = {
     'Studio Pack': 3,
     'Agency Pack': 4
 };
+
+const TRANSFORMATIONS_STATIC = [
+    {
+        id: 'studio',
+        label: 'Pixa Product Shots',
+        icon: PixaProductIcon,
+        before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?q=80&w=2070&auto=format&fit=crop",
+        logic: "Dynamic Shadows + Ray-Tracing",
+        description: "Transform raw smartphone photos into luxury studio catalog assets with one click."
+    },
+    {
+        id: 'thumbnail_studio',
+        label: 'Pixa Thumbnail Pro',
+        icon: ThumbnailIcon,
+        before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop",
+        logic: "CTR Optimization + High-Pass Sharpness",
+        description: "Flat video frames engineered into viral, high-contrast YouTube thumbnails."
+    },
+    {
+        id: 'apparel',
+        label: 'Pixa TryOn',
+        icon: PixaTryOnIcon,
+        before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2000&auto=format&fit=crop",
+        logic: "AR Silhouette Mapping + Fabric Physics",
+        description: "Virtually try on any garment with realistic texture mapping and physical drape simulation."
+    },
+    {
+        id: 'brand_stylist',
+        label: 'Pixa AdMaker',
+        icon: MagicAdsIcon,
+        before: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=2070&auto=format&fit=crop",
+        logic: "AIDA Layout + Narrative Lighting",
+        description: "Simple photos converted into agency-grade 'Summer Sale' ad creatives."
+    },
+    {
+        id: 'headshot',
+        label: 'Pixa Headshot Pro',
+        icon: PixaHeadshotIcon,
+        before: "https://i.pravatar.cc/1000?u=headshot_before",
+        after: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop",
+        logic: "Executive Biometrics + Studio Relighting",
+        description: "Casual outdoor selfies replaced with powerful, executive-grade LinkedIn portraits."
+    }
+];
 
 const features = [
     {
@@ -146,7 +196,6 @@ const MagneticCard: React.FC<{
         
         const rect = cardRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        // FIX: Replaced non-existent e.centerY with e.clientY to correctly calculate relative Y position.
         const y = e.clientY - rect.top;
         
         // Spotlight position
@@ -249,6 +298,24 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
   const [successCredits, setSuccessCredits] = useState<number | null>(null);
   const [successPackName, setSuccessPackName] = useState<string>('');
+  
+  // Lab State
+  const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
+  const [activeTabId, setActiveTabId] = useState(TRANSFORMATIONS_STATIC[0].id);
+
+  // Sync dynamic lab data
+  useEffect(() => {
+    const unsubscribe = subscribeToLabConfig(setLabConfig);
+    return () => unsubscribe();
+  }, []);
+
+  const transformations = TRANSFORMATIONS_STATIC.map(t => ({
+    ...t,
+    before: labConfig[t.id]?.before || t.before,
+    after: labConfig[t.id]?.after || t.after
+  }));
+
+  const activeTab = transformations.find(t => t.id === activeTabId) || transformations[0];
 
   const creditPacks = appConfig?.creditPacks || [];
   const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
@@ -364,6 +431,102 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                         Start Creating for Free
                     </button>
                     <p className="text-sm text-gray-500 mt-4">Get 50 free credits on sign up!</p>
+                </div>
+            </div>
+        </section>
+
+        {/* The Transformation Lab Section */}
+        <section className="py-24 px-4 bg-[#F6F7FA] border-y border-gray-50">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">The Transformation Lab</h2>
+                    <p className="text-lg text-[#5F6368] font-medium mb-10">See how Pixa Vision re-engineers reality for every category.</p>
+                    
+                    <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-gray-200/50 rounded-2xl border border-gray-200 shadow-inner mb-12">
+                        {transformations.map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => setActiveTabId(t.id)}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                    activeTabId === t.id 
+                                    ? 'bg-white text-indigo-600 shadow-sm border border-indigo-100' 
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                <t.icon className={`w-4 h-4 ${activeTabId === t.id ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                <span>{t.label.replace('Pixa ', '')}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                    <div className="lg:col-span-4 flex flex-col">
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn flex flex-col h-full">
+                            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100 shrink-0">
+                                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
+                                    <activeTab.icon className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1.5">Feature Mode</p>
+                                    <p className="text-lg font-bold text-[#1A1A1E] tracking-tight">{activeTab.label}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex-1 space-y-6">
+                                <p className="text-[#5F6368] text-base leading-relaxed font-medium">{activeTab.description}</p>
+                                
+                                <div className="bg-gray-50/80 border border-gray-100 p-6 rounded-3xl">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
+                                        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Pixa Logic Protocol</span>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        {[
+                                            { label: "No Prompt Typed", icon: PencilIcon, active: false, skipped: true },
+                                            { label: "Intelligent Pixa Vision", icon: EyeIcon, active: true },
+                                            { label: "Auto-calibrated lighting", icon: SparklesIcon, active: true },
+                                            { label: "Commercial 4K Rendering", icon: CheckIcon, active: true }
+                                        ].map((pill, idx) => (
+                                            <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-2xl border animate-fadeIn transition-all ${pill.active ? 'bg-white border-indigo-100 shadow-sm' : 'bg-white border-gray-100'}`} style={{ animationDelay: `${idx * 100}ms` }}>
+                                                <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${pill.active ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'bg-red-50 text-red-500'}`}>
+                                                    <pill.icon className="w-3.5 h-3.5" />
+                                                </div>
+                                                <span className={`text-xs font-bold ${pill.active ? 'text-gray-700' : 'text-red-500 line-through'}`}>{pill.label}</span>
+                                                <div className="ml-auto flex items-center justify-center">
+                                                    {pill.active && (
+                                                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                                                            <CheckIcon className="w-2.5 h-2.5 text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={() => auth.isAuthenticated ? navigateTo('dashboard', activeTab.id as View) : auth.openAuthModal()} 
+                                className="w-full flex items-center justify-center gap-3 py-5 bg-[#F9D230] text-[#1A1A1E] font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 group mt-8 shrink-0"
+                            >
+                                Try this tool <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="lg:col-span-8 flex items-stretch">
+                        <div className="bg-white p-2 rounded-[3.5rem] shadow-2xl border border-gray-200/60 w-full flex items-center overflow-hidden h-full">
+                            <BeforeAfterSlider 
+                                key={activeTab.id} 
+                                beforeImage={activeTab.before}
+                                afterImage={activeTab.after}
+                                beforeLabel="Raw Input"
+                                afterLabel="MagicPixa Output"
+                                className="rounded-[2.8rem] h-full"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
