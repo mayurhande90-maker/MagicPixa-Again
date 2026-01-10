@@ -274,9 +274,9 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                            <div className="lg:col-span-4 flex flex-col">
-                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn flex flex-col h-full max-h-[min(75vh,600px)]">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn h-full">
                                     <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
                                             <activeTab.icon className="w-7 h-7" />
@@ -286,26 +286,24 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                             <p className="text-lg font-bold text-[#1A1A1E]">{activeTab.label}</p>
                                         </div>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto no-scrollbar">
-                                        <p className="text-[#5F6368] text-base leading-relaxed font-medium mb-8">{activeTab.description}</p>
-                                        <div className="bg-[#F6F7FA] p-5 rounded-2xl border border-gray-100 mb-8">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
-                                                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Pixa Vision Logic</span>
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-800">{activeTab.logic}</p>
+                                    <p className="text-[#5F6368] text-base leading-relaxed font-medium mb-8">{activeTab.description}</p>
+                                    <div className="bg-[#F6F7FA] p-5 rounded-2xl border border-gray-100 mb-8">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
+                                            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Pixa Vision Logic</span>
                                         </div>
+                                        <p className="text-sm font-bold text-gray-800">{activeTab.logic}</p>
                                     </div>
                                     <button 
                                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard', activeTab.id as View) : auth.openAuthModal()} 
-                                        className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9D230] text-[#1A1A1E] font-bold rounded-xl hover:bg-[#dfbc2b] transition-all shadow-lg active:scale-95 group mt-auto"
+                                        className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9D230] text-[#1A1A1E] font-bold rounded-xl hover:bg-[#dfbc2b] transition-all shadow-lg active:scale-95 group"
                                     >
                                         Try this tool <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                     </button>
                                 </div>
                             </div>
-                            <div className="lg:col-span-8 flex items-center">
-                                <div className="bg-white p-2 rounded-[3rem] shadow-xl border border-gray-200/80 w-full">
+                            <div className="lg:col-span-8">
+                                <div className="bg-white p-2 rounded-[3rem] shadow-xl border border-gray-200/80">
                                     <BeforeAfterSlider 
                                         key={activeTab.id} // Key change triggers standard transition
                                         beforeImage={activeTab.before}
