@@ -7,7 +7,8 @@ import {
   UploadTrayIcon, CursorClickIcon, ArrowRightIcon, ShieldCheckIcon, LightningIcon, 
   CheckIcon, ClockIcon, CreditCoinIcon, StarIcon, XIcon, PixaEcommerceIcon, 
   PixaTogetherIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, 
-  DashboardIcon, HomeIcon, ProjectsIcon, UserIcon as AvatarUserIcon, CameraIcon
+  DashboardIcon, HomeIcon, ProjectsIcon, UserIcon as AvatarUserIcon, CameraIcon,
+  CubeIcon, PencilIcon
 } from './components/icons';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { HomeStyles } from './styles/Home.styles';
@@ -274,43 +275,67 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                            <div className="lg:col-span-4 space-y-6">
-                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn h-full">
-                                    <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                            <div className="lg:col-span-4 flex flex-col">
+                                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn flex flex-col h-full">
+                                    <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100 shrink-0">
+                                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
                                             <activeTab.icon className="w-7 h-7" />
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1.5">Feature Mode</p>
-                                            <p className="text-lg font-bold text-[#1A1A1E]">{activeTab.label}</p>
+                                            <p className="text-lg font-bold text-[#1A1A1E] tracking-tight">{activeTab.label}</p>
                                         </div>
                                     </div>
-                                    <p className="text-[#5F6368] text-base leading-relaxed font-medium mb-8">{activeTab.description}</p>
-                                    <div className="bg-[#F6F7FA] p-5 rounded-2xl border border-gray-100 mb-8">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
-                                            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Pixa Vision Logic</span>
+                                    
+                                    <div className="flex-1 space-y-6">
+                                        <p className="text-[#5F6368] text-base leading-relaxed font-medium">{activeTab.description}</p>
+                                        
+                                        {/* PRODUCTION BLUEPRINT SECTION */}
+                                        <div className="bg-gray-50/80 border border-gray-100 p-6 rounded-3xl">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Production Blueprint</span>
+                                            </div>
+                                            
+                                            <div className="space-y-3">
+                                                {[
+                                                    { label: "0 Words Typed", icon: PencilIcon, strike: true },
+                                                    { label: "Forensic Physics Audit", icon: CubeIcon },
+                                                    { label: "Studio Lighting Rig", icon: LightningIcon },
+                                                    { label: "Render: 1 Click Only", icon: CursorClickIcon }
+                                                ].map((pill, idx) => (
+                                                    <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-gray-100/50 shadow-sm animate-fadeIn" style={{ animationDelay: `${idx * 100}ms` }}>
+                                                        <div className="w-7 h-7 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
+                                                            <pill.icon className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <span className={`text-xs font-bold ${pill.strike ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{pill.label}</span>
+                                                        <div className="ml-auto w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                                            <CheckIcon className="w-2.5 h-2.5 text-white" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <p className="text-sm font-bold text-gray-800">{activeTab.logic}</p>
                                     </div>
+
                                     <button 
                                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard', activeTab.id as View) : auth.openAuthModal()} 
-                                        className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9D230] text-[#1A1A1E] font-bold rounded-xl hover:bg-[#dfbc2b] transition-all shadow-lg active:scale-95 group"
+                                        className="w-full flex items-center justify-center gap-3 py-5 bg-[#F9D230] text-[#1A1A1E] font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 group mt-8 shrink-0"
                                     >
                                         Try this tool <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                     </button>
                                 </div>
                             </div>
-                            <div className="lg:col-span-8">
-                                <div className="bg-white p-2 rounded-[3rem] shadow-xl border border-gray-200/80">
+                            <div className="lg:col-span-8 flex items-stretch">
+                                <div className="bg-white p-2 rounded-[3.5rem] shadow-2xl border border-gray-200/60 w-full flex items-center overflow-hidden h-full">
                                     <BeforeAfterSlider 
-                                        key={activeTab.id} // Key change triggers standard transition
+                                        key={activeTab.id} 
                                         beforeImage={activeTab.before}
                                         afterImage={activeTab.after}
                                         beforeLabel="Raw Input"
                                         afterLabel="MagicPixa Output"
-                                        className="rounded-[2.4rem] aspect-[4/3]"
+                                        className="rounded-[2.8rem] h-full"
                                     />
                                 </div>
                             </div>
