@@ -40,39 +40,31 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     return (
         <div 
             ref={containerRef}
-            className={`relative w-full aspect-square md:aspect-[4/3] max-h-[70vh] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-[#0F1115] transition-all duration-300 ${className}`}
+            className={`relative w-full aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group select-none cursor-ew-resize bg-[#0F1115] transition-all duration-300 ${className}`}
             onMouseMove={onMouseMove}
             onTouchMove={onTouchMove}
         >
-            {/* Pro-Studio Background (Radial Gradient) */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#1a1d23_0%,_#09090b_100%)] z-0"></div>
-            
-            {/* Subtle Studio Grid Pattern Overlay */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" 
-                 style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px' }}>
-            </div>
-
-            {/* After Image (The Base Layer) */}
-            <div className="absolute inset-0 flex items-center justify-center p-[min(4vh,32px)]">
+            {/* After Image (The Base Layer - Full Bleed) */}
+            <div className="absolute inset-0 flex items-center justify-center">
                 <img 
                     key={afterImage}
                     src={afterImage} 
                     alt="After AI" 
-                    className="max-w-full max-h-full object-contain animate-fadeIn pointer-events-none shadow-2xl z-10"
+                    className="w-full h-full object-cover animate-fadeIn pointer-events-none z-10"
                 />
             </div>
 
-            {/* Before Image (The Overlay with Clip) */}
+            {/* Before Image (The Overlay with Clip - Full Bleed) */}
             <div 
                 className="absolute inset-0 z-20 pointer-events-none overflow-hidden"
                 style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
             >
-                <div className="w-full h-full flex items-center justify-center p-[min(4vh,32px)]">
+                <div className="w-full h-full flex items-center justify-center">
                     <img 
                         key={beforeImage}
                         src={beforeImage} 
                         alt="Before AI" 
-                        className="max-w-full max-h-full object-contain grayscale-[0.2] brightness-90 animate-fadeIn shadow-2xl"
+                        className="w-full h-full object-cover grayscale-[0.2] brightness-90 animate-fadeIn"
                     />
                 </div>
             </div>

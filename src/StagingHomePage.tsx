@@ -310,7 +310,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                         afterImage={activeTab.after}
                                         beforeLabel="Raw Input"
                                         afterLabel="MagicPixa Output"
-                                        className="rounded-[2.4rem]"
+                                        className="rounded-[2.4rem] aspect-[4/3]"
                                     />
                                 </div>
                             </div>
