@@ -252,12 +252,6 @@ const FeatureCarousel: React.FC<{ navigateTo: any; auth: AuthProps }> = ({ navig
                                     <ArrowRightIcon className="w-4 h-4" />
                                 </div>
                             </div>
-
-                            {/* Top Left AI Result Badge */}
-                            <div className="absolute top-4 left-4 bg-indigo-600/80 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full z-10 flex items-center gap-2 shadow-lg">
-                                <SparklesIcon className="w-3 h-3 text-yellow-300" />
-                                <span className="text-[9px] font-black text-white uppercase tracking-wider">AI Result</span>
-                            </div>
                         </div>
                     ))}
                 </div>
@@ -419,6 +413,16 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                             {GALLERY_ITEMS.map((item, i) => (
                                 <AutoWipeBox key={item.id} item={item} delay={i * 800} />
                             ))}
+                        </div>
+
+                        {/* Try MagicPixa Button */}
+                        <div className="mt-16 flex justify-center">
+                            <button 
+                                onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
+                                className="bg-[#1A1A1E] text-white font-bold py-5 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl hover:bg-black text-lg flex items-center gap-3"
+                            >
+                                Try MagicPixa <ArrowRightIcon className="w-5 h-5" />
+                            </button>
                         </div>
                     </div>
                 </section>
