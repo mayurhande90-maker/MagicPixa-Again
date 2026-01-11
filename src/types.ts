@@ -1,5 +1,9 @@
 import React from 'react';
-import { Timestamp } from 'firebase/firestore';
+// FIX: Use compat firestore for Timestamp to avoid resolution issues with modular exports in this setup
+import firebase from 'firebase/compat/app';
+
+// FIX: Define local type for Timestamp using compat firestore
+type Timestamp = firebase.firestore.Timestamp;
 
 // Add Razorpay to the global window interface
 declare global {

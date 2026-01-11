@@ -14,7 +14,7 @@ import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
 import { PaymentSuccessModal } from './components/PaymentSuccessModal';
-import { subscribeToLabConfig } from './firebase';
+import { subscribeToLabConfig, subscribeToLabCollections } from './firebase';
 
 // --- CONFIG & CONSTANTS ---
 
@@ -83,7 +83,7 @@ const TRANSFORMATIONS_STATIC = [
     }
 ];
 
-const GALLERY_ITEMS = [
+const GALLERY_ITEMS_STATIC = [
     {
         id: 'studio',
         label: 'Product Shots',
@@ -216,9 +216,9 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
     );
 };
 
-const FeatureCarousel: React.FC<{ navigateTo: any; auth: AuthProps }> = ({ navigateTo, auth }) => {
+const FeatureCarousel: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
     // Double the array for seamless infinite scroll
-    const carouselItems = [...TRANSFORMATIONS_STATIC, ...TRANSFORMATIONS_STATIC];
+    const carouselItems = [...items, ...items];
 
     return (
         <div className="w-full bg-white py-10 border-b border-gray-100 relative">
@@ -245,7 +245,7 @@ const FeatureCarousel: React.FC<{ navigateTo: any; auth: AuthProps }> = ({ navig
                             {/* Label Badge */}
                             <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
                                 <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl">
-                                    <item.icon className="w-4 h-4 text-white" />
+                                    {item.icon ? <item.icon className="w-4 h-4 text-white" /> : <SparklesIcon className="w-4 h-4 text-white" />}
                                     <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.label}</span>
                                 </div>
                                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
@@ -323,6 +323,7 @@ const useReveal = (delay: number = 0) => {
 
 export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, sectionId?: string) => void; auth: AuthProps; appConfig: AppConfig | null }> = ({ navigateTo, auth, appConfig }) => {
     const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
+    const [labCollections, setLabCollections] = useState<Record<string, any[]>>({});
     const [activeTabId, setActiveTabId] = useState(TRANSFORMATIONS_STATIC[0].id);
     const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
     const [successCredits, setSuccessCredits] = useState<number | null>(null);
@@ -330,8 +331,12 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
 
     // Fetch dynamic before/after config
     useEffect(() => {
-        const unsubscribe = subscribeToLabConfig(setLabConfig);
-        return () => unsubscribe();
+        const unsubConfig = subscribeToLabConfig(setLabConfig);
+        const unsubCollections = subscribeToLabCollections(setLabCollections);
+        return () => {
+            unsubConfig();
+            unsubCollections();
+        };
     }, []);
 
     const transformations = TRANSFORMATIONS_STATIC.map(t => ({
@@ -339,6 +344,15 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
         before: labConfig[t.id]?.before || t.before,
         after: labConfig[t.id]?.after || t.after
     }));
+
+    // Dynamic Lists for Homepage sections
+    const marqueeItems = (labCollections['homepage_marquee'] && labCollections['homepage_marquee'].length > 0) 
+        ? labCollections['homepage_marquee'] 
+        : TRANSFORMATIONS_STATIC.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
+
+    const galleryItems = (labCollections['homepage_gallery'] && labCollections['homepage_gallery'].length > 0)
+        ? labCollections['homepage_gallery']
+        : GALLERY_ITEMS_STATIC;
 
     const activeTab = transformations.find(t => t.id === activeTabId) || transformations[0];
 
@@ -399,7 +413,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                 </section>
 
                 {/* 2. SHOWCASE CAROUSEL */}
-                <FeatureCarousel navigateTo={navigateTo} auth={auth} />
+                <FeatureCarousel items={marqueeItems} navigateTo={navigateTo} auth={auth} />
 
                 {/* 3. THE TRANSFORMATION GALLERY (NEW) */}
                 <section className="py-24 px-4 bg-white">
@@ -410,7 +424,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {GALLERY_ITEMS.map((item, i) => (
+                            {galleryItems.map((item, i) => (
                                 <AutoWipeBox key={item.id} item={item} delay={i * 800} />
                             ))}
                         </div>

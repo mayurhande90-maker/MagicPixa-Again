@@ -219,8 +219,8 @@ export const getUsageLogs = async (days = 30, start?: Date, end?: Date): Promise
         q = q.where('timestamp', '>=', limitDate);
     }
     
-    const snap = await q.orderBy('timestamp', 'desc').get();
-    return snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as UsageLog));
+    const qSnap = await q.orderBy('timestamp', 'desc').get();
+    return qSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as UsageLog));
 };
 
 /**
@@ -270,6 +270,21 @@ export const subscribeToLabConfig = (callback: (config: Record<string, { before:
     }, () => callback({}));
 };
 
+export const subscribeToLabCollections = (callback: (config: Record<string, any[]>) => void) => {
+    if (!db) return () => {};
+    return db.collection('config').doc('transformation_lab_collections').onSnapshot((doc) => {
+        if (doc.exists) callback(doc.data() as any);
+        else callback({});
+    }, () => callback({}));
+};
+
+export const updateLabCollection = async (collectionId: string, items: any[]) => {
+    if (!db) return;
+    await db.collection('config').doc('transformation_lab_collections').set({
+        [collectionId]: items
+    }, { merge: true });
+};
+
 export const updateLabConfig = async (featureId: string, data: { before?: string, after?: string }) => {
     if (!db) return;
     await db.collection('config').doc('transformation_lab').set({
@@ -277,7 +292,7 @@ export const updateLabConfig = async (featureId: string, data: { before?: string
     }, { merge: true });
 };
 
-export const uploadLabAsset = async (uid: string, dataUri: string, featureId: string, type: 'before' | 'after') => {
+export const uploadLabAsset = async (uid: string, dataUri: string, featureId: string, type: string) => {
     if (!storage) throw new Error("Storage not initialized");
     const response = await fetch(dataUri);
     const blob = await response.blob();
