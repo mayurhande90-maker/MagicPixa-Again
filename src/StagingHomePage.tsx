@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -81,6 +81,18 @@ const TRANSFORMATIONS_STATIC = [
         logic: "Spatial Mapping + Realistic Textures",
         description: "Turn an empty room into a fully designed space with accurate lighting and style."
     }
+];
+
+const GALLERY_ITEMS_DEFINITION = [
+    { id: 'studio', label: 'Product Shots' },
+    { id: 'headshot', label: 'Headshot Pro' },
+    { id: 'interior', label: 'Interior Design' },
+    { id: 'brand_stylist', label: 'AdMaker' },
+    { id: 'apparel', label: 'Pixa TryOn' },
+    { id: 'soul', label: 'Pixa Together' },
+    { id: 'thumbnail_studio', label: 'Thumbnail Pro' },
+    { id: 'brand_kit', label: 'Ecommerce Kit' },
+    { id: 'colour', label: 'Photo Restore' }
 ];
 
 const GALLERY_ITEMS_STATIC = [
@@ -323,7 +335,7 @@ const useReveal = (delay: number = 0) => {
 
 export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, sectionId?: string) => void; auth: AuthProps; appConfig: AppConfig | null }> = ({ navigateTo, auth, appConfig }) => {
     const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
-    const [labCollections, setLabCollections] = useState<Record<string, any[]>>({});
+    const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
     const [activeTabId, setActiveTabId] = useState(TRANSFORMATIONS_STATIC[0].id);
     const [loadingPackId, setLoadingPackId] = useState<string | null>(null);
     const [successCredits, setSuccessCredits] = useState<number | null>(null);
@@ -346,13 +358,25 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
     }));
 
     // Dynamic Lists for Homepage sections
-    const marqueeItems = (labCollections['homepage_marquee'] && labCollections['homepage_marquee'].length > 0) 
-        ? labCollections['homepage_marquee'] 
+    const marqueeItems = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
+        ? (labCollections['homepage_marquee'] as any[]) 
         : TRANSFORMATIONS_STATIC.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
 
-    const galleryItems = (labCollections['homepage_gallery'] && labCollections['homepage_gallery'].length > 0)
-        ? labCollections['homepage_gallery']
-        : GALLERY_ITEMS_STATIC;
+    // Map Slot-based Gallery items
+    // Fixed: Added missing useMemo import from react
+    const galleryItems = useMemo(() => {
+        const slotData = (labCollections['homepage_gallery'] as Record<string, any>) || {};
+        return GALLERY_ITEMS_DEFINITION.map(def => {
+            const uploaded = slotData[def.id] || {};
+            const staticDefault = GALLERY_ITEMS_STATIC.find(s => s.id === def.id) || GALLERY_ITEMS_STATIC[0];
+            return {
+                id: def.id,
+                label: def.label,
+                before: uploaded.before || staticDefault.before,
+                after: uploaded.after || staticDefault.after
+            };
+        });
+    }, [labCollections['homepage_gallery']]);
 
     const activeTab = transformations.find(t => t.id === activeTabId) || transformations[0];
 

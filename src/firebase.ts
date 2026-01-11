@@ -61,6 +61,7 @@ if (isConfigValid) {
  */
 const sanitizeData = (data: any) => {
     const clean: any = {};
+    if (!data) return clean;
     Object.keys(data).forEach(key => {
         if (data[key] !== undefined) {
             clean[key] = data[key];
@@ -270,7 +271,8 @@ export const subscribeToLabConfig = (callback: (config: Record<string, { before:
     }, () => callback({}));
 };
 
-export const subscribeToLabCollections = (callback: (config: Record<string, any[]>) => void) => {
+// Fix: Support both arrays and objects in lab collections subscription to allow more flexible structure management
+export const subscribeToLabCollections = (callback: (config: Record<string, any[] | Record<string, any>>) => void) => {
     if (!db) return () => {};
     return db.collection('config').doc('transformation_lab_collections').onSnapshot((doc) => {
         if (doc.exists) callback(doc.data() as any);
@@ -278,7 +280,8 @@ export const subscribeToLabCollections = (callback: (config: Record<string, any[
     }, () => callback({}));
 };
 
-export const updateLabCollection = async (collectionId: string, items: any[]) => {
+// Fix: Update type to allow both arrays and objects to support slot-based manager logic in AdminLabManager
+export const updateLabCollection = async (collectionId: string, items: any[] | Record<string, any>) => {
     if (!db) return;
     await db.collection('config').doc('transformation_lab_collections').set({
         [collectionId]: items
