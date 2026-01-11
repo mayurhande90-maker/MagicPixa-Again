@@ -83,6 +83,63 @@ const TRANSFORMATIONS_STATIC = [
     }
 ];
 
+const GALLERY_ITEMS = [
+    {
+        id: 'studio',
+        label: 'Product Shots',
+        before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?q=80&w=2070&auto=format&fit=crop",
+    },
+    {
+        id: 'headshot',
+        label: 'Headshot Pro',
+        before: "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop",
+    },
+    {
+        id: 'interior',
+        label: 'Interior Design',
+        before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'brand_stylist',
+        label: 'AdMaker',
+        before: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=2070&auto=format&fit=crop",
+    },
+    {
+        id: 'apparel',
+        label: 'Pixa TryOn',
+        before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'soul',
+        label: 'Pixa Together',
+        before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'thumbnail_studio',
+        label: 'Thumbnail Pro',
+        before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop",
+    },
+    {
+        id: 'brand_kit',
+        label: 'Ecommerce Kit',
+        before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'colour',
+        label: 'Photo Restore',
+        before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=2000&auto=format&fit=crop",
+    }
+];
+
 const features = [
     { id: 'studio', icon: <PixaProductIcon className="w-16 h-16" />, title: "Pixa Product Shots", description: "Transform simple photos into professional, studio-quality product shots in one click." },
     { id: 'headshot', icon: <PixaHeadshotIcon className="w-16 h-16" />, title: "Pixa Headshot Pro", description: "Create studio-quality professional headshots from selfies for LinkedIn and resumes." },
@@ -103,6 +160,61 @@ const reviews = [
 ];
 
 // --- COMPONENTS ---
+
+const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) => {
+    return (
+        <div className="group relative aspect-square rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10">
+            {/* Before Image */}
+            <img src={item.before} className="absolute inset-0 w-full h-full object-cover grayscale brightness-90" alt="Before" />
+            
+            {/* After Image with Wipe Animation */}
+            <div 
+                className="absolute inset-0 w-full h-full z-10"
+                style={{ 
+                    animation: `auto-wipe 8s ease-in-out infinite`,
+                    animationDelay: `${delay}ms` 
+                }}
+            >
+                <img src={item.after} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+            </div>
+
+            {/* Wipe Handle Bar */}
+            <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-white/60 backdrop-blur-md z-30 flex items-center justify-center"
+                style={{ 
+                    animation: `auto-wipe-handle 8s ease-in-out infinite`,
+                    animationDelay: `${delay}ms` 
+                }}
+            >
+                <div className="w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center border border-indigo-100 transform -translate-x-1/2">
+                    <SparklesIcon className="w-4 h-4 text-indigo-600" />
+                </div>
+            </div>
+
+            {/* Label */}
+            <div className="absolute top-4 left-4 z-40">
+                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
+                    <span className="text-[9px] font-black text-white uppercase tracking-widest leading-none">{item.label}</span>
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes auto-wipe {
+                    0%, 10% { clip-path: inset(0 100% 0 0); }
+                    40%, 60% { clip-path: inset(0 0% 0 0); }
+                    90%, 100% { clip-path: inset(0 100% 0 0); }
+                }
+                @keyframes auto-wipe-handle {
+                    0%, 10% { left: 0%; opacity: 0; }
+                    11% { opacity: 1; }
+                    40%, 60% { left: 100%; opacity: 1; }
+                    89% { opacity: 1; }
+                    90%, 100% { left: 0%; opacity: 0; }
+                }
+            `}</style>
+        </div>
+    );
+};
 
 const FeatureCarousel: React.FC<{ navigateTo: any; auth: AuthProps }> = ({ navigateTo, auth }) => {
     // Double the array for seamless infinite scroll
@@ -295,7 +407,23 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                 {/* 2. SHOWCASE CAROUSEL */}
                 <FeatureCarousel navigateTo={navigateTo} auth={auth} />
 
-                {/* 3. WORKFLOW SECTION */}
+                {/* 3. THE TRANSFORMATION GALLERY (NEW) */}
+                <section className="py-24 px-4 bg-white">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-bold text-[#1A1A1E] mb-3 tracking-tight">The Transformation Gallery</h2>
+                            <p className="text-lg text-[#5F6368] font-medium">From raw asset to professional masterpiece in one click.</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {GALLERY_ITEMS.map((item, i) => (
+                                <AutoWipeBox key={item.id} item={item} delay={i * 800} />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* 4. WORKFLOW SECTION */}
                 <section className="py-24 px-4 bg-white border-b border-gray-50">
                     <div className="max-w-6xl mx-auto">
                         <div className="text-center mb-16">
@@ -323,7 +451,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 4. REFINED TRANSFORMATION LAB */}
+                {/* 5. REFINED TRANSFORMATION LAB */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-12">
@@ -419,7 +547,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 5. COMPARISON SECTION */}
+                {/* 6. COMPARISON SECTION */}
                 <section className="py-24 px-4 bg-white">
                     <div className="max-w-5xl mx-auto">
                         <div className="text-center mb-16">
@@ -454,7 +582,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 6. WHY MAGICPIXA? */}
+                {/* 7. WHY MAGICPIXA? */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -487,7 +615,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 7. FEATURES GRID */}
+                {/* 8. FEATURES GRID */}
                 <section className="py-24 px-4 bg-white">
                     <div className="max-w-6xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Everything You Need to Create</h2>
@@ -504,7 +632,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 8. REVIEWS */}
+                {/* 9. REVIEWS */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-6xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-12">Loved by Creators Everywhere</h2>
@@ -520,7 +648,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 9. PRICING */}
+                {/* 10. PRICING */}
                 <section className="py-24 px-4 bg-white">
                     <div className="max-w-6xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Upgrade Membership</h2>
@@ -546,7 +674,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 10. IMPACT CTA */}
+                {/* 11. IMPACT CTA */}
                 <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-100">
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Built for speed. For growth. For impact.</h2>
