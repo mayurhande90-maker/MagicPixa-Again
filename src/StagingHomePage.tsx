@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -175,9 +176,9 @@ const reviews = [
 
 const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) => {
     return (
-        <div className="group relative aspect-square rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10">
+        <div className="group relative aspect-[4/3] rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10">
             {/* Before Image */}
-            <img src={item.before} className="absolute inset-0 w-full h-full object-cover grayscale brightness-90" alt="Before" />
+            <img src={item.before} className="absolute inset-0 w-full h-full object-cover brightness-95" alt="Before" />
             
             {/* After Image with Wipe Animation */}
             <div 
@@ -363,7 +364,6 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
         : TRANSFORMATIONS_STATIC.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
 
     // Map Slot-based Gallery items
-    // Fixed: Added missing useMemo import from react
     const galleryItems = useMemo(() => {
         const slotData = (labCollections['homepage_gallery'] as Record<string, any>) || {};
         return GALLERY_ITEMS_DEFINITION.map(def => {
