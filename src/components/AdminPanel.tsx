@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { 
@@ -24,7 +25,6 @@ import { AdminComms } from './admin/AdminComms';
 import { AdminConfig } from './admin/AdminConfig';
 import { AdminSystem } from './admin/AdminSystem';
 import { AdminVault } from './admin/AdminVault';
-import { AdminLabManager } from './admin/AdminLabManager';
 import { AdminFinancials } from './admin/AdminFinancials';
 
 interface AdminPanelProps {
@@ -34,7 +34,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'financials' | 'vault' | 'lab' | 'users' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'financials' | 'vault' | 'users' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
 
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
@@ -54,7 +54,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
                     <TabButton id="financials" label="Financials" icon={CreditCardIcon} />
                     <TabButton id="vault" label="Style Vault" icon={CloudUploadIcon} />
-                    <TabButton id="lab" label="Lab Manager" icon={ImageIcon} />
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
                     <TabButton id="support" label="Support" icon={LifebuoyIcon} />
                     <TabButton id="users" label="Users" icon={UsersIcon} />
@@ -67,7 +66,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {activeTab === 'overview' && <AdminOverview onNavigate={(tab) => setActiveTab(tab as any)} />}
             {activeTab === 'financials' && <AdminFinancials auth={auth} />}
             {activeTab === 'vault' && <AdminVault auth={auth} />}
-            {activeTab === 'lab' && <AdminLabManager auth={auth} />}
             {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'support' && <AdminSupport auth={auth} />}
             {activeTab === 'users' && <AdminUsers auth={auth} appConfig={appConfig} />}
