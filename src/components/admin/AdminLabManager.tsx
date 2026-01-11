@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProps } from '../../types';
 import { 
@@ -16,12 +17,6 @@ import { BeforeAfterSlider } from '../BeforeAfterSlider';
 const LAB_FOLDERS = [
     { id: 'homepage_marquee', label: 'Homepage Marquee', icon: MenuIcon, color: 'bg-indigo-600', isCollection: true },
     { id: 'homepage_gallery', label: 'Transformation Grid Lab', icon: LayoutGridIcon, color: 'bg-blue-600', isSlotManager: true },
-    { type: 'divider' },
-    { id: 'studio', label: 'Pixa Product Shots', icon: PixaProductIcon, color: 'bg-indigo-400' },
-    { id: 'thumbnail_studio', label: 'Pixa Thumbnail Pro', icon: ThumbnailIcon, color: 'bg-orange-400' },
-    { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, color: 'bg-pink-400' },
-    { id: 'brand_stylist', label: 'Pixa AdMaker', icon: MagicAdsIcon, color: 'bg-blue-400' },
-    { id: 'headshot', label: 'Pixa Headshot Pro', icon: PixaHeadshotIcon, color: 'bg-rose-400' },
 ];
 
 const GALLERY_SLOTS = [
@@ -142,11 +137,9 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
                 <div className={styles.folderGrid}>
                     {LAB_FOLDERS.map((folder, idx) => {
-                        if ((folder as any).type === 'divider') return <div key={idx} className="col-span-full h-px bg-gray-100 my-4"></div>;
                         const f = folder as any;
                         const isCollection = f.isCollection;
                         const isSlotManager = f.isSlotManager;
-                        const assets = labConfig[f.id];
 
                         let statusText = "Vault Active";
                         if (isCollection) {
@@ -183,7 +176,6 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const folder = LAB_FOLDERS.find(f => (f as any).id === selectedFolderId) as any;
     const isCollection = folder?.isCollection;
     const isSlotManager = folder?.isSlotManager;
-    const currentAssets = labConfig[selectedFolderId] || { before: '', after: '' };
 
     return (
         <div className={styles.container}>
@@ -261,100 +253,8 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
                     </div>
                 </div>
-            ) : !isCollection ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="space-y-6">
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-sm">
-                            <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-6">Asset Production</h3>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Before Upload */}
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Input (Before)</label>
-                                    <div 
-                                        onClick={() => !uploading && document.getElementById('lab-before-input')?.click()}
-                                        className={`relative aspect-square rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                            currentAssets.before ? 'border-green-200 bg-green-50/10' : 'border-gray-200 bg-gray-50/50 hover:border-indigo-400'
-                                        }`}
-                                    >
-                                        {uploading === 'before' ? (
-                                            <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
-                                        ) : currentAssets.before ? (
-                                            <>
-                                                <img src={currentAssets.before} className="w-full h-full object-cover rounded-[1.4rem]" alt="Before" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 rounded-[1.4rem] flex items-center justify-center">
-                                                    <div className="p-2 bg-white rounded-full text-indigo-600 shadow-xl"><CloudUploadIcon className="w-5 h-5"/></div>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CameraIcon className="w-8 h-8 text-gray-300 mb-2"/>
-                                                <span className="text-xs font-bold text-gray-400">Upload Raw</span>
-                                            </>
-                                        )}
-                                        <input id="lab-before-input" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleUpload('before', e.target.files[0])} />
-                                    </div>
-                                </div>
-
-                                {/* After Upload */}
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Output (After)</label>
-                                    <div 
-                                        onClick={() => !uploading && document.getElementById('lab-after-input')?.click()}
-                                        className={`relative aspect-square rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                            currentAssets.after ? 'border-indigo-200 bg-indigo-50/10' : 'border-gray-200 bg-gray-50/50 hover:border-indigo-400'
-                                        }`}
-                                    >
-                                        {uploading === 'after' ? (
-                                            <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
-                                        ) : currentAssets.after ? (
-                                            <>
-                                                <img src={currentAssets.after} className="w-full h-full object-cover rounded-[1.4rem]" alt="After" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-[1.4rem] flex items-center justify-center">
-                                                    <div className="p-2 bg-white rounded-full text-indigo-600 shadow-xl"><CloudUploadIcon className="w-5 h-5"/></div>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <SparklesIcon className="w-8 h-8 text-gray-300 mb-2"/>
-                                                <span className="text-xs font-bold text-gray-400">Upload Masterpiece</span>
-                                            </>
-                                        )}
-                                        <input id="lab-after-input" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleUpload('after', e.target.files[0])} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="bg-gray-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
-                            <h3 className="text-white text-xs font-black uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                 <CheckIcon className="w-4 h-4 text-green-500"/> Live Staging Preview
-                            </h3>
-
-                            {currentAssets.before && currentAssets.after ? (
-                                <div className="max-w-md mx-auto scale-90 md:scale-100">
-                                    <BeforeAfterSlider 
-                                        beforeImage={currentAssets.before}
-                                        afterImage={currentAssets.after}
-                                        beforeLabel="Raw Input"
-                                        afterLabel="MagicPixa Output"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="h-64 flex flex-col items-center justify-center text-indigo-200/30 border-2 border-dashed border-white/10 rounded-[2rem]">
-                                    <ImageIcon className="w-12 h-12 mb-2"/>
-                                    <p className="text-xs font-bold uppercase tracking-widest">Awaiting Assets</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            ) : (
+            ) : isCollection && (
                 <div className="space-y-8 animate-fadeIn">
-                    {/* General Collection Manager UI */}
                     <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
                         <div className="flex justify-between items-center mb-8">
                             <div>
