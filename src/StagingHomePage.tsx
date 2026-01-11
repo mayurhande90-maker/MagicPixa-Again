@@ -71,6 +71,15 @@ const TRANSFORMATIONS_STATIC = [
         after: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop",
         logic: "Executive Biometrics + Studio Relighting",
         description: "Casual outdoor selfies replaced with powerful, executive-grade LinkedIn portraits."
+    },
+    {
+        id: 'interior',
+        label: 'Pixa Interior Design',
+        icon: PixaInteriorIcon,
+        before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop",
+        logic: "Spatial Mapping + Realistic Textures",
+        description: "Turn an empty room into a fully designed space with accurate lighting and style."
     }
 ];
 
@@ -94,6 +103,62 @@ const reviews = [
 ];
 
 // --- COMPONENTS ---
+
+const FeatureCarousel: React.FC<{ navigateTo: any; auth: AuthProps }> = ({ navigateTo, auth }) => {
+    // Double the array for seamless infinite scroll
+    const carouselItems = [...TRANSFORMATIONS_STATIC, ...TRANSFORMATIONS_STATIC];
+
+    return (
+        <div className="w-full bg-white overflow-hidden py-10 border-b border-gray-100">
+            <div className="flex gap-6 animate-marquee hover:[animation-play-state:paused]">
+                {carouselItems.map((item, idx) => (
+                    <div 
+                        key={`${item.id}-${idx}`}
+                        onClick={() => auth.isAuthenticated ? navigateTo('dashboard', item.id as View) : auth.openAuthModal()}
+                        className="relative shrink-0 w-[clamp(280px,30vw,400px)] aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1"
+                    >
+                        <img 
+                            src={item.after} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                            alt={item.label}
+                        />
+                        {/* Overlay Gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        {/* Label Badge */}
+                        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                            <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl">
+                                <item.icon className="w-4 h-4 text-white" />
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.label}</span>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
+                                <ArrowRightIcon className="w-4 h-4" />
+                            </div>
+                        </div>
+
+                        {/* Top Left AI Result Badge */}
+                        <div className="absolute top-4 left-4 bg-indigo-600/80 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full z-10 flex items-center gap-2 shadow-lg">
+                            <SparklesIcon className="w-3 h-3 text-yellow-300" />
+                            <span className="text-[9px] font-black text-white uppercase tracking-wider">AI Result</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            
+            <style>{`
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee {
+                    animation: marquee 40s linear infinite;
+                    display: flex;
+                    width: max-content;
+                }
+            `}</style>
+        </div>
+    );
+};
 
 const MagneticCard: React.FC<{ children: React.ReactNode; onClick?: () => void; className?: string; disabled?: boolean; }> = ({ children, onClick, className, disabled }) => {
     const cardRef = useRef<HTMLDivElement>(null);
@@ -206,7 +271,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
             
             <main>
                 {/* 1. HERO SECTION */}
-                <section className="pt-20 pb-32 px-4 text-center">
+                <section className="pt-20 pb-20 px-4 text-center">
                     <div className="max-w-4xl mx-auto">
                         <h1 className="text-4xl md:text-6xl font-bold text-[#1A1A1E] mb-6 tracking-tight leading-tight">
                             Create Stunning Visuals, <br/>
@@ -221,8 +286,11 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 2. WORKFLOW SECTION */}
-                <section className="py-24 px-4 bg-white border-y border-gray-50">
+                {/* 2. SHOWCASE CAROUSEL */}
+                <FeatureCarousel navigateTo={navigateTo} auth={auth} />
+
+                {/* 3. WORKFLOW SECTION */}
+                <section className="py-24 px-4 bg-white border-b border-gray-50">
                     <div className="max-w-6xl mx-auto">
                         <div className="text-center mb-16">
                             <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">The MagicPixa Workflow</h2>
@@ -249,7 +317,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 3. REFINED TRANSFORMATION LAB */}
+                {/* 4. REFINED TRANSFORMATION LAB */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-12">
@@ -290,7 +358,6 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                     <div className="flex-1 space-y-6">
                                         <p className="text-[#5F6368] text-base leading-relaxed font-medium">{activeTab.description}</p>
                                         
-                                        {/* PRODUCTION BLUEPRINT SECTION - PROMPT-FREE VERSION */}
                                         <div className="bg-gray-50/80 border border-gray-100 p-6 rounded-3xl">
                                             <div className="flex items-center gap-2 mb-4">
                                                 <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
@@ -346,7 +413,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 4. COMPARISON SECTION */}
+                {/* 5. COMPARISON SECTION */}
                 <section className="py-24 px-4 bg-white">
                     <div className="max-w-5xl mx-auto">
                         <div className="text-center mb-16">
@@ -381,7 +448,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 5. WHY MAGICPIXA? */}
+                {/* 6. WHY MAGICPIXA? */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -414,7 +481,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 6. FEATURES GRID */}
+                {/* 7. FEATURES GRID */}
                 <section className="py-24 px-4 bg-white">
                     <div className="max-w-6xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Everything You Need to Create</h2>
@@ -431,7 +498,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 7. REVIEWS */}
+                {/* 8. REVIEWS */}
                 <section className="py-24 px-4 bg-[#F6F7FA]">
                     <div className="max-w-6xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-12">Loved by Creators Everywhere</h2>
@@ -447,7 +514,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 8. PRICING */}
+                {/* 9. PRICING */}
                 <section className="py-24 px-4 bg-white">
                     <div className="max-w-6xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">Upgrade Membership</h2>
@@ -473,7 +540,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                     </div>
                 </section>
 
-                {/* 9. IMPACT CTA */}
+                {/* 10. IMPACT CTA */}
                 <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-100">
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Built for speed. For growth. For impact.</h2>
