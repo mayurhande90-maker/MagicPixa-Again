@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
@@ -90,7 +89,7 @@ const ModeCard: React.FC<{
                 {selected && (
                     <div className={RestoreStyles.identityBadge}>
                         <ShieldCheckIcon className="w-2.5 h-2.5 text-indigo-500" />
-                        <span className={RestoreStyles.identityText}>Forensic Anchor</span>
+                        <span className={RestoreStyles.identityText}>Forensic Anchor Active</span>
                     </div>
                 )}
             </div>
@@ -123,7 +122,19 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
-    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing restoration state...", "Refining color balance...", "Polishing forensic details...", "Finalizing refined output..."] : ["Scanning damage patterns...", "Forensic analysis...", "Historical era matching...", "Reconstructing biometrics...", "Finalizing details..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading, isRefining]);
+    useEffect(() => { 
+        let interval: any; 
+        if (loading || isRefining) { 
+            const steps = isRefining ? ["Analyzing biometric stability...", "Refining forensic details...", "Polishing masterpieces...", "Finalizing refined output..."] : ["Scanning damage patterns...", "Forensic Identity Locking...", "Historical era matching...", "Reconstructing biometrics...", "Polishing final pixels..."]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2000); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading, isRefining]);
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setImage({ url: URL.createObjectURL(file), base64 }); setResultImage(null); } e.target.value = ''; };
@@ -184,10 +195,10 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     return (
         <>
             <FeatureLayout 
-                title="Pixa Photo Restore" description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                title="Pixa Photo Restore" description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize with 100% identity accuracy." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
-                resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Begin Restoration" }} scrollRef={scrollRef}
+                resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Begin Forensic Restoration" }} scrollRef={scrollRef}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
@@ -246,7 +257,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                                 />
                                 <ModeCard 
                                     title="Restore Only" 
-                                    description="Repairs damage while keeping original" 
+                                    description="Repairs damage while keeping original BW soul" 
                                     icon={<RestoreOnlyIcon className="w-full h-full"/>} 
                                     selected={restoreMode === 'restore_only'} 
                                     onClick={() => setRestoreMode('restore_only')} 

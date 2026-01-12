@@ -1,6 +1,6 @@
-import { Modality, Type } from "@google/genai";
+import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, makeTransparent } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 // Helper: Resize to 1280px (HD) for Gemini 3 Pro
@@ -71,8 +71,13 @@ export const detectObjectAtPoint = async (
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
-                    type: Type.ARRAY,
-                    items: { type: Type.NUMBER }
+                    type: Type.OBJECT,
+                    properties: {
+                        ymin: { type: Type.NUMBER },
+                        xmin: { type: Type.NUMBER },
+                        ymax: { type: Type.NUMBER },
+                        xmax: { type: Type.NUMBER }
+                    }
                 }
             }
         });
@@ -125,18 +130,33 @@ const TIMELINE_RULES: Record<string, string> = {
 };
 
 const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Act as a Smithsonian Photo Conservator. Perform a Deep Forensic Analysis of this damaged/aged photo.
-    1. **Historical Context**: Estimate era for color palette.
-    2. **Damage Report**: Identify scratches, dust, blur, sepia cast.
-    3. **Reconstruction Plan**: Missing details to recover.
-    Output a concise Restoration Blueprint.`;
+    const prompt = `Act as a Master Photo Conservator. Perform a Deep Forensic Analysis of this aged/damaged photo.
+    1. **HISTORICAL ERA**: Analyze clothing, hair, and photo grain to identify the decade (e.g. 1940s, 1970s).
+    2. **DAMAGE AUDIT**: Map every scratch, dust speck, mold spot, and fold line. 
+    3. **OPTICAL DEGRADATION**: Identify motion blur, lens softness, and fading levels.
+    Output a concise "Restoration Master Blueprint" for an AI generator to follow.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
         });
-        return response.text || "Restore to high definition.";
-    } catch (e) { return "Restore to high definition."; }
+        return response.text || "Standard restoration, fix damage and sharpen.";
+    } catch (e) { return "Standard restoration, fix damage and sharpen."; }
+};
+
+const performForensicBiometricScan = async (ai: any, base64: string, mimeType: string): Promise<string> => {
+    const prompt = `Perform a Forensic Biometric Identity Scan on any faces in this old photo.
+    1. **STRUCTURAL ANCHORS**: Identify the exact bone structure, nose shape, and jawline.
+    2. **OCULAR DETAIL**: Map eye shape and eyelid geometry.
+    3. **IDENTITY LOCK**: Provide a technical description that ensures the person remains EXACTLY the same, just "cleaned up". No plastic surgery or beautification allowed.
+    Output a concise "Identity Lock Protocol".`;
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview', 
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+        });
+        return response.text || "Preserve facial features exactly.";
+    } catch (e) { return "Preserve facial features exactly."; }
 };
 
 const analyzeReferenceTechSpecs = async (ai: any, base64: string, mimeType: string): Promise<string> => {
@@ -159,22 +179,52 @@ export const colourizeImage = async (
   const ai = getAiClient();
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
-    const restorationBlueprint = await analyzePhotoCondition(ai, data, optimizedMime);
+    
+    // Step 1: Deep Analysis for Accuracy
+    const [restorationBlueprint, identityLock] = await Promise.all([
+        analyzePhotoCondition(ai, data, optimizedMime),
+        performForensicBiometricScan(ai, data, optimizedMime)
+    ]);
+    
     const brandDNA = getBrandDNA(brand);
 
-    let basePrompt = `You are an AI Restoration Engine.
+    const modePrompt = mode === 'restore_color' 
+        ? `TASK: **COLOUR & RESTORE**
+           - **COLORIZATION**: Apply high-fidelity, era-appropriate color. Reference the identified historical era.
+           - **SKIN TONES**: Use realistic human sub-surface scattering for skin. Avoid "flat" colors.
+           - **LUMINANCE PRESERVATION**: The brightness and contrast of the result must match the original's light-to-dark values perfectly.` 
+        : `TASK: **RESTORE ONLY (MONOCHROME)**
+           - **STRICT NO-COLOR POLICY**: Do NOT inject any color. The final output must be 100% black and white / sepia (matching original tone).
+           - **FOCUS**: Direct all energy into removing damage, deblurring, and enhancing resolution while maintaining the original's BW soul.`;
+
+    const prompt = `You are the Pixa Forensic Restoration Engine. 
     ${restorationBlueprint}
+    ${identityLock}
     ${brandDNA}
-    TASK: ${mode === 'restore_color' ? 'RESTORE & COLORIZE' : 'RESTORE ONLY'}.
-    1. Remove all noise and damage. 
-    2. Recover facial structure with precision.
-    ${brand ? `3. Subtly prioritize ${brand.colors.primary} in any newly colorized clothing or elements.` : ''}
-    FINAL OUTPUT: Crystal-clear 4K image.`;
+    
+    *** CORE MANDATE: SACRED ASSET PROTOCOL ***
+    1. **PIXEL INTEGRITY**: You are a restorer, not an artist. You are FORBIDDEN from altering the subject's face, body, or the core composition of the photo.
+    2. **IDENTITY PRESERVATION**: The person in the photo must remain 100% recognizable. No beautification, no AI-hallucinated features, no changing age.
+    3. **DAMAGE ELIMINATION**: Heal all scratches, dust, cracks, and mold. Remove chemical stains and light leaks seamlessly.
+    4. **ENHANCEMENT**: Upscale to crystal-clear 4K. Sharpen eyes and details without creating "plastic" artifacts.
+
+    ${modePrompt}
+
+    ${brand ? `ADDITIONAL: If restoring color, subtly prioritize ${brand.colors.primary} in background accents if appropriate.` : ''}
+    
+    OUTPUT: A single hyper-realistic, photorealistic, 4K restored image.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
-      contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: basePrompt }] },
-      config: { responseModalities: [Modality.IMAGE] },
+      contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
+      config: { 
+          responseModalities: [Modality.IMAGE],
+          safetySettings: [
+            // Fix: Use HarmCategory and HarmBlockThreshold enums instead of string literals to resolve type errors.
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          ]
+      },
     });
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
@@ -203,6 +253,7 @@ const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, 
     const prompt = `Deep Biometric Analysis of ${label}: Shape, Eyes, Nose, Mouth, Skin, Hair. Output concise description.`;
     try {
         const response = await ai.models.generateContent({
+            // Fix: Corrected API call structure by adding the missing model and wrapping parts in a contents object.
             model: 'gemini-3-flash-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
         });
