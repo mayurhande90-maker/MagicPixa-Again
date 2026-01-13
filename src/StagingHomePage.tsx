@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -624,8 +623,11 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                 <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-100">
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Built for speed. For growth. For impact.</h2>
-                        <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} className="bg-[#F9D230] text-[#1A1A1E] font-bold py-5 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl shadow-yellow-500/30 text-lg flex items-center gap-3 mx-auto">
-                            Start Creating Now <ArrowRightIcon className="w-6 h-6" />
+                        <button 
+                            onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
+                            className="bg-black text-white font-bold py-5 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl shadow-black/20 hover:bg-gray-900 text-lg flex items-center gap-3 mx-auto"
+                        >
+                            Start Creating Free <ArrowRightIcon className="w-6 h-6" />
                         </button>
                         <p className="text-sm text-gray-500 mt-6 font-medium">Get 50 free credits on sign up!</p>
                     </div>
