@@ -482,7 +482,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   // Lab State
   const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
   const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
-  const [activeTabId, setActiveTabId] = useState(TRANSFORMATIONS_STATIC[0].id);
 
   // Sync dynamic lab data
   useEffect(() => {
@@ -493,12 +492,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         unsubCollections();
     };
   }, []);
-
-  const transformations = TRANSFORMATIONS_STATIC.map(t => ({
-    ...t,
-    before: labConfig[t.id]?.before || t.before,
-    after: labConfig[t.id]?.after || t.after
-  }));
 
   // Dynamic Lists for Homepage sections
   const marqueeItems = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
@@ -519,8 +512,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
         };
     });
   }, [labCollections['homepage_gallery']]);
-
-  const activeTab = transformations.find(t => t.id === activeTabId) || transformations[0];
 
   const creditPacks = appConfig?.creditPacks || [];
   const currentPlanWeight = PLAN_WEIGHTS[auth.user?.plan || 'Free'] || 0;
@@ -640,10 +631,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
             </div>
         </section>
 
-        {/* 2. SHOWCASE CAROUSEL (NEW) */}
+        {/* 2. SHOWCASE CAROUSEL */}
         <FeatureCarousel items={marqueeItems} navigateTo={navigateTo} auth={auth} />
 
-        {/* 3. THE TRANSFORMATION GALLERY (NEW) */}
+        {/* 3. THE TRANSFORMATION GALLERY */}
         <section className="py-24 px-4 bg-white">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
@@ -664,102 +655,6 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     >
                         Try MagicPixa <ArrowRightIcon className="w-5 h-5" />
                     </button>
-                </div>
-            </div>
-        </section>
-
-        {/* The Transformation Lab Section */}
-        <section className="py-24 px-4 bg-[#F6F7FA] border-y border-gray-50">
-            <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl font-bold text-[#1A1A1E] mb-3">The Transformation Lab</h2>
-                    <p className="text-lg text-[#5F6368] font-medium mb-10">See how Pixa Vision re-engineers reality for every category.</p>
-                    
-                    <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-gray-200/50 rounded-2xl border border-gray-200 shadow-inner mb-12">
-                        {transformations.map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => setActiveTabId(t.id)}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                                    activeTabId === t.id 
-                                    ? 'bg-white text-indigo-600 shadow-sm border border-indigo-100' 
-                                    : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                            >
-                                <t.icon className={`w-4 h-4 ${activeTabId === t.id ? 'text-indigo-600' : 'text-gray-400'}`} />
-                                <span>{t.label.replace('Pixa ', '')}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                    <div className="lg:col-span-4 flex flex-col">
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200/80 animate-fadeIn flex flex-col h-full">
-                            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100 shrink-0">
-                                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
-                                    <activeTab.icon className="w-7 h-7" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1.5">Feature Mode</p>
-                                    <p className="text-lg font-bold text-[#1A1A1E] tracking-tight">{activeTab.label}</p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex-1 space-y-6">
-                                <p className="text-[#5F6368] text-base leading-relaxed font-medium">{activeTab.description}</p>
-                                
-                                <div className="bg-gray-50/80 border border-gray-100 p-6 rounded-3xl">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
-                                        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Pixa Logic Protocol</span>
-                                    </div>
-                                    
-                                    <div className="space-y-3">
-                                        {[
-                                            { label: "No Prompt Typed", icon: PencilIcon, active: false, skipped: true },
-                                            { label: "Intelligent Pixa Vision", icon: EyeIcon, active: true },
-                                            { label: "Auto-calibrated lighting", icon: SparklesIcon, active: true },
-                                            { label: "Commercial 4K Rendering", icon: CheckIcon, active: true }
-                                        ].map((pill, idx) => (
-                                            <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-2xl border animate-fadeIn transition-all ${pill.active ? 'bg-white border-indigo-100 shadow-sm' : 'bg-white border-gray-100'}`} style={{ animationDelay: `${idx * 100}ms` }}>
-                                                <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${pill.active ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'bg-red-50 text-red-500'}`}>
-                                                    <pill.icon className="w-3.5 h-3.5" />
-                                                </div>
-                                                <span className={`text-xs font-bold ${pill.active ? 'text-gray-700' : 'text-red-500 line-through'}`}>{pill.label}</span>
-                                                <div className="ml-auto flex items-center justify-center">
-                                                    {pill.active && (
-                                                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
-                                                            <CheckIcon className="w-2.5 h-2.5 text-white" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={() => auth.isAuthenticated ? navigateTo('dashboard', activeTab.id as View) : auth.openAuthModal()} 
-                                className="w-full flex items-center justify-center gap-3 py-5 bg-[#F9D230] text-[#1A1A1E] font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/20 active:scale-95 group mt-8 shrink-0"
-                            >
-                                Try this tool <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="lg:col-span-8 flex items-stretch">
-                        <div className="bg-white p-2 rounded-[3.5rem] shadow-2xl border border-gray-200/60 w-full flex items-center overflow-hidden h-full">
-                            <BeforeAfterSlider 
-                                key={activeTab.id} 
-                                beforeImage={activeTab.before}
-                                afterImage={activeTab.after}
-                                beforeLabel="Raw Input"
-                                afterLabel="MagicPixa Output"
-                                className="rounded-[2.8rem] h-full"
-                            />
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
