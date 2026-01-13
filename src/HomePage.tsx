@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { 
-  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon, PencilIcon, EyeIcon
+  SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon, PencilIcon, EyeIcon, CameraIcon
 } from './components/icons';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
 import { PaymentSuccessModal } from './components/PaymentSuccessModal';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
-import { subscribeToLabConfig } from './firebase';
+import { subscribeToLabConfig, subscribeToLabCollections } from './firebase';
 
 interface HomePageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -71,6 +71,75 @@ const TRANSFORMATIONS_STATIC = [
         after: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop",
         logic: "Executive Biometrics + Studio Relighting",
         description: "Casual outdoor selfies replaced with powerful, executive-grade LinkedIn portraits."
+    }
+];
+
+const GALLERY_ITEMS_DEFINITION = [
+    { id: 'studio', label: 'Product Shots' },
+    { id: 'headshot', label: 'Headshot Pro' },
+    { id: 'interior', label: 'Interior Design' },
+    { id: 'brand_stylist', label: 'AdMaker' },
+    { id: 'apparel', label: 'Pixa TryOn' },
+    { id: 'soul', label: 'Pixa Together' },
+    { id: 'thumbnail_studio', label: 'Thumbnail Pro' },
+    { id: 'brand_kit', label: 'Ecommerce Kit' },
+    { id: 'colour', label: 'Photo Restore' }
+];
+
+const GALLERY_ITEMS_STATIC = [
+    {
+        id: 'studio',
+        label: 'Product Shots',
+        before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?q=80&w=2070&auto=format&fit=crop",
+    },
+    {
+        id: 'headshot',
+        label: 'Headshot Pro',
+        before: "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop",
+    },
+    {
+        id: 'interior',
+        label: 'Interior Design',
+        before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'brand_stylist',
+        label: 'AdMaker',
+        before: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=2070&auto=format&fit=crop",
+    },
+    {
+        id: 'apparel',
+        label: 'Pixa TryOn',
+        before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'soul',
+        label: 'Pixa Together',
+        before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'thumbnail_studio',
+        label: 'Thumbnail Pro',
+        before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop",
+    },
+    {
+        id: 'brand_kit',
+        label: 'Ecommerce Kit',
+        before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000&auto=format&fit=crop",
+    },
+    {
+        id: 'colour',
+        label: 'Photo Restore',
+        before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2000&auto=format&fit=crop",
+        after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=2000&auto=format&fit=crop",
     }
 ];
 
@@ -179,6 +248,117 @@ const reviews = [
         review: "The background remover is the best I've ever used. Clean edges, super fast, and saved me a ton of time on tedious editing. The monthly credits are generous too!",
     },
 ];
+
+const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) => {
+    return (
+        <div className="group relative aspect-[4/3] rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10">
+            {/* Before Image */}
+            <img src={item.before} className="absolute inset-0 w-full h-full object-cover brightness-95" alt="Before" />
+            
+            {/* After Image with Wipe Animation */}
+            <div 
+                className="absolute inset-0 w-full h-full z-10"
+                style={{ 
+                    animation: `auto-wipe 8s ease-in-out infinite`,
+                    animationDelay: `${delay}ms` 
+                }}
+            >
+                <img src={item.after} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+            </div>
+
+            {/* Wipe Handle Bar */}
+            <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-white/60 backdrop-blur-md z-30 flex items-center justify-center"
+                style={{ 
+                    animation: `auto-wipe-handle 8s ease-in-out infinite`,
+                    animationDelay: `${delay}ms` 
+                }}
+            >
+                <div className="w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center border border-indigo-100 transform -translate-x-1/2">
+                    <SparklesIcon className="w-4 h-4 text-indigo-600" />
+                </div>
+            </div>
+
+            {/* Label */}
+            <div className="absolute top-4 left-4 z-40">
+                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
+                    <span className="text-[9px] font-black text-white uppercase tracking-widest leading-none">{item.label}</span>
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes auto-wipe {
+                    0%, 10% { clip-path: inset(0 100% 0 0); }
+                    40%, 60% { clip-path: inset(0 0% 0 0); }
+                    90%, 100% { clip-path: inset(0 100% 0 0); }
+                }
+                @keyframes auto-wipe-handle {
+                    0%, 10% { left: 0%; opacity: 0; }
+                    11% { opacity: 1; }
+                    40%, 60% { left: 100%; opacity: 1; }
+                    89% { opacity: 1; }
+                    90%, 100% { left: 0%; opacity: 0; }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+const FeatureCarousel: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
+    // Double the array for seamless infinite scroll
+    const carouselItems = [...items, ...items];
+
+    return (
+        <div className="w-full bg-white py-10 border-b border-gray-100 relative">
+            {/* Vignette Overlays - The Faded Vignette Approach */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-l from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
+            
+            <div className="overflow-hidden">
+                <div className="flex gap-6 animate-marquee hover:[animation-play-state:paused]">
+                    {carouselItems.map((item, idx) => (
+                        <div 
+                            key={`${item.id}-${idx}`}
+                            onClick={() => auth.isAuthenticated ? navigateTo('dashboard', item.id as View) : auth.openAuthModal()}
+                            className="relative shrink-0 w-[clamp(280px,30vw,400px)] aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1"
+                        >
+                            <img 
+                                src={item.after} 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                alt={item.label}
+                            />
+                            {/* Overlay Gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            
+                            {/* Label Badge */}
+                            <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                                <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl">
+                                    {item.icon ? <item.icon className="w-4 h-4 text-white" /> : <SparklesIcon className="w-4 h-4 text-white" />}
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.label}</span>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
+                                    <ArrowRightIcon className="w-4 h-4" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            
+            <style>{`
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee {
+                    animation: marquee 40s linear infinite;
+                    display: flex;
+                    width: max-content;
+                }
+            `}</style>
+        </div>
+    );
+};
 
 // --- Magnetic Feature Card Component ---
 const MagneticCard: React.FC<{ 
@@ -301,12 +481,17 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
   
   // Lab State
   const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
+  const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
   const [activeTabId, setActiveTabId] = useState(TRANSFORMATIONS_STATIC[0].id);
 
   // Sync dynamic lab data
   useEffect(() => {
-    const unsubscribe = subscribeToLabConfig(setLabConfig);
-    return () => unsubscribe();
+    const unsubConfig = subscribeToLabConfig(setLabConfig);
+    const unsubCollections = subscribeToLabCollections(setLabCollections);
+    return () => {
+        unsubConfig();
+        unsubCollections();
+    };
   }, []);
 
   const transformations = TRANSFORMATIONS_STATIC.map(t => ({
@@ -314,6 +499,26 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
     before: labConfig[t.id]?.before || t.before,
     after: labConfig[t.id]?.after || t.after
   }));
+
+  // Dynamic Lists for Homepage sections
+  const marqueeItems = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
+    ? (labCollections['homepage_marquee'] as any[]) 
+    : TRANSFORMATIONS_STATIC.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
+
+  // Map Slot-based Gallery items
+  const galleryItems = useMemo(() => {
+    const slotData = (labCollections['homepage_gallery'] as Record<string, any>) || {};
+    return GALLERY_ITEMS_DEFINITION.map(def => {
+        const uploaded = slotData[def.id] || {};
+        const staticDefault = GALLERY_ITEMS_STATIC.find(s => s.id === def.id) || GALLERY_ITEMS_STATIC[0];
+        return {
+            id: def.id,
+            label: def.label,
+            before: uploaded.before || staticDefault.before,
+            after: uploaded.after || staticDefault.after
+        };
+    });
+  }, [labCollections['homepage_gallery']]);
 
   const activeTab = transformations.find(t => t.id === activeTabId) || transformations[0];
 
@@ -431,6 +636,34 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                         Start Creating for Free
                     </button>
                     <p className="text-sm text-gray-500 mt-4">Get 50 free credits on sign up!</p>
+                </div>
+            </div>
+        </section>
+
+        {/* 2. SHOWCASE CAROUSEL (NEW) */}
+        <FeatureCarousel items={marqueeItems} navigateTo={navigateTo} auth={auth} />
+
+        {/* 3. THE TRANSFORMATION GALLERY (NEW) */}
+        <section className="py-24 px-4 bg-white">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-bold text-[#1A1A1E] mb-3 tracking-tight">The Transformation Gallery</h2>
+                    <p className="text-lg text-[#5F6368] font-medium">From raw asset to professional masterpiece in one click.</p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {galleryItems.map((item, i) => (
+                        <AutoWipeBox key={item.id} item={item} delay={i * 800} />
+                    ))}
+                </div>
+
+                <div className="mt-16 flex justify-center">
+                    <button 
+                        onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
+                        className="bg-[#1A1A1E] text-white font-bold py-5 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl hover:bg-black text-lg flex items-center gap-3"
+                    >
+                        Try MagicPixa <ArrowRightIcon className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
         </section>
