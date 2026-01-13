@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProps } from '../../types';
 import { 
@@ -31,11 +30,23 @@ const GALLERY_SLOTS = [
     { id: 'colour', label: 'Photo Restore', icon: PixaRestoreIcon, color: 'bg-slate-500' },
 ];
 
+// Inline Grip Icon for Dragging
+const GripIcon = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
+        <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
+    </svg>
+);
+
 export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [labConfig, setLabConfig] = useState<Record<string, { before: string, after: string }>>({});
     const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
     const [uploading, setUploading] = useState<string | null>(null);
+    
+    // Drag and Drop State
+    const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     
     useEffect(() => {
         const unsubConfig = subscribeToLabConfig(setLabConfig);
@@ -125,6 +136,40 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         const currentItems = Array.isArray(labCollections[selectedFolderId]) ? (labCollections[selectedFolderId] as any[]) : [];
         const updatedItems = currentItems.map(item => item.id === itemId ? { ...item, label: newLabel } : item);
         await updateLabCollection(selectedFolderId, updatedItems);
+    };
+
+    // --- DRAG AND DROP HANDLERS ---
+    const onDragStart = (index: number) => {
+        setDraggedItemIndex(index);
+    };
+
+    const onDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        setDragOverIndex(index);
+    };
+
+    const onDrop = async (e: React.DragEvent, targetIndex: number) => {
+        e.preventDefault();
+        if (draggedItemIndex === null || draggedItemIndex === targetIndex || !selectedFolderId) {
+            setDraggedItemIndex(null);
+            setDragOverIndex(null);
+            return;
+        }
+
+        const currentItems = Array.isArray(labCollections[selectedFolderId]) ? [...(labCollections[selectedFolderId] as any[])] : [];
+        const itemToMove = currentItems[draggedItemIndex];
+        
+        currentItems.splice(draggedItemIndex, 1);
+        currentItems.splice(targetIndex, 0, itemToMove);
+        
+        setDraggedItemIndex(null);
+        setDragOverIndex(null);
+        await updateLabCollection(selectedFolderId, currentItems);
+    };
+
+    const onDragEnd = () => {
+        setDraggedItemIndex(null);
+        setDragOverIndex(null);
     };
 
     if (!selectedFolderId) {
@@ -259,7 +304,7 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         <div className="flex justify-between items-center mb-8">
                             <div>
                                 <h3 className="text-lg font-black text-gray-800 tracking-tight">Active Collection</h3>
-                                <p className="text-xs text-gray-400 mt-1 font-medium">Manage multiple items for this homepage section.</p>
+                                <p className="text-xs text-gray-400 mt-1 font-medium">Manage and reorder items for this homepage section. Drag to rearrange.</p>
                             </div>
                             <button 
                                 onClick={() => document.getElementById('collection-upload')?.click()}
@@ -273,30 +318,50 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {(Array.isArray(labCollections[selectedFolderId]) ? (labCollections[selectedFolderId] as any[]) : []).map((item) => (
-                                <div key={item.id} className="relative bg-gray-50 rounded-2xl border border-gray-100 p-4 group">
-                                    <button 
-                                        onClick={() => handleRemoveCollectionItem(item.id)}
-                                        className="absolute top-2 right-2 p-1.5 bg-white shadow-sm rounded-lg text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-20"
+                            {(Array.isArray(labCollections[selectedFolderId]) ? (labCollections[selectedFolderId] as any[]) : []).map((item, index) => {
+                                const isDragging = draggedItemIndex === index;
+                                const isDragOver = dragOverIndex === index;
+                                
+                                return (
+                                    <div 
+                                        key={item.id} 
+                                        draggable={true}
+                                        onDragStart={() => onDragStart(index)}
+                                        onDragOver={(e) => onDragOver(e, index)}
+                                        onDrop={(e) => onDrop(e, index)}
+                                        onDragEnd={onDragEnd}
+                                        className={`relative bg-gray-50 rounded-2xl border transition-all duration-300 group ${
+                                            isDragging ? 'opacity-30 scale-95 border-indigo-500 cursor-grabbing' : 'opacity-100 border-gray-100 cursor-grab'
+                                        } ${isDragOver && !isDragging ? 'border-indigo-400 translate-y-1 shadow-md ring-2 ring-indigo-100' : ''}`}
                                     >
-                                        <TrashIcon className="w-4 h-4" />
-                                    </button>
+                                        {/* Drag Handle Overlay */}
+                                        <div className="absolute top-2 left-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-lg text-gray-400 opacity-0 group-hover:opacity-100 transition-all z-20 shadow-sm pointer-events-none">
+                                            <GripIcon className="w-4 h-4" />
+                                        </div>
 
-                                    <div className="aspect-video bg-white rounded-xl border border-gray-100 overflow-hidden mb-3">
-                                        <img src={item.after} className="w-full h-full object-cover" />
-                                    </div>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleRemoveCollectionItem(item.id); }}
+                                            className="absolute top-2 right-2 p-1.5 bg-white shadow-sm rounded-lg text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-20"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
 
-                                    <div className="mt-3">
-                                        <input 
-                                            type="text" 
-                                            value={item.label || ''} 
-                                            onChange={(e) => handleUpdateLabel(item.id, e.target.value)}
-                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500"
-                                            placeholder="Item Label (e.g. Luxury Vibe)"
-                                        />
+                                        <div className="aspect-video bg-white rounded-xl border border-gray-100 overflow-hidden mb-3">
+                                            <img src={item.after} className="w-full h-full object-cover pointer-events-none" />
+                                        </div>
+
+                                        <div className="mt-3 px-4 pb-4">
+                                            <input 
+                                                type="text" 
+                                                value={item.label || ''} 
+                                                onChange={(e) => handleUpdateLabel(item.id, e.target.value)}
+                                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500"
+                                                placeholder="Item Label (e.g. Luxury Vibe)"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {(Array.isArray(labCollections[selectedFolderId]) ? (labCollections[selectedFolderId] as any[]) : []).length === 0 && !uploading && (
