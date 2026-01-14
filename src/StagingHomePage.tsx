@@ -305,37 +305,35 @@ const SingleMarqueeTrack: React.FC<{
     speed: string; 
     navigateTo: any; 
     auth: AuthProps;
-    aspectClass: string;
-    widthClass: string;
-}> = ({ items, direction, speed, navigateTo, auth, aspectClass, widthClass }) => {
-    // Triple for ultra-wide screen coverage
-    const trackItems = [...items, ...items, ...items]; 
+}> = ({ items, direction, speed, navigateTo, auth }) => {
+    // Quad for deep screens coverage
+    const trackItems = [...items, ...items, ...items, ...items]; 
 
     return (
-        <div className="overflow-hidden py-2">
+        <div className="overflow-hidden py-1">
             <div 
-                className={`flex gap-6 whitespace-nowrap hover:[animation-play-state:paused] ${direction === 'normal' ? 'animate-marquee' : 'animate-marquee-reverse'}`}
+                className={`flex gap-4 whitespace-nowrap hover:[animation-play-state:paused] ${direction === 'normal' ? 'animate-marquee' : 'animate-marquee-reverse'}`}
                 style={{ animationDuration: speed }}
             >
                 {trackItems.map((item, idx) => (
                     <div 
                         key={`${item.id}-${idx}`}
                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard', item.id as View) : auth.openAuthModal()}
-                        className={`relative shrink-0 ${widthClass} ${aspectClass} rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1`}
+                        className="relative shrink-0 w-[clamp(180px,20vw,260px)] aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer group shadow-lg border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:scale-105 active:scale-95"
                     >
                         <img 
                             src={item.after} 
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                             alt={item.label}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                            <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl">
-                                {item.icon ? <item.icon className="w-4 h-4 text-white" /> : <SparklesIcon className="w-4 h-4 text-white" />}
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.label}</span>
+                            <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-xl">
+                                {item.icon ? <item.icon className="w-3 h-3 text-white" /> : <SparklesIcon className="w-3 h-3 text-white" />}
+                                <span className="text-[8px] font-black text-white uppercase tracking-widest">{item.label}</span>
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
-                                <ArrowRightIcon className="w-4 h-4" />
+                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
+                                <ArrowRightIcon className="w-3 h-3" />
                             </div>
                         </div>
                     </div>
@@ -346,54 +344,48 @@ const SingleMarqueeTrack: React.FC<{
 };
 
 const TripleIndustryRibbon: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
-    // 1. Marketing & Ads (Landscape)
+    // 1. Marketing & Ads
     const adsItems = items.filter(i => ['brand_stylist', 'caption', 'thumbnail_studio'].includes(i.id));
-    // 2. Human & Portrait (Portrait/Slow)
+    // 2. Human & Portrait
     const humanItems = items.filter(i => ['headshot', 'apparel', 'soul'].includes(i.id));
-    // 3. Product & Interior (Standard/Balanced)
+    // 3. Product & Interior
     const productItems = items.filter(i => ['studio', 'interior', 'brand_kit', 'colour'].includes(i.id));
 
-    // Fallbacks
+    // Fallbacks to ensure density
     const track1 = adsItems.length > 0 ? adsItems : items.slice(0, 3);
     const track2 = humanItems.length > 0 ? humanItems : items.slice(3, 6);
-    const track3 = productItems.length > 0 ? productItems : items.slice(6, 9);
+    const track3 = productItems.length > 0 ? productItems : items.slice(0, 5);
 
     return (
-        <div className="w-full bg-white py-16 border-b border-gray-100 relative overflow-hidden">
-            {/* Vignette Overlays */}
-            <div className="absolute left-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-l from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
+        <div className="w-full bg-white py-12 border-b border-gray-100 relative overflow-hidden">
+            {/* Massive Vignette Overlays for Depth */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 md:w-80 bg-gradient-to-r from-white via-white/70 to-transparent z-20 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-32 md:w-80 bg-gradient-to-l from-white via-white/70 to-transparent z-20 pointer-events-none"></div>
             
-            <div className="flex flex-col gap-6">
-                {/* Track 1: Marketing & Ads (Wide Landscape) */}
+            <div className="flex flex-col gap-4">
+                {/* Track 1: R -> L (Fast) */}
                 <SingleMarqueeTrack 
                     items={track1} 
                     direction="normal" 
-                    speed="45s" 
-                    aspectClass="aspect-[21/9]" 
-                    widthClass="w-[clamp(350px,40vw,520px)]"
+                    speed="40s" 
                     navigateTo={navigateTo} 
                     auth={auth} 
                 />
                 
-                {/* Track 2: Human & Lifestyle (Vertical Portrait) */}
+                {/* Track 2: L -> R (Steady) */}
                 <SingleMarqueeTrack 
                     items={track2} 
                     direction="reverse" 
-                    speed="70s" 
-                    aspectClass="aspect-[4/5]" 
-                    widthClass="w-[clamp(220px,25vw,320px)]"
+                    speed="75s" 
                     navigateTo={navigateTo} 
                     auth={auth} 
                 />
 
-                {/* Track 3: Product & Studio (Standard Balanced) */}
+                {/* Track 3: R -> L (Medium) */}
                 <SingleMarqueeTrack 
                     items={track3} 
                     direction="normal" 
                     speed="55s" 
-                    aspectClass="aspect-[16/10]" 
-                    widthClass="w-[clamp(280px,32vw,400px)]"
                     navigateTo={navigateTo} 
                     auth={auth} 
                 />
