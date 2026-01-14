@@ -6,6 +6,8 @@ import Footer from './components/Footer';
 import { 
   SparklesIcon, CheckIcon, StarIcon, PhotoStudioIcon, UsersIcon, PaletteIcon, CaptionIcon, HomeIcon, MockupIcon, ProjectsIcon, DashboardIcon, UserIcon as AvatarUserIcon, BrandKitIcon, LightbulbIcon, ThumbnailIcon, ApparelIcon, MagicAdsIcon, BuildingIcon, UploadTrayIcon, PixaProductIcon, PixaEcommerceIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon, PixaMockupIcon, PixaHeadshotIcon, ShieldCheckIcon, ClockIcon, CreditCoinIcon, ArrowRightIcon, CursorClickIcon, XIcon, PencilIcon, EyeIcon, CameraIcon
 } from './components/icons';
+// Import missing Theme object
+import { Theme } from './styles/theme';
 import { HomeStyles } from './styles/Home.styles';
 import { triggerCheckout } from './services/paymentService';
 import { PaymentSuccessModal } from './components/PaymentSuccessModal';
@@ -623,7 +625,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     
                     <button 
                       onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} 
-                      className={HomeStyles.heroButton}
+                      className="bg-[#F9D230] text-[#1A1A1E] rounded-xl font-semibold transition-all duration-300 transform active:scale-95 py-5 px-12 text-lg hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/20 hover:bg-[#dfbc2b]"
                     >
                         Start Creating for Free
                     </button>
@@ -683,7 +685,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                         {item.icon}
                                     </div>
                                     <h3 className="text-xl font-bold text-[#1A1A1E] mb-3"><span className="text-indigo-200 mr-1">{item.step}.</span> {item.title}</h3>
-                                    <p className="text-[#5F6368] text-sm leading-relaxed font-medium">{item.desc}</p>
+                                    <p className={Theme.colors.textSecondary}>{item.desc}</p>
                                 </div>
                             );
                         })}
@@ -946,7 +948,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                         {isLoading ? (
                                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                         ) : auth.isAuthenticated 
-                                            ? (isCurrent ? <><CheckIcon className="w-5 h-5"/> Active</> : isDowngrade ? "Included" : "Upgrade")
+                                            ? (isCurrent ? <><CheckIcon className="w-4 h-4"/> Active</> : isDowngrade ? "Included" : "Upgrade")
                                             : "Buy Now"
                                         }
                                     </button>
