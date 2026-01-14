@@ -299,11 +299,20 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
     );
 };
 
-const SingleMarqueeTrack: React.FC<{ items: any[]; direction: 'normal' | 'reverse'; speed: string; navigateTo: any; auth: AuthProps }> = ({ items, direction, speed, navigateTo, auth }) => {
-    const trackItems = [...items, ...items, ...items]; // Triple for ultra-wide screen coverage
+const SingleMarqueeTrack: React.FC<{ 
+    items: any[]; 
+    direction: 'normal' | 'reverse'; 
+    speed: string; 
+    navigateTo: any; 
+    auth: AuthProps;
+    aspectClass: string;
+    widthClass: string;
+}> = ({ items, direction, speed, navigateTo, auth, aspectClass, widthClass }) => {
+    // Triple for ultra-wide screen coverage
+    const trackItems = [...items, ...items, ...items]; 
 
     return (
-        <div className="overflow-hidden py-4">
+        <div className="overflow-hidden py-2">
             <div 
                 className={`flex gap-6 whitespace-nowrap hover:[animation-play-state:paused] ${direction === 'normal' ? 'animate-marquee' : 'animate-marquee-reverse'}`}
                 style={{ animationDuration: speed }}
@@ -312,7 +321,7 @@ const SingleMarqueeTrack: React.FC<{ items: any[]; direction: 'normal' | 'revers
                     <div 
                         key={`${item.id}-${idx}`}
                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard', item.id as View) : auth.openAuthModal()}
-                        className="relative shrink-0 w-[clamp(280px,30vw,400px)] aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1"
+                        className={`relative shrink-0 ${widthClass} ${aspectClass} rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1`}
                     >
                         <img 
                             src={item.after} 
@@ -336,27 +345,58 @@ const SingleMarqueeTrack: React.FC<{ items: any[]; direction: 'normal' | 'revers
     );
 };
 
-const DualIndustryRibbon: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
-    // Split into curated industries
-    const productItems = items.filter(i => ['studio', 'thumbnail_studio', 'brand_kit', 'brand_stylist'].includes(i.id));
-    const lifestyleItems = items.filter(i => ['headshot', 'apparel', 'soul', 'interior', 'colour'].includes(i.id));
+const TripleIndustryRibbon: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
+    // 1. Marketing & Ads (Landscape)
+    const adsItems = items.filter(i => ['brand_stylist', 'caption', 'thumbnail_studio'].includes(i.id));
+    // 2. Human & Portrait (Portrait/Slow)
+    const humanItems = items.filter(i => ['headshot', 'apparel', 'soul'].includes(i.id));
+    // 3. Product & Interior (Standard/Balanced)
+    const productItems = items.filter(i => ['studio', 'interior', 'brand_kit', 'colour'].includes(i.id));
 
-    // Fallback if filtering returns empty (e.g. random IDs from lab)
-    const track1 = productItems.length > 0 ? productItems : items.slice(0, Math.ceil(items.length / 2));
-    const track2 = lifestyleItems.length > 0 ? lifestyleItems : items.slice(Math.ceil(items.length / 2));
+    // Fallbacks
+    const track1 = adsItems.length > 0 ? adsItems : items.slice(0, 3);
+    const track2 = humanItems.length > 0 ? humanItems : items.slice(3, 6);
+    const track3 = productItems.length > 0 ? productItems : items.slice(6, 9);
 
     return (
-        <div className="w-full bg-white py-12 border-b border-gray-100 relative overflow-hidden">
+        <div className="w-full bg-white py-16 border-b border-gray-100 relative overflow-hidden">
             {/* Vignette Overlays */}
             <div className="absolute left-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
             <div className="absolute right-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-l from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
             
-            <div className="flex flex-col gap-8">
-                {/* Track 1: Product & Tech (Right to Left) */}
-                <SingleMarqueeTrack items={track1} direction="normal" speed="40s" navigateTo={navigateTo} auth={auth} />
+            <div className="flex flex-col gap-6">
+                {/* Track 1: Marketing & Ads (Wide Landscape) */}
+                <SingleMarqueeTrack 
+                    items={track1} 
+                    direction="normal" 
+                    speed="45s" 
+                    aspectClass="aspect-[21/9]" 
+                    widthClass="w-[clamp(350px,40vw,520px)]"
+                    navigateTo={navigateTo} 
+                    auth={auth} 
+                />
                 
-                {/* Track 2: Lifestyle & Humans (Left to Right) */}
-                <SingleMarqueeTrack items={track2} direction="reverse" speed="55s" navigateTo={navigateTo} auth={auth} />
+                {/* Track 2: Human & Lifestyle (Vertical Portrait) */}
+                <SingleMarqueeTrack 
+                    items={track2} 
+                    direction="reverse" 
+                    speed="70s" 
+                    aspectClass="aspect-[4/5]" 
+                    widthClass="w-[clamp(220px,25vw,320px)]"
+                    navigateTo={navigateTo} 
+                    auth={auth} 
+                />
+
+                {/* Track 3: Product & Studio (Standard Balanced) */}
+                <SingleMarqueeTrack 
+                    items={track3} 
+                    direction="normal" 
+                    speed="55s" 
+                    aspectClass="aspect-[16/10]" 
+                    widthClass="w-[clamp(280px,32vw,400px)]"
+                    navigateTo={navigateTo} 
+                    auth={auth} 
+                />
             </div>
             
             <style>{`
@@ -653,8 +693,8 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
             </div>
         </section>
 
-        {/* 2. SHOWCASE CAROUSEL (Updated to Dual Industry Ribbon) */}
-        <DualIndustryRibbon items={marqueeItems} navigateTo={navigateTo} auth={auth} />
+        {/* 2. SHOWCASE CAROUSEL (Updated to Triple Track Design System) */}
+        <TripleIndustryRibbon items={marqueeItems} navigateTo={navigateTo} auth={auth} />
 
         {/* 3. THE TRANSFORMATION GALLERY */}
         <section className="py-24 px-4 bg-white">
@@ -959,7 +999,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                                     ? HomeStyles.pricingButtonActive
                                                     : (isUpgrade 
                                                         ? (pack.popular && !isDowngrade ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
-                                                        : 'bg-gray-200 text-gray-500 cursor-default hover:bg-gray-200'))
+                                                        : 'bg-gray-100 text-gray-500 cursor-default hover:bg-gray-100'))
                                                 : (pack.popular ? HomeStyles.pricingButtonPopular : HomeStyles.pricingButtonStandard)
                                             }
                                         `}
