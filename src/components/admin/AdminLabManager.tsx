@@ -14,9 +14,7 @@ import { VaultStyles as styles } from '../../styles/admin/AdminVault.styles';
 import { BeforeAfterSlider } from '../BeforeAfterSlider';
 
 const LAB_FOLDERS = [
-    { id: 'homepage_marquee', label: 'Marquee Row 1', icon: MenuIcon, color: 'bg-indigo-600', isCollection: true },
-    { id: 'homepage_marquee_row2', label: 'Marquee Row 2', icon: MenuIcon, color: 'bg-blue-500', isCollection: true },
-    { id: 'homepage_marquee_row3', label: 'Marquee Row 3', icon: MenuIcon, color: 'bg-purple-500', isCollection: true },
+    { id: 'homepage_marquee', label: 'Homepage Marquee', icon: MenuIcon, color: 'bg-indigo-600', isCollection: true },
     { id: 'homepage_gallery', label: 'Transformation Grid Lab', icon: LayoutGridIcon, color: 'bg-blue-600', isSlotManager: true },
 ];
 
@@ -84,7 +82,7 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             for (const file of files) {
                 const b64 = await fileToBase64(file);
-                if (selectedFolderId.includes('marquee')) {
+                if (selectedFolderId === 'homepage_marquee') {
                     const url = await uploadLabAsset(auth.user.uid, `data:${b64.mimeType};base64,${b64.base64}`, selectedFolderId, 'item');
                     newItems.push({ id: Date.now().toString() + Math.random(), after: url, label: file.name.split('.')[0] });
                 }

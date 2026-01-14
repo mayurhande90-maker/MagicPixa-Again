@@ -299,41 +299,34 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
     );
 };
 
-const SingleMarqueeTrack: React.FC<{ 
-    items: any[]; 
-    direction: 'normal' | 'reverse'; 
-    speed: string; 
-    navigateTo: any; 
-    auth: AuthProps;
-}> = ({ items, direction, speed, navigateTo, auth }) => {
-    // Quad for deep screens coverage
-    const trackItems = [...items, ...items, ...items, ...items]; 
+const SingleMarqueeTrack: React.FC<{ items: any[]; direction: 'normal' | 'reverse'; speed: string; navigateTo: any; auth: AuthProps }> = ({ items, direction, speed, navigateTo, auth }) => {
+    const trackItems = [...items, ...items, ...items]; // Triple for ultra-wide screen coverage
 
     return (
-        <div className="overflow-hidden py-1">
+        <div className="overflow-hidden py-4">
             <div 
-                className={`flex gap-4 whitespace-nowrap hover:[animation-play-state:paused] ${direction === 'normal' ? 'animate-marquee' : 'animate-marquee-reverse'}`}
+                className={`flex gap-6 whitespace-nowrap hover:[animation-play-state:paused] ${direction === 'normal' ? 'animate-marquee' : 'animate-marquee-reverse'}`}
                 style={{ animationDuration: speed }}
             >
                 {trackItems.map((item, idx) => (
                     <div 
                         key={`${item.id}-${idx}`}
                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard', item.id as View) : auth.openAuthModal()}
-                        className="relative shrink-0 w-[clamp(180px,20vw,260px)] aspect-[4/5] rounded-3xl overflow-hidden cursor-pointer group shadow-lg border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:scale-105 active:scale-95"
+                        className="relative shrink-0 w-[clamp(280px,30vw,400px)] aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1"
                     >
                         <img 
                             src={item.after} 
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                             alt={item.label}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                            <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-xl">
-                                {item.icon ? <item.icon className="w-3 h-3 text-white" /> : <SparklesIcon className="w-3 h-3 text-white" />}
-                                <span className="text-[8px] font-black text-white uppercase tracking-widest">{item.label}</span>
+                            <div className="bg-white/20 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl">
+                                {item.icon ? <item.icon className="w-4 h-4 text-white" /> : <SparklesIcon className="w-4 h-4 text-white" />}
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.label}</span>
                             </div>
-                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
-                                <ArrowRightIcon className="w-3 h-3" />
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg text-indigo-600">
+                                <ArrowRightIcon className="w-4 h-4" />
                             </div>
                         </div>
                     </div>
@@ -343,46 +336,27 @@ const SingleMarqueeTrack: React.FC<{
     );
 };
 
-const TripleIndustryRibbon: React.FC<{ 
-    row1: any[]; 
-    row2: any[]; 
-    row3: any[]; 
-    navigateTo: any; 
-    auth: AuthProps 
-}> = ({ row1, row2, row3, navigateTo, auth }) => {
+const DualIndustryRibbon: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
+    // Split into curated industries
+    const productItems = items.filter(i => ['studio', 'thumbnail_studio', 'brand_kit', 'brand_stylist'].includes(i.id));
+    const lifestyleItems = items.filter(i => ['headshot', 'apparel', 'soul', 'interior', 'colour'].includes(i.id));
+
+    // Fallback if filtering returns empty (e.g. random IDs from lab)
+    const track1 = productItems.length > 0 ? productItems : items.slice(0, Math.ceil(items.length / 2));
+    const track2 = lifestyleItems.length > 0 ? lifestyleItems : items.slice(Math.ceil(items.length / 2));
+
     return (
         <div className="w-full bg-white py-12 border-b border-gray-100 relative overflow-hidden">
-            {/* Massive Vignette Overlays for Depth */}
-            <div className="absolute left-0 top-0 bottom-0 w-32 md:w-80 bg-gradient-to-r from-white via-white/70 to-transparent z-20 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-32 md:w-80 bg-gradient-to-l from-white via-white/70 to-transparent z-20 pointer-events-none"></div>
+            {/* Vignette Overlays */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-l from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
             
-            <div className="flex flex-col gap-4">
-                {/* Track 1: R -> L (Fast) */}
-                <SingleMarqueeTrack 
-                    items={row1} 
-                    direction="normal" 
-                    speed="40s" 
-                    navigateTo={navigateTo} 
-                    auth={auth} 
-                />
+            <div className="flex flex-col gap-8">
+                {/* Track 1: Product & Tech (Right to Left) */}
+                <SingleMarqueeTrack items={track1} direction="normal" speed="40s" navigateTo={navigateTo} auth={auth} />
                 
-                {/* Track 2: L -> R (Steady) */}
-                <SingleMarqueeTrack 
-                    items={row2} 
-                    direction="reverse" 
-                    speed="75s" 
-                    navigateTo={navigateTo} 
-                    auth={auth} 
-                />
-
-                {/* Track 3: R -> L (Medium) */}
-                <SingleMarqueeTrack 
-                    items={row3} 
-                    direction="normal" 
-                    speed="55s" 
-                    navigateTo={navigateTo} 
-                    auth={auth} 
-                />
+                {/* Track 2: Lifestyle & Humans (Left to Right) */}
+                <SingleMarqueeTrack items={track2} direction="reverse" speed="55s" navigateTo={navigateTo} auth={auth} />
             </div>
             
             <style>{`
@@ -541,27 +515,10 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
     };
   }, []);
 
-  // Dedicated Row Fetching with Specific Fallbacks
-  const row1Items = useMemo(() => {
-    const items = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
-        ? (labCollections['homepage_marquee'] as any[]) 
-        : TRANSFORMATIONS_STATIC.filter(t => ['brand_stylist', 'caption', 'thumbnail_studio'].includes(t.id));
-    return items.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
-  }, [labCollections['homepage_marquee']]);
-
-  const row2Items = useMemo(() => {
-    const items = (Array.isArray(labCollections['homepage_marquee_row2']) && (labCollections['homepage_marquee_row2'] as any[]).length > 0) 
-        ? (labCollections['homepage_marquee_row2'] as any[]) 
-        : TRANSFORMATIONS_STATIC.filter(t => ['headshot', 'apparel', 'soul'].includes(t.id));
-    return items.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
-  }, [labCollections['homepage_marquee_row2']]);
-
-  const row3Items = useMemo(() => {
-    const items = (Array.isArray(labCollections['homepage_marquee_row3']) && (labCollections['homepage_marquee_row3'] as any[]).length > 0) 
-        ? (labCollections['homepage_marquee_row3'] as any[]) 
-        : TRANSFORMATIONS_STATIC.filter(t => ['studio', 'interior', 'brand_kit', 'colour'].includes(t.id));
-    return items.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
-  }, [labCollections['homepage_marquee_row3']]);
+  // Dynamic Lists for Homepage sections
+  const marqueeItems = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
+    ? (labCollections['homepage_marquee'] as any[]) 
+    : TRANSFORMATIONS_STATIC.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
 
   // Map Slot-based Gallery items
   const galleryItems = useMemo(() => {
@@ -696,14 +653,8 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
             </div>
         </section>
 
-        {/* 2. SHOWCASE CAROUSEL (Dedicated Multi-Track Data) */}
-        <TripleIndustryRibbon 
-            row1={row1Items} 
-            row2={row2Items} 
-            row3={row3Items} 
-            navigateTo={navigateTo} 
-            auth={auth} 
-        />
+        {/* 2. SHOWCASE CAROUSEL (Updated to Dual Industry Ribbon) */}
+        <DualIndustryRibbon items={marqueeItems} navigateTo={navigateTo} auth={auth} />
 
         {/* 3. THE TRANSFORMATION GALLERY */}
         <section className="py-24 px-4 bg-white">
