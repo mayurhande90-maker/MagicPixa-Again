@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -169,7 +170,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
 
                                         {/* POPULAR BADGE */}
                                         {pack.popular && !isCurrent && !isDowngrade && (
-                                            <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-[10px] font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-6 mx-auto w-fit shadow-sm">
+                                            <p className="text-center bg-black text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-6 mx-auto w-fit shadow-sm">
                                                 Best Value
                                             </p>
                                         )}
@@ -246,7 +247,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center text-[#F9D230] shrink-0">
+                            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-[#1A1A1E] shrink-0">
                                 <StarIcon className="w-6 h-6"/>
                             </div>
                             <div>

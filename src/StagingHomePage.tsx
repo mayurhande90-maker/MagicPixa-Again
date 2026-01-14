@@ -430,7 +430,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                         <p className="text-lg md:text-xl text-[#5F6368] max-w-2xl mx-auto mb-10 font-medium">
                             MagicPixa understands what you need. Turn simple photos into masterpieces effortlessly using Pixa Vision.
                         </p>
-                        <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} className="bg-[#F9D230] text-[#1A1A1E] font-bold px-10 py-4 rounded-xl text-lg shadow-lg hover:scale-105 transition-all">
+                        <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} className="bg-[#1A1A1E] text-white font-bold px-10 py-4 rounded-xl text-lg shadow-lg hover:scale-105 transition-all hover:bg-black">
                             Start Creating for Free
                         </button>
                     </div>
@@ -610,7 +610,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                                         <p className="text-gray-500 text-xs mb-4 h-10">{pack.tagline}</p>
                                         <div className="mb-4"><span className="text-4xl font-black text-gray-900">{pack.totalCredits}</span><span className="text-gray-400 text-xs uppercase font-bold ml-1">Credits</span></div>
                                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6"><span className="text-2xl font-bold text-gray-900">₹{pack.price}</span></div>
-                                        <button onClick={() => handleCheckout(pack)} disabled={isLoading || isCurrent} className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${isCurrent ? 'bg-gray-100 text-gray-400' : 'bg-[#F9D230] text-[#1A1A1E] hover:bg-[#dfbc2b] shadow-lg shadow-yellow-500/20'}`}>
+                                        <button onClick={() => handleCheckout(pack)} disabled={isLoading || isCurrent} className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${isCurrent ? 'bg-gray-100 text-gray-400' : 'bg-[#1A1A1E] text-white hover:bg-black shadow-lg shadow-gray-900/20'}`}>
                                             {isLoading ? <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" /> : isCurrent ? "Active" : "Buy Now"}
                                         </button>
                                     </div>
@@ -624,7 +624,7 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
                 <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-100">
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 tracking-tight">Built for speed. For growth. For impact.</h2>
-                        <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} className="bg-[#F9D230] text-[#1A1A1E] font-bold py-5 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl shadow-yellow-500/30 text-lg flex items-center gap-3 mx-auto">
+                        <button onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()} className="bg-[#1A1A1E] text-white font-bold py-5 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl shadow-gray-900/20 text-lg flex items-center gap-3 mx-auto hover:bg-black">
                             Start Creating Now <ArrowRightIcon className="w-6 h-6" />
                         </button>
                         <p className="text-sm text-gray-500 mt-6 font-medium">Get 50 free credits on sign up!</p>

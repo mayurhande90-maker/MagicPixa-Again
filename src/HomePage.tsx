@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -894,7 +895,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                     {isCurrent && <div className={HomeStyles.activeBadge}>Current Plan</div>}
 
                                     {/* POPULAR BADGE (Only if not current AND not a downgrade) */}
-                                    {pack.popular && !isCurrent && !isDowngrade && <p className="text-center bg-[#F9D230] text-[#1A1A1E] text-xs font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto">Best Value</p>}
+                                    {pack.popular && !isCurrent && !isDowngrade && <p className="text-center bg-black text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-4 mx-auto shadow-sm">Best Value</p>}
                                     
                                     {/* Spacer if active to handle badge overlap visually */}
                                     {isCurrent && <div className="h-2"></div>}
@@ -910,7 +911,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                                     </div>
                                     <div className="h-5 mb-4">
                                       {pack.bonus > 0 && (
-                                          <p className="text-sm font-semibold text-[#6EFACC] text-emerald-500">
+                                          <p className="text-sm font-semibold text-emerald-500">
                                               {pack.credits} + {pack.bonus} Bonus!
                                           </p>
                                       )}
@@ -956,7 +957,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                 </div>
             </section>
 
-            {/* Impact CTA Section - Added from AboutUsPage */}
+            {/* Impact CTA Section - Updated for premium black look */}
             <section className="py-32 px-4 text-center bg-[#F6F7FA] border-t border-gray-200/50">
                 <div className="max-w-4xl mx-auto">
                     <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 leading-tight tracking-tight">
@@ -965,7 +966,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigateTo, auth, appConfig }) => {
                     <p className="text-lg text-[#5F6368] mb-12 font-medium">Ready to transform your creative workflow?</p>
                     <button 
                         onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                        className="bg-[#F9D230] text-[#1A1A1E] font-bold py-5 px-12 rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/30 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
+                        className="bg-[#1A1A1E] text-white font-bold py-5 px-12 rounded-2xl hover:bg-black transition-all shadow-xl shadow-gray-900/20 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
                     >
                         Start Creating Now
                         <ArrowRightIcon className="w-6 h-6" />

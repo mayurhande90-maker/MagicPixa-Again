@@ -59,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
         </nav>
         {!auth.isAuthenticated && (
             <div className="mt-auto">
-                <button onClick={() => { auth.openAuthModal(); setIsMobileMenuOpen(false); }} className="w-full text-lg font-semibold bg-[#F9D230] text-[#1A1A1E] px-4 py-3 rounded-xl">
+                <button onClick={() => { auth.openAuthModal(); setIsMobileMenuOpen(false); }} className="w-full text-lg font-semibold bg-[#1A1A1E] text-white px-4 py-3 rounded-xl hover:bg-black">
                     Sign In
                 </button>
             </div>
@@ -135,7 +135,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, auth }) => {
                 </>
               ) : (
                 <>
-                  <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-[#F9D230] text-[#1A1A1E] px-4 py-2 rounded-xl border-2 border-[#F9D230] hover:bg-[#dfbc2b] transition-colors">
+                  <button onClick={() => auth.openAuthModal()} className="hidden sm:block text-sm font-semibold bg-[#1A1A1E] text-white px-4 py-2 rounded-xl border-2 border-[#1A1A1E] hover:bg-black transition-colors">
                     Sign In
                   </button>
                   <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#1A1A1E] md:hidden" aria-label="Open navigation menu">

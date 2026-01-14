@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -39,7 +40,7 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                                 <span className="text-[#4D7CFF]">Zero Prompts Required.</span>
                             </h1>
                             <p className="text-lg md:text-xl text-[#5F6368] max-w-3xl mx-auto leading-relaxed font-medium">
-                                While other AI tools force you to learn complex "Prompt Engineering," <span className="text-indigo-600 font-bold underline decoration-[#F9D230] decoration-4 underline-offset-4">MagicPixa uses Pixa Vision</span> to see your product and understand your needs instantly.
+                                While other AI tools force you to learn complex "Prompt Engineering," <span className="text-indigo-600 font-bold underline decoration-[#1A1A1E] decoration-4 underline-offset-4">MagicPixa uses Pixa Vision</span> to see your product and understand your needs instantly.
                             </p>
                             
                             <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -70,7 +71,7 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                                 <p className="text-[#5F6368] font-medium leading-relaxed mb-6">
                                     Working with brands, creators, real estate companies, architects and businesses across India, Magic Peacock Studios created MagicPixa to solve a simple problem:
                                 </p>
-                                <div className="bg-[#F6F7FA] p-6 rounded-2xl border-l-4 border-[#F9D230] shadow-sm">
+                                <div className="bg-[#F6F7FA] p-6 rounded-2xl border-l-4 border-[#1A1A1E] shadow-sm">
                                     <p className="text-[#1A1A1E] font-bold italic text-lg leading-relaxed">
                                         "Most businesses need constant content — but design, editing and production are expensive, slow and complicated."
                                     </p>
@@ -130,7 +131,7 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                     </div>
                 </section>
 
-                {/* Final CTA - Precise Homepage matching */}
+                {/* Final CTA - Precise Homepage matching with new dark theme */}
                 <section className="py-32 px-4 text-center bg-white border-t border-gray-100">
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-bold text-[#1A1A1E] mb-6 leading-tight tracking-tight">
@@ -139,7 +140,7 @@ const AboutUsPage: React.FC<AboutUsPageProps> = ({ navigateTo, auth }) => {
                         <p className="text-lg text-[#5F6368] mb-12 font-medium">Ready to transform your creative workflow?</p>
                         <button 
                             onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                            className="bg-[#F9D230] text-[#1A1A1E] font-bold py-5 px-12 rounded-2xl hover:bg-[#dfbc2b] transition-all shadow-xl shadow-yellow-500/30 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
+                            className="bg-[#1A1A1E] text-white font-bold py-5 px-12 rounded-2xl hover:bg-black transition-all shadow-xl shadow-gray-900/20 hover:scale-105 active:scale-95 text-lg flex items-center gap-3 mx-auto"
                         >
                             Start Creating Now
                             <ArrowRightIcon className="w-6 h-6" />

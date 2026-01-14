@@ -1,9 +1,9 @@
 
 export const Theme = {
   colors: {
-    primary: "bg-[#F9D230]",
-    primaryHover: "hover:bg-[#dfbc2b]",
-    textOnPrimary: "text-[#1A1A1E]",
+    primary: "bg-[#1A1A1E]",
+    primaryHover: "hover:bg-[#000000]",
+    textOnPrimary: "text-[#FFFFFF]",
     
     accent: "text-[#4D7CFF]",
     accentBg: "bg-[#4D7CFF]",

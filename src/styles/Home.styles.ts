@@ -1,3 +1,4 @@
+
 import { Theme } from './theme';
 
 export const HomeStyles = {
@@ -12,7 +13,7 @@ export const HomeStyles = {
   heroContent: "relative z-10 max-w-4xl mx-auto",
   heroTitle: `text-4xl md:text-6xl font-bold ${Theme.colors.textPrimary} mb-4 leading-tight`,
   heroSubtitle: `text-lg md:text-xl ${Theme.colors.textSecondary} max-w-2xl mx-auto mb-10`,
-  heroButton: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.shapes.button} py-3 px-8 hover:scale-105 hover:shadow-xl shadow-lg shadow-yellow-500/30 ${Theme.colors.primaryHover}`,
+  heroButton: `${Theme.colors.primary} ${Theme.colors.textOnPrimary} ${Theme.shapes.button} py-3 px-8 hover:scale-105 hover:shadow-xl shadow-lg shadow-gray-900/20 ${Theme.colors.primaryHover}`,
 
   // Features Section
   featuresSection: `${Theme.layout.sectionPadding} ${Theme.colors.bgSurface}`,
@@ -40,7 +41,7 @@ export const HomeStyles = {
   
   // Variants
   pricingCardActive: "border-indigo-600 bg-indigo-50/10 shadow-2xl ring-4 ring-indigo-500/10 scale-[1.03] z-10",
-  pricingCardPopular: "border-[#F9D230] shadow-lg shadow-yellow-500/10",
+  pricingCardPopular: "border-gray-900 shadow-lg shadow-gray-900/10",
   pricingCardStandard: "border-gray-200/80",
   
   // Buttons
