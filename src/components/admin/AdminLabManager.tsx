@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProps } from '../../types';
 import { 
@@ -14,7 +15,8 @@ import { VaultStyles as styles } from '../../styles/admin/AdminVault.styles';
 import { BeforeAfterSlider } from '../BeforeAfterSlider';
 
 const LAB_FOLDERS = [
-    { id: 'homepage_marquee', label: 'Homepage Marquee', icon: MenuIcon, color: 'bg-indigo-600', isCollection: true },
+    { id: 'homepage_marquee', label: 'Homepage Marquee (Row 1)', icon: MenuIcon, color: 'bg-indigo-600', isCollection: true },
+    { id: 'homepage_marquee_row2', label: 'Homepage Marquee (Row 2)', icon: MenuIcon, color: 'bg-purple-600', isCollection: true },
     { id: 'homepage_gallery', label: 'Transformation Grid Lab', icon: LayoutGridIcon, color: 'bg-blue-600', isSlotManager: true },
 ];
 
@@ -82,13 +84,12 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             for (const file of files) {
                 const b64 = await fileToBase64(file);
-                if (selectedFolderId === 'homepage_marquee') {
-                    const url = await uploadLabAsset(auth.user.uid, `data:${b64.mimeType};base64,${b64.base64}`, selectedFolderId, 'item');
-                    newItems.push({ id: Date.now().toString() + Math.random(), after: url, label: file.name.split('.')[0] });
-                }
+                const url = await uploadLabAsset(auth.user.uid, `data:${b64.mimeType};base64,${b64.base64}`, selectedFolderId, 'item');
+                newItems.push({ id: Date.now().toString() + Math.random(), after: url, label: file.name.split('.')[0] });
             }
             await updateLabCollection(selectedFolderId, newItems);
         } catch (e) {
+            console.error(e);
             alert("Upload failed.");
         } finally {
             setUploading(null);
@@ -124,7 +125,7 @@ export const AdminLabManager: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
     const handleRemoveCollectionItem = async (itemId: string) => {
         if (!selectedFolderId) return;
-        if (confirm("Delete this item from the homepage section?")) {
+        if (confirm("Delete this item?")) {
             const currentItems = Array.isArray(labCollections[selectedFolderId]) ? (labCollections[selectedFolderId] as any[]) : [];
             const updatedItems = currentItems.filter(item => item.id !== itemId);
             await updateLabCollection(selectedFolderId, updatedItems);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -336,15 +337,7 @@ const SingleMarqueeTrack: React.FC<{ items: any[]; direction: 'normal' | 'revers
     );
 };
 
-const DualIndustryRibbon: React.FC<{ items: any[]; navigateTo: any; auth: AuthProps }> = ({ items, navigateTo, auth }) => {
-    // Split into curated industries
-    const productItems = items.filter(i => ['studio', 'thumbnail_studio', 'brand_kit', 'brand_stylist'].includes(i.id));
-    const lifestyleItems = items.filter(i => ['headshot', 'apparel', 'soul', 'interior', 'colour'].includes(i.id));
-
-    // Fallback if filtering returns empty (e.g. random IDs from lab)
-    const track1 = productItems.length > 0 ? productItems : items.slice(0, Math.ceil(items.length / 2));
-    const track2 = lifestyleItems.length > 0 ? lifestyleItems : items.slice(Math.ceil(items.length / 2));
-
+const DualIndustryRibbon: React.FC<{ items1: any[]; items2: any[]; navigateTo: any; auth: AuthProps }> = ({ items1, items2, navigateTo, auth }) => {
     return (
         <div className="w-full bg-white py-12 border-b border-gray-100 relative overflow-hidden">
             {/* Vignette Overlays */}
@@ -352,11 +345,11 @@ const DualIndustryRibbon: React.FC<{ items: any[]; navigateTo: any; auth: AuthPr
             <div className="absolute right-0 top-0 bottom-0 w-20 md:w-64 bg-gradient-to-l from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
             
             <div className="flex flex-col gap-8">
-                {/* Track 1: Product & Tech (Right to Left) */}
-                <SingleMarqueeTrack items={track1} direction="normal" speed="40s" navigateTo={navigateTo} auth={auth} />
+                {/* Track 1: Row 1 (Right to Left) */}
+                <SingleMarqueeTrack items={items1} direction="normal" speed="40s" navigateTo={navigateTo} auth={auth} />
                 
-                {/* Track 2: Lifestyle & Humans (Left to Right) */}
-                <SingleMarqueeTrack items={track2} direction="reverse" speed="55s" navigateTo={navigateTo} auth={auth} />
+                {/* Track 2: Row 2 (Left to Right) */}
+                <SingleMarqueeTrack items={items2} direction="reverse" speed="55s" navigateTo={navigateTo} auth={auth} />
             </div>
             
             <style>{`
@@ -516,9 +509,13 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
   }, []);
 
   // Dynamic Lists for Homepage sections
-  const marqueeItems = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
+  const marqueeItems1 = (Array.isArray(labCollections['homepage_marquee']) && (labCollections['homepage_marquee'] as any[]).length > 0) 
     ? (labCollections['homepage_marquee'] as any[]) 
-    : TRANSFORMATIONS_STATIC.map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
+    : TRANSFORMATIONS_STATIC.slice(0, 3).map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
+
+  const marqueeItems2 = (Array.isArray(labCollections['homepage_marquee_row2']) && (labCollections['homepage_marquee_row2'] as any[]).length > 0) 
+    ? (labCollections['homepage_marquee_row2'] as any[]) 
+    : TRANSFORMATIONS_STATIC.slice(3).map(t => ({ id: t.id, after: t.after, label: t.label, icon: t.icon }));
 
   // Map Slot-based Gallery items
   const galleryItems = useMemo(() => {
@@ -653,8 +650,8 @@ export const StagingHomePage: React.FC<{ navigateTo: (page: Page, view?: View, s
             </div>
         </section>
 
-        {/* 2. SHOWCASE CAROUSEL (Updated to Dual Industry Ribbon) */}
-        <DualIndustryRibbon items={marqueeItems} navigateTo={navigateTo} auth={auth} />
+        {/* 2. SHOWCASE CAROUSEL (Updated to consume two separate lists) */}
+        <DualIndustryRibbon items1={marqueeItems1} items2={marqueeItems2} navigateTo={navigateTo} auth={auth} />
 
         {/* 3. THE TRANSFORMATION GALLERY */}
         <section className="py-24 px-4 bg-white">
