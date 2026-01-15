@@ -308,7 +308,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 const b64 = await fileToBase64(f);
                 return { url: URL.createObjectURL(f), base64: b64 };
             }));
-            if (multi) setMainImages(prev => [...prev, ...processed].slice(0, 3));
+            
+            if (multi) {
+                if (isCollectionMode) {
+                    setMainImages(prev => [...prev, ...processed].slice(0, 3));
+                } else {
+                    // In single mode, selecting new upload replaces
+                    setMainImages(processed.slice(0, 1));
+                }
+            }
             else setter(processed[0]);
         }
         e.target.value = '';
@@ -321,24 +329,25 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setMainImages(prev => prev.filter((_, i) => i !== existingIdx));
         } else {
             // SELECT
-            const limit = isCollectionMode ? 3 : 1;
-            if (mainImages.length < limit) {
-                try {
-                    const b64 = await urlToBase64(imgUrl);
-                    setMainImages(prev => [...prev, { url: imgUrl, base64: b64 }]);
-                } catch (e) {
-                    console.error("Failed to load product", e);
+            if (isCollectionMode) {
+                if (mainImages.length < 3) {
+                    try {
+                        const b64 = await urlToBase64(imgUrl);
+                        setMainImages(prev => [...prev, { url: imgUrl, base64: b64 }]);
+                    } catch (e) {
+                        console.error("Failed to load product", e);
+                    }
+                } else {
+                    setNotification({ msg: "Max 3 products allowed for collections.", type: 'info' });
                 }
-            } else if (!isCollectionMode) {
-                // Swap in single mode
+            } else {
+                // SINGLE MODE: REPLACEMENT LOGIC
                 try {
                     const b64 = await urlToBase64(imgUrl);
                     setMainImages([{ url: imgUrl, base64: b64 }]);
                 } catch (e) {
                     console.error("Failed to load product", e);
                 }
-            } else {
-                setNotification({ msg: "Max 3 products allowed for collections.", type: 'info' });
             }
         }
     };
@@ -509,29 +518,50 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <p className="text-sm text-gray-300 mt-1">Select an industry to start.</p>
                             </div>
                         ) : mainImages.length === 0 ? (
-                            <div onClick={() => fileInputRef.current?.click()} className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50/50 transition-colors">
-                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mb-4 group-hover:scale-110 transition-transform">
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40 select-none">
+                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4">
                                     <CloudUploadIcon className="w-8 h-8" />
                                 </div>
-                                <p className="text-lg font-bold text-gray-400">Upload Product Assets</p>
-                                <p className="text-xs text-gray-300 mt-1">PNG or JPG, high resolution</p>
-                                <input ref={fileInputRef} type="file" multiple className="hidden" accept="image/*" onChange={handleUpload(null, true)} />
+                                <p className="text-lg font-bold text-gray-300">Awaiting Product Selection</p>
+                                <p className="text-xs text-gray-300 mt-1 uppercase tracking-widest font-black">Choose items from the shelf on the right</p>
                             </div>
                         ) : (
-                            <div className="relative w-full h-full flex items-center justify-center p-8">
-                                <div className="grid grid-cols-2 gap-4 max-w-md">
-                                    {mainImages.map((img, idx) => (
-                                        <div key={idx} className={`relative group ${mainImages.length === 1 ? 'col-span-2' : ''}`}>
-                                            <img src={img.url} className="w-full aspect-square object-contain bg-gray-50 rounded-2xl border border-gray-100 shadow-sm" />
-                                            <button onClick={() => setMainImages(mainImages.filter((_, i) => i !== idx))} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"><XIcon className="w-4 h-4"/></button>
-                                        </div>
-                                    ))}
-                                    {mainImages.length < 3 && (
-                                        <button onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-300 hover:border-indigo-300 hover:text-indigo-500 transition-all bg-gray-50/50">
-                                            <PlusIcon className="w-6 h-6" />
-                                            <span className="text-[10px] font-bold uppercase mt-1">Add Variation</span>
-                                        </button>
-                                    )}
+                            <div className="relative w-full h-full flex items-center justify-center p-12">
+                                <div className="relative w-full max-w-sm aspect-square flex items-center justify-center">
+                                    {mainImages.map((img, idx) => {
+                                        // DYNAMIC STACKING LOGIC (Photo Print Aesthetic)
+                                        let transformStyle = '';
+                                        let zIndex = 10;
+                                        
+                                        if (mainImages.length === 1) {
+                                            transformStyle = 'rotate(0deg) scale(1.1)';
+                                            zIndex = 20;
+                                        } else if (mainImages.length === 2) {
+                                            transformStyle = idx === 0 ? 'rotate(-6deg) translateX(-15px)' : 'rotate(6deg) translateX(15px)';
+                                            zIndex = idx === 1 ? 20 : 10;
+                                        } else if (mainImages.length === 3) {
+                                            if (idx === 0) transformStyle = 'rotate(-12deg) translateX(-30px)';
+                                            else if (idx === 1) transformStyle = 'rotate(0deg) scale(1.05)';
+                                            else transformStyle = 'rotate(12deg) translateX(30px)';
+                                            zIndex = idx === 1 ? 30 : idx === 2 ? 20 : 10;
+                                        }
+
+                                        return (
+                                            <div 
+                                                key={img.url} 
+                                                className="absolute w-[70%] aspect-square transition-all duration-500 ease-out"
+                                                style={{ transform: transformStyle, zIndex }}
+                                            >
+                                                <div className="w-full h-full bg-white p-2 sm:p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden">
+                                                    <img src={img.url} className="w-full h-full object-contain" alt="Selected Product" />
+                                                </div>
+                                                {/* Identity Badge Overlay for Photo Prints */}
+                                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-tighter shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Pixa Identity Locked
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -584,7 +614,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                         
                                         <div className="flex bg-gray-50 p-1 rounded-xl mb-3 border border-gray-100 w-fit">
-                                            <button onClick={() => { setIsCollectionMode(false); setLayoutTemplate('Hero Focus'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Hero</button>
+                                            <button onClick={() => { 
+                                                setIsCollectionMode(false); 
+                                                setLayoutTemplate('Hero Focus');
+                                                // Truncate to 1 item when switching to single mode
+                                                if (mainImages.length > 1) {
+                                                    setMainImages(prev => prev.slice(0, 1));
+                                                }
+                                            }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Hero</button>
                                             <button onClick={() => { setIsCollectionMode(true); setLayoutTemplate('The Trio'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Collection</button>
                                         </div>
 
@@ -633,17 +670,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             ))}
 
                                             {/* ADD BUTTON */}
-                                            {mainImages.length < (isCollectionMode ? 3 : 1) && (
-                                                <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}>
-                                                    <div className={AdMakerStyles.shelfAdd}>
-                                                        <PlusIcon className="w-5 h-5 text-gray-300"/>
-                                                        <span className={AdMakerStyles.shelfAddText}>Add</span>
-                                                    </div>
+                                            <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}>
+                                                <div className={AdMakerStyles.shelfAdd}>
+                                                    <PlusIcon className="w-5 h-5 text-gray-300"/>
+                                                    <span className={AdMakerStyles.shelfAddText}>Upload</span>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                         <p className="text-[10px] text-gray-400 mt-2 italic px-1">
-                                            {isCollectionMode ? "Select up to 3 products. Click again to unselect." : "Select your hero product."}
+                                            {isCollectionMode ? "Select up to 3 products. Click again to unselect." : "Select your hero product. Selection replaces the current one."}
                                         </p>
                                     </div>
 
@@ -758,6 +793,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             )}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+            {/* Hidden master product upload input */}
+            <input ref={fileInputRef} type="file" multiple className="hidden" accept="image/*" onChange={handleUpload(null, true)} />
         </>
     );
 };
