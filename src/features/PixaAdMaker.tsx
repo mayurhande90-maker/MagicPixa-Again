@@ -62,6 +62,23 @@ const VIBE_MAP: Record<string, string[]> = {
     'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
 };
 
+// --- STRATEGIC COMPATIBILITY MAPPING ---
+// This defines which vibes are allowed for which blueprints to prevent AI hallucinations.
+const BLUEPRINT_VIBE_CONSTRAINTS: Record<string, string[]> = {
+    'Hero Focus': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", "Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", "Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", "Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'Split Design': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Professional & Trust", "Minimalistic", CUSTOM_VIBE_KEY],
+    'Bottom Strip': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", "Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", "Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", "Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'Social Proof': ["Lifestyle", "Cozy & Warm", "Delicious & Fresh", "Clean & Healthy", "Friendly", "Professional & Trust", CUSTOM_VIBE_KEY],
+    'Magazine Cover': ["Luxury & Elegant", "Cinematic", "Lifestyle", "Grand & Expensive", "Modern & Sharp", "Classy & Dim", CUSTOM_VIBE_KEY],
+    'Minimalist Zen': ["Clean Studio", "Minimalistic", "Modern & Sleek", "Luxury & Elegant", "Modern & Sharp", CUSTOM_VIBE_KEY],
+    'Feature Callout': ["Clean Studio", "Modern & Sleek", "Professional & Trust", "High Energy", CUSTOM_VIBE_KEY],
+    'Action Dynamic': ["High Energy", "Cyberpunk / Neon", "Cinematic", "Vibrant Street", CUSTOM_VIBE_KEY],
+    'Contrast Grid': ["Professional & Trust", "Modern & Sleek", "Minimalistic", "Clean Studio", CUSTOM_VIBE_KEY],
+    'The Trio': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Minimalistic", "Nature", CUSTOM_VIBE_KEY],
+    'Range Lineup': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Minimalistic", "Nature", CUSTOM_VIBE_KEY],
+    'Hero & Variants': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Minimalistic", "Nature", CUSTOM_VIBE_KEY]
+};
+
 const LAYOUT_TEMPLATES = [
     'Hero Focus', 
     'Split Design', 
@@ -276,6 +293,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const brandIndustry = useMemo(() => auth.activeBrandKit ? MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry) : null, [auth.activeBrandKit]);
     const isMismatch = auth.activeBrandKit && industry && brandIndustry !== industry;
 
+    // --- DYNAMIC VIBE FILTERING ---
+    // This logic ensures only compatible vibes are shown for the selected blueprint.
+    const filteredVibes = useMemo(() => {
+        if (!industry) return [];
+        const industryVibes = VIBE_MAP[industry] || [];
+        const supportedVibes = BLUEPRINT_VIBE_CONSTRAINTS[layoutTemplate] || [];
+        return industryVibes.filter(v => supportedVibes.includes(v));
+    }, [industry, layoutTemplate]);
+
+    // Cleanup vibe selection if it becomes incompatible after switching blueprint
+    useEffect(() => {
+        if (vibe && !filteredVibes.includes(vibe)) {
+            setVibe('');
+        }
+    }, [layoutTemplate, filteredVibes]);
+
     // SYNC WITH BRAND KIT
     useEffect(() => {
         if (auth.activeBrandKit) {
@@ -292,7 +325,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 }).catch(err => console.warn("Failed to auto-load brand logo", err));
             }
 
-            // USER REQUEST: Inventory products are automatically loaded into shelf, but unselected by default.
+            // USER REQUEST: Inventory products are unselected by default.
             setMainImages([]);
             setIsCollectionMode(false);
             setLayoutTemplate('Hero Focus');
@@ -481,7 +514,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const canGenerate = !!industry && mainImages.length > 0 && !!description && !!aspectRatio && !isLowCredits;
-    const vibes = industry ? VIBE_MAP[industry] : [];
 
     // Aspect Ratio Icons
     const ratioIcons = {
@@ -616,13 +648,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
-                                                {/* Fix: Use the correct variable name INDUSTRY_CONFIG and added non-null assertion for industry since it is verified in the ternary branch */}
                                                 {React.createElement(INDUSTRY_CONFIG[industry!].icon, { className: "w-6 h-6 text-blue-600" })}
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Niche</p>
                                                 <p className="text-sm font-black text-blue-900 truncate">
-                                                    {/* Fix: Use the correct variable name INDUSTRY_CONFIG and added non-null assertion for industry since it is verified in the ternary branch */}
                                                     {INDUSTRY_CONFIG[industry!].label}
                                                 </p>
                                             </div>
@@ -847,7 +877,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                         
                                         <div className="space-y-4">
-                                            <SelectionGrid label="Visual Mood / Vibe" options={vibes} value={vibe} onChange={setVibe} />
+                                            {/* DYNAMIC VIBE GRID: Options now change based on the Blueprint */}
+                                            <SelectionGrid 
+                                                label="Visual Mood / Vibe" 
+                                                options={filteredVibes} 
+                                                value={vibe} 
+                                                onChange={setVibe} 
+                                            />
                                             {vibe === CUSTOM_VIBE_KEY && (
                                                 <div className="animate-fadeIn -mt-2">
                                                     <InputField placeholder="e.g. 90s Polaroid, neon midnight, bright spring..." value={customVibe} onChange={(e: any) => setCustomVibe(e.target.value)} />
