@@ -15,19 +15,7 @@ export interface AdMakerInputs {
     offer?: string;
     description?: string;
     productSpecs?: string;
-    project?: string;
-    location?: string;
-    config?: string;
-    features?: string[];
-    dishName?: string;
-    restaurant?: string;
-    headline?: string;
-    subheadline?: string;
-    cta?: string;
-    occasion?: string;
-    audience?: string;
     layoutTemplate?: string;
-    visualFocus?: 'product' | 'lifestyle' | 'conceptual' | null;
     aspectRatio?: '1:1' | '4:5' | '9:16' | null;
     modelSource?: 'ai' | 'upload' | null;
     modelImage?: { base64: string; mimeType: string } | null;
@@ -42,20 +30,15 @@ export interface AdMakerInputs {
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
-    // --- EXISTING ESSENTIALS ---
     'Hero Focus': "SPATIAL GRID: [Subject: Center-Weighted, Scale 70%] | [Headline: Upper 15%, Center-Align] | [CTA: Bottom 10%, Floating]. Rule: Maximum focal impact on the product.",
     'Split Design': "SPATIAL GRID: [Subject: Left 50% Horizontal Column] | [Text/Copy Stack: Right 50% Horizontal Column]. Rule: Hard vertical axis split for clean informational hierarchy.",
     'Bottom Strip': "SPATIAL GRID: [Subject: Upper 80% Canvas] | [Information Strip: Bottom 20% with semi-transparent backdrop]. Rule: Cinematic focus with a grounded info footer.",
     'Social Proof': "SPATIAL GRID: [Subject: Center-Right] | [Review Bubble/Badge: Bottom-Left Overlay]. Rule: Offset subject to create space for secondary trust markers.",
-    
-    // --- NEW STRATEGIC BLUEPRINTS ---
     'Magazine Cover': "SPATIAL GRID: [Subject: Center, Scale 85%, Overlaps Background Typography] | [Headline: Massive stylized font behind or slightly overlapping subject]. Rule: High-prestige editorial cover aesthetic.",
     'Minimalist Zen': "SPATIAL GRID: [Subject: Bottom-Right Third, Scale 35%] | [Headline: Top-Left, small, elegant serif] | [White Space: 75% of canvas]. Rule: High-end boutique minimalism with maximum breathing room.",
     'Feature Callout': "SPATIAL GRID: [Subject: Center, Scale 60%] | [Callout Lines: Thin pointers radiating from product parts to small text labels]. Rule: Technical education and feature highlighting.",
     'Action Dynamic': "SPATIAL GRID: [Subject: Diagonally tilted 15 degrees, motion blur trails] | [Headline: Bold, italicized, aggressive placement]. Rule: High-energy urgency and excitement.",
     'Contrast Grid': "SPATIAL GRID: [Vertical Split: 50/50] | [Left Pane: Problem or 'Before' state] | [Right Pane: Product or 'After' state]. Rule: Immediate visual proof of transformation and solution.",
-
-    // --- COLLECTION ARCHETYPES ---
     'The Trio': "SPATIAL GRID: [Main Hero: Center, Scale 100%] | [Variant 1: Lower Left, Scale 40%] | [Variant 2: Lower Right, Scale 40%]. Rule: Depth-based hierarchy for product ranges.",
     'Range Lineup': "SPATIAL GRID: [3 Items: Arranged side-by-side on a horizontal shelf plane]. Rule: Perfect symmetrical alignment for collections.",
     'Hero & Variants': "SPATIAL GRID: [Hero Item: Front & Center] | [2 Supporting Items: Blurred in the shallow background]. Rule: Dynamic bokeh-based product storytelling."
@@ -134,23 +117,25 @@ const performAdIntelligence = async (
     
     *** ASSIGNMENT ***
     Develop a high-conversion creative strategy for the ${inputs.industry} product: "${inputs.productName || 'Unnamed Asset'}".
-    Context: "${inputs.description || 'N/A'}"
+    User Context Box Input: "${inputs.description || 'N/A'}"
     Specifications: "${inputs.productSpecs || 'N/A'}"
 
-    *** STEP 1: MARKET-INTELLIGENCE GROUNDING (GOOGLE SEARCH) ***
-    1. Search for "2025 Creative Ad Benchmarks and High-Performing Layouts for ${inputs.industry}".
-    2. Research trending "Emotional Hooks" and "Consumer Anxiety Points" for ${inputs.productName} in the current year.
-    3. Identify color-theory trends for ${inputs.industry} in 2025.
-
-    *** STEP 2: AIDA COPYWRITING PROTOCOL ***
-    Craft ad copy that follows the Attention-Interest-Desire-Action framework:
-    1. **ATTENTION (Headline)**: A scroll-stopping "Hook" (2-5 words). Avoid generic labels. Focus on benefits or transformation.
-    2. **DESIRE (Subheadline)**: Convert product features into human benefits. Solve a specific problem identified in research.
-    3. **ACTION (CTA)**: A definitive, high-intent command.
-
-    *** STEP 3: DESIGN STRATEGY ***
-    Determine the optimal visual hierarchy.
+    *** THE "AIDA" STRATEGIC MANDATE ***
+    Do NOT use the User Context Box word-for-word. It is a raw thought, not an ad.
+    Interpret the User Context as INTENT. Perform a "Forensic Marketing Synthesis":
     
+    1. **RESEARCH (Use Google Search)**:
+       - Find "High-performing ad copy hooks for ${inputs.industry} in 2025".
+       - Identify the psychological triggers for this niche (Status, Fear of Missing Out, Time Saving, Purity).
+    
+    2. **AIDA SYNTHESIS**:
+       - **ATTENTION (Headline)**: Create a scroll-stopping, benefit-led headline. Use powerful verbs. (2-5 words).
+       - **INTEREST/DESIRE (Subheadline)**: Elaborate on the unique value proposition derived from the context. Make it sound exclusive and professional.
+       - **ACTION (CTA)**: Generate a high-intent button label.
+
+    3. **VISUAL HIERARCHY**:
+       - Based on the ${inputs.industry} niche, determine where the "conversion focal point" should be.
+
     RETURN JSON ONLY:
     {
         "strategicCopy": { 
@@ -160,15 +145,15 @@ const performAdIntelligence = async (
         },
         "identityStrategy": {
             "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Why this specific copy will convert based on 2025 trends",
-            "placementRecommendation": "Optimal focus zone for the headline",
+            "reasoning": "Why this specific copy will convert based on psychographics",
+            "placementRecommendation": "Focus zone (Top, Center, or Offset)",
             "styling": "Typography weight and mood"
         },
         "industryLogic": {
-            "categoryBadgeText": "Authority marker text (e.g. '2025 Industry Standard')",
-            "forbiddenKeywords": ["Buzzwords to avoid that sound 'too AI'"]
+            "categoryBadgeText": "Authority marker (e.g. 'Certified Premium')",
+            "forbiddenKeywords": ["Generic buzzwords like 'Best', 'Amazing', 'Discover'"]
         },
-        "visualDirection": "Detailed art direction based on 2025 performance data"
+        "visualDirection": "Technical Art direction notes for the lighting rig"
     }`;
 
     const parts: any[] = lowResAssets.map((asset) => ({ text: `PRODUCT SOURCE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -185,9 +170,9 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        console.warn("Marketing intelligence failed, using agency heuristics", e);
+        console.warn("Marketing intelligence failed, using fallback strategy", e);
         return { 
-            strategicCopy: { headline: "Defined by Excellence", subheadline: inputs.description || "The new standard in performance.", cta: "Shop Collection" }, 
+            strategicCopy: { headline: "Defined by Excellence", subheadline: "The new standard in professional quality.", cta: "Shop Collection" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
             industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
             visualDirection: "Clean commercial studio aesthetics." 
@@ -229,7 +214,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
-            parts.push({ text: `VAULT REFERENCE ${i+1}:` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+            parts.push({ text: `VAULT LIGHTING REFERENCE ${i+1}:` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
@@ -244,32 +229,32 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const prompt = `You are a World-Class Ad Production Engine.
     
-    *** IDENTITY LOCK 2.0 (SACRED ASSET PROTOCOL) ***
-    The "SACRED PRODUCT ASSET" and "BRAND LOGO" provided are fixed production assets. 
-    1. **GEOMETRY**: Do NOT alter the physical shape, proportions, or label alignment of the product.
-    2. **TYPOGRAPHY**: Preserve all text exactly as it appears on the product pixels.
-    3. **LOGOS**: Do NOT redraw logos. Use 1:1 pixel transfers for branding.
-    4. **MATERIAL**: Preserve the surface finish (matte/glossy) from the source asset.
+    *** THE OPTICAL RIG (VAULT DNA MANDATE) ***
+    ${vaultDna ? `STRICT LIGHTING PROTOCOL: ${vaultDna}` : 'Use professional high-end softbox lighting rigs.'}
+    Identify the "Visual DNA" from the VAULT REFERENCES and apply the EXACT same lighting topology and color science to the user's ad.
 
-    *** DESIGN-OPTICS BLOCK (HYPER-REALISM) ***
-    1. **Z-AXIS DEPTH (BOKEH)**: Place text elements in a distinct Z-layer. If text is behind the product, apply a slight blur to the text to match the depth of field.
-    2. **LIGHT-TO-TEXT BLEEDING**: If the handle has strong lighting (e.g. Neon, Sunlight), this light must physically reflect onto the edges of the text overlays.
-    3. **GLOBAL ILLUMINATION**: Calculate bounce light between the environment and the product surface. If the product is next to a red wall, show a subtle red "spill" on the product's edge.
-    4. **SHADOW ANCHORING**: The product MUST have a realistic contact shadow (ambient occlusion) on its ground plane, ensuring it is perfectly "grounded" in the design.
+    *** IDENTITY LOCK 3.0 (SACRED ASSET PROTOCOL) ***
+    1. **GEOMETRY**: Do NOT alter the physical shape or proportions of the product.
+    2. **TYPOGRAPHY**: Preserve all labels and text from the "SACRED PRODUCT ASSET" pixels perfectly.
+    3. **LOGOS**: Use 1:1 pixel transfers for the BRAND LOGO. Do not smudge or blur.
 
-    *** VISUAL BRIEF ***
+    *** FORENSIC PHYSICS MANDATES ***
+    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp ambient occlusion shadows where the product touches the ground plane.
+    2. **GLOBAL ILLUMINATION (COLOR SPILL)**: Calculate light bouncing from the environment onto the product surface. (e.g. if the floor is marble, reflect white highlights on the product's base).
+    3. **Z-DEPTH**: Place typography in a distinct depth layer. If typography is behind the product, apply appropriate lens bokeh.
+
+    *** CREATIVE BRIEF ***
     - Industry: ${inputs.industry.toUpperCase()}
-    - Layout Architecture: ${blueprintInstruction}
-    - AI-Researched Direction: ${brief.visualDirection}
-    ${optRef ? `**REFERENCE STYLE**: Match the lighting and atmosphere of the provided Style Reference.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
+    - Layout: ${blueprintInstruction}
+    - Art Direction: ${brief.visualDirection}
+    ${optRef ? `**STYLE MATCH**: Mimic the atmosphere of the Style Reference.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
 
-    *** COPYWRITING EXECUTION (AIDA) ***
-    1. **HEADLINE**: Render "${brief.strategicCopy.headline}" in the ${brief.identityStrategy.placementRecommendation}.
-    2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}" as supporting text.
-    3. **CTA**: Render a high-conversion button for "${brief.strategicCopy.cta}".
-    4. **PRODUCT NAME**: ${brief.identityStrategy.weight === 'Hidden' ? 'Product is already clearly branded - do not overlay name.' : `Render "${inputs.productName}" as a ${brief.identityStrategy.weight} element.`}
-
-    OUTPUT: A single 8K masterpiece ad. Pristine pixels, agency-grade composition.`;
+    *** TYPOGRAPHY & COPY (AIDA) ***
+    1. **HEADLINE**: Render "${brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Sans'}.
+    2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
+    3. **ACTION**: High-contrast CTA for "${brief.strategicCopy.cta}".
+    
+    OUTPUT: A single 8K agency-grade marketing asset. Photorealistic excellence.`;
 
     parts.push({ text: prompt });
 
@@ -302,16 +287,10 @@ export const refineAdCreative = async (
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
-    const prompt = `You are a Precision Ad Editor.
-    
-    *** CURRENT VERSION ***
-    Modify the provided image based on this specific user feedback: "${instruction}".
-    
-    *** EDITING RULES ***
-    1. **Preservation**: Keep the core product, environment, and vibe identical.
-    2. **Transformation**: Apply the user's specific requested change while maintaining commercial quality.
-    
-    OUTPUT: A single 4K refined image.`;
+    const prompt = `You are a Precision Ad Editor. Modify the provided image based on this specific user feedback: "${instruction}".
+    1. **Preservation**: Keep the core product and environment 95% identical.
+    2. **Refinement**: Only modify the specific areas mentioned in the feedback.
+    OUTPUT: A single 4K photorealistic refined image.`;
 
     try {
         const response = await ai.models.generateContent({

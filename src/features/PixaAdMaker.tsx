@@ -63,7 +63,6 @@ const VIBE_MAP: Record<string, string[]> = {
 };
 
 // --- STRATEGIC COMPATIBILITY MAPPING ---
-// This defines which vibes are allowed for which blueprints to prevent AI hallucinations.
 const BLUEPRINT_VIBE_CONSTRAINTS: Record<string, string[]> = {
     'Hero Focus': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", "Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", "Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", "Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
     'Split Design': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Professional & Trust", "Minimalistic", CUSTOM_VIBE_KEY],
@@ -249,7 +248,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
     const [layoutTemplate, setLayoutTemplate] = useState('Hero Focus');
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); // Changed default to empty
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); 
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     
     // Model Config
@@ -294,7 +293,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const isMismatch = auth.activeBrandKit && industry && brandIndustry !== industry;
 
     // --- DYNAMIC VIBE FILTERING ---
-    // This logic ensures only compatible vibes are shown for the selected blueprint.
     const filteredVibes = useMemo(() => {
         if (!industry) return [];
         const industryVibes = VIBE_MAP[industry] || [];
@@ -302,7 +300,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return industryVibes.filter(v => supportedVibes.includes(v));
     }, [industry, layoutTemplate]);
 
-    // Cleanup vibe selection if it becomes incompatible after switching blueprint
     useEffect(() => {
         if (vibe && !filteredVibes.includes(vibe)) {
             setVibe('');
@@ -318,19 +315,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setProductName(kit.companyName || kit.name || '');
             setWebsite(kit.website || '');
             
-            // 1. Auto-load Logo
             if (kit.logos.primary) {
                 urlToBase64(kit.logos.primary).then(res => {
                     setLogoImage({ url: kit.logos.primary!, base64: res });
                 }).catch(err => console.warn("Failed to auto-load brand logo", err));
             }
 
-            // USER REQUEST: Inventory products are unselected by default.
             setMainImages([]);
             setIsCollectionMode(false);
             setLayoutTemplate('Hero Focus');
         } else {
-            // FIX: Clear state when brand is turned off
             setLogoImage(null);
             setProductName('');
             setWebsite('');
@@ -515,7 +509,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const canGenerate = !!industry && mainImages.length > 0 && !!description && !!aspectRatio && !isLowCredits;
 
-    // Aspect Ratio Icons
     const ratioIcons = {
         '1:1': <div className="w-3.5 h-3.5 border-2 border-current rounded-sm shadow-sm"></div>,
         '4:5': <div className="w-3 h-4 border-2 border-current rounded-sm shadow-sm"></div>,
@@ -642,9 +635,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                                 </button>
 
-                                {/* Identity Summary (Industry + Brand Switcher) */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                    {/* Industry Summary */}
                                     <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
@@ -666,7 +657,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </button>
                                     </div>
 
-                                    {/* Brand Summary */}
                                     {auth.activeBrandKit ? (
                                         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
                                             <div className="flex items-center gap-3">
@@ -686,7 +676,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                             <button 
                                                 onClick={() => setShowBrandModal(true)} 
-                                                className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm shrink-0"
+                                                className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-blue-100 transition-all border border-indigo-100 shadow-sm shrink-0"
                                                 title="Change Brand"
                                             >
                                                 <RefreshIcon className="w-3.5 h-3.5"/>
@@ -728,7 +718,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 )}
 
                                 <div className="space-y-6">
-                                    {/* Identity Overrides (Logo) */}
                                     {!auth.activeBrandKit && (
                                         <div className="animate-fadeIn">
                                             <div className={AdMakerStyles.sectionHeader}>
@@ -768,7 +757,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     )}
 
-                                    {/* Composition Blueprint */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '1' : '2'}</span>
@@ -794,7 +782,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* Product Inventory Shelf */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '2' : '3'}</span>
@@ -838,7 +825,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </p>
                                     </div>
 
-                                    {/* Persona & Context */}
                                     {(industry === 'fashion' || industry === 'ecommerce') && (
                                         <div>
                                             <div className={AdMakerStyles.sectionHeader}>
@@ -869,7 +855,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     )}
 
-                                    {/* Campaign Content */}
                                     <div className="pt-4 border-t border-gray-100">
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? (auth.activeBrandKit ? '4' : '5') : (auth.activeBrandKit ? '3' : '4') }</span>
@@ -877,7 +862,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                         
                                         <div className="space-y-4">
-                                            {/* DYNAMIC VIBE GRID: Options now change based on the Blueprint */}
                                             <SelectionGrid 
                                                 label="Visual Mood / Vibe" 
                                                 options={filteredVibes} 
@@ -895,10 +879,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 value={description} 
                                                 onChange={(e: any) => setDescription(e.target.value)} 
                                             />
+                                            <p className="text-[10px] text-gray-400 italic px-1 -mt-2">
+                                                <InformationCircleIcon className="w-3 h-3 inline mr-1" />
+                                                The CMO engine will transform this intent into professional ad copy.
+                                            </p>
                                         </div>
                                     </div>
 
-                                    {/* Final Delivery */}
                                     <div className="pt-4 border-t border-gray-100 pb-20">
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
