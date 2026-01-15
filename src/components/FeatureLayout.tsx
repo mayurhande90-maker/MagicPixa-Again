@@ -34,7 +34,13 @@ export const TextAreaField: React.FC<any> = ({ label, id, ...props }) => (
     </div>
 );
 
-export const SelectionGrid: React.FC<{ label: string; options: string[]; value: string; onChange: (val: string) => void }> = ({ label, options, value, onChange }) => (
+export const SelectionGrid: React.FC<{ 
+    label: string; 
+    options: string[]; 
+    value: string; 
+    onChange: (val: string) => void;
+    icons?: Record<string, React.ReactNode>;
+}> = ({ label, options, value, onChange, icons }) => (
     <div className={FeatureStyles.selectionContainer}>
         <div className="flex items-center justify-between mb-3 ml-1">
             <label className={FeatureStyles.inputLabel}>{label}</label>
@@ -47,12 +53,14 @@ export const SelectionGrid: React.FC<{ label: string; options: string[]; value: 
         <div className="flex flex-wrap gap-2">
             {options.map(opt => {
                 const isSelected = value === opt;
+                const icon = icons?.[opt];
                 return (
                     <button 
                         key={opt}
                         onClick={() => onChange(opt)}
-                        className={`${FeatureStyles.selectionButton} ${isSelected ? FeatureStyles.selectionButtonActive : FeatureStyles.selectionButtonInactive}`}
+                        className={`${FeatureStyles.selectionButton} ${isSelected ? FeatureStyles.selectionButtonActive : FeatureStyles.selectionButtonInactive} flex items-center gap-2`}
                     >
+                        {icon && <span className={`${isSelected ? 'text-white' : 'text-indigo-400'} shrink-0`}>{icon}</span>}
                         {opt}
                     </button>
                 )
@@ -409,7 +417,7 @@ export const FeatureLayout: React.FC<{
                              {/* Refinement Overlay (Canvas Bottom Centered) */}
                              {canvasOverlay && !isGenerating && (
                                  <div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none px-6 pb-28">
-                                     <div className="pointer-events-auto w-full max-w-lg">
+                                     <div className="pointer-events-auto w-full max-lg">
                                          {canvasOverlay}
                                      </div>
                                  </div>

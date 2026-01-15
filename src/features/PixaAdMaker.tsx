@@ -232,7 +232,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
     const [layoutTemplate, setLayoutTemplate] = useState('Hero Focus');
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); // Changed default to empty
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     
     // Model Config
@@ -296,6 +296,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setMainImages([]);
             setIsCollectionMode(false);
             setLayoutTemplate('Hero Focus');
+        } else {
+            // FIX: Clear state when brand is turned off
+            setLogoImage(null);
+            setProductName('');
+            setWebsite('');
+            setMainImages([]);
         }
     }, [auth.activeBrandKit]);
 
@@ -363,7 +369,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
-        if (!industry || mainImages.length === 0 || !auth.user || !description) return;
+        if (!industry || mainImages.length === 0 || !auth.user || !description || !aspectRatio) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
@@ -430,7 +436,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleNewSession = () => {
         setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
-        setModelSource(null); setModelImage(null); setIsRefineActive(false);
+        setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio('');
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -474,8 +480,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = !!industry && mainImages.length > 0 && !!description && !isLowCredits;
+    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!aspectRatio && !isLowCredits;
     const vibes = industry ? VIBE_MAP[industry] : [];
+
+    // Aspect Ratio Icons
+    const ratioIcons = {
+        '1:1': <div className="w-3.5 h-3.5 border-2 border-current rounded-sm shadow-sm"></div>,
+        '4:5': <div className="w-3 h-4 border-2 border-current rounded-sm shadow-sm"></div>,
+        '9:16': <div className="w-2.5 h-5 border-2 border-current rounded-sm shadow-sm"></div>
+    };
 
     return (
         <>
@@ -507,7 +520,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 ) : null}
                 resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Render Masterpiece Ad" }}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: !aspectRatio ? "Select Aspect Ratio" : "Render Masterpiece Ad" }}
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -643,7 +656,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                             <button 
                                                 onClick={() => setShowBrandModal(true)} 
-                                                className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-blue-100 transition-all border border-indigo-100 shadow-sm shrink-0"
+                                                className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm shrink-0"
                                                 title="Change Brand"
                                             >
                                                 <RefreshIcon className="w-3.5 h-3.5"/>
@@ -738,7 +751,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 setLayoutTemplate('Hero Focus');
                                                 if (mainImages.length > 1) setMainImages(prev => prev.slice(0, 1));
                                             }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Hero</button>
-                                            <button onClick={() => { setIsCollectionMode(true); setLayoutTemplate('The Trio'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Collection</button>
+                                            <button onClick={() => { setIsCollectionMode(true); setLayoutTemplate('The Trio'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Collection</button>
                                         </div>
 
                                         <div className={AdMakerStyles.blueprintGrid}>
@@ -856,12 +869,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                         </div>
                                         
-                                        <SelectionGrid label="Aspect Ratio" options={['1:1', '4:5', '9:16']} value={aspectRatio} onChange={(val: any) => setAspectRatio(val)} />
-                                        
-                                        <div className="mt-4 flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-                                            <ShieldCheckIcon className="w-4 h-4 text-indigo-600"/>
-                                            <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Identity Guard Active: 1:1 Asset Fidelity</p>
-                                        </div>
+                                        <SelectionGrid 
+                                            label="Aspect Ratio" 
+                                            options={['1:1', '4:5', '9:16']} 
+                                            value={aspectRatio} 
+                                            onChange={(val: any) => setAspectRatio(val)} 
+                                            icons={ratioIcons}
+                                        />
                                     </div>
                                 </div>
                             </>
