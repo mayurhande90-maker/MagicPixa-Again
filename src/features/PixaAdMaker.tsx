@@ -327,7 +327,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 if (isCollectionMode) {
                     setMainImages(prev => [...prev, ...processed].slice(0, 3));
                 } else {
-                    // In single mode, selecting new upload replaces
                     setMainImages(processed.slice(0, 1));
                 }
             }
@@ -339,10 +338,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const toggleProduct = async (imgUrl: string) => {
         const existingIdx = mainImages.findIndex(img => img.url === imgUrl);
         if (existingIdx > -1) {
-            // UNSELECT
             setMainImages(prev => prev.filter((_, i) => i !== existingIdx));
         } else {
-            // SELECT
             if (isCollectionMode) {
                 if (mainImages.length < 3) {
                     try {
@@ -355,7 +352,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     setNotification({ msg: "Max 3 products allowed for collections.", type: 'info' });
                 }
             } else {
-                // SINGLE MODE: REPLACEMENT LOGIC
                 try {
                     const b64 = await urlToBase64(imgUrl);
                     setMainImages([{ url: imgUrl, base64: b64 }]);
@@ -466,6 +462,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
+    // FIX: Define handleBrandSelect to resolve ReferenceError
     const handleBrandSelect = async (brand: BrandKit) => {
         if (auth.user && brand.id) {
             try {
@@ -543,7 +540,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             <div className="relative w-full h-full flex items-center justify-center p-12">
                                 <div className="relative w-full max-w-sm aspect-square flex items-center justify-center">
                                     {mainImages.map((img, idx) => {
-                                        // DYNAMIC STACKING LOGIC (Photo Print Aesthetic)
                                         let transformStyle = '';
                                         let zIndex = 10;
                                         
@@ -569,7 +565,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <div className="w-full h-full bg-white p-2 sm:p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden">
                                                     <img src={img.url} className="w-full h-full object-contain" alt="Selected Product" />
                                                 </div>
-                                                {/* Identity Badge Overlay for Photo Prints */}
                                                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-tighter shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Pixa Identity Locked
                                                 </div>
@@ -586,7 +581,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className={AdMakerStyles.formContainer}>
                         {!industry ? (
                             <div className={AdMakerStyles.modeGrid}>
-                                {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
+                                {Object.entries(INDUSTR_CONFIG).map(([key, conf]) => (
                                     <IndustryCard 
                                         key={key} 
                                         title={conf.label} 
@@ -603,64 +598,28 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                                 </button>
 
-                                {/* 1. Dual-Context Strategy Panel */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                    {/* Brand Identity Slot */}
-                                    <div className={`rounded-2xl p-4 flex items-center justify-between animate-fadeIn transition-all border ${
-                                        auth.activeBrandKit 
-                                        ? 'bg-indigo-50 border-indigo-100 shadow-sm' 
-                                        : 'bg-white border-dashed border-gray-200 hover:border-indigo-300'
-                                    }`}>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-inner overflow-hidden shrink-0">
-                                                {auth.activeBrandKit?.logos.primary ? (
-                                                    <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain p-1" alt="Brand Logo" />
-                                                ) : (
-                                                    <BrandKitIcon className="w-7 h-7 text-indigo-400" />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Active Brand</p>
-                                                <p className="text-sm font-black text-indigo-900 truncate">
-                                                    {auth.activeBrandKit?.companyName || auth.activeBrandKit?.name || "No Brand Kit"}
-                                                </p>
-                                            </div>
+                                {/* Identity Summary */}
+                                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
+                                            {React.createElement(INDUSTR_CONFIG[industry].icon, { className: "w-6 h-6 text-blue-600" })}
                                         </div>
-                                        <button 
-                                            onClick={() => setShowBrandModal(true)} 
-                                            className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm shrink-0"
-                                            title={auth.activeBrandKit ? "Change Brand" : "Add Brand"}
-                                        >
-                                            {auth.activeBrandKit ? <PencilIcon className="w-4 h-4"/> : <PlusIcon className="w-4 h-4"/>}
-                                        </button>
+                                        <div className="min-w-0">
+                                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Target Niche</p>
+                                            <p className="text-sm font-black text-blue-900 truncate">
+                                                {INDUSTR_CONFIG[industry].label}
+                                            </p>
+                                        </div>
                                     </div>
-
-                                    {/* Industry Context Slot */}
-                                    {industry && (
-                                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
-                                                    {React.createElement(INDUSTRY_CONFIG[industry].icon, { className: "w-6 h-6 text-blue-600" })}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Target Niche</p>
-                                                    <p className="text-sm font-black text-blue-900 truncate">
-                                                        {INDUSTRY_CONFIG[industry].label}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={() => setIndustry(null)} 
-                                                className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm shrink-0"
-                                                title="Change Industry"
-                                            >
-                                                <RefreshIcon className="w-3.5 h-3.5"/>
-                                            </button>
-                                        </div>
-                                    )}
+                                    <button 
+                                        onClick={() => setIndustry(null)} 
+                                        className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm shrink-0"
+                                        title="Change Industry"
+                                    >
+                                        <RefreshIcon className="w-3.5 h-3.5"/>
+                                    </button>
                                 </div>
 
-                                {/* IDENTITY GUARD MISMATCH WARNING */}
                                 {isMismatch && (
                                     <div className="mb-6 animate-[fadeInUp_0.4s_ease-out] relative group">
                                         <div className="absolute inset-0 bg-amber-400/10 rounded-2xl blur-lg group-hover:bg-amber-400/20 transition-all"></div>
@@ -680,21 +639,50 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 )}
 
                                 <div className="space-y-6">
-                                    {/* 2. Layout & Template */}
+                                    {/* 2. Composition Blueprint & Logo */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>1</span>
                                             <label className={AdMakerStyles.sectionTitle}>Composition Blueprint</label>
                                         </div>
                                         
+                                        {/* Logo Selector moved here */}
+                                        <div className="mb-6">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Brand Identity (Logo)</label>
+                                            <div className="flex items-center gap-3">
+                                                {logoImage ? (
+                                                    <div 
+                                                        className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}
+                                                        onClick={() => setLogoImage(null)}
+                                                    >
+                                                        <img src={logoImage.url} className={AdMakerStyles.shelfImage} />
+                                                        <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
+                                                    </div>
+                                                ) : (
+                                                    <div 
+                                                        onClick={() => document.getElementById('logo-upload-ad')?.click()}
+                                                        className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}
+                                                    >
+                                                        <div className={AdMakerStyles.shelfAdd}>
+                                                            <PlusIcon className="w-5 h-5 text-gray-300"/>
+                                                            <span className={AdMakerStyles.shelfAddText}>Logo</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] text-gray-400 italic leading-tight">
+                                                        {logoImage ? "Branding active. Click to remove." : "Upload or select a brand kit to anchor identity."}
+                                                    </p>
+                                                </div>
+                                                <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
+                                            </div>
+                                        </div>
+
                                         <div className="flex bg-gray-50 p-1 rounded-xl mb-3 border border-gray-100 w-fit">
                                             <button onClick={() => { 
                                                 setIsCollectionMode(false); 
                                                 setLayoutTemplate('Hero Focus');
-                                                // Truncate to 1 item when switching to single mode
-                                                if (mainImages.length > 1) {
-                                                    setMainImages(prev => prev.slice(0, 1));
-                                                }
+                                                if (mainImages.length > 1) setMainImages(prev => prev.slice(0, 1));
                                             }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Hero</button>
                                             <button onClick={() => { setIsCollectionMode(true); setLayoutTemplate('The Trio'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Collection</button>
                                         </div>
@@ -716,7 +704,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <label className={AdMakerStyles.sectionTitle}>Product Inventory</label>
                                         </div>
                                         <div className={AdMakerStyles.shelfContainer}>
-                                            {/* BRAND KIT PRODUCTS - Displayed as toggleable tiles */}
                                             {auth.activeBrandKit?.products?.map((p) => {
                                                 const isSelected = mainImages.some(img => img.url === p.imageUrl);
                                                 return (
@@ -731,7 +718,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 );
                                             })}
 
-                                            {/* MANUAL UPLOADS (not from brand kit) */}
                                             {mainImages.filter(img => !auth.activeBrandKit?.products?.some(p => p.imageUrl === img.url)).map((img, idx) => (
                                                 <div 
                                                     key={`manual-${idx}`} 
@@ -743,7 +729,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 </div>
                                             ))}
 
-                                            {/* ADD BUTTON */}
                                             <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}>
                                                 <div className={AdMakerStyles.shelfAdd}>
                                                     <PlusIcon className="w-5 h-5 text-gray-300"/>
@@ -807,50 +792,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 value={description} 
                                                 onChange={(e: any) => setDescription(e.target.value)} 
                                             />
-                                            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-                                                <ShieldCheckIcon className="w-4 h-4 text-indigo-600"/>
-                                                <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">AIDA Strategy Engine Active</p>
-                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* 6. Advanced Settings */}
+                                    {/* 6. Final Delivery */}
                                     <div className="pt-4 border-t border-gray-100 pb-20">
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '5' : '4' }</span>
-                                            <label className={AdMakerStyles.sectionTitle}>Format & Logo</label>
+                                            <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Aspect Ratio</label>
-                                                <div className="flex flex-col gap-2">
-                                                    {(['1:1', '4:5', '9:16'] as const).map(r => (
-                                                        <button key={r} onClick={() => setAspectRatio(r)} className={`w-full py-2 text-[10px] font-bold rounded-lg border transition-all ${aspectRatio === r ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{r}</button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Brand Identity</label>
-                                                <div className="relative group">
-                                                    {logoImage ? (
-                                                        <div className={AdMakerStyles.logoPreviewBox}>
-                                                            <div className={AdMakerStyles.logoBlueprintBg}></div>
-                                                            <img src={logoImage.url} className="h-full object-contain relative z-10" />
-                                                            <button onClick={() => setLogoImage(null)} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full shadow-md text-red-500 hover:bg-red-50 transition-all z-20 border border-gray-100"><XIcon className="w-3.5 h-3.5"/></button>
-                                                        </div>
-                                                    ) : (
-                                                        <button onClick={() => document.getElementById('logo-upload-ad')?.click()} className="w-full h-24 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-[9px] font-bold text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white hover:bg-indigo-50/10">
-                                                            <CloudUploadIcon className="w-6 h-6"/> <span>Upload Logo</span>
-                                                        </button>
-                                                    )}
-                                                    <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
-                                                </div>
-                                            </div>
+                                        
+                                        <SelectionGrid label="Aspect Ratio" options={['1:1', '4:5', '9:16']} value={aspectRatio} onChange={(val: any) => setAspectRatio(val)} />
+                                        
+                                        <div className="mt-4 flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                                            <ShieldCheckIcon className="w-4 h-4 text-indigo-600"/>
+                                            <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Identity Guard Active: 1:1 Asset Fidelity</p>
                                         </div>
-                                        <p className="text-[9px] text-gray-400 italic px-1 mt-3">
-                                            <ShieldCheckIcon className="w-2.5 h-2.5 inline mr-1 text-indigo-400"/>
-                                            Identity Lock: Logo assets are "Sacred Assets" and remain unaltered.
-                                        </p>
                                     </div>
                                 </div>
                             </>
@@ -872,7 +829,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             )}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
-            {/* Hidden master product upload input */}
             <input ref={fileInputRef} type="file" multiple className="hidden" accept="image/*" onChange={handleUpload(null, true)} />
         </>
     );
