@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
@@ -272,9 +271,37 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setProductName(kit.companyName || kit.name || '');
             setWebsite(kit.website || '');
             
+            // 1. Auto-load Logo
             if (kit.logos.primary) {
                 urlToBase64(kit.logos.primary).then(res => {
                     setLogoImage({ url: kit.logos.primary!, base64: res });
+                }).catch(err => console.warn("Failed to auto-load brand logo", err));
+            }
+
+            // 2. Auto-load Brand Products (Limit 3 for AdMaker)
+            if (kit.products && kit.products.length > 0) {
+                const productsToLoad = kit.products.slice(0, 3);
+                
+                Promise.all(productsToLoad.map(async (p) => {
+                    try {
+                        const b64 = await urlToBase64(p.imageUrl);
+                        return { url: p.imageUrl, base64: b64 };
+                    } catch (e) {
+                        console.warn(`Failed to auto-load product: ${p.name}`, e);
+                        return null;
+                    }
+                })).then(loadedImages => {
+                    const validImages = loadedImages.filter((img): img is { url: string; base64: Base64File } => img !== null);
+                    setMainImages(validImages);
+                    
+                    // Automatically enable collection mode and appropriate template if more than 1 image is loaded
+                    if (validImages.length > 1) {
+                        setIsCollectionMode(true);
+                        setLayoutTemplate('The Trio');
+                    } else {
+                        setIsCollectionMode(false);
+                        setLayoutTemplate('Hero Focus');
+                    }
                 });
             }
         }
@@ -705,5 +732,5 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         </>
     );
 };
-// Fix: Added default export for lazy loading in DashboardPage
+
 export default PixaAdMaker;
