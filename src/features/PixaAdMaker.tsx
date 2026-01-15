@@ -62,7 +62,17 @@ const VIBE_MAP: Record<string, string[]> = {
     'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
 };
 
-const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
+const LAYOUT_TEMPLATES = [
+    'Hero Focus', 
+    'Split Design', 
+    'Bottom Strip', 
+    'Social Proof',
+    'Magazine Cover',
+    'Minimalist Zen',
+    'Feature Callout',
+    'Action Dynamic',
+    'Contrast Grid'
+];
 const COLLECTION_TEMPLATES = ['The Trio', 'Range Lineup', 'Hero & Variants'];
 
 const IndustryCard: React.FC<{ 

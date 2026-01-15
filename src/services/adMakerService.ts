@@ -42,10 +42,20 @@ export interface AdMakerInputs {
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
+    // --- EXISTING ESSENTIALS ---
     'Hero Focus': "SPATIAL GRID: [Subject: Center-Weighted, Scale 70%] | [Headline: Upper 15%, Center-Align] | [CTA: Bottom 10%, Floating]. Rule: Maximum focal impact on the product.",
     'Split Design': "SPATIAL GRID: [Subject: Left 50% Horizontal Column] | [Text/Copy Stack: Right 50% Horizontal Column]. Rule: Hard vertical axis split for clean informational hierarchy.",
     'Bottom Strip': "SPATIAL GRID: [Subject: Upper 80% Canvas] | [Information Strip: Bottom 20% with semi-transparent backdrop]. Rule: Cinematic focus with a grounded info footer.",
     'Social Proof': "SPATIAL GRID: [Subject: Center-Right] | [Review Bubble/Badge: Bottom-Left Overlay]. Rule: Offset subject to create space for secondary trust markers.",
+    
+    // --- NEW STRATEGIC BLUEPRINTS ---
+    'Magazine Cover': "SPATIAL GRID: [Subject: Center, Scale 85%, Overlaps Background Typography] | [Headline: Massive stylized font behind or slightly overlapping subject]. Rule: High-prestige editorial cover aesthetic.",
+    'Minimalist Zen': "SPATIAL GRID: [Subject: Bottom-Right Third, Scale 35%] | [Headline: Top-Left, small, elegant serif] | [White Space: 75% of canvas]. Rule: High-end boutique minimalism with maximum breathing room.",
+    'Feature Callout': "SPATIAL GRID: [Subject: Center, Scale 60%] | [Callout Lines: Thin pointers radiating from product parts to small text labels]. Rule: Technical education and feature highlighting.",
+    'Action Dynamic': "SPATIAL GRID: [Subject: Diagonally tilted 15 degrees, motion blur trails] | [Headline: Bold, italicized, aggressive placement]. Rule: High-energy urgency and excitement.",
+    'Contrast Grid': "SPATIAL GRID: [Vertical Split: 50/50] | [Left Pane: Problem or 'Before' state] | [Right Pane: Product or 'After' state]. Rule: Immediate visual proof of transformation and solution.",
+
+    // --- COLLECTION ARCHETYPES ---
     'The Trio': "SPATIAL GRID: [Main Hero: Center, Scale 100%] | [Variant 1: Lower Left, Scale 40%] | [Variant 2: Lower Right, Scale 40%]. Rule: Depth-based hierarchy for product ranges.",
     'Range Lineup': "SPATIAL GRID: [3 Items: Arranged side-by-side on a horizontal shelf plane]. Rule: Perfect symmetrical alignment for collections.",
     'Hero & Variants': "SPATIAL GRID: [Hero Item: Front & Center] | [2 Supporting Items: Blurred in the shallow background]. Rule: Dynamic bokeh-based product storytelling."
@@ -243,7 +253,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     *** DESIGN-OPTICS BLOCK (HYPER-REALISM) ***
     1. **Z-AXIS DEPTH (BOKEH)**: Place text elements in a distinct Z-layer. If text is behind the product, apply a slight blur to the text to match the depth of field.
-    2. **LIGHT-TO-TEXT BLEEDING**: If the scene has strong lighting (e.g. Neon, Sunlight), this light must physically reflect onto the edges of the text overlays.
+    2. **LIGHT-TO-TEXT BLEEDING**: If the handle has strong lighting (e.g. Neon, Sunlight), this light must physically reflect onto the edges of the text overlays.
     3. **GLOBAL ILLUMINATION**: Calculate bounce light between the environment and the product surface. If the product is next to a red wall, show a subtle red "spill" on the product's edge.
     4. **SHADOW ANCHORING**: The product MUST have a realistic contact shadow (ambient occlusion) on its ground plane, ensuring it is perfectly "grounded" in the design.
 
