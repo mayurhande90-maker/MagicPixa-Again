@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon } from '../components/icons';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon, RefreshIcon } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
@@ -599,20 +599,61 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                                 </button>
 
-                                {/* 1. Brand Identity Selection */}
-                                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden">
-                                            {auth.activeBrandKit?.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-5 h-5 text-indigo-400" />}
+                                {/* 1. Dual-Context Strategy Panel */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                    {/* Brand Identity Slot */}
+                                    <div className={`rounded-2xl p-4 flex items-center justify-between animate-fadeIn transition-all border ${
+                                        auth.activeBrandKit 
+                                        ? 'bg-indigo-50 border-indigo-100 shadow-sm' 
+                                        : 'bg-white border-dashed border-gray-200 hover:border-indigo-300'
+                                    }`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden shrink-0">
+                                                {auth.activeBrandKit?.logos.primary ? (
+                                                    <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" alt="Brand Logo" />
+                                                ) : (
+                                                    <BrandKitIcon className="w-5 h-5 text-indigo-400" />
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Active Brand</p>
+                                                <p className="text-sm font-black text-indigo-900 truncate">
+                                                    {auth.activeBrandKit?.companyName || auth.activeBrandKit?.name || "No Brand Kit"}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Active Strategy</p>
-                                            <p className="text-sm font-black text-indigo-900">{auth.activeBrandKit?.companyName || "Select Brand"}</p>
-                                        </div>
+                                        <button 
+                                            onClick={() => setShowBrandModal(true)} 
+                                            className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm shrink-0"
+                                            title={auth.activeBrandKit ? "Change Brand" : "Add Brand"}
+                                        >
+                                            {auth.activeBrandKit ? <PencilIcon className="w-4 h-4"/> : <PlusIcon className="w-4 h-4"/>}
+                                        </button>
                                     </div>
-                                    <button onClick={() => setShowBrandModal(true)} className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm">
-                                        <PlusIcon className="w-4 h-4"/>
-                                    </button>
+
+                                    {/* Industry Context Slot */}
+                                    {industry && (
+                                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
+                                                    {React.createElement(INDUSTRY_CONFIG[industry].icon, { className: "w-6 h-6 text-blue-600" })}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Target Niche</p>
+                                                    <p className="text-sm font-black text-blue-900 truncate">
+                                                        {INDUSTRY_CONFIG[industry].label}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setIndustry(null)} 
+                                                className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm shrink-0"
+                                                title="Change Industry"
+                                            >
+                                                <RefreshIcon className="w-3.5 h-3.5"/>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-6">
