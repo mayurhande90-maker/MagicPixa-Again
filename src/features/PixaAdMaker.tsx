@@ -278,29 +278,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 }).catch(err => console.warn("Failed to auto-load brand logo", err));
             }
 
-            // 2. Auto-load Brand Products (Limit 3 for AdMaker)
-            // USER REQUEST: Only load products, do not preselect layout options.
-            if (kit.products && kit.products.length > 0) {
-                const productsToLoad = kit.products.slice(0, 3);
-                
-                Promise.all(productsToLoad.map(async (p) => {
-                    try {
-                        const b64 = await urlToBase64(p.imageUrl);
-                        return { url: p.imageUrl, base64: b64 };
-                    } catch (e) {
-                        console.warn(`Failed to auto-load product: ${p.name}`, e);
-                        return null;
-                    }
-                })).then(loadedImages => {
-                    const validImages = loadedImages.filter((img): img is { url: string; base64: Base64File } => img !== null);
-                    setMainImages(validImages);
-                    
-                    // Automatically disable collection mode if it was on from a previous session, 
-                    // preserving default "Single Hero" behavior on brand switch.
-                    setIsCollectionMode(false);
-                    setLayoutTemplate('Hero Focus');
-                });
-            }
+            // USER REQUEST: Inventory products are automatically loaded into shelf, but unselected by default.
+            setMainImages([]);
+            setIsCollectionMode(false);
+            setLayoutTemplate('Hero Focus');
         }
     }, [auth.activeBrandKit]);
 
@@ -331,6 +312,35 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             else setter(processed[0]);
         }
         e.target.value = '';
+    };
+
+    const toggleProduct = async (imgUrl: string) => {
+        const existingIdx = mainImages.findIndex(img => img.url === imgUrl);
+        if (existingIdx > -1) {
+            // UNSELECT
+            setMainImages(prev => prev.filter((_, i) => i !== existingIdx));
+        } else {
+            // SELECT
+            const limit = isCollectionMode ? 3 : 1;
+            if (mainImages.length < limit) {
+                try {
+                    const b64 = await urlToBase64(imgUrl);
+                    setMainImages(prev => [...prev, { url: imgUrl, base64: b64 }]);
+                } catch (e) {
+                    console.error("Failed to load product", e);
+                }
+            } else if (!isCollectionMode) {
+                // Swap in single mode
+                try {
+                    const b64 = await urlToBase64(imgUrl);
+                    setMainImages([{ url: imgUrl, base64: b64 }]);
+                } catch (e) {
+                    console.error("Failed to load product", e);
+                }
+            } else {
+                setNotification({ msg: "Max 3 products allowed for collections.", type: 'info' });
+            }
+        }
     };
 
     const handleGenerate = async () => {
@@ -595,16 +605,34 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <label className={AdMakerStyles.sectionTitle}>Product Inventory</label>
                                         </div>
                                         <div className={AdMakerStyles.shelfContainer}>
-                                            {mainImages.map((img, idx) => (
+                                            {/* BRAND KIT PRODUCTS - Displayed as toggleable tiles */}
+                                            {auth.activeBrandKit?.products?.map((p) => {
+                                                const isSelected = mainImages.some(img => img.url === p.imageUrl);
+                                                return (
+                                                    <div 
+                                                        key={p.id} 
+                                                        className={`${AdMakerStyles.shelfCard} ${isSelected ? AdMakerStyles.shelfCardSelected : AdMakerStyles.shelfCardInactive}`}
+                                                        onClick={() => toggleProduct(p.imageUrl)}
+                                                    >
+                                                        <img src={p.imageUrl} className={AdMakerStyles.shelfImage} />
+                                                        {isSelected && <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {/* MANUAL UPLOADS (not from brand kit) */}
+                                            {mainImages.filter(img => !auth.activeBrandKit?.products?.some(p => p.imageUrl === img.url)).map((img, idx) => (
                                                 <div 
-                                                    key={idx} 
+                                                    key={`manual-${idx}`} 
                                                     className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}
-                                                    onClick={() => setMainImages(mainImages.filter((_, i) => i !== idx))}
+                                                    onClick={() => setMainImages(prev => prev.filter(i => i.url !== img.url))}
                                                 >
                                                     <img src={img.url} className={AdMakerStyles.shelfImage} />
                                                     <div className={AdMakerStyles.shelfCheck}><XIcon className="w-2.5 h-2.5"/></div>
                                                 </div>
                                             ))}
+
+                                            {/* ADD BUTTON */}
                                             {mainImages.length < (isCollectionMode ? 3 : 1) && (
                                                 <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}>
                                                     <div className={AdMakerStyles.shelfAdd}>
@@ -615,7 +643,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             )}
                                         </div>
                                         <p className="text-[10px] text-gray-400 mt-2 italic px-1">
-                                            {isCollectionMode ? "Add up to 3 products for a collection ad." : "Upload your hero product image."}
+                                            {isCollectionMode ? "Select up to 3 products. Click again to unselect." : "Select your hero product."}
                                         </p>
                                     </div>
 
