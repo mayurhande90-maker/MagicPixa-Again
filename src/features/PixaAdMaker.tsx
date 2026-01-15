@@ -272,6 +272,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
+    // --- IDENTITY GUARD LOGIC ---
+    const brandIndustry = useMemo(() => auth.activeBrandKit ? MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry) : null, [auth.activeBrandKit]);
+    const isMismatch = auth.activeBrandKit && industry && brandIndustry !== industry;
+
     // SYNC WITH BRAND KIT
     useEffect(() => {
         if (auth.activeBrandKit) {
@@ -600,7 +604,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 </button>
 
                                 {/* 1. Dual-Context Strategy Panel */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                     {/* Brand Identity Slot */}
                                     <div className={`rounded-2xl p-4 flex items-center justify-between animate-fadeIn transition-all border ${
                                         auth.activeBrandKit 
@@ -655,6 +659,25 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     )}
                                 </div>
+
+                                {/* IDENTITY GUARD MISMATCH WARNING */}
+                                {isMismatch && (
+                                    <div className="mb-6 animate-[fadeInUp_0.4s_ease-out] relative group">
+                                        <div className="absolute inset-0 bg-amber-400/10 rounded-2xl blur-lg group-hover:bg-amber-400/20 transition-all"></div>
+                                        <div className="relative bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-4 items-start shadow-sm">
+                                            <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
+                                                <InformationCircleIcon className="w-5 h-5 animate-pulse" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Identity Guard: Context Conflict</p>
+                                                <p className="text-[11px] font-medium text-amber-700 leading-relaxed">
+                                                    Your Brand Kit is optimized for <span className="font-black underline">{auth.activeBrandKit?.industry}</span>. 
+                                                    Generating a <span className="font-black underline">{industry}</span> ad may cause visual errors.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-6">
                                     {/* 2. Layout & Template */}
