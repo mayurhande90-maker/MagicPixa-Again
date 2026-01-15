@@ -279,6 +279,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }
 
             // 2. Auto-load Brand Products (Limit 3 for AdMaker)
+            // USER REQUEST: Only load products, do not preselect layout options.
             if (kit.products && kit.products.length > 0) {
                 const productsToLoad = kit.products.slice(0, 3);
                 
@@ -294,14 +295,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     const validImages = loadedImages.filter((img): img is { url: string; base64: Base64File } => img !== null);
                     setMainImages(validImages);
                     
-                    // Automatically enable collection mode and appropriate template if more than 1 image is loaded
-                    if (validImages.length > 1) {
-                        setIsCollectionMode(true);
-                        setLayoutTemplate('The Trio');
-                    } else {
-                        setIsCollectionMode(false);
-                        setLayoutTemplate('Hero Focus');
-                    }
+                    // Automatically disable collection mode if it was on from a previous session, 
+                    // preserving default "Single Hero" behavior on brand switch.
+                    setIsCollectionMode(false);
+                    setLayoutTemplate('Hero Focus');
                 });
             }
         }
@@ -599,9 +596,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                         <div className={AdMakerStyles.shelfContainer}>
                                             {mainImages.map((img, idx) => (
-                                                <div key={idx} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}>
+                                                <div 
+                                                    key={idx} 
+                                                    className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}
+                                                    onClick={() => setMainImages(mainImages.filter((_, i) => i !== idx))}
+                                                >
                                                     <img src={img.url} className={AdMakerStyles.shelfImage} />
-                                                    <div className={AdMakerStyles.shelfCheck} onClick={() => setMainImages(mainImages.filter((_, i) => i !== idx))}><XIcon className="w-2.5 h-2.5"/></div>
+                                                    <div className={AdMakerStyles.shelfCheck}><XIcon className="w-2.5 h-2.5"/></div>
                                                 </div>
                                             ))}
                                             {mainImages.length < (isCollectionMode ? 3 : 1) && (
