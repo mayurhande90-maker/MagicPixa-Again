@@ -520,7 +520,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 ) : null}
                 resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: !aspectRatio ? "Select Aspect Ratio" : "Render Masterpiece Ad" }}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: !aspectRatio ? "Select Aspect Ratio" : "Generate Ad" }}
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -590,7 +590,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     </div>
                 }
                 rightContent={
-                    <div className={AdMakerStyles.formContainer}>
+                    <div className={`${AdMakerStyles.formContainer} ${(loading || isRefining) ? 'opacity-50 pointer-events-none select-none grayscale-[0.2]' : ''}`}>
                         {!industry ? (
                             <div className={AdMakerStyles.modeGrid}>
                                 {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
