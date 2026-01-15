@@ -587,11 +587,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         desc={`Engineered for ${conf.label} standards.`} 
                                         icon={<conf.icon className="w-8 h-8"/>} 
                                         onClick={() => setIndustry(key as any)}
-                                        styles={{ 
-                                            card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, 
-                                            orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, 
-                                            icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce 
-                                        }}
+                                        styles={{ card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce }}
                                     />
                                 ))}
                             </div>
@@ -601,28 +597,73 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                                 </button>
 
-                                {/* Identity Summary */}
-                                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm mb-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
-                                            {/* Fix: Spelling error INDUSTR_CONFIG -> INDUSTRY_CONFIG */}
-                                            {industry && React.createElement(INDUSTRY_CONFIG[industry].icon, { className: "w-6 h-6 text-blue-600" })}
+                                {/* Identity Summary (Industry + Brand Switcher) */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                    {/* Industry Summary */}
+                                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
+                                                {/* Fix: Use the correct variable name INDUSTRY_CONFIG and added non-null assertion for industry since it is verified in the ternary branch */}
+                                                {React.createElement(INDUSTRY_CONFIG[industry!].icon, { className: "w-6 h-6 text-blue-600" })}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Niche</p>
+                                                <p className="text-sm font-black text-blue-900 truncate">
+                                                    {/* Fix: Use the correct variable name INDUSTRY_CONFIG and added non-null assertion for industry since it is verified in the ternary branch */}
+                                                    {INDUSTRY_CONFIG[industry!].label}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Target Niche</p>
-                                            <p className="text-sm font-black text-blue-900 truncate">
-                                                {/* Fix: Spelling error INDUSTR_CONFIG -> INDUSTRY_CONFIG */}
-                                                {industry && INDUSTRY_CONFIG[industry].label}
-                                            </p>
-                                        </div>
+                                        <button 
+                                            onClick={() => setIndustry(null)} 
+                                            className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm shrink-0"
+                                            title="Change Industry"
+                                        >
+                                            <RefreshIcon className="w-3.5 h-3.5"/>
+                                        </button>
                                     </div>
-                                    <button 
-                                        onClick={() => setIndustry(null)} 
-                                        className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm shrink-0"
-                                        title="Change Industry"
-                                    >
-                                        <RefreshIcon className="w-3.5 h-3.5"/>
-                                    </button>
+
+                                    {/* Brand Summary */}
+                                    {auth.activeBrandKit ? (
+                                        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden shrink-0">
+                                                    {auth.activeBrandKit.logos.primary ? (
+                                                        <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain p-1" alt="Logo" />
+                                                    ) : (
+                                                        <BrandKitIcon className="w-6 h-6 text-indigo-600" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Brand</p>
+                                                    <p className="text-sm font-black text-indigo-900 truncate">
+                                                        {auth.activeBrandKit.companyName || auth.activeBrandKit.name}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShowBrandModal(true)} 
+                                                className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-blue-100 transition-all border border-indigo-100 shadow-sm shrink-0"
+                                                title="Change Brand"
+                                            >
+                                                <RefreshIcon className="w-3.5 h-3.5"/>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={() => setShowBrandModal(true)}
+                                            className="group relative flex items-center justify-center gap-3 bg-white border-2 border-dashed border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 rounded-2xl p-4 transition-all duration-300 shadow-sm overflow-hidden"
+                                        >
+                                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all">
+                                                <PlusIcon className="w-6 h-6" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none mb-1">Identity</p>
+                                                <p className="text-sm font-black text-indigo-900">Select Brand Kit</p>
+                                            </div>
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-indigo-500/10"></div>
+                                        </button>
+                                    )}
                                 </div>
 
                                 {isMismatch && (
@@ -644,45 +685,53 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 )}
 
                                 <div className="space-y-6">
-                                    {/* 2. Composition Blueprint & Logo */}
+                                    {/* Identity Overrides (Logo) */}
+                                    {!auth.activeBrandKit && (
+                                        <div className="animate-fadeIn">
+                                            <div className={AdMakerStyles.sectionHeader}>
+                                                <span className={AdMakerStyles.stepBadge}>1</span>
+                                                <label className={AdMakerStyles.sectionTitle}>Manual Identity Anchor</label>
+                                            </div>
+                                            <div className="mb-6">
+                                                <div className="flex items-center gap-3">
+                                                    {logoImage ? (
+                                                        <div 
+                                                            className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected} !h-24 !w-24`}
+                                                            onClick={() => setLogoImage(null)}
+                                                        >
+                                                            <img src={logoImage.url} className={AdMakerStyles.shelfImage} />
+                                                            <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
+                                                        </div>
+                                                    ) : (
+                                                        <div 
+                                                            onClick={() => document.getElementById('logo-upload-ad')?.click()}
+                                                            className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} !h-24 !w-24 flex items-center justify-center`}
+                                                        >
+                                                            <div className={AdMakerStyles.shelfAdd}>
+                                                                <PlusIcon className="w-5 h-5 text-gray-300"/>
+                                                                <span className={AdMakerStyles.shelfAddText}>Logo</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] text-gray-400 italic leading-tight">
+                                                            {logoImage ? "Logo locked for generation. Click to remove." : "Upload a PNG logo to anchor your brand identity in the ad."}
+                                                        </p>
+                                                        <p className="text-[9px] text-indigo-400 mt-1 font-bold">PRO TIP: Use a transparent PNG for best results.</p>
+                                                    </div>
+                                                    <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Composition Blueprint */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}>
-                                            <span className={AdMakerStyles.stepBadge}>1</span>
+                                            <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '1' : '2'}</span>
                                             <label className={AdMakerStyles.sectionTitle}>Composition Blueprint</label>
                                         </div>
                                         
-                                        {/* Logo Selector moved here */}
-                                        <div className="mb-6">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Brand Identity (Logo)</label>
-                                            <div className="flex items-center gap-3">
-                                                {logoImage ? (
-                                                    <div 
-                                                        className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}
-                                                        onClick={() => setLogoImage(null)}
-                                                    >
-                                                        <img src={logoImage.url} className={AdMakerStyles.shelfImage} />
-                                                        <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
-                                                    </div>
-                                                ) : (
-                                                    <div 
-                                                        onClick={() => document.getElementById('logo-upload-ad')?.click()}
-                                                        className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}
-                                                    >
-                                                        <div className={AdMakerStyles.shelfAdd}>
-                                                            <PlusIcon className="w-5 h-5 text-gray-300"/>
-                                                            <span className={AdMakerStyles.shelfAddText}>Logo</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <div className="flex-1">
-                                                    <p className="text-[10px] text-gray-400 italic leading-tight">
-                                                        {logoImage ? "Branding active. Click to remove." : "Upload or select a brand kit to anchor identity."}
-                                                    </p>
-                                                </div>
-                                                <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
-                                            </div>
-                                        </div>
-
                                         <div className="flex bg-gray-50 p-1 rounded-xl mb-3 border border-gray-100 w-fit">
                                             <button onClick={() => { 
                                                 setIsCollectionMode(false); 
@@ -702,10 +751,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* 3. Product Selection / Multi-Upload */}
+                                    {/* Product Inventory Shelf */}
                                     <div>
                                         <div className={AdMakerStyles.sectionHeader}>
-                                            <span className={AdMakerStyles.stepBadge}>2</span>
+                                            <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '2' : '3'}</span>
                                             <label className={AdMakerStyles.sectionTitle}>Product Inventory</label>
                                         </div>
                                         <div className={AdMakerStyles.shelfContainer}>
@@ -746,11 +795,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </p>
                                     </div>
 
-                                    {/* 4. Model Inclusion (Fashion/Lifestyle) */}
+                                    {/* Persona & Context */}
                                     {(industry === 'fashion' || industry === 'ecommerce') && (
                                         <div>
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>3</span>
+                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '3' : '4'}</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Persona & Context</label>
                                             </div>
                                             <div className={AdMakerStyles.modelSelectionGrid}>
@@ -777,10 +826,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     )}
 
-                                    {/* 5. Campaign Content */}
+                                    {/* Campaign Content */}
                                     <div className="pt-4 border-t border-gray-100">
                                         <div className={AdMakerStyles.sectionHeader}>
-                                            <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '4' : '3' }</span>
+                                            <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? (auth.activeBrandKit ? '4' : '5') : (auth.activeBrandKit ? '3' : '4') }</span>
                                             <label className={AdMakerStyles.sectionTitle}>Campaign Intelligence</label>
                                         </div>
                                         
@@ -800,10 +849,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         </div>
                                     </div>
 
-                                    {/* 6. Final Delivery */}
+                                    {/* Final Delivery */}
                                     <div className="pt-4 border-t border-gray-100 pb-20">
                                         <div className={AdMakerStyles.sectionHeader}>
-                                            <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '5' : '4' }</span>
+                                            <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
                                             <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                         </div>
                                         
