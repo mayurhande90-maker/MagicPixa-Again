@@ -462,7 +462,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // FIX: Define handleBrandSelect to resolve ReferenceError
     const handleBrandSelect = async (brand: BrandKit) => {
         if (auth.user && brand.id) {
             try {
@@ -581,14 +580,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className={AdMakerStyles.formContainer}>
                         {!industry ? (
                             <div className={AdMakerStyles.modeGrid}>
-                                {Object.entries(INDUSTR_CONFIG).map(([key, conf]) => (
+                                {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
                                     <IndustryCard 
                                         key={key} 
                                         title={conf.label} 
                                         desc={`Engineered for ${conf.label} standards.`} 
                                         icon={<conf.icon className="w-8 h-8"/>} 
                                         onClick={() => setIndustry(key as any)}
-                                        styles={{ card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce }}
+                                        styles={{ 
+                                            card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, 
+                                            orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, 
+                                            icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce 
+                                        }}
                                     />
                                 ))}
                             </div>
@@ -602,12 +605,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm mb-6">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
-                                            {React.createElement(INDUSTR_CONFIG[industry].icon, { className: "w-6 h-6 text-blue-600" })}
+                                            {/* Fix: Spelling error INDUSTR_CONFIG -> INDUSTRY_CONFIG */}
+                                            {industry && React.createElement(INDUSTRY_CONFIG[industry].icon, { className: "w-6 h-6 text-blue-600" })}
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Target Niche</p>
                                             <p className="text-sm font-black text-blue-900 truncate">
-                                                {INDUSTR_CONFIG[industry].label}
+                                                {/* Fix: Spelling error INDUSTR_CONFIG -> INDUSTRY_CONFIG */}
+                                                {industry && INDUSTRY_CONFIG[industry].label}
                                             </p>
                                         </div>
                                     </div>
@@ -729,7 +734,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 </div>
                                             ))}
 
-                                            <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}>
+                                            <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`} title="Upload New Product Image">
                                                 <div className={AdMakerStyles.shelfAdd}>
                                                     <PlusIcon className="w-5 h-5 text-gray-300"/>
                                                     <span className={AdMakerStyles.shelfAddText}>Upload</span>
