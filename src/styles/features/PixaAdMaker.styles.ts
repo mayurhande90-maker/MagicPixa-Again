@@ -73,7 +73,12 @@ export const AdMakerStyles = {
   modelSelectionCardSelected: "border-indigo-500/30 bg-gradient-to-br from-[#E0E7FF] to-[#EEF2FF] shadow-md ring-1 ring-indigo-500/20 -translate-y-0.5",
   modelSelectionCardInactive: "border-gray-200 bg-white hover:border-indigo-200 hover:shadow-sm hover:-translate-y-0.5",
 
-  // Logo Preview Styles - Reduced height from h-32 to h-24 for side-by-side balance
-  logoPreviewBox: "relative h-24 w-full bg-white border border-indigo-100 rounded-2xl flex items-center justify-center p-4 overflow-hidden group/logo shadow-sm",
-  logoBlueprintBg: "absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#4D7CFF_1px,transparent_1px)] [background-size:16px_16px]",
+  // Logo Preview Styles - Updated to aspect-square and max-w-50%
+  logoPreviewBox: "relative aspect-square w-full max-w-[110px] bg-white border border-indigo-100 rounded-2xl flex items-center justify-center p-3 overflow-hidden group/logo shadow-sm",
+  logoBlueprintBg: "absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#4D7CFF_1px,transparent_1px)] [background-size:12px_12px]",
+
+  // Compact Aspect Ratio Styles
+  ratioButton: "px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 transform active:scale-95",
+  ratioButtonActive: "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-md scale-105",
+  ratioButtonInactive: "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-gray-50",
 };
