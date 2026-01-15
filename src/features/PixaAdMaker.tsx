@@ -1,54 +1,90 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
-// Add TextAreaField to the import
-import { FeatureLayout, InputField, TextAreaField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { 
-    UploadTrayIcon, XIcon, SparklesIcon, CreditCoinIcon, BrandKitIcon, 
-    MagicWandIcon, MagicAdsIcon, PlusIcon, CloudUploadIcon, 
-    ArrowRightIcon, ReplicaIcon, ReimagineIcon, CreditCardIcon 
-} from '../components/icons';
+import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
+import { RefinementPanel } from '../components/RefinementPanel';
+import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon } from '../components/icons';
+import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
-import { generateAdCreative } from '../services/adMakerService';
-import { deductCredits, saveCreation, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
+import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
-import { BrandStylistStyles } from '../styles/features/BrandStylist.styles';
+import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
 
-const CompactUpload: React.FC<{ 
-    label: string; 
-    image: { url: string } | null; 
-    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
-    onClear: () => void; 
-    icon: React.ReactNode; 
-    heightClass?: string; 
-    optional?: boolean;
-    uploadText?: string;
-}> = ({ label, image, onUpload, onClear, icon, heightClass = "h-32", optional, uploadText }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    return (
-        <div className="relative w-full group h-full">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{label} {optional && <span className="text-gray-300 font-normal opacity-50 ml-1">(Optional)</span>}</label>
-            {image ? (
-                <div className={`relative w-full ${heightClass} bg-white rounded-2xl border border-blue-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-all`}>
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
-                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 relative z-10" alt={label} />
-                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-20 border border-gray-100"><XIcon className="w-3 h-3"/></button>
-                </div>
-            ) : (
-                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-blue-50/30 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm relative overflow-hidden`}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div className="p-2.5 bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-transform relative z-10 border border-gray-100">{icon}</div>
-                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-wider text-center px-2 relative z-10">{uploadText || `Upload ${label}`}</p>
-                </div>
-            )}
-            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
-        </div>
-    );
+// --- CONSTANTS ---
+const MODEL_TYPES = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
+const MODEL_REGIONS = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
+const SKIN_TONES = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
+const BODY_TYPES = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
+const COMPOSITION_TYPES = ['Single Model', 'Group Shot'];
+const SHOT_TYPES = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
+
+// --- HELPERS ---
+const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
+    switch (type) {
+        case 'physical': return 'ecommerce';
+        case 'digital': return 'saas';
+        case 'realty': return 'realty';
+        case 'fashion': return 'fashion';
+        case 'service': return 'services';
+        case 'food': return 'food';
+        case 'fmcg': return 'fmcg';
+        case 'education': return 'education';
+        default: return null;
+    }
 };
+
+const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string; base: string }> = {
+    'ecommerce': { label: 'E-Commerce', icon: EcommerceAdIcon, color: 'text-blue-600', bg: 'bg-blue-50/50', border: 'border-blue-200', base: 'blue' },
+    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-green-50/50', border: 'border-green-200', base: 'green' },
+    'fashion': { label: 'Fashion', icon: ApparelIcon, color: 'text-pink-500', bg: 'bg-pink-50/50', border: 'border-pink-200', base: 'pink' },
+    'realty': { label: 'Real Estate', icon: RealtyAdIcon, color: 'text-purple-600', bg: 'bg-purple-50/50', border: 'border-purple-200', base: 'purple' },
+    'food': { label: 'Food & Dining', icon: FoodIcon, color: 'text-orange-600', bg: 'bg-orange-50/50', border: 'border-orange-200', base: 'orange' },
+    'saas': { label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'text-teal-600', bg: 'bg-teal-50/50', border: 'border-teal-200', base: 'teal' },
+    'education': { label: 'Education', icon: EducationAdIcon, color: 'text-amber-600', bg: 'bg-amber-50/50', border: 'border-amber-200', base: 'amber' },
+    'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
+};
+
+const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
+
+const VIBE_MAP: Record<string, string[]> = {
+    'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
+    'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
+    'fashion': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
+    'realty': ["Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", CUSTOM_VIBE_KEY],
+    'food': ["Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", CUSTOM_VIBE_KEY],
+    'saas': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'education': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+};
+
+const LAYOUT_TEMPLATES = ['Hero Focus', 'Split Design', 'Bottom Strip', 'Social Proof'];
+const COLLECTION_TEMPLATES = ['The Trio', 'Range Lineup', 'Hero & Variants'];
+
+const IndustryCard: React.FC<{ 
+    title: string; 
+    desc: string; 
+    icon: React.ReactNode; 
+    onClick: () => void;
+    styles: { card: string; orb: string; icon: string; };
+}> = ({ title, desc, icon, onClick, styles }) => (
+    <button onClick={onClick} className={`${AdMakerStyles.modeCard} ${styles.card}`}>
+        <div className={`${AdMakerStyles.orb} ${styles.orb}`}></div>
+        <div className={`${AdMakerStyles.iconGlass} ${styles.icon}`}>{icon}</div>
+        <div className={AdMakerStyles.contentWrapper}>
+            <h3 className={AdMakerStyles.title}> {title} </h3>
+            <p className={AdMakerStyles.desc}> {desc} </p>
+        </div>
+        <div className={AdMakerStyles.actionBtn}>
+            <ArrowRightIcon className={AdMakerStyles.actionIcon}/>
+        </div>
+    </button>
+);
 
 const BrandSelectionModal: React.FC<{
     isOpen: boolean;
@@ -101,6 +137,14 @@ const BrandSelectionModal: React.FC<{
                          <div className="flex justify-center py-20">
                              <div className="w-8 h-8 border-4 border-indigo-600 border-t-indigo-600 rounded-full animate-spin"></div>
                          </div>
+                     ) : brands.length === 0 ? (
+                         <div className="text-center py-10 flex flex-col items-center">
+                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                 <BrandKitIcon className="w-8 h-8 text-gray-400" />
+                             </div>
+                             <p className="text-gray-500 font-medium text-sm mb-6">No brand kits found.</p>
+                             <button onClick={onCreateNew} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/20">Create First Brand</button>
+                         </div>
                      ) : (
                         <div className={`grid grid-cols-2 gap-4 ${activatingId ? 'pointer-events-none' : ''}`}>
                             {brands.map(brand => {
@@ -123,17 +167,42 @@ const BrandSelectionModal: React.FC<{
                                             ) : (
                                                 <span className="text-2xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
                                             )}
+                                            {isActive && !isActivating && (
+                                                <div className="absolute top-2 right-2 bg-indigo-600 text-white p-1 rounded-full shadow-sm animate-scaleIn">
+                                                    <CheckIcon className="w-2.5 h-2.5" />
+                                                </div>
+                                            )}
+                                            {isActivating && (
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
+                                                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className={`px-4 py-2 flex-1 min-h-0 flex flex-col justify-center ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
-                                            <h4 className={`font-bold text-xs truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>{brand.companyName || brand.name || 'Untitled'}</h4>
-                                            <p className="text-[9px] text-gray-500 font-medium truncate opacity-80 uppercase tracking-wide">{brand.industry}</p>
+                                            <div>
+                                                <h4 className={`font-bold text-xs truncate mb-0.5 ${isActive ? 'text-indigo-900' : 'text-gray-900'}`}>{brand.companyName || brand.name || 'Untitled'}</h4>
+                                                <p className="text-[9px] text-gray-500 font-medium truncate opacity-80 uppercase tracking-wide">{brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'General'}</p>
+                                            </div>
+                                            {brand.colors && (
+                                                <div className="flex gap-1 mt-1.5">
+                                                    <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.primary || '#ccc' }}></div>
+                                                    <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.secondary || '#eee' }}></div>
+                                                    <div className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ background: brand.colors.accent || '#999' }}></div>
+                                                </div>
+                                            )}
                                         </div>
                                     </button>
                                 );
                             })}
-                            <button onClick={onCreateNew} className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 h-40 hover:border-indigo-400 transition-colors">
-                                <PlusIcon className="w-6 h-6 text-gray-400" />
-                                <span className="text-xs font-bold text-gray-400">Create New</span>
+                            <button 
+                                onClick={onCreateNew} 
+                                disabled={!!activatingId}
+                                className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 transition-all duration-300 flex flex-col items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md ${activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
+                                    <PlusCircleIcon className="w-5 h-5" />
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-700 transition-colors uppercase tracking-wide">Create New</span>
                             </button>
                         </div>
                      )}
@@ -145,207 +214,496 @@ const BrandSelectionModal: React.FC<{
 };
 
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
-    const [productImage, setProductImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [industry, setIndustry] = useState<AdMakerInputs['industry'] | null>(null);
+    const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [genMode, setGenMode] = useState<'replica' | 'remix'>('replica'); 
-    const [language, setLanguage] = useState('English');
+    
+    // Config
+    const [vibe, setVibe] = useState('');
+    const [customVibe, setCustomVibe] = useState('');
+    const [layoutTemplate, setLayoutTemplate] = useState('Hero Focus');
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
+    const [isCollectionMode, setIsCollectionMode] = useState(false);
+    
+    // Model Config
+    const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
+    const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [modelParams, setModelParams] = useState<AdMakerInputs['modelParams']>({
+        modelType: '', region: '', skinTone: '', bodyType: '', composition: '', framing: ''
+    });
+
+    // Strategy Logic
     const [productName, setProductName] = useState('');
     const [website, setWebsite] = useState('');
-    const [specialOffer, setSpecialOffer] = useState('');
-    const [address, setAddress] = useState('');
+    const [offer, setOffer] = useState('');
     const [description, setDescription] = useState('');
+
+    // Results
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
-    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [showBrandModal, setShowBrandModal] = useState(false);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+    // Refinement Panel
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const refineCost = 5;
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
-
+    // SYNC WITH BRAND KIT
     useEffect(() => {
         if (auth.activeBrandKit) {
             const kit = auth.activeBrandKit;
+            const mapped = MAP_KIT_TO_AD_INDUSTRY(kit.industry);
+            if (mapped) setIndustry(mapped);
+            setProductName(kit.companyName || kit.name || '');
             setWebsite(kit.website || '');
-            if (kit.companyName) setProductName(kit.companyName);
+            
             if (kit.logos.primary) {
-                urlToBase64(kit.logos.primary).then(base64 => {
-                    setLogoImage({ url: kit.logos.primary!, base64 });
-                }).catch(e => console.warn("Auto-logo load failed", e));
+                urlToBase64(kit.logos.primary).then(res => {
+                    setLogoImage({ url: kit.logos.primary!, base64: res });
+                });
             }
         }
-    }, [auth.activeBrandKit?.id]);
+    }, [auth.activeBrandKit]);
 
-    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = '';
+    useEffect(() => {
+        let interval: any;
+        if (loading || isRefining) {
+            const steps = isRefining 
+                ? ["Elite Retoucher: Analyzing ad depth...", "Optical Audit: Tracing branding spill...", "Contact Correction: Recalculating typography shadows...", "Global Illumination: Polishing masterpiece..."]
+                : ["CMO Intelligence: Researching 2025 Market Trends...", "Art Direction: Architecting visual hierarchy...", "Optical Audit: Locking product identity...", "Production: Simulating lighting & physics...", "Elite Retoucher: Final pixel polish..."];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 1800);
+        }
+        return () => clearInterval(interval);
+    }, [loading, isRefining]);
+
+    const handleUpload = (setter: any, multi = false) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            const processed = await Promise.all(files.map(async f => {
+                const b64 = await fileToBase64(f);
+                return { url: URL.createObjectURL(f), base64: b64 };
+            }));
+            if (multi) setMainImages(prev => [...prev, ...processed].slice(0, 3));
+            else setter(processed[0]);
+        }
+        e.target.value = '';
     };
 
     const handleGenerate = async () => {
-        if (!productImage || !auth.user || !description) return;
+        if (!industry || mainImages.length === 0 || !auth.user || !description) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         
-        setLoadingText(!referenceImage ? "Pixa Agent is Researching Trends..." : "Pixa is Analyzing, Relighting & Harmonizing...");
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
-            const assetUrl = await generateAdCreative({
-                industry: 'ecommerce',
-                mainImages: [productImage.base64],
-                referenceImage: referenceImage?.base64,
-                logoImage: logoImage?.base64,
-                productName,
-                website,
-                offer: specialOffer,
-                description,
-                layoutTemplate: genMode === 'replica' ? 'Hero Focus' : 'Split Design'
-            }, auth.activeBrandKit);
+            const inputs: AdMakerInputs = {
+                industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
+                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, offer, description, layoutTemplate, aspectRatio,
+                modelSource, modelImage: modelImage?.base64, modelParams
+            };
             
-            const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); setResultImage(blobUrl);
-            const finalImageUrl = `data:image/png;base64,${assetUrl}`; const creationId = await saveCreation(auth.user.uid, finalImageUrl, 'Pixa AdMaker'); setLastCreationId(creationId);
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); }
-        } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message || "Please try again."}`); } finally { setLoading(false); }
+            const resB64 = await generateAdCreative(inputs, auth.activeBrandKit);
+            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
+            setResultImage(blobUrl);
+            
+            const dataUri = `data:image/png;base64,${resB64}`;
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa AdMaker');
+            setLastCreationId(creationId);
+            
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) setMilestoneBonus(bonus);
+            }
+        } catch (e: any) {
+            console.error(e);
+            alert("Generation failed. Please check your inputs and try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleNewSession = () => { setProductImage(null); setLogoImage(null); setReferenceImage(null); setResultImage(null); setProductName(''); setWebsite(''); setSpecialOffer(''); setAddress(''); setDescription(''); setGenMode('replica'); setLanguage('English'); setLastCreationId(null); };
-    const handleEditorSave = (newUrl: string) => { setResultImage(newUrl); saveCreation(auth.user!.uid, newUrl, 'Pixa AdMaker (Edited)'); };
+    const handleRefine = async (refineText: string) => {
+        if (!resultImage || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
+        
+        setIsRefining(true);
+        setIsRefineActive(false); 
+        try {
+            const currentB64 = await urlToBase64(resultImage);
+            const res = await refineAdCreative(currentB64.base64, currentB64.mimeType, refineText);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResultImage(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
+            
+            if (lastCreationId) await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            else {
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa AdMaker (Refined)');
+                setLastCreationId(id);
+            }
+            
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setNotification({ msg: "Elite Ad Retoucher: Changes applied!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            alert("Refinement failed.");
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
+    const handleNewSession = () => {
+        setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
+        setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
+        setModelSource(null); setModelImage(null); setIsRefineActive(false);
+    };
+
+    const handleEditorSave = async (newUrl: string) => { 
+        setResultImage(newUrl); 
+        if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl);
+    };
+
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-    
-    // Fix: Added missing handleRefundRequest function definition
-    const handleRefundRequest = async (reason: string) => { 
-        if (!auth.user || !resultImage) return; 
-        setIsRefunding(true); 
-        try { 
-            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Ad Creative", lastCreationId || undefined); 
-            if (res.success) { 
-                if (res.type === 'refund') { 
-                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); 
-                    setResultImage(null); 
-                    setNotification({ msg: res.message, type: 'success' }); 
-                } else { 
-                    setNotification({ msg: res.message, type: 'info' }); 
-                } 
-            } 
-            setShowRefundModal(false); 
-        } catch (e: any) { 
-            alert("Refund processing failed: " + e.message); 
-        } finally { 
-            setIsRefunding(false); 
-        } 
+
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "AdMaker", lastCreationId || undefined);
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null);
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund processing failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
+        }
     };
 
     const handleBrandSelect = async (brand: BrandKit) => {
         if (auth.user && brand.id) {
-            const brandData = await activateBrand(auth.user.uid, brand.id);
-            auth.setActiveBrandKit(brandData || null);
-            setShowBrandModal(false);
+            try {
+                const brandData = await activateBrand(auth.user.uid, brand.id);
+                auth.setActiveBrandKit(brandData || null);
+                setShowBrandModal(false);
+            } catch (error) {
+                console.error(error);
+            }
         }
     };
 
-    const canGenerate = !!productImage && !isLowCredits && !!description;
+    const canGenerate = !!industry && mainImages.length > 0 && !!description && !isLowCredits;
+    const vibes = industry ? VIBE_MAP[industry] : [];
 
     return (
         <>
             <FeatureLayout
-                title="Pixa AdMaker" 
-                description="Turn your product photos into high-converting ad creatives by mimicking successful styles." 
-                icon={<MagicAdsIcon className="w-14 h-14" />} 
-                rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} 
+                title="Pixa AdMaker"
+                description="Turn product photos into high-converting ads. The CMO engine researches 2025 trends, applies AIDA copywriting, and engineers world-class visuals."
+                icon={<MagicAdsIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>}
+                rawIcon={true}
+                creditCost={cost}
+                isGenerating={loading || isRefining}
+                canGenerate={canGenerate}
+                onGenerate={handleGenerate}
+                resultImage={resultImage}
                 creationId={lastCreationId}
-                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null} 
-                resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Ad" }} 
+                onResetResult={resultImage ? undefined : handleGenerate}
+                onNewSession={handleNewSession}
+                onEdit={() => setShowMagicEditor(true)}
+                activeBrandKit={auth.activeBrandKit}
+                isBrandCritical={true}
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
+                customActionButtons={resultImage ? (
+                    <button 
+                        onClick={() => setIsRefineActive(!isRefineActive)}
+                        className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                    >
+                        <span>Make Changes</span>
+                    </button>
+                ) : null}
+                resultHeightClass="h-[850px]"
+                hideGenerateButton={isLowCredits}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Render Masterpiece Ad" }}
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading ? (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className={`h-full rounded-full animate-[progress_2s_ease-in-out_infinite] ${genMode === 'remix' ? 'bg-gradient-to-r from-purple-400 to-pink-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>) : (<div className="text-center opacity-50 select-none"><div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${genMode === 'remix' ? 'bg-purple-50' : 'bg-blue-50'}`}><MagicAdsIcon className={`w-10 h-10 ${genMode === 'remix' ? 'text-purple-500' : 'text-blue-500'}`} /></div><h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload Product & Reference to preview.</p></div>)}
+                        {(loading || isRefining) && (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                </div>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-6">{loadingText}</p>
+                            </div>
+                        )}
+                        {!industry ? (
+                            <div className="text-center opacity-50 select-none">
+                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <MagicAdsIcon className="w-10 h-10 text-blue-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
+                                <p className="text-sm text-gray-300 mt-1">Select an industry to start.</p>
+                            </div>
+                        ) : mainImages.length === 0 ? (
+                            <div onClick={() => fileInputRef.current?.click()} className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50/50 transition-colors">
+                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mb-4 group-hover:scale-110 transition-transform">
+                                    <CloudUploadIcon className="w-8 h-8" />
+                                </div>
+                                <p className="text-lg font-bold text-gray-400">Upload Product Assets</p>
+                                <p className="text-xs text-gray-300 mt-1">PNG or JPG, high resolution</p>
+                                <input ref={fileInputRef} type="file" multiple className="hidden" accept="image/*" onChange={handleUpload(null, true)} />
+                            </div>
+                        ) : (
+                            <div className="relative w-full h-full flex items-center justify-center p-8">
+                                <div className="grid grid-cols-2 gap-4 max-w-md">
+                                    {mainImages.map((img, idx) => (
+                                        <div key={idx} className={`relative group ${mainImages.length === 1 ? 'col-span-2' : ''}`}>
+                                            <img src={img.url} className="w-full aspect-square object-contain bg-gray-50 rounded-2xl border border-gray-100 shadow-sm" />
+                                            <button onClick={() => setMainImages(mainImages.filter((_, i) => i !== idx))} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"><XIcon className="w-4 h-4"/></button>
+                                        </div>
+                                    ))}
+                                    {mainImages.length < 3 && (
+                                        <button onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-300 hover:border-indigo-300 hover:text-indigo-500 transition-all bg-gray-50/50">
+                                            <PlusIcon className="w-6 h-6" />
+                                            <span className="text-[10px] font-bold uppercase mt-1">Add Variation</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
-                    isLowCredits ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100">
-                            <CreditCardIcon className="w-10 h-10 text-red-500 mb-4" />
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
-                            <button onClick={() => (window as any).navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
-                        </div>
-                    ) : (
-                        <div className={`space-y-8 p-2 animate-fadeIn flex flex-col h-full relative ${loading ? 'opacity-50 pointer-events-none cursor-not-allowed grayscale-[0.5]' : ''}`}>
-                            {auth.activeBrandKit && (
-                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center justify-between animate-fadeIn">
+                    <div className={AdMakerStyles.formContainer}>
+                        {!industry ? (
+                            <div className={AdMakerStyles.modeGrid}>
+                                {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
+                                    <IndustryCard 
+                                        key={key} 
+                                        title={conf.label} 
+                                        desc={`Engineered for ${conf.label} standards.`} 
+                                        icon={<conf.icon className="w-8 h-8"/>} 
+                                        onClick={() => setIndustry(key as any)}
+                                        styles={{ card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce }}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <>
+                                <button onClick={handleNewSession} className={AdMakerStyles.backButton}>
+                                    <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
+                                </button>
+
+                                {/* 1. Brand Identity Selection */}
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn mb-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-indigo-100 overflow-hidden">
-                                            {auth.activeBrandKit.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-4 h-4 text-indigo-500" />}
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden">
+                                            {auth.activeBrandKit?.logos.primary ? <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" /> : <BrandKitIcon className="w-5 h-5 text-indigo-400" />}
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Active Brand</p>
-                                            <p className="text-xs font-bold text-indigo-900">{auth.activeBrandKit.companyName}</p>
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Active Strategy</p>
+                                            <p className="text-sm font-black text-indigo-900">{auth.activeBrandKit?.companyName || "Select Brand"}</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => setShowBrandModal(true)} className="p-1.5 hover:bg-white rounded-lg text-indigo-600 transition-colors"><PlusIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setShowBrandModal(true)} className="p-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm">
+                                        <PlusIcon className="w-4 h-4"/>
+                                    </button>
                                 </div>
-                            )}
 
-                            <div>
-                                <div className="flex items-center gap-2 mb-3"><span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">1</span><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Source Assets</label></div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <CompactUpload label="Product" uploadText="Upload Product" image={productImage} onUpload={handleUpload(setProductImage)} onClear={() => setProductImage(null)} icon={<CloudUploadIcon className="w-5 h-5 text-blue-500" />} />
-                                    <CompactUpload label="Logo" uploadText="Upload Logo" image={logoImage} onUpload={handleUpload(setLogoImage)} onClear={() => setLogoImage(null)} icon={<CloudUploadIcon className="w-5 h-5 text-blue-500" />} optional={true} />
-                                </div>
-                            </div>
+                                <div className="space-y-6">
+                                    {/* 2. Layout & Template */}
+                                    <div>
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>1</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Composition Blueprint</label>
+                                        </div>
+                                        
+                                        <div className="flex bg-gray-50 p-1 rounded-xl mb-3 border border-gray-100 w-fit">
+                                            <button onClick={() => { setIsCollectionMode(false); setLayoutTemplate('Hero Focus'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Hero</button>
+                                            <button onClick={() => { setIsCollectionMode(true); setLayoutTemplate('The Trio'); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Collection</button>
+                                        </div>
 
-                            <div>
-                                <div className="flex items-center gap-2 mb-3"><span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold">2</span><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Style Reference</label></div>
-                                <CompactUpload label="Ad / Design Image" uploadText="Upload Reference Image" image={referenceImage} onUpload={handleUpload(setReferenceImage)} onClear={() => setReferenceImage(null)} icon={<CloudUploadIcon className="w-5 h-5 text-yellow-500" />} heightClass="h-40" optional={true} />
-                            </div>
-
-                            {referenceImage && (
-                                <div>
-                                    <div className="flex items-center gap-2 mb-3"><span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold">3</span><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Creativity Level</label></div>
-                                    <div className={BrandStylistStyles.modeGrid}>
-                                        <button onClick={() => setGenMode('replica')} className={`${BrandStylistStyles.modeCard} ${genMode === 'replica' ? BrandStylistStyles.modeCardReplica : BrandStylistStyles.modeCardInactive}`}><div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbReplica}`}></div><div className={BrandStylistStyles.iconGlass}><ReplicaIcon className={`w-6 h-6 ${genMode === 'replica' ? BrandStylistStyles.iconReplica : BrandStylistStyles.iconInactive}`} /></div><div className={BrandStylistStyles.contentWrapper}><h3 className={BrandStylistStyles.modeTitle}>Replica</h3><p className={BrandStylistStyles.modeDesc}>Strictly copy layout.</p></div></button>
-                                        <button onClick={() => setGenMode('remix')} className={`${BrandStylistStyles.modeCard} ${genMode === 'remix' ? BrandStylistStyles.modeCardRemix : BrandStylistStyles.modeCardInactive}`}><div className={`${BrandStylistStyles.orb} ${BrandStylistStyles.orbRemix}`}></div><div className={BrandStylistStyles.iconGlass}><ReimagineIcon className={`w-6 h-6 ${genMode === 'remix' ? BrandStylistStyles.iconRemix : BrandStylistStyles.iconInactive}`} /></div><div className={BrandStylistStyles.contentWrapper}><h3 className={BrandStylistStyles.modeTitle}>Reimagine</h3><p className={BrandStylistStyles.modeDesc}>Invent layout.</p></div></button>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-5 pt-4 border-t border-gray-100 pb-20">
-                                <div><label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Ad Copy Details</label>
-                                    <div className="grid grid-cols-2 gap-3 mb-3">
-                                        <InputField placeholder="Product Name" value={productName} onChange={(e: any) => setProductName(e.target.value)} />
-                                        <InputField placeholder="Offer / CTA (Optional)" value={specialOffer} onChange={(e: any) => setSpecialOffer(e.target.value)} />
-                                        <InputField placeholder="Website (Optional)" value={website} onChange={(e: any) => setWebsite(e.target.value)} />
-                                        <div className="flex gap-2">
-                                            {['English', 'Hindi', 'Marathi'].map(lang => (
-                                                <button key={lang} onClick={() => setLanguage(lang)} className={`${BrandStylistStyles.languageButton} ${language === lang ? BrandStylistStyles.langActive : BrandStylistStyles.langInactive}`}>{lang}</button>
+                                        <div className={AdMakerStyles.blueprintGrid}>
+                                            {(isCollectionMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES).map(temp => (
+                                                <button key={temp} onClick={() => setLayoutTemplate(temp)} className={`${AdMakerStyles.blueprintCard} ${layoutTemplate === temp ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}>
+                                                    <span className={AdMakerStyles.blueprintLabel}>{temp}</span>
+                                                    {layoutTemplate === temp && <div className={AdMakerStyles.blueprintCheck}><CheckIcon className="w-3 h-3"/></div>}
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
-                                    {/* TextAreaField is now imported correctly */}
-                                    <TextAreaField label="Context (Required)" placeholder="e.g. Organic Coffee, morning energy boost" value={description} onChange={(e: any) => setDescription(e.target.value)} />
+
+                                    {/* 3. Product Selection / Multi-Upload */}
+                                    <div>
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>2</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Product Inventory</label>
+                                        </div>
+                                        <div className={AdMakerStyles.shelfContainer}>
+                                            {mainImages.map((img, idx) => (
+                                                <div key={idx} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}>
+                                                    <img src={img.url} className={AdMakerStyles.shelfImage} />
+                                                    <div className={AdMakerStyles.shelfCheck} onClick={() => setMainImages(mainImages.filter((_, i) => i !== idx))}><XIcon className="w-2.5 h-2.5"/></div>
+                                                </div>
+                                            ))}
+                                            {mainImages.length < (isCollectionMode ? 3 : 1) && (
+                                                <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}>
+                                                    <div className={AdMakerStyles.shelfAdd}>
+                                                        <PlusIcon className="w-5 h-5 text-gray-300"/>
+                                                        <span className={AdMakerStyles.shelfAddText}>Add</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-2 italic px-1">
+                                            {isCollectionMode ? "Add up to 3 products for a collection ad." : "Upload your hero product image."}
+                                        </p>
+                                    </div>
+
+                                    {/* 4. Model Inclusion (Fashion/Lifestyle) */}
+                                    {(industry === 'fashion' || industry === 'ecommerce') && (
+                                        <div>
+                                            <div className={AdMakerStyles.sectionHeader}>
+                                                <span className={AdMakerStyles.stepBadge}>3</span>
+                                                <label className={AdMakerStyles.sectionTitle}>Persona & Context</label>
+                                            </div>
+                                            <div className={AdMakerStyles.modelSelectionGrid}>
+                                                <button onClick={() => setModelSource('ai')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
+                                                    <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white text-indigo-600' : 'bg-gray-50 text-gray-400'}`}><SparklesIcon className="w-5 h-5"/></div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">AI Human</span>
+                                                </button>
+                                                <button onClick={() => setModelSource('upload')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
+                                                    <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white text-indigo-600' : 'bg-gray-50 text-gray-400'}`}><UserIcon className="w-5 h-5"/></div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Custom Model</span>
+                                                </button>
+                                            </div>
+                                            
+                                            {modelSource === 'ai' && (
+                                                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-fadeIn">
+                                                    <select value={modelParams?.modelType} onChange={e => setModelParams({...modelParams!, modelType: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                                                        <option value="">Select Persona</option>{MODEL_TYPES.map(t => <option key={t}>{t}</option>)}
+                                                    </select>
+                                                    <select value={modelParams?.region} onChange={e => setModelParams({...modelParams!, region: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                                                        <option value="">Select Region</option>{MODEL_REGIONS.map(t => <option key={t}>{t}</option>)}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* 5. Campaign Content */}
+                                    <div className="pt-4 border-t border-gray-100">
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '4' : '3' }</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Campaign Intelligence</label>
+                                        </div>
+                                        
+                                        <div className="space-y-4">
+                                            <SelectionGrid label="Visual Mood / Vibe" options={vibes} value={vibe} onChange={setVibe} />
+                                            {vibe === CUSTOM_VIBE_KEY && (
+                                                <div className="animate-fadeIn -mt-2">
+                                                    <InputField placeholder="e.g. 90s Polaroid, neon midnight, bright spring..." value={customVibe} onChange={(e: any) => setCustomVibe(e.target.value)} />
+                                                </div>
+                                            )}
+                                            <TextAreaField 
+                                                label="Ad Context (AIDA Protocol)" 
+                                                placeholder="e.g. Organic skincare for glowing morning routine. Focus on texture and ingredients." 
+                                                value={description} 
+                                                onChange={(e: any) => setDescription(e.target.value)} 
+                                            />
+                                            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                                                <ShieldCheckIcon className="w-4 h-4 text-indigo-600"/>
+                                                <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">AIDA Strategy Engine Active</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 6. Advanced Settings */}
+                                    <div className="pt-4 border-t border-gray-100 pb-20">
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '5' : '4' }</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Format & Logo</label>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Aspect Ratio</label>
+                                                <div className="flex gap-2">
+                                                    {(['1:1', '4:5', '9:16'] as const).map(r => (
+                                                        <button key={r} onClick={() => setAspectRatio(r)} className={`flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all ${aspectRatio === r ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{r}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Brand Identity</label>
+                                                <div className="relative group">
+                                                    {logoImage ? (
+                                                        <div className="relative h-10 w-full bg-white border border-indigo-100 rounded-xl flex items-center justify-center p-1">
+                                                            <img src={logoImage.url} className="h-full object-contain" />
+                                                            <button onClick={() => setLogoImage(null)} className="absolute -top-1.5 -right-1.5 p-1 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50"><XIcon className="w-3 h-3"/></button>
+                                                        </div>
+                                                    ) : (
+                                                        <button onClick={() => document.getElementById('logo-upload-ad')?.click()} className="w-full h-10 border border-gray-200 rounded-xl flex items-center justify-center gap-2 text-[10px] font-bold text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white">
+                                                            <CloudUploadIcon className="w-4 h-4"/> <span>Logo</span>
+                                                        </button>
+                                                    )}
+                                                    <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )
+                            </>
+                        )}
+                    </div>
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={claimMilestoneBonus as any} onClose={() => setMilestoneBonus(undefined)} />}
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
-            {showBrandModal && auth.user && <BrandSelectionModal isOpen={showBrandModal} onClose={() => setShowBrandModal(false)} userId={auth.user.uid} currentBrandId={auth.activeBrandKit?.id} onSelect={handleBrandSelect} onCreateNew={() => navigateTo('dashboard', 'brand_manager')} />}
+            {showBrandModal && auth.user && (
+                <BrandSelectionModal 
+                    isOpen={showBrandModal} 
+                    onClose={() => setShowBrandModal(false)} 
+                    userId={auth.user.uid} 
+                    currentBrandId={auth.activeBrandKit?.id} 
+                    onSelect={handleBrandSelect} 
+                    onCreateNew={() => navigateTo('dashboard', 'brand_manager')} 
+                />
+            )}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
     );
 };
-
+// Fix: Added default export for lazy loading in DashboardPage
 export default PixaAdMaker;
