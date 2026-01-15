@@ -206,9 +206,9 @@ const BrandSelectionModal: React.FC<{
                             <button 
                                 onClick={onCreateNew} 
                                 disabled={!!activatingId}
-                                className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 transition-all duration-300 flex flex-col items-center justify-center text-center gap-2 bg-gray-50/30 hover:shadow-md ${activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`group relative flex flex-col h-40 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3 min-h-[160px] ${!!activatingId ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all border border-gray-200 group-hover:border-indigo-200">
+                                <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-white group-hover:text-indigo-600 text-gray-400 flex items-center justify-center transition-colors shadow-sm">
                                     <PlusCircleIcon className="w-5 h-5" />
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-700 transition-colors uppercase tracking-wide">Create New</span>
@@ -820,7 +820,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '5' : '4' }</span>
                                             <label className={AdMakerStyles.sectionTitle}>Format & Logo</label>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex flex-col gap-6">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Aspect Ratio</label>
                                                 <div className="flex gap-2">
@@ -833,17 +833,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Brand Identity</label>
                                                 <div className="relative group">
                                                     {logoImage ? (
-                                                        <div className="relative h-10 w-full bg-white border border-indigo-100 rounded-xl flex items-center justify-center p-1">
-                                                            <img src={logoImage.url} className="h-full object-contain" />
-                                                            <button onClick={() => setLogoImage(null)} className="absolute -top-1.5 -right-1.5 p-1 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50"><XIcon className="w-3 h-3"/></button>
+                                                        <div className={AdMakerStyles.logoPreviewBox}>
+                                                            <div className={AdMakerStyles.logoBlueprintBg}></div>
+                                                            <img src={logoImage.url} className="h-full object-contain relative z-10" />
+                                                            <button onClick={() => setLogoImage(null)} className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-md text-red-500 hover:bg-red-50 transition-all z-20 border border-gray-100"><XIcon className="w-4 h-4"/></button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => document.getElementById('logo-upload-ad')?.click()} className="w-full h-10 border border-gray-200 rounded-xl flex items-center justify-center gap-2 text-[10px] font-bold text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white">
-                                                            <CloudUploadIcon className="w-4 h-4"/> <span>Logo</span>
+                                                        <button onClick={() => document.getElementById('logo-upload-ad')?.click()} className="w-full h-32 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-3 text-[10px] font-bold text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white hover:bg-indigo-50/10">
+                                                            <CloudUploadIcon className="w-8 h-8"/> <span>Upload Ad Logo</span>
                                                         </button>
                                                     )}
                                                     <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
                                                 </div>
+                                                <p className="text-[9px] text-gray-400 italic px-1 mt-2">
+                                                    <ShieldCheckIcon className="w-2.5 h-2.5 inline mr-1 text-indigo-400"/>
+                                                    Identity Lock: This logo is a "Sacred Asset" and will not be altered by AI.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

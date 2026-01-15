@@ -49,7 +49,7 @@ export const AdMakerStyles = {
   // Blueprint Styles - Compact refinements
   blueprintGrid: "grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-5 gap-2",
   blueprintCard: "relative p-1.5 lg:p-2 rounded-xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center gap-1 min-h-[clamp(50px,8vh,75px)] group overflow-hidden bg-white hover:shadow-md",
-  blueprintCardSelected: "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20",
+  blueprintCardSelected: "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20 shadow-md",
   blueprintCardInactive: "border-gray-100 hover:border-indigo-200",
   blueprintLabel: "text-[clamp(7.5px,1vh,9.5px)] font-black uppercase tracking-tight z-10 relative leading-none text-center",
   blueprintCheck: "absolute top-1 right-1 w-3 h-3 bg-indigo-600 rounded-full flex items-center justify-center text-white z-10 animate-scaleIn shadow-sm",
@@ -72,4 +72,8 @@ export const AdMakerStyles = {
   modelSelectionCard: "group relative w-full h-24 rounded-2xl border transition-all duration-300 ease-out flex flex-col items-center justify-center gap-2 overflow-hidden text-center cursor-pointer",
   modelSelectionCardSelected: "border-indigo-500/30 bg-gradient-to-br from-[#E0E7FF] to-[#EEF2FF] shadow-md ring-1 ring-indigo-500/20 -translate-y-0.5",
   modelSelectionCardInactive: "border-gray-200 bg-white hover:border-indigo-200 hover:shadow-sm hover:-translate-y-0.5",
+
+  // Logo Preview Styles
+  logoPreviewBox: "relative h-32 w-full bg-white border border-indigo-100 rounded-2xl flex items-center justify-center p-4 overflow-hidden group/logo shadow-sm",
+  logoBlueprintBg: "absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#4D7CFF_1px,transparent_1px)] [background-size:16px_16px]",
 };
