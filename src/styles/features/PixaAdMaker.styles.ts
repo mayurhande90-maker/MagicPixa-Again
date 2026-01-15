@@ -46,13 +46,13 @@ export const AdMakerStyles = {
   // Input Groups
   grid2: "grid grid-cols-2 gap-2 lg:gap-3",
 
-  // Blueprint Styles
-  blueprintGrid: "grid grid-cols-2 sm:grid-cols-3 gap-2 lg:gap-3",
-  blueprintCard: "relative p-2 lg:p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center gap-1.5 lg:gap-2 min-h-[clamp(60px,10vh,90px)] group overflow-hidden bg-white hover:shadow-md",
+  // Blueprint Styles - Compact refinements
+  blueprintGrid: "grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-5 gap-2",
+  blueprintCard: "relative p-1.5 lg:p-2 rounded-xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center gap-1 min-h-[clamp(50px,8vh,75px)] group overflow-hidden bg-white hover:shadow-md",
   blueprintCardSelected: "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500/20",
   blueprintCardInactive: "border-gray-100 hover:border-indigo-200",
-  blueprintLabel: "text-[clamp(8px,1.1vh,10px)] font-bold uppercase tracking-wider z-10 relative",
-  blueprintCheck: "absolute top-1.5 right-1.5 w-3.5 h-3.5 lg:w-4 lg:h-4 bg-indigo-600 rounded-full flex items-center justify-center text-white z-10 animate-scaleIn",
+  blueprintLabel: "text-[clamp(7.5px,1vh,9.5px)] font-black uppercase tracking-tight z-10 relative leading-none text-center",
+  blueprintCheck: "absolute top-1 right-1 w-3 h-3 bg-indigo-600 rounded-full flex items-center justify-center text-white z-10 animate-scaleIn shadow-sm",
 
   // Smart Product Shelf Styles
   shelfContainer: "flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1",

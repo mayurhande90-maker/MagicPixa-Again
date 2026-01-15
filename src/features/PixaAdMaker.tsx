@@ -607,16 +607,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         ? 'bg-indigo-50 border-indigo-100 shadow-sm' 
                                         : 'bg-white border-dashed border-gray-200 hover:border-indigo-300'
                                     }`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden shrink-0">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-inner overflow-hidden shrink-0">
                                                 {auth.activeBrandKit?.logos.primary ? (
-                                                    <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-cover" alt="Brand Logo" />
+                                                    <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain p-1" alt="Brand Logo" />
                                                 ) : (
-                                                    <BrandKitIcon className="w-5 h-5 text-indigo-400" />
+                                                    <BrandKitIcon className="w-7 h-7 text-indigo-400" />
                                                 )}
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Active Brand</p>
+                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Active Brand</p>
                                                 <p className="text-sm font-black text-indigo-900 truncate">
                                                     {auth.activeBrandKit?.companyName || auth.activeBrandKit?.name || "No Brand Kit"}
                                                 </p>
