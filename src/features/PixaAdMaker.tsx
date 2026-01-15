@@ -820,12 +820,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? '5' : '4' }</span>
                                             <label className={AdMakerStyles.sectionTitle}>Format & Logo</label>
                                         </div>
-                                        <div className="flex flex-col gap-6">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Aspect Ratio</label>
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-col gap-2">
                                                     {(['1:1', '4:5', '9:16'] as const).map(r => (
-                                                        <button key={r} onClick={() => setAspectRatio(r)} className={`flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all ${aspectRatio === r ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{r}</button>
+                                                        <button key={r} onClick={() => setAspectRatio(r)} className={`w-full py-2 text-[10px] font-bold rounded-lg border transition-all ${aspectRatio === r ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{r}</button>
                                                     ))}
                                                 </div>
                                             </div>
@@ -836,21 +836,21 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         <div className={AdMakerStyles.logoPreviewBox}>
                                                             <div className={AdMakerStyles.logoBlueprintBg}></div>
                                                             <img src={logoImage.url} className="h-full object-contain relative z-10" />
-                                                            <button onClick={() => setLogoImage(null)} className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-md text-red-500 hover:bg-red-50 transition-all z-20 border border-gray-100"><XIcon className="w-4 h-4"/></button>
+                                                            <button onClick={() => setLogoImage(null)} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full shadow-md text-red-500 hover:bg-red-50 transition-all z-20 border border-gray-100"><XIcon className="w-3.5 h-3.5"/></button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => document.getElementById('logo-upload-ad')?.click()} className="w-full h-32 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-3 text-[10px] font-bold text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white hover:bg-indigo-50/10">
-                                                            <CloudUploadIcon className="w-8 h-8"/> <span>Upload Ad Logo</span>
+                                                        <button onClick={() => document.getElementById('logo-upload-ad')?.click()} className="w-full h-24 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-[9px] font-bold text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white hover:bg-indigo-50/10">
+                                                            <CloudUploadIcon className="w-6 h-6"/> <span>Upload Logo</span>
                                                         </button>
                                                     )}
                                                     <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
                                                 </div>
-                                                <p className="text-[9px] text-gray-400 italic px-1 mt-2">
-                                                    <ShieldCheckIcon className="w-2.5 h-2.5 inline mr-1 text-indigo-400"/>
-                                                    Identity Lock: This logo is a "Sacred Asset" and will not be altered by AI.
-                                                </p>
                                             </div>
                                         </div>
+                                        <p className="text-[9px] text-gray-400 italic px-1 mt-3">
+                                            <ShieldCheckIcon className="w-2.5 h-2.5 inline mr-1 text-indigo-400"/>
+                                            Identity Lock: Logo assets are "Sacred Assets" and remain unaltered.
+                                        </p>
                                     </div>
                                 </div>
                             </>
