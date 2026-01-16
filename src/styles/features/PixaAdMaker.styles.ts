@@ -43,10 +43,10 @@ export const AdMakerStyles = {
   stepBadge: "flex items-center justify-center w-4 h-4 lg:w-5 lg:h-5 rounded-full bg-indigo-100 text-indigo-700 text-[clamp(8px,1vh,10px)] font-bold",
   sectionTitle: "text-[clamp(8px,1.1vh,12px)] font-bold text-gray-500 uppercase tracking-wider",
   
-  // Segment Toggle
-  segmentContainer: "flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full mb-4",
-  segmentButton: "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-  segmentActive: "bg-white text-indigo-600 shadow-sm",
+  // Segment Toggle - Updated for smaller, non-full-width appearance
+  segmentContainer: "flex bg-gray-100 p-1 rounded-2xl border border-gray-200 w-fit min-w-[280px] mb-8",
+  segmentButton: "flex-1 py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+  segmentActive: "bg-white text-indigo-600 shadow-md",
   segmentInactive: "text-gray-400 hover:text-gray-600",
 
   // Input Groups

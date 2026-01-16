@@ -5,7 +5,6 @@ import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, Selec
 import { RefinementPanel } from '../components/RefinementPanel';
 import { 
     MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon, RefreshIcon,
-    // Add missing UsersIcon import
     UsersIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
@@ -706,23 +705,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                                     </button>
 
-                                    <div className="grid grid-cols-1 gap-3 mb-6">
-                                        <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-100 w-full relative">
-                                            <button 
-                                                onClick={() => setIntegrationMode('product')} 
-                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${integrationMode === 'product' ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                                            >
-                                                <CubeIcon className="w-4 h-4" /> Hero Product
-                                            </button>
-                                            <button 
-                                                onClick={() => setIntegrationMode('subject')} 
-                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${integrationMode === 'subject' ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                                            >
-                                                <UsersIcon className="w-4 h-4" /> Subject Context
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
                                             <div className="flex items-center gap-3">
@@ -785,6 +767,24 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-indigo-500/10"></div>
                                             </button>
                                         )}
+                                    </div>
+
+                                    {/* Mode Toggle shifted below industry and brand */}
+                                    <div className="flex justify-start">
+                                        <div className={AdMakerStyles.segmentContainer}>
+                                            <button 
+                                                onClick={() => setIntegrationMode('product')} 
+                                                className={`${AdMakerStyles.segmentButton} ${integrationMode === 'product' ? AdMakerStyles.segmentActive : AdMakerStyles.segmentInactive}`}
+                                            >
+                                                Product Ad
+                                            </button>
+                                            <button 
+                                                onClick={() => setIntegrationMode('subject')} 
+                                                className={`${AdMakerStyles.segmentButton} ${integrationMode === 'subject' ? AdMakerStyles.segmentActive : AdMakerStyles.segmentInactive}`}
+                                            >
+                                                Model Ad
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {isMismatch && (
