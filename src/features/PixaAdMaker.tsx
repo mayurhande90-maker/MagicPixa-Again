@@ -3,7 +3,11 @@ import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon, RefreshIcon } from '../components/icons';
+import { 
+    MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon, RefreshIcon,
+    // Add missing UsersIcon import
+    UsersIcon
+} from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
@@ -62,7 +66,6 @@ const VIBE_MAP: Record<string, string[]> = {
     'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
 };
 
-// --- STRATEGIC COMPATIBILITY MAPPING ---
 const BLUEPRINT_VIBE_CONSTRAINTS: Record<string, string[]> = {
     'Hero Focus': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", "Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", "Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", "Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
     'Split Design': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Professional & Trust", "Minimalistic", CUSTOM_VIBE_KEY],
@@ -198,9 +201,7 @@ const BrandSelectionModal: React.FC<{
                                                 </div>
                                             )}
                                             {isActivating && (
-                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
-                                                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                                </div>
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                                             )}
                                         </div>
                                         <div className={`px-4 py-2 flex-1 min-h-0 flex flex-col justify-center ${isActive ? 'bg-indigo-50/10' : 'bg-white'}`}>
@@ -238,12 +239,47 @@ const BrandSelectionModal: React.FC<{
     );
 };
 
+const CompactUpload: React.FC<{ 
+    label: string; 
+    subLabel?: string;
+    image: { url: string } | null; 
+    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+    onClear: () => void; 
+    icon: React.ReactNode; 
+    heightClass?: string; 
+}> = ({ label, subLabel, image, onUpload, onClear, icon, heightClass = "h-32" }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+        <div className="relative w-full group h-full">
+            <div className="flex justify-between items-center mb-1.5 px-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+                {subLabel && <span className="text-[9px] text-gray-300 font-medium">{subLabel}</span>}
+            </div>
+            {image ? (
+                <div className={`relative w-full ${heightClass} bg-white rounded-xl border border-indigo-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:border-indigo-300 transition-all`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-1" alt={label} />
+                    <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-lg shadow-sm hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors z-10 border border-gray-100"><XIcon className="w-3 h-3"/></button>
+                </div>
+            ) : (
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/30 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}>
+                    <div className="p-2 bg-white rounded-lg shadow-sm mb-2 group-hover:scale-110 transition-transform border border-gray-100">{icon}</div>
+                    <p className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-600 uppercase tracking-wide text-center px-2">Upload</p>
+                </div>
+            )}
+            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
+        </div>
+    );
+};
+
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [industry, setIndustry] = useState<AdMakerInputs['industry'] | null>(null);
     const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
+    // Master Feature Mode
+    const [integrationMode, setIntegrationMode] = useState<'product' | 'subject'>('product');
+
     // Config
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
@@ -324,11 +360,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setMainImages([]);
             setIsCollectionMode(false);
             setLayoutTemplate('Hero Focus');
-        } else {
-            setLogoImage(null);
-            setProductName('');
-            setWebsite('');
-            setMainImages([]);
         }
     }, [auth.activeBrandKit]);
 
@@ -404,7 +435,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const inputs: AdMakerInputs = {
                 industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
                 vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, offer, description, layoutTemplate, aspectRatio,
-                modelSource, modelImage: modelImage?.base64, modelParams
+                modelSource: integrationMode === 'subject' ? modelSource : null, 
+                modelImage: integrationMode === 'subject' && modelSource === 'upload' ? modelImage?.base64 : null, 
+                modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined
             };
             
             const resB64 = await generateAdCreative(inputs, auth.activeBrandKit);
@@ -463,7 +496,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleNewSession = () => {
         setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
-        setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio('');
+        setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode('product');
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -507,7 +540,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!aspectRatio && !isLowCredits;
+    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!aspectRatio && !isLowCredits && (
+        integrationMode === 'product' ? true : (modelSource === 'ai' ? (!!modelParams?.modelType && !!modelParams?.region) : (!!modelImage))
+    );
 
     const ratioIcons = {
         '1:1': <div className="w-3.5 h-3.5 border-2 border-current rounded-sm shadow-sm"></div>,
@@ -552,7 +587,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         {(loading || isRefining) && (
                             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
                                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-6">{loadingText}</p>
                             </div>
@@ -574,7 +609,24 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <p className="text-xs text-gray-300 mt-1 uppercase tracking-widest font-black">Choose items from the shelf on the right</p>
                             </div>
                         ) : (
-                            <div className="relative w-full h-full flex items-center justify-center p-12">
+                            <div className="relative w-full h-full flex flex-col items-center justify-center p-6">
+                                <div className="absolute top-6 left-6 z-40">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="inline-flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span className="text-[9px] font-black text-white uppercase tracking-widest">
+                                                {integrationMode === 'product' ? 'Hero Product Locked' : 'Subject Context Locked'}
+                                            </span>
+                                        </div>
+                                        {integrationMode === 'subject' && (
+                                             <div className="inline-flex items-center gap-2 bg-indigo-600/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg animate-fadeIn">
+                                                <UsersIcon className="w-3 h-3 text-white"/>
+                                                <span className="text-[9px] font-black text-white uppercase tracking-widest">Identity Sync Active</span>
+                                             </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="relative w-full max-sm aspect-square flex items-center justify-center">
                                     {mainImages.map((img, idx) => {
                                         let transformStyle = '';
@@ -602,16 +654,23 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <div className="w-full h-full bg-white p-2 sm:p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden">
                                                     <img src={img.url} className="w-full h-full object-contain" alt="Selected Product" />
                                                 </div>
-                                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-tighter shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    Pixa Identity Locked
-                                                </div>
                                             </div>
                                         );
                                     })}
                                 </div>
+                                
+                                {integrationMode === 'subject' && modelSource === 'upload' && modelImage && (
+                                    <div className="mt-8 relative group animate-fadeIn">
+                                        <div className="w-32 h-32 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gray-100 ring-2 ring-indigo-500/20">
+                                            <img src={modelImage.url} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
+                                            Digital Twin Active
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
-                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
@@ -646,6 +705,23 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                     <button onClick={handleNewSession} className={AdMakerStyles.backButton}>
                                         <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                                     </button>
+
+                                    <div className="grid grid-cols-1 gap-3 mb-6">
+                                        <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-100 w-full relative">
+                                            <button 
+                                                onClick={() => setIntegrationMode('product')} 
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${integrationMode === 'product' ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                            >
+                                                <CubeIcon className="w-4 h-4" /> Hero Product
+                                            </button>
+                                            <button 
+                                                onClick={() => setIntegrationMode('subject')} 
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${integrationMode === 'subject' ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                            >
+                                                <UsersIcon className="w-4 h-4" /> Subject Context
+                                            </button>
+                                        </div>
+                                    </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
@@ -761,7 +837,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             <p className="text-[10px] text-gray-400 italic leading-tight">
                                                                 {logoImage ? "Logo locked for generation. Click to remove." : "Upload a PNG logo to anchor your brand identity in the ad."}
                                                             </p>
-                                                            <p className="text-[9px] text-indigo-400 mt-1 font-bold">PRO TIP: Use a transparent PNG for best results.</p>
                                                         </div>
                                                         <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
                                                     </div>
@@ -832,16 +907,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p className="text-[10px] text-gray-400 mt-2 italic px-1">
-                                                {isCollectionMode ? "Select up to 3 products. Click again to unselect." : "Select your hero product. Selection replaces the current one."}
-                                            </p>
                                         </div>
 
-                                        {(industry === 'fashion' || industry === 'ecommerce') && (
+                                        {integrationMode === 'subject' && (
                                             <div>
                                                 <div className={AdMakerStyles.sectionHeader}>
                                                     <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '3' : '4'}</span>
-                                                    <label className={AdMakerStyles.sectionTitle}>Persona & Context</label>
+                                                    <label className={AdMakerStyles.sectionTitle}>Talent Integration</label>
                                                 </div>
                                                 <div className={AdMakerStyles.modelSelectionGrid}>
                                                     <button onClick={() => setModelSource('ai')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
@@ -850,18 +922,41 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     </button>
                                                     <button onClick={() => setModelSource('upload')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
                                                         <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white text-indigo-600' : 'bg-gray-50 text-gray-400'}`}><UserIcon className="w-5 h-5"/></div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Custom Model</span>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">Digital Twin</span>
                                                     </button>
                                                 </div>
                                                 
                                                 {modelSource === 'ai' && (
-                                                    <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-fadeIn">
-                                                        <select value={modelParams?.modelType} onChange={e => setModelParams({...modelParams!, modelType: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                                                            <option value="">Select Persona</option>{MODEL_TYPES.map(t => <option key={t}>{t}</option>)}
+                                                    <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-fadeIn">
+                                                        <select value={modelParams?.modelType} onChange={e => setModelParams({...modelParams!, modelType: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
+                                                            <option value="">Persona</option>{MODEL_TYPES.map(t => <option key={t}>{t}</option>)}
                                                         </select>
-                                                        <select value={modelParams?.region} onChange={e => setModelParams({...modelParams!, region: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                                                            <option value="">Select Region</option>{MODEL_REGIONS.map(t => <option key={t}>{t}</option>)}
+                                                        <select value={modelParams?.region} onChange={e => setModelParams({...modelParams!, region: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
+                                                            <option value="">Region</option>{MODEL_REGIONS.map(t => <option key={t}>{t}</option>)}
                                                         </select>
+                                                        <select value={modelParams?.skinTone} onChange={e => setModelParams({...modelParams!, skinTone: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
+                                                            <option value="">Skin</option>{SKIN_TONES.map(t => <option key={t}>{t}</option>)}
+                                                        </select>
+                                                        <select value={modelParams?.bodyType} onChange={e => setModelParams({...modelParams!, bodyType: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
+                                                            <option value="">Build</option>{BODY_TYPES.map(t => <option key={t}>{t}</option>)}
+                                                        </select>
+                                                    </div>
+                                                )}
+
+                                                {modelSource === 'upload' && (
+                                                    <div className="animate-fadeIn">
+                                                        <CompactUpload 
+                                                            label="Human Model / Founder" 
+                                                            subLabel="High-fidelity biometric template"
+                                                            image={modelImage} 
+                                                            onUpload={handleUpload(setModelImage)} 
+                                                            onClear={() => setModelImage(null)} 
+                                                            icon={<UserIcon className="w-6 h-6 text-blue-400"/>} 
+                                                            heightClass="h-40"
+                                                        />
+                                                        <p className="text-[9px] text-gray-400 mt-2 italic px-1">
+                                                            Pixa will anchor the subject's face and body exactly to the final ad.
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>
@@ -869,7 +964,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                         <div className="pt-4 border-t border-gray-100">
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? (auth.activeBrandKit ? '4' : '5') : (auth.activeBrandKit ? '3' : '4') }</span>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '4' : '5') : (auth.activeBrandKit ? '3' : '4') }</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Campaign Intelligence</label>
                                             </div>
                                             
@@ -891,16 +986,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     value={description} 
                                                     onChange={(e: any) => setDescription(e.target.value)} 
                                                 />
-                                                <p className="text-[10px] text-gray-400 italic px-1 -mt-2">
-                                                    <InformationCircleIcon className="w-3 h-3 inline mr-1" />
-                                                    The CMO engine will transform this intent into professional ad copy.
-                                                </p>
                                             </div>
                                         </div>
 
                                         <div className="pt-4 border-t border-gray-100 pb-20">
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ (industry === 'fashion' || industry === 'ecommerce') ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                             </div>
                                             

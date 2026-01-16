@@ -101,8 +101,7 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE (SENIOR CMO UPGRADE)
- * Researches 2025 Creative Benchmarks and applies the AIDA copywriting protocol.
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -113,47 +112,23 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a Senior CMO and Lead Design Strategist at a top-tier digital agency.
-    
-    *** ASSIGNMENT ***
+    const prompt = `You are a Senior CMO and Lead Design Strategist.
     Develop a high-conversion creative strategy for the ${inputs.industry} product: "${inputs.productName || 'Unnamed Asset'}".
-    User Context Box Input: "${inputs.description || 'N/A'}"
-    Specifications: "${inputs.productSpecs || 'N/A'}"
+    Intent Context: "${inputs.description || 'N/A'}"
 
     *** THE "AIDA" STRATEGIC MANDATE ***
-    Do NOT use the User Context Box word-for-word. It is a raw thought, not an ad.
-    Interpret the User Context as INTENT. Perform a "Forensic Marketing Synthesis":
-    
-    1. **RESEARCH (Use Google Search)**:
-       - Find "High-performing ad copy hooks for ${inputs.industry} in 2025".
-       - Identify the psychological triggers for this niche (Status, Fear of Missing Out, Time Saving, Purity).
-    
+    1. **RESEARCH**: Identify high-performing ad copy hooks for ${inputs.industry} in 2025.
     2. **AIDA SYNTHESIS**:
-       - **ATTENTION (Headline)**: Create a scroll-stopping, benefit-led headline. Use powerful verbs. (2-5 words).
-       - **INTEREST/DESIRE (Subheadline)**: Elaborate on the unique value proposition derived from the context. Make it sound exclusive and professional.
+       - **ATTENTION (Headline)**: Create a benefit-led hook (2-5 words).
+       - **INTEREST (Subheadline)**: Elaborate on the unique value proposition.
        - **ACTION (CTA)**: Generate a high-intent button label.
 
-    3. **VISUAL HIERARCHY**:
-       - Based on the ${inputs.industry} niche, determine where the "conversion focal point" should be.
-
-    RETURN JSON ONLY:
+    RETURN JSON:
     {
-        "strategicCopy": { 
-            "headline": "Research-backed AIDA hook", 
-            "subheadline": "Benefit-driven desire builder", 
-            "cta": "Conversion-focused action" 
-        },
-        "identityStrategy": {
-            "weight": "Primary | Secondary | Hidden | Footnote",
-            "reasoning": "Why this specific copy will convert based on psychographics",
-            "placementRecommendation": "Focus zone (Top, Center, or Offset)",
-            "styling": "Typography weight and mood"
-        },
-        "industryLogic": {
-            "categoryBadgeText": "Authority marker (e.g. 'Certified Premium')",
-            "forbiddenKeywords": ["Generic buzzwords like 'Best', 'Amazing', 'Discover'"]
-        },
-        "visualDirection": "Technical Art direction notes for the lighting rig"
+        "strategicCopy": { "headline": "string", "subheadline": "string", "cta": "string" },
+        "identityStrategy": { "weight": "string", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
+        "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
+        "visualDirection": "string"
     }`;
 
     const parts: any[] = lowResAssets.map((asset) => ({ text: `PRODUCT SOURCE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -170,7 +145,6 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        console.warn("Marketing intelligence failed, using fallback strategy", e);
         return { 
             strategicCopy: { headline: "Defined by Excellence", subheadline: "The new standard in professional quality.", cta: "Shop Collection" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
@@ -181,7 +155,7 @@ const performAdIntelligence = async (
 };
 
 /**
- * --- PHASE 2: THE PRODUCTION ENGINE (PROTOTYPE TO ASSET) ---
+ * --- PHASE 2: THE PRODUCTION ENGINE ---
  */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
@@ -194,7 +168,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             getVaultFolderConfig('brand_stylist', inputs.industry)
         ]);
         if (conf) vaultDna = conf.dna;
-        
         const selectedRefs = refs.slice(0, 3);
         vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
             const res = await urlToBase64(r.imageUrl);
@@ -223,38 +196,53 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     });
     
     if (optLogo) parts.push({ text: "BRAND LOGO (SACRED):" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
-    if (optModel) parts.push({ text: "TARGET MODEL:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    if (optModel) parts.push({ text: "SUBJECT DIGITAL TWIN (SACRED):" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
     const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
 
+    const subjectIdentityLock = optModel ? `
+    *** SUBJECT IDENTITY LOCK (DIGITAL TWIN PROTOCOL) ***
+    1. **FORENSIC REPLICA**: You are FORBIDDEN from altering the subject's facial structure, hair, age, or ethnicity. The person in the ad must be a 1:1 pixel replica of the 'SUBJECT DIGITAL TWIN'.
+    2. **NATURAL INTERACTION**: The subject MUST be realistically interacting with the 'SACRED PRODUCT ASSETS' (e.g. holding them, wearing them, using them).
+    3. **LIGHTING HARMONIZATION**: Synchronize the lighting on the subject with the 'SACRED PRODUCT ASSET' lighting and the global environment.
+    ` : "";
+
+    const modelParamsPrompt = inputs.modelSource === 'ai' && inputs.modelParams ? `
+    *** AI HUMAN MODEL SPECS ***
+    Render a photorealistic model: ${inputs.modelParams.modelType} from ${inputs.modelParams.region}, ${inputs.modelParams.skinTone}, ${inputs.modelParams.bodyType}.
+    Composition: ${inputs.modelParams.composition}, Framing: ${inputs.modelParams.framing}.
+    The model MUST be holding or using the SACRED PRODUCT ASSETS.
+    ` : "";
+
     const prompt = `You are a World-Class Ad Production Engine.
     
-    *** THE OPTICAL RIG (VAULT DNA MANDATE) ***
+    *** THE OPTICAL RIG ***
     ${vaultDna ? `STRICT LIGHTING PROTOCOL: ${vaultDna}` : 'Use professional high-end softbox lighting rigs.'}
-    Identify the "Visual DNA" from the VAULT REFERENCES and apply the EXACT same lighting topology and color science to the user's ad.
+    ${optRef ? `**STYLE MATCH**: Mimic the atmosphere and layout logic of the Style Reference Image.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
 
     *** IDENTITY LOCK 3.0 (SACRED ASSET PROTOCOL) ***
     1. **GEOMETRY**: Do NOT alter the physical shape or proportions of the product.
     2. **TYPOGRAPHY**: Preserve all labels and text from the "SACRED PRODUCT ASSET" pixels perfectly.
-    3. **LOGOS**: Use 1:1 pixel transfers for the BRAND LOGO. Do not smudge or blur.
+    3. **LOGOS**: Use 1:1 pixel transfers for the BRAND LOGO. 
+
+    ${subjectIdentityLock}
+    ${modelParamsPrompt}
 
     *** FORENSIC PHYSICS MANDATES ***
-    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp ambient occlusion shadows where the product touches the ground plane.
-    2. **GLOBAL ILLUMINATION (COLOR SPILL)**: Calculate light bouncing from the environment onto the product surface. (e.g. if the floor is marble, reflect white highlights on the product's base).
-    3. **Z-DEPTH**: Place typography in a distinct depth layer. If typography is behind the product, apply appropriate lens bokeh.
+    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp shadows where the product or subject touches any surface.
+    2. **LIGHT HARMONIZATION**: Unified light source for both product and subject context.
 
     *** CREATIVE BRIEF ***
     - Industry: ${inputs.industry.toUpperCase()}
     - Layout: ${blueprintInstruction}
     - Art Direction: ${brief.visualDirection}
-    ${optRef ? `**STYLE MATCH**: Mimic the atmosphere of the Style Reference.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
 
     *** TYPOGRAPHY & COPY (AIDA) ***
     1. **HEADLINE**: Render "${brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Sans'}.
     2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
     3. **ACTION**: High-contrast CTA for "${brief.strategicCopy.cta}".
     
-    OUTPUT: A single 8K agency-grade marketing asset. Photorealistic excellence.`;
+    OUTPUT: A single 8K photorealistic marketing asset.`;
 
     parts.push({ text: prompt });
 
