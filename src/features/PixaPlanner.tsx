@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit, ProductAnalysis } from '../types';
@@ -928,9 +927,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
                         <button 
                             onClick={handleStartGeneration}
-                            className="bg-[#1A1A1E] text-white px-10 py-4 rounded-2xl font-bold shadow-2xl hover:bg-black transition-all transform hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-3"
+                            className="bg-[#F9D230] text-[#1A1A1E] px-10 py-4 rounded-2xl font-bold shadow-2xl hover:bg-[#dfbc2b] transition-all transform hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-3"
                         >
-                            <SparklesIcon className="w-5 h-5 text-yellow-400" />
                             <span>Launch {plan.length}-Post Campaign</span>
                         </button>
                         <p className="text-[10px] font-bold text-gray-500 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full border border-gray-100 shadow-sm">
