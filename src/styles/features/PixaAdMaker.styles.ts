@@ -43,10 +43,10 @@ export const AdMakerStyles = {
   stepBadge: "flex items-center justify-center w-4 h-4 lg:w-5 lg:h-5 rounded-full bg-indigo-100 text-indigo-700 text-[clamp(8px,1vh,10px)] font-bold",
   sectionTitle: "text-[clamp(8px,1.1vh,12px)] font-bold text-gray-500 uppercase tracking-wider",
   
-  // Segment Toggle - Updated for smaller, non-full-width appearance
-  segmentContainer: "flex bg-gray-100 p-1 rounded-2xl border border-gray-200 w-fit min-w-[280px] mb-8",
-  segmentButton: "flex-1 py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-  segmentActive: "bg-white text-indigo-600 shadow-md",
+  // Segment Toggle
+  segmentContainer: "flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full mb-4",
+  segmentButton: "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+  segmentActive: "bg-white text-indigo-600 shadow-sm",
   segmentInactive: "text-gray-400 hover:text-gray-600",
 
   // Input Groups
@@ -82,4 +82,23 @@ export const AdMakerStyles = {
   // Logo Preview Styles - Reduced height from h-32 to h-24 for side-by-side balance
   logoPreviewBox: "relative h-24 w-full bg-white border border-indigo-100 rounded-2xl flex items-center justify-center p-4 overflow-hidden group/logo shadow-sm",
   logoBlueprintBg: "absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#4D7CFF_1px,transparent_1px)] [background-size:16px_16px]",
+
+  // New Bento Mode Selector Styles
+  engineGrid: "grid grid-cols-2 gap-4 mb-8",
+  engineCard: "group relative w-full h-[clamp(110px,16vh,140px)] rounded-[1.8rem] overflow-hidden border-2 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer text-left flex flex-col justify-end p-5",
+  engineCardSelected: "border-indigo-600 shadow-2xl shadow-indigo-500/20 ring-4 ring-indigo-500/5 scale-[1.02] z-10",
+  engineCardInactive: "bg-white border-gray-100 hover:border-indigo-200 hover:shadow-lg opacity-80 hover:opacity-100",
+  
+  engineOrb: "absolute w-40 h-40 rounded-full blur-2xl opacity-60 transition-all duration-700 ease-in-out group-hover:opacity-80 group-hover:scale-110 pointer-events-none -top-10 -right-10",
+  engineOrbProduct: "bg-gradient-to-tr from-blue-300 to-cyan-200",
+  engineOrbModel: "bg-gradient-to-tr from-purple-300 to-pink-200",
+
+  engineIconBox: "absolute top-4 left-4 w-11 h-11 rounded-xl bg-white/40 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 transition-transform duration-500 group-hover:scale-110",
+  engineIconProduct: "text-blue-600",
+  engineIconModel: "text-purple-600",
+  
+  engineTitle: "text-sm font-black text-gray-900 tracking-tight leading-none mb-1 z-10",
+  engineDesc: "text-[9px] font-bold text-gray-500 uppercase tracking-widest z-10",
+
+  engineCheckBadge: "absolute top-4 right-4 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg animate-scaleIn border-2 border-white z-20",
 };

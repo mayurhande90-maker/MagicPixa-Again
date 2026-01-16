@@ -769,20 +769,36 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         )}
                                     </div>
 
-                                    {/* Mode Toggle shifted below industry and brand */}
-                                    <div className="flex justify-start">
-                                        <div className={AdMakerStyles.segmentContainer}>
+                                    {/* STEP 1: ENGINE MODE */}
+                                    <div className="mb-8">
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>1</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Ad Engine Mode</label>
+                                        </div>
+                                        <div className={AdMakerStyles.engineGrid}>
                                             <button 
                                                 onClick={() => setIntegrationMode('product')} 
-                                                className={`${AdMakerStyles.segmentButton} ${integrationMode === 'product' ? AdMakerStyles.segmentActive : AdMakerStyles.segmentInactive}`}
+                                                className={`${AdMakerStyles.engineCard} ${integrationMode === 'product' ? AdMakerStyles.engineCardSelected : AdMakerStyles.engineCardInactive}`}
                                             >
-                                                Product Ad
+                                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
+                                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
+                                                    <CubeIcon className="w-6 h-6" />
+                                                </div>
+                                                <h4 className={AdMakerStyles.engineTitle}>Product Ad</h4>
+                                                <p className={AdMakerStyles.engineDesc}>Studio Setup</p>
+                                                {integrationMode === 'product' && <div className={AdMakerStyles.engineCheckBadge}><CheckIcon className="w-3 h-3" /></div>}
                                             </button>
                                             <button 
                                                 onClick={() => setIntegrationMode('subject')} 
-                                                className={`${AdMakerStyles.segmentButton} ${integrationMode === 'subject' ? AdMakerStyles.segmentActive : AdMakerStyles.segmentInactive}`}
+                                                className={`${AdMakerStyles.engineCard} ${integrationMode === 'subject' ? AdMakerStyles.engineCardSelected : AdMakerStyles.engineCardInactive}`}
                                             >
-                                                Model Ad
+                                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
+                                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
+                                                    <UsersIcon className="w-6 h-6" />
+                                                </div>
+                                                <h4 className={AdMakerStyles.engineTitle}>Model Ad</h4>
+                                                <p className={AdMakerStyles.engineDesc}>Human Context</p>
+                                                {integrationMode === 'subject' && <div className={AdMakerStyles.engineCheckBadge}><CheckIcon className="w-3 h-3" /></div>}
                                             </button>
                                         </div>
                                     </div>
@@ -809,7 +825,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {!auth.activeBrandKit && (
                                             <div className="animate-fadeIn">
                                                 <div className={AdMakerStyles.sectionHeader}>
-                                                    <span className={AdMakerStyles.stepBadge}>1</span>
+                                                    <span className={AdMakerStyles.stepBadge}>2</span>
                                                     <label className={AdMakerStyles.sectionTitle}>Manual Identity Anchor</label>
                                                 </div>
                                                 <div className="mb-6">
@@ -846,7 +862,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                         <div>
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '1' : '2'}</span>
+                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '2' : '3'}</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Composition Blueprint</label>
                                             </div>
                                             
@@ -871,7 +887,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                         <div>
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '2' : '3'}</span>
+                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '3' : '4'}</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Product Inventory</label>
                                             </div>
                                             <div className={AdMakerStyles.shelfContainer}>
@@ -912,7 +928,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         {integrationMode === 'subject' && (
                                             <div>
                                                 <div className={AdMakerStyles.sectionHeader}>
-                                                    <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '3' : '4'}</span>
+                                                    <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '4' : '5'}</span>
                                                     <label className={AdMakerStyles.sectionTitle}>Talent Integration</label>
                                                 </div>
                                                 <div className={AdMakerStyles.modelSelectionGrid}>
@@ -964,7 +980,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                         <div className="pt-4 border-t border-gray-100">
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '4' : '5') : (auth.activeBrandKit ? '3' : '4') }</span>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Campaign Intelligence</label>
                                             </div>
                                             
@@ -991,7 +1007,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
                                         <div className="pt-4 border-t border-gray-100 pb-20">
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                             </div>
                                             
