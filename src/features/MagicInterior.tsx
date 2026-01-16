@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
@@ -156,7 +155,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }} scrollRef={scrollRef}
+                resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ hideIcon: true }} scrollRef={scrollRef}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">

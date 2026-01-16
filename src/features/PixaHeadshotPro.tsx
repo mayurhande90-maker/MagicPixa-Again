@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../components/FeatureLayout';
@@ -233,7 +232,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Headshot" }} scrollRef={scrollRef}
+                resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ hideIcon: true, label: "Generate Headshot" }} scrollRef={scrollRef}
                 creationId={lastCreationId}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">

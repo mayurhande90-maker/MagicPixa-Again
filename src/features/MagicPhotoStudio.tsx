@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -262,6 +261,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
 
+    // FIX: Replaced 'modelBodyType' with 'bodyType' to fix ReferenceErrors
     const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (
         studioMode === 'product' 
         ? (!!selectedPrompt || (!!category && (category !== 'Other / Custom' || !!customCategory.trim()) && !!brandStyle && !!visualType)) 
@@ -298,7 +298,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
             generateButtonStyle={{ 
-                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", 
                 hideIcon: true,
                 label: studioMode === 'model' ? "Generate Model Shots" : "Generate Product Shots"
             }}
@@ -472,6 +471,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                 </>
                                             ) : (
                                                 <>
+                                                    {/* FIX: Replaced 'modelBodyType' with 'bodyType' and 'setModelBodyType' with 'setBodyType' to fix ReferenceErrors */}
                                                     <SelectionGrid label="2. Model Persona" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />
                                                     {modelType && <SelectionGrid label="3. Regional Identity" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
                                                     {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
@@ -538,6 +538,7 @@ const IndustryCard: React.FC<{
             <h3 className={PhotoStudioStyles.title}>{title}</h3>
             <p className={PhotoStudioStyles.desc}>{desc}</p>
         </div>
+        {/* FIX: Replaced AdMakerStyles.actionBtn with PhotoStudioStyles.actionBtn */}
         <div className={PhotoStudioStyles.actionBtn}>
             <ArrowRightIcon className={PhotoStudioStyles.actionIcon}/>
         </div>
