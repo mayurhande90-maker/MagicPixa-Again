@@ -48,19 +48,19 @@ export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, ap
                             key={tool.id}
                             disabled={isDisabled}
                             onClick={() => setActiveTab(tool.id as View)}
-                            className={`flex flex-col items-center justify-center gap-4 p-5 aspect-square rounded-2xl border transition-all duration-300 text-center relative overflow-hidden group ${
+                            className={`flex flex-col items-center justify-center gap-3 p-4 aspect-square rounded-2xl border transition-all duration-300 text-center relative overflow-hidden group ${
                                 isDisabled 
                                 ? 'bg-gray-50 border-transparent opacity-60' 
                                 : 'bg-white border-gray-100 shadow-sm active:scale-95 active:shadow-inner'
                             }`}
                         >
-                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-500 group-active:scale-110 shadow-sm ${tool.color}`}>
-                                <tool.icon className="w-9 h-9" />
+                            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-500 group-active:scale-110 shadow-sm ${tool.color}`}>
+                                <tool.icon className="w-11 h-11" />
                             </div>
                             
                             <div className="w-full px-1">
-                                <h3 className="text-sm font-black text-gray-900 leading-tight mb-1">{tool.label}</h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none">{tool.desc}</p>
+                                <h3 className="text-base font-black text-gray-900 leading-tight mb-0.5">{tool.label}</h3>
+                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider leading-none">{tool.desc}</p>
                             </div>
 
                             {isDisabled && (
