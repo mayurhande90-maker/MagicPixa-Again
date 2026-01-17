@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ApparelIcon, UploadIcon, XIcon, UserIcon, TrashIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, PixaTryOnIcon, ArrowUpCircleIcon, InformationCircleIcon, CameraIcon, CheckIcon } from '../components/icons';
@@ -176,7 +175,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => {}} /> : null} 
                 resultHeightClass="h-[800px]" 
                 hideGenerateButton={isLowCredits} 
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Render My Outfit" }} 
+                generateButtonStyle={{ className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", hideIcon: true, label: "Render My Outfit" }} 
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -216,7 +215,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                                 </div>
 
                                 <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
-                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                                    <span className="w-2 h-2 bg-red-50 rounded-full animate-ping"></span>
                                     <p className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">Live Tracking Active</p>
                                 </div>
 
@@ -226,7 +225,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                                     </button>
                                     <button 
                                         onClick={handleCapture}
-                                        className="bg-white text-black px-12 py-4 rounded-2xl font-black text-sm shadow-2xl hover:scale-105 transition-all flex items-center gap-3"
+                                        className="bg-[#F9D230] text-black px-12 py-4 rounded-2xl font-black text-sm shadow-2xl hover:scale-105 hover:bg-[#dfbc2b] transition-all flex items-center gap-3"
                                     >
                                         <CameraIcon className="w-5 h-5"/> SNAP PHOTO
                                     </button>
