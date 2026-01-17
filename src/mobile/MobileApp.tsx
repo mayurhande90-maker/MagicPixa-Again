@@ -7,6 +7,10 @@ import AuthModal from '../components/AuthModal';
 // Lazy load mobile features
 const MobileHome = lazy(() => import('./features/MobileHome').then(m => ({ default: m.MobileHome })));
 const MobileStudio = lazy(() => import('./features/MobileStudio').then(m => ({ default: m.MobileStudio })));
+const MobileAdMaker = lazy(() => import('./features/MobileAdMaker').then(m => ({ default: m.MobileAdMaker })));
+const MobileHeadshot = lazy(() => import('./features/MobileHeadshot').then(m => ({ default: m.MobileHeadshot })));
+const MobileThumbnail = lazy(() => import('./features/MobileThumbnail').then(m => ({ default: m.MobileThumbnail })));
+const MobileTogether = lazy(() => import('./features/MobileTogether').then(m => ({ default: m.MobileTogether })));
 const MobileCreations = lazy(() => import('./features/MobileCreations').then(m => ({ default: m.MobileCreations })));
 const MobileProfile = lazy(() => import('./features/MobileProfile').then(m => ({ default: m.MobileProfile })));
 
@@ -24,6 +28,14 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
                 return <MobileHome auth={auth} setActiveTab={setActiveTab} />;
             case 'studio':
                 return <MobileStudio auth={auth} appConfig={appConfig} />;
+            case 'brand_stylist':
+                return <MobileAdMaker auth={auth} appConfig={appConfig} />;
+            case 'headshot':
+                return <MobileHeadshot auth={auth} appConfig={appConfig} />;
+            case 'thumbnail_studio':
+                return <MobileThumbnail auth={auth} appConfig={appConfig} />;
+            case 'soul':
+                return <MobileTogether auth={auth} appConfig={appConfig} />;
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':

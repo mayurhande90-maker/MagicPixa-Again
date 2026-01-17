@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { AuthProps, View } from '../../types';
-import { SparklesIcon, MagicAdsIcon, PixaHeadshotIcon, PixaTogetherIcon, ArrowRightIcon, GiftIcon, LightningIcon } from '../../components/icons';
+import { SparklesIcon, MagicAdsIcon, PixaHeadshotIcon, PixaTogetherIcon, ArrowRightIcon, GiftIcon, LightningIcon, ThumbnailIcon } from '../../components/icons';
 
 interface MobileHomeProps {
     auth: AuthProps;
@@ -67,7 +67,10 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     </button>
 
                     {/* Secondary: AdMaker */}
-                    <button className="aspect-square relative rounded-[2rem] bg-[#F3E5F5] border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group">
+                    <button 
+                        onClick={() => setActiveTab('brand_stylist')}
+                        className="aspect-square relative rounded-[2rem] bg-[#F3E5F5] border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group"
+                    >
                         <div className="w-10 h-10 rounded-2xl bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-center text-purple-600">
                             <MagicAdsIcon className="w-5 h-5" />
                         </div>
@@ -75,7 +78,10 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     </button>
 
                     {/* Secondary: Headshot */}
-                    <button className="aspect-square relative rounded-[2rem] bg-[#FFF8E1] border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group">
+                    <button 
+                        onClick={() => setActiveTab('headshot')}
+                        className="aspect-square relative rounded-[2rem] bg-[#FFF8E1] border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group"
+                    >
                         <div className="w-10 h-10 rounded-2xl bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-center text-amber-600">
                             <PixaHeadshotIcon className="w-5 h-5" />
                         </div>
@@ -83,19 +89,25 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     </button>
                     
                     {/* Secondary: Together */}
-                    <button className="aspect-square relative rounded-[2rem] bg-[#FCE4EC] border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group">
+                    <button 
+                        onClick={() => setActiveTab('soul')}
+                        className="aspect-square relative rounded-[2rem] bg-[#FCE4EC] border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group"
+                    >
                         <div className="w-10 h-10 rounded-2xl bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-center text-pink-600">
                             <PixaTogetherIcon className="w-5 h-5" />
                         </div>
                         <h4 className="text-sm font-black text-gray-900 tracking-tight leading-tight">Pixa Together</h4>
                     </button>
 
-                    {/* All Tools Link */}
-                    <button className="aspect-square relative rounded-[2rem] bg-gray-900 border border-white p-5 flex flex-col justify-center items-center text-center overflow-hidden group">
-                        <div className="p-3 rounded-full bg-white/10 mb-2">
-                             <ArrowRightIcon className="w-5 h-5 text-white" />
+                    {/* Secondary: Thumbnail */}
+                    <button 
+                        onClick={() => setActiveTab('thumbnail_studio')}
+                        className="aspect-square relative rounded-[2rem] bg-indigo-900 border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group"
+                    >
+                        <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md shadow-sm flex items-center justify-center text-white">
+                            <ThumbnailIcon className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">All Tools</span>
+                        <h4 className="text-sm font-black text-white tracking-tight leading-tight">Thumbnail Pro</h4>
                     </button>
                 </div>
             </div>
