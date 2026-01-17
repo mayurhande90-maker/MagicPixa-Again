@@ -36,7 +36,7 @@ export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, ap
                 <p className="text-gray-500 font-medium mt-1">Select a tool to start creating</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-5">
                 {ALL_TOOLS.map((tool) => {
                     const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
                     
@@ -45,31 +45,31 @@ export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, ap
                             key={tool.id}
                             disabled={isDisabled}
                             onClick={() => setActiveTab(tool.id as View)}
-                            className={`flex flex-col items-center justify-center gap-3 p-5 aspect-square rounded-[2.5rem] border transition-all duration-300 text-center relative overflow-hidden group ${
+                            className={`flex flex-col items-center justify-center gap-4 p-6 aspect-square rounded-[2.5rem] border transition-all duration-300 text-center relative overflow-hidden group ${
                                 isDisabled 
                                 ? 'bg-gray-50 border-transparent opacity-60' 
                                 : 'bg-white border-gray-100 shadow-sm active:scale-95 active:shadow-inner'
                             }`}
                         >
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-500 group-active:scale-110 ${tool.color}`}>
-                                <tool.icon className="w-7 h-7" />
+                            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shrink-0 transition-transform duration-500 group-active:scale-110 shadow-sm ${tool.color}`}>
+                                <tool.icon className="w-9 h-9" />
                             </div>
                             
                             <div className="w-full px-1">
-                                <h3 className="text-xs font-black text-gray-900 leading-tight mb-0.5">{tool.label}</h3>
-                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{tool.desc}</p>
+                                <h3 className="text-sm font-black text-gray-900 leading-tight mb-1">{tool.label}</h3>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none">{tool.desc}</p>
                             </div>
 
                             {isDisabled && (
-                                <div className="absolute top-3 right-3">
+                                <div className="absolute top-4 right-4">
                                     <span className="bg-gray-200 text-gray-500 text-[8px] font-black uppercase px-2 py-0.5 rounded-full">Soon</span>
                                 </div>
                             )}
 
                             {!isDisabled && (
                                 <div className="absolute bottom-4 right-4 opacity-0 group-active:opacity-100 transition-opacity">
-                                    <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                        <ArrowRightIcon className="w-3 h-3" />
+                                    <div className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                                        <ArrowRightIcon className="w-3.5 h-3.5" />
                                     </div>
                                 </div>
                             )}
