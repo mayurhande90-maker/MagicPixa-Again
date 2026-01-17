@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import './styles/typography.css'; // Import centralized typography
+import './styles/typography.css'; 
 import HomePage from './HomePage';
-import StagingHomePage from './StagingHomePage'; // NEW: Added Staging Homepage
+import StagingHomePage from './StagingHomePage'; 
 import DashboardPage from './DashboardPage';
 import AboutUsPage from './AboutUsPage';
 import PricingPage from './PricingPage';
@@ -25,6 +26,8 @@ import {
 } from './firebase';
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from './types';
 import { ShieldCheckIcon } from './components/icons';
+import { useDevice } from './hooks/useDevice'; // NEW: Device detection
+import { MobileApp } from './mobile/MobileApp'; // NEW: Mobile entry point
 
 // --- Routing Configuration ---
 
@@ -86,9 +89,9 @@ const BannedScreen: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
 );
 
 function App() {
+  const { isMobile } = useDevice(); // Detect device
   const [missingKeys] = useState<string[]>(getMissingConfigKeys());
   
-  // NEW: Staging Mode State
   const [isStaging] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('staging') === 'true';
@@ -303,6 +306,18 @@ function App() {
     openAuthModal: () => setIsAuthModalOpen(true),
     impersonateUser: user?.isAdmin ? (u) => { setImpersonatedUser(u); if(u) navigateTo('dashboard', 'dashboard'); } : undefined
   };
+
+  // --- MOBILE FORK ---
+  if (isMobile && authProps.isAuthenticated) {
+    return (
+        <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white`}>
+            <MobileApp auth={authProps} appConfig={appConfig} />
+            {activeUser?.systemNotification && !activeUser.systemNotification.read && (
+                <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
+            )}
+        </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen flex flex-col font-sans text-slate-900 ${impersonatedUser ? 'pt-14' : ''}`}>
