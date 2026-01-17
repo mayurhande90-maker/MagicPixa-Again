@@ -28,15 +28,15 @@ const ALL_TOOLS = [
 
 export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, appConfig }) => {
     return (
-        <div className="p-6 pb-24 animate-fadeIn">
-            <div className="mb-8">
+        <div className="px-4 pt-6 pb-24 animate-fadeIn">
+            <div className="mb-8 px-2">
                 <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">
                     Creative Suite
                 </h1>
                 <p className="text-gray-500 font-medium mt-1">Select a tool to start creating</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 gap-3">
                 {ALL_TOOLS.map((tool) => {
                     const isDisabled = appConfig?.featureToggles?.[tool.id] === false;
                     
@@ -45,13 +45,13 @@ export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, ap
                             key={tool.id}
                             disabled={isDisabled}
                             onClick={() => setActiveTab(tool.id as View)}
-                            className={`flex flex-col items-center justify-center gap-4 p-6 aspect-square rounded-[2.5rem] border transition-all duration-300 text-center relative overflow-hidden group ${
+                            className={`flex flex-col items-center justify-center gap-4 p-5 aspect-square rounded-2xl border transition-all duration-300 text-center relative overflow-hidden group ${
                                 isDisabled 
                                 ? 'bg-gray-50 border-transparent opacity-60' 
                                 : 'bg-white border-gray-100 shadow-sm active:scale-95 active:shadow-inner'
                             }`}
                         >
-                            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shrink-0 transition-transform duration-500 group-active:scale-110 shadow-sm ${tool.color}`}>
+                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-500 group-active:scale-110 shadow-sm ${tool.color}`}>
                                 <tool.icon className="w-9 h-9" />
                             </div>
                             
@@ -61,15 +61,15 @@ export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, ap
                             </div>
 
                             {isDisabled && (
-                                <div className="absolute top-4 right-4">
+                                <div className="absolute top-3 right-3">
                                     <span className="bg-gray-200 text-gray-500 text-[8px] font-black uppercase px-2 py-0.5 rounded-full">Soon</span>
                                 </div>
                             )}
 
                             {!isDisabled && (
-                                <div className="absolute bottom-4 right-4 opacity-0 group-active:opacity-100 transition-opacity">
-                                    <div className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
-                                        <ArrowRightIcon className="w-3.5 h-3.5" />
+                                <div className="absolute bottom-3 right-3 opacity-0 group-active:opacity-100 transition-opacity">
+                                    <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                                        <ArrowRightIcon className="w-3 h-3" />
                                     </div>
                                 </div>
                             )}
