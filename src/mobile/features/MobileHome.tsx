@@ -99,15 +99,15 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                         <h4 className="text-sm font-black text-gray-900 tracking-tight leading-tight">Pixa Together</h4>
                     </button>
 
-                    {/* Secondary: Thumbnail */}
+                    {/* All Tools Link - Navigates to Features tab */}
                     <button 
-                        onClick={() => setActiveTab('thumbnail_studio')}
-                        className="aspect-square relative rounded-[2rem] bg-indigo-900 border border-white p-5 flex flex-col justify-between items-start text-left overflow-hidden group"
+                        onClick={() => setActiveTab('dashboard')}
+                        className="aspect-square relative rounded-[2rem] bg-gray-900 border border-white p-5 flex flex-col justify-center items-center text-center overflow-hidden group"
                     >
-                        <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md shadow-sm flex items-center justify-center text-white">
-                            <ThumbnailIcon className="w-5 h-5" />
+                        <div className="p-3 rounded-full bg-white/10 mb-2">
+                             <ArrowRightIcon className="w-5 h-5 text-white" />
                         </div>
-                        <h4 className="text-sm font-black text-white tracking-tight leading-tight">Thumbnail Pro</h4>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">All Tools</span>
                     </button>
                 </div>
             </div>

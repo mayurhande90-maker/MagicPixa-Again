@@ -6,6 +6,7 @@ import AuthModal from '../components/AuthModal';
 
 // Lazy load mobile features
 const MobileHome = lazy(() => import('./features/MobileHome').then(m => ({ default: m.MobileHome })));
+const MobileFeatures = lazy(() => import('./features/MobileFeatures').then(m => ({ default: m.MobileFeatures })));
 const MobileStudio = lazy(() => import('./features/MobileStudio').then(m => ({ default: m.MobileStudio })));
 const MobileAdMaker = lazy(() => import('./features/MobileAdMaker').then(m => ({ default: m.MobileAdMaker })));
 const MobileHeadshot = lazy(() => import('./features/MobileHeadshot').then(m => ({ default: m.MobileHeadshot })));
@@ -26,6 +27,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         switch (activeTab) {
             case 'home_dashboard':
                 return <MobileHome auth={auth} setActiveTab={setActiveTab} />;
+            case 'dashboard':
+                return <MobileFeatures setActiveTab={setActiveTab} appConfig={appConfig} />;
             case 'studio':
                 return <MobileStudio auth={auth} appConfig={appConfig} />;
             case 'brand_stylist':
