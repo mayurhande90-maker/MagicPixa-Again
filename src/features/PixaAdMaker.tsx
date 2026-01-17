@@ -328,7 +328,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const isMismatch = auth.activeBrandKit && industry && brandIndustry !== industry;
 
     // --- DYNAMIC VIBE FILTERING ---
-    const filteredVibeOptions = useMemo(() => {
+    const filteredVibes = useMemo(() => {
         if (!industry) return [];
         const industryVibes = VIBE_MAP[industry] || [];
         const supportedVibes = BLUEPRINT_VIBE_CONSTRAINTS[layoutTemplate] || [];
@@ -336,10 +336,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     }, [industry, layoutTemplate]);
 
     useEffect(() => {
-        if (vibe && !filteredVibeOptions.includes(vibe)) {
+        if (vibe && !filteredVibes.includes(vibe)) {
             setVibe('');
         }
-    }, [layoutTemplate, filteredVibeOptions]);
+    }, [layoutTemplate, filteredVibes]);
 
     // SYNC WITH BRAND KIT
     useEffect(() => {
@@ -498,13 +498,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode('product');
     };
 
-    // FIX: Added 'handleClaimBonus' to fix a missing function reference in the milestone modal
-    const handleClaimBonus = async () => {
-        if (!auth.user || !milestoneBonus) return;
-        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-    };
-
     const handleEditorSave = async (newUrl: string) => { 
         setResultImage(newUrl); 
         if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl);
@@ -586,7 +579,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 ) : null}
                 resultHeightClass="h-[850px]"
                 hideGenerateButton={isLowCredits}
-                generateButtonStyle={{ hideIcon: true, label: "Generate Ad" }}
+                generateButtonStyle={{ className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", hideIcon: true, label: "Generate Ad" }}
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
@@ -721,7 +714,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 <div className="min-w-0">
                                                     <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Niche</p>
                                                     <p className="text-sm font-black text-blue-900 truncate">
-                                                        {INDUSTR_CONFIG[industry!].label}
+                                                        {INDUSTRY_CONFIG[industry!].label}
                                                     </p>
                                                 </div>
                                             </div>
@@ -978,7 +971,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                             heightClass="h-40"
                                                         />
                                                         <p className="text-[9px] text-gray-400 mt-2 italic px-1">
-                                                            Pixa will intelligently anchor the subject's face and body exactly to the final ad.
+                                                            Pixa will anchor the subject's face and body exactly to the final ad.
                                                         </p>
                                                     </div>
                                                 )}
@@ -994,7 +987,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="space-y-4">
                                                 <SelectionGrid 
                                                     label="Visual Mood / Vibe" 
-                                                    options={filteredVibeOptions} 
+                                                    options={filteredVibes} 
                                                     value={vibe} 
                                                     onChange={setVibe} 
                                                 />
@@ -1033,7 +1026,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     )
                 }
             />
-            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
+            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={claimMilestoneBonus as any} onClose={() => setMilestoneBonus(undefined)} />}
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showBrandModal && auth.user && (
                 <BrandSelectionModal 
