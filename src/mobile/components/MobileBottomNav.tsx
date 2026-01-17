@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { View } from '../../types';
-import { HomeIcon, LayoutGridIcon, ProjectsIcon, UserIcon } from '../../components/icons';
+import { HomeIcon, DashboardIcon, ProjectsIcon, UserIcon } from '../../components/icons';
 
 interface MobileBottomNavProps {
     activeTab: View;
@@ -11,7 +11,7 @@ interface MobileBottomNavProps {
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab }) => {
     const navItems = [
         { id: 'home_dashboard', label: 'Home', icon: HomeIcon },
-        { id: 'dashboard', label: 'Features', icon: LayoutGridIcon },
+        { id: 'dashboard', label: 'Features', icon: DashboardIcon },
         { id: 'creations', label: 'Projects', icon: ProjectsIcon },
         { id: 'profile', label: 'Profile', icon: UserIcon },
     ];

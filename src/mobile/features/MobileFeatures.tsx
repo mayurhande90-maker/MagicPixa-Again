@@ -5,7 +5,7 @@ import {
     PixaProductIcon, PixaHeadshotIcon, PixaEcommerceIcon, 
     MagicAdsIcon, ThumbnailIcon, PixaTogetherIcon, 
     PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, 
-    PixaTryOnIcon, ArrowRightIcon 
+    PixaTryOnIcon, ArrowRightIcon, DashboardIcon 
 } from '../../components/icons';
 
 interface MobileFeaturesProps {
@@ -30,10 +30,13 @@ export const MobileFeatures: React.FC<MobileFeaturesProps> = ({ setActiveTab, ap
     return (
         <div className="px-4 pt-6 pb-24 animate-fadeIn">
             <div className="mb-8 px-2">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                    Creative Suite
-                </h1>
-                <p className="text-gray-500 font-medium mt-1">Select a tool to start creating</p>
+                <div className="flex items-center gap-3 mb-1">
+                    <DashboardIcon className="w-8 h-8" />
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                        Creative Suite
+                    </h1>
+                </div>
+                <p className="text-gray-500 font-medium ml-11">Select a tool to start creating</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
