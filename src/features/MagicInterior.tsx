@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
@@ -36,9 +35,9 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
 
+    const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa Interior Design'] || appConfig?.featureCosts['Magic Interior'] || 8;
     const userCredits = auth.user?.credits || 0;
@@ -128,6 +127,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const handleNewSession = () => { setImage(null); setResult(null); setRoomType(''); setStyle(''); setLastCreationId(null); setIsRefineActive(false); };
     
     const handleEditorSave = async (newUrl: string) => { 
+        // Fixed typo: renamed 'setResultImage' to 'setResult' to match state declaration
         setResult(newUrl); 
         if (lastCreationId && auth.user) {
             await updateCreation(auth.user.uid, lastCreationId, newUrl);
@@ -143,8 +143,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
-                onResetResult={result ? undefined : () => setResult(null)} onNewSession={result ? undefined : handleNewSession}
+                title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                onResetResult={result ? undefined : handleGenerate} onNewSession={result ? undefined : handleNewSession}
                 onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
@@ -156,7 +156,13 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true }} scrollRef={scrollRef}
+                resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} 
+                generateButtonStyle={{ 
+                    className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
+                    hideIcon: true,
+                    label: "Generate Design"
+                }} 
+                scrollRef={scrollRef}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
