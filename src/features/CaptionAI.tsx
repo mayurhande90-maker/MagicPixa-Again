@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { generateCaptions } from '../services/captionService';
@@ -65,10 +64,10 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const autoScroll = () => { if (scrollRef.current) setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, 100); };
     const scrollToResults = () => { if (scrollRef.current && resultsRef.current) setTimeout(() => { const element = resultsRef.current; const container = scrollRef.current; if (element && container) container.scrollTo({ top: element.offsetTop - 20, behavior: 'smooth' }); }, 100); };
 
-    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
-    const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
-    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
-    const handleDrop = async (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { const file = e.dataTransfer.files[0]; if (file.type.startsWith('image/')) { const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } else { alert("Please drop a valid image file."); } } };
+    const handleDragOver = (event: React.DragEvent) => { event.preventDefault(); event.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragEnter = (event: React.DragEvent) => { event.preventDefault(); event.stopPropagation(); if (!isDragging) setIsDragging(true); };
+    const handleDragLeave = (event: React.DragEvent) => { event.preventDefault(); event.stopPropagation(); setIsDragging(false); };
+    const handleDrop = async (event: React.DragEvent) => { event.preventDefault(); event.stopPropagation(); setIsDragging(false); if (event.dataTransfer.files && event.dataTransfer.files[0]) { const file = event.dataTransfer.files[0]; if (file.type.startsWith('image/')) { const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } else { alert("Please drop a valid image file."); } } };
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); handleNewSession(); setImage({ url: URL.createObjectURL(file), base64 }); } };
 
     const handleGenerate = async () => {
@@ -106,7 +105,12 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                 title="Pixa Caption Pro" description="Get viral, research-backed captions optimized for engagement and organic reach." icon={<PixaCaptionIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits}
                 activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions", hideIcon: true }} scrollRef={scrollRef}
+                generateButtonStyle={{ 
+                    className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
+                    label: captions.length > 0 ? "Regenerate Captions" : "Generate Captions", 
+                    hideIcon: true 
+                }} 
+                scrollRef={scrollRef}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
