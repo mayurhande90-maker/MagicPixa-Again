@@ -278,6 +278,7 @@ export const FeatureLayout: React.FC<{
         className?: string;
         hideIcon?: boolean;
         label?: string;
+        loadingLabel?: string;
     };
     resultHeightClass?: string;
     hideGenerateButton?: boolean;
@@ -540,7 +541,7 @@ export const FeatureLayout: React.FC<{
                                     {isGenerating ? (
                                         <>
                                             <div className={`w-6 h-6 border-3 border-t-transparent rounded-full animate-spin border-black/10 border-t-black`}></div> 
-                                            <span className="animate-pulse">Generating...</span>
+                                            <span className="animate-pulse">{generateButtonStyle?.loadingLabel || "Generating..."}</span>
                                         </>
                                     ) : (
                                         <>
