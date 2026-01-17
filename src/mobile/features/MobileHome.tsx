@@ -1,240 +1,293 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, View, Creation } from '../../types';
+// Add missing icons: CreditCoinIcon, DownloadIcon, CalendarIcon
 import { 
     SparklesIcon, MagicAdsIcon, PixaHeadshotIcon, 
-    PixaTogetherIcon, ArrowRightIcon, GiftIcon, 
-    LightningIcon, ThumbnailIcon, UploadIcon,
+    ArrowRightIcon, LightningIcon, 
     PixaProductIcon, CameraIcon, CheckIcon,
-    InformationCircleIcon, ClockIcon
+    ClockIcon, FlagIcon, GiftIcon, UserIcon,
+    PixaTogetherIcon, ThumbnailIcon, PixaRestoreIcon,
+    PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
+    DashboardIcon, CreditCoinIcon, DownloadIcon, CalendarIcon
 } from '../../components/icons';
-import { getCreations } from '../../firebase';
+import { getCreations, claimDailyAttendance } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
+import { getBadgeInfo } from '../../utils/badgeUtils';
+import { downloadImage } from '../../utils/imageUtils';
 
 interface MobileHomeProps {
     auth: AuthProps;
     setActiveTab: (tab: View) => void;
 }
 
-const MobileBeforeAfter: React.FC<{ before: string, after: string, label: string }> = ({ before, after, label }) => {
-    return (
-        <div className="shrink-0 w-64 aspect-[4/3] rounded-3xl bg-gray-100 overflow-hidden relative border border-gray-100 shadow-sm">
-            <img src={before} className="absolute inset-0 w-full h-full object-cover" alt="Before" />
-            <div className="absolute inset-0 w-full h-full animate-mobile-wipe overflow-hidden">
-                <img src={after} className="w-full h-full object-cover" alt="After" />
-            </div>
-            <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
-                <span className="text-[8px] font-black text-white uppercase tracking-widest">{label}</span>
-            </div>
-            <div className="absolute top-3 right-3">
-                <SparklesIcon className="w-4 h-4 text-yellow-400 drop-shadow-md" />
-            </div>
-        </div>
-    );
-};
+const QUICK_TOOLS = [
+    { id: 'studio', label: 'Studio', icon: PixaProductIcon, color: 'bg-blue-50 text-blue-600' },
+    { id: 'headshot', label: 'Headshot', icon: PixaHeadshotIcon, color: 'bg-amber-50 text-amber-600' },
+    { id: 'brand_stylist', label: 'AdMaker', icon: MagicAdsIcon, color: 'bg-purple-50 text-purple-600' },
+    { id: 'thumbnail_studio', label: 'Viral', icon: ThumbnailIcon, color: 'bg-red-50 text-red-600' },
+];
 
 export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) => {
     const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
     const [loadingRecent, setLoadingRecent] = useState(true);
-    const firstName = auth.user?.name ? auth.user.name.split(' ')[0] : 'Creator';
+    const [isClaiming, setIsClaiming] = useState(false);
+
+    const user = auth.user;
+    const firstName = user?.name ? user.name.split(' ')[0] : 'Creator';
     const mission = getDailyMission();
-    const isLocked = isMissionLocked(auth.user);
+    const isMissionComplete = isMissionLocked(user);
+    const badge = getBadgeInfo(user?.lifetimeGenerations || 0);
+
+    // Time-based Greeting
+    const greeting = useMemo(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 17) return "Good Afternoon";
+        return "Good Evening";
+    }, []);
+
+    // Loyalty Progress Calculation
+    const { progressPercent, nextTarget, nextReward } = useMemo(() => {
+        const current = user?.lifetimeGenerations || 0;
+        let next = 10, prev = 0, reward = 5;
+
+        if (current < 10) { next = 10; prev = 0; reward = 5; } 
+        else if (current < 25) { next = 25; prev = 10; reward = 10; } 
+        else if (current < 50) { next = 50; prev = 25; reward = 15; } 
+        else if (current < 75) { next = 75; prev = 50; reward = 20; } 
+        else if (current < 100) { next = 100; prev = 75; reward = 30; } 
+        else { const hundreds = Math.floor(current / 100); prev = hundreds * 100; next = (hundreds + 1) * 100; reward = 30; }
+        
+        const percent = Math.min(100, Math.max(0, ((current - prev) / (next - prev)) * 100));
+        return { progressPercent: percent, nextTarget: next, nextReward: reward };
+    }, [user?.lifetimeGenerations]);
+
+    // Check-in status
+    const canClaimCheckin = useMemo(() => {
+        if (!user?.lastAttendanceClaim) return true;
+        const last = (user.lastAttendanceClaim as any).toDate ? (user.lastAttendanceClaim as any).toDate() : new Date(user.lastAttendanceClaim as any);
+        const now = new Date();
+        return (now.getTime() - last.getTime()) > (24 * 60 * 60 * 1000);
+    }, [user?.lastAttendanceClaim]);
 
     useEffect(() => {
-        if (auth.user) {
-            getCreations(auth.user.uid).then(data => {
-                setRecentCreations((data as Creation[]).slice(0, 3));
+        if (user) {
+            getCreations(user.uid).then(data => {
+                setRecentCreations(data as Creation[]);
                 setLoadingRecent(false);
             });
         }
-    }, [auth.user]);
+    }, [user?.uid]);
 
-    const exampleShowcase = [
-        { label: "Product Shot", before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=500", after: "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?q=80&w=500" },
-        { label: "Executive Pro", before: "https://i.pravatar.cc/500?u=1", after: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=500" },
-        { label: "Viral Hook", before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=500", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=500" },
-    ];
+    const handleClaimCheckin = async () => {
+        if (!user || !canClaimCheckin || isClaiming) return;
+        setIsClaiming(true);
+        try {
+            const updatedUser = await claimDailyAttendance(user.uid);
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        } catch (e) {
+            alert("Check-in failed. Please try again later.");
+        } finally {
+            setIsClaiming(false);
+        }
+    };
+
+    const latestCreation = recentCreations[0];
 
     return (
         <div className="pb-24 animate-fadeIn">
-            <style>{`
-                @keyframes mobile-wipe {
-                    0%, 15% { clip-path: inset(0 100% 0 0); }
-                    45%, 65% { clip-path: inset(0 0% 0 0); }
-                    90%, 100% { clip-path: inset(0 100% 0 0); }
-                }
-                .animate-mobile-wipe {
-                    animation: mobile-wipe 6s ease-in-out infinite;
-                }
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
-
-            {/* 1. MAGIC ACTION ZONE (Hero) */}
-            <div className="p-6 pb-2">
-                <div className="relative w-full h-56 rounded-[2.5rem] bg-[#1A1A1E] overflow-hidden shadow-2xl group active:scale-[0.98] transition-all">
-                    {/* Abstract Motion Background */}
-                    <div className="absolute inset-0 opacity-40">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full blur-[80px] -mr-20 -mt-20 animate-pulse"></div>
-                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600 rounded-full blur-[60px] -ml-10 -mb-10"></div>
+            {/* 1. GREETING HEADER */}
+            <div className="px-6 pt-6 pb-4 flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
+                        {greeting},
+                    </h1>
+                    <p className="text-3xl font-black text-indigo-600 mt-1">{firstName}!</p>
+                </div>
+                <div className="text-right">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Balance</p>
+                    <div className="flex items-center justify-end gap-2 bg-indigo-50 px-3 py-1.5 rounded-2xl border border-indigo-100">
+                        <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
+                        <span className="text-lg font-black text-indigo-900 leading-none">{user?.credits || 0}</span>
                     </div>
-                    
-                    <div className="relative z-10 h-full p-8 flex flex-col justify-between items-start text-left">
-                        <div className="space-y-1">
-                            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 mb-2">
-                                <SparklesIcon className="w-3 h-3 text-yellow-300" />
-                                <span className="text-[9px] font-black text-white uppercase tracking-widest">Instant Production</span>
-                            </div>
-                            <h2 className="text-3xl font-black text-white leading-tight tracking-tight">
-                                Transform <br/>
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Everything.</span>
-                            </h2>
-                        </div>
-
-                        <button 
-                            onClick={() => setActiveTab('studio')}
-                            className="bg-white text-black px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-xl active:scale-95 transition-transform"
-                        >
-                            <CameraIcon className="w-4 h-4" />
-                            Upload & Transform
-                        </button>
-                    </div>
-
-                    {/* Decorative Scan Line */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-transparent via-blue-400 to-transparent opacity-20 animate-[scan-h_3s_linear_infinite]"></div>
                 </div>
             </div>
 
-            {/* 2. HALL OF MAGIC (Showcase) */}
-            <div className="mt-8">
-                <div className="px-7 mb-4 flex items-center justify-between">
-                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">The Magic Wall</h3>
-                    <div className="flex gap-1">
-                        <div className="w-1 h-1 rounded-full bg-indigo-600"></div>
-                        <div className="w-1 h-1 rounded-full bg-gray-200"></div>
-                        <div className="w-1 h-1 rounded-full bg-gray-200"></div>
+            {/* 2. DASHBOARD: LATEST CREATION */}
+            <div className="px-6 py-4">
+                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden relative min-h-[220px] group active:scale-[0.98] transition-all">
+                    {loadingRecent ? (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-50">
+                            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    ) : latestCreation ? (
+                        <div className="relative h-60 w-full" onClick={() => setActiveTab('creations')}>
+                            <img src={latestCreation.imageUrl} className="w-full h-full object-cover" alt="Latest" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+                                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 w-fit mb-2">
+                                    <SparklesIcon className="w-3 h-3 text-yellow-300" />
+                                    <span className="text-[9px] font-black text-white uppercase tracking-widest">Latest Output</span>
+                                </div>
+                                <h3 className="text-xl font-bold text-white leading-tight">{latestCreation.feature}</h3>
+                                <div className="mt-4 flex gap-2">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); downloadImage(latestCreation.imageUrl, 'latest.png'); }}
+                                        className="bg-white/90 backdrop-blur-md text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg"
+                                    >
+                                        <DownloadIcon className="w-3 h-3" /> Save
+                                    </button>
+                                    <button className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg">
+                                        View Lab
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-8 text-center flex flex-col items-center justify-center bg-gray-50 h-60 border-2 border-dashed border-gray-200">
+                            <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-4 text-gray-300">
+                                <CameraIcon className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-lg font-black text-gray-900 leading-tight">No creations yet</h3>
+                            <p className="text-xs text-gray-400 font-medium mt-1 max-w-[180px]">Your first masterpiece will appear right here.</p>
+                            <button 
+                                onClick={() => setActiveTab('studio')}
+                                className="mt-5 bg-white text-indigo-600 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm active:scale-95 transition-all"
+                            >
+                                Open Studio
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 3. LOYALTY BONUS SECTION */}
+            <div className="px-6 py-4">
+                <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-md relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 group-hover:bg-indigo-100 transition-colors"></div>
+                    
+                    <div className="relative z-10 flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${badge.borderColor} ${badge.bgColor}`}>
+                                <badge.Icon className={`w-5 h-5 ${badge.iconColor}`} />
+                            </div>
+                            <div>
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Rank: {badge.rank}</h4>
+                                <p className="text-xl font-black text-gray-900 leading-none">{user?.lifetimeGenerations || 0} <span className="text-[10px] text-gray-400">Gens</span></p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xl font-black text-indigo-600">{nextTarget}</p>
+                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Next Target</p>
+                        </div>
+                    </div>
+
+                    <div className="relative z-10">
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1.5 text-gray-400">
+                            <span>Experience</span>
+                            <span className="text-indigo-500">Reward: +{nextReward} Credits</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                            <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-1000 relative" style={{ width: `${progressPercent}%` }}>
+                                <div className="absolute inset-0 bg-white/20 animate-[progress_2s_linear_infinite]"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-4 overflow-x-auto no-scrollbar px-6 pb-2">
-                    {exampleShowcase.map((item, i) => (
-                        <MobileBeforeAfter key={i} {...item} />
+            </div>
+
+            {/* 4. DAILY HUB (Mission & Check-in) */}
+            <div className="px-6 py-4">
+                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-1">Daily Hub</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Daily Mission Card */}
+                    <button 
+                        onClick={() => setActiveTab('daily_mission' as any)}
+                        className={`p-5 rounded-[2rem] border transition-all text-left flex flex-col justify-between h-48 relative overflow-hidden ${
+                            isMissionComplete 
+                            ? 'bg-emerald-50 border-emerald-100 opacity-80' 
+                            : 'bg-gray-900 border-gray-800 shadow-lg active:scale-95 shadow-gray-900/10'
+                        }`}
+                    >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${isMissionComplete ? 'bg-white text-emerald-500 shadow-sm' : 'bg-white/10 text-yellow-400'}`}>
+                            {isMissionComplete ? <CheckIcon className="w-6 h-6" /> : <LightningIcon className="w-6 h-6 animate-pulse" />}
+                        </div>
+                        <div>
+                            <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isMissionComplete ? 'text-emerald-600' : 'text-yellow-400'}`}>
+                                {isMissionComplete ? 'Completed' : 'Active Mission'}
+                            </p>
+                            <h4 className={`text-sm font-black leading-tight ${isMissionComplete ? 'text-emerald-900' : 'text-white'}`}>
+                                {mission.title}
+                            </h4>
+                        </div>
+                        {!isMissionComplete && (
+                            <div className="mt-3 flex items-center gap-1.5 text-green-400 font-bold text-[10px]">
+                                <SparklesIcon className="w-3 h-3" /> +5 Credits
+                            </div>
+                        )}
+                    </button>
+
+                    {/* Daily Check-in Card */}
+                    <button 
+                        onClick={handleClaimCheckin}
+                        disabled={!canClaimCheckin || isClaiming}
+                        className={`p-5 rounded-[2rem] border transition-all text-left flex flex-col justify-between h-48 relative overflow-hidden ${
+                            !canClaimCheckin 
+                            ? 'bg-blue-50 border-blue-100 opacity-60' 
+                            : 'bg-white border-gray-100 shadow-lg active:scale-95 shadow-indigo-500/5'
+                        }`}
+                    >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${!canClaimCheckin ? 'bg-white text-blue-500 shadow-sm' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'}`}>
+                            <CalendarIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
+                            <h4 className="text-sm font-black text-gray-900 leading-tight">
+                                {isClaiming ? 'Claiming...' : !canClaimCheckin ? 'See you tomorrow' : 'Claim Daily Attendance'}
+                            </h4>
+                        </div>
+                        {canClaimCheckin && (
+                             <div className="mt-3 flex items-center gap-1.5 text-indigo-600 font-bold text-[10px]">
+                                <SparklesIcon className="w-3 h-3" /> +1 Credit
+                            </div>
+                        )}
+                        {!canClaimCheckin && (
+                             <div className="mt-3 flex items-center gap-1.5 text-gray-400 font-bold text-[10px]">
+                                <ClockIcon className="w-3 h-3" /> 24h cooldown
+                            </div>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* 5. QUICK FEATURES */}
+            <div className="px-6 py-6 pb-12">
+                <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Quick Tools</h3>
+                    <button onClick={() => setActiveTab('dashboard')} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1 active:opacity-50">
+                        See All <ArrowRightIcon className="w-3 h-3" />
+                    </button>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                    {QUICK_TOOLS.map((tool) => (
+                        <button 
+                            key={tool.id} 
+                            onClick={() => setActiveTab(tool.id as View)}
+                            className="flex flex-col items-center gap-2 group active:scale-90 transition-transform"
+                        >
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${tool.color} group-active:shadow-inner transition-all border border-black/5`}>
+                                <tool.icon className="w-7 h-7" />
+                            </div>
+                            <span className="text-[9px] font-black text-gray-500 uppercase tracking-wider">{tool.label}</span>
+                        </button>
                     ))}
                 </div>
             </div>
 
-            {/* 3. RECENT ACTIVITY (Pick Up Where You Left Off) */}
-            {!loadingRecent && recentCreations.length > 0 && (
-                <div className="mt-10 px-6">
-                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-1">Continue Creating</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                        {recentCreations.map((creation) => (
-                            <div key={creation.id} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm active:scale-95 transition-all">
-                                <img src={creation.imageUrl} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                    <ArrowRightIcon className="w-5 h-5 text-white" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* 4. SMART SHORTCUTS (Dynamic Bento) */}
-            <div className="mt-10 px-6">
-                <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Strategic Power</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <button 
-                        onClick={() => setActiveTab('brand_stylist')}
-                        className="bg-indigo-50/50 p-5 rounded-[2rem] border border-indigo-100 flex flex-col justify-between items-start gap-4 text-left group active:bg-indigo-100"
-                    >
-                        <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600 group-active:scale-110 transition-transform">
-                            <MagicAdsIcon className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-black text-indigo-900 leading-none">AdMaker</h4>
-                            <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wide mt-1">Convert More</p>
-                        </div>
-                    </button>
-
-                    <button 
-                        onClick={() => setActiveTab('headshot')}
-                        className="bg-amber-50/50 p-5 rounded-[2rem] border border-amber-100 flex flex-col justify-between items-start gap-4 text-left group active:bg-amber-100"
-                    >
-                        <div className="p-2.5 bg-white rounded-xl shadow-sm text-amber-600 group-active:scale-110 transition-transform">
-                            <PixaHeadshotIcon className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-black text-amber-900 leading-none">Headshot</h4>
-                            <p className="text-[9px] font-bold text-amber-400 uppercase tracking-wide mt-1">Executive Pro</p>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            {/* 5. THE ENERGY HUB (Gamification) */}
-            <div className="mt-8 px-6">
-                <div className="bg-gray-900 rounded-[2.5rem] p-7 text-white relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                    
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-yellow-400">
-                                <LightningIcon className="w-6 h-6 animate-pulse" />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-black uppercase tracking-widest">Energy Hub</h4>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">{isLocked ? 'Refilling...' : 'Mission Active'}</p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-2xl font-black text-white">{auth.user?.credits || 0}</span>
-                            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Power Left</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{mission.title}</p>
-                            <span className="text-[10px] font-bold text-green-400">+5 Credits</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div className={`h-full bg-indigo-500 transition-all duration-1000 ${isLocked ? 'w-full' : 'w-1/3'}`}></div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <p className="text-[10px] text-gray-400 font-medium max-w-[140px] leading-relaxed">
-                            {isLocked ? 'Next mission unlock in 14h' : 'Complete today\'s challenge for a bonus boost.'}
-                        </p>
-                        <button className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform">
-                            {isLocked ? 'History' : 'Start'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* 6. REFERRAL / GROWTH */}
-            <div className="mt-8 px-6 pb-6">
-                <button className="w-full flex items-center justify-between p-5 bg-indigo-50 border border-indigo-100 rounded-3xl group active:bg-indigo-100 transition-all">
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600">
-                            <GiftIcon className="w-5 h-5" />
-                        </div>
-                        <div className="text-left">
-                            <p className="text-sm font-black text-indigo-900">Refer & Earn</p>
-                            <p className="text-[10px] font-medium text-indigo-400">Get 10 credits per friend</p>
-                        </div>
-                    </div>
-                    <ArrowRightIcon className="w-4 h-4 text-indigo-400 group-active:translate-x-1 transition-transform" />
-                </button>
-            </div>
-            
             <style>{`
-                @keyframes scan-h {
-                    0% { left: 0%; }
-                    100% { left: 100%; }
+                @keyframes progress {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
                 }
             `}</style>
         </div>
