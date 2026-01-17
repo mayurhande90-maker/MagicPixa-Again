@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { 
@@ -298,7 +297,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             resultHeightClass="h-[750px]"
             hideGenerateButton={isLowCredits}
             generateButtonStyle={{ 
-                className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", 
+                className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                 hideIcon: true,
                 label: studioMode === 'model' ? "Generate Model Shots" : "Generate Product Shots"
             }}
