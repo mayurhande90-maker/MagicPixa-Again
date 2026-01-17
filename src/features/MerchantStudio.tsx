@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
@@ -76,7 +75,6 @@ const CompactUpload: React.FC<{ label: string; subLabel?: string; image: { url: 
     );
 };
 
-// FIX: Define BrandSelectionModal to resolve ReferenceError
 const BrandSelectionModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -163,7 +161,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [animatingFeedback, setAnimatingFeedback] = useState<'up' | 'down' | null>(null);
     const [showThankYou, setShowThankYou] = useState(false);
 
-    // FIX: Define showBrandModal state to resolve ReferenceError
     const [showBrandModal, setShowBrandModal] = useState(false);
 
     const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || 25;
@@ -252,7 +249,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
 
     const getLabel = (index: number, currentMode: 'apparel' | 'product') => { const labels = currentMode === 'apparel' ? ['Full Body (Hero)', 'Editorial Stylized', 'Side Profile', 'Back View', 'Fabric Detail', 'Lifestyle Alt', 'Creative Studio', 'Golden Hour', 'Action Shot', 'Minimalist'] : ['Hero Front View', 'Back View', 'Hero Shot (45°)', 'Lifestyle Usage', 'Build Quality Macro', 'Contextual Environment', 'Creative Ad', 'Flat Lay Composition', 'In-Hand Scale', 'Dramatic Vibe']; return labels[index] || `Variant ${index + 1}`; };
     
-    // FIX: Define handleBrandSelect to resolve ReferenceError
     const handleBrandSelect = async (brand: BrandKit) => { 
         if (auth.user && brand.id) { 
             try { 
@@ -265,7 +261,6 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         } 
     };
 
-    // VALIDATION LOGIC
     const isModelRequired = mode === 'apparel' && modelSource === null;
     const isAiParamsIncomplete = mode === 'apparel' && modelSource === 'ai' && !(aiGender && aiEthnicity && aiSkinTone && aiBodyType);
     const isModelUploadIncomplete = mode === 'apparel' && modelSource === 'upload' && !modelImage;
@@ -273,25 +268,13 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     
     const canGenerate = !!mainImage && !isLowCredits && !isModelRequired && !isAiParamsIncomplete && !isModelUploadIncomplete && !isProductVibeIncomplete;
 
-    const getButtonLabel = () => {
-        if (!mainImage) return "Upload Product First";
-        if (isLowCredits) return "Insufficient Credits";
-        if (mode === 'apparel') {
-            if (isModelRequired) return "Select Model Type";
-            if (isModelUploadIncomplete) return "Upload Model Photo";
-            if (isAiParamsIncomplete) return "Need 4 AI Params";
-        }
-        if (mode === 'product' && isProductVibeIncomplete) return "Select Product Vibe";
-        return `Generate ${packSize} Assets`;
-    };
-
     return (
         <>
             <FeatureLayout
                 title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
                 activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
-                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: getButtonLabel() }} scrollRef={scrollRef}
+                generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Kit" }} scrollRef={scrollRef}
                 leftContent={
                     <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
                         {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
