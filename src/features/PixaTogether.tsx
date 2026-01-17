@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../components/icons';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon, StrategyStarIcon, PencilIcon } from '../components/icons';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 // Fix: Import refineStudioImage from photoStudioService as it is not available in imageToolsService
@@ -118,6 +117,7 @@ const PremiumInput: React.FC<any> = ({ label, ...props }) => (
     </div>
 );
 
+// FIX: Completed the PixaTogether component with necessary logic and return statement
 export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [personA, setPersonA] = useState<{ url: string; base64: Base64File } | null>(null);
     const [personB, setPersonB] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -136,21 +136,21 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [environment, setEnvironment] = useState(TIMELINE_ENVIRONMENTS['Present Day'][0]);
     
     const [pose, setPose] = useState('Standing Together');
-    const [customDescription, setCustomDescription] = useState('');
-
-    // Settings
-    const [faceStrength, setFaceStrength] = useState(0.8);
-    const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Match Vibe');
+    
+    // Advanced Params (for PixaTogetherConfig)
+    const [faceStrength, setFaceStrength] = useState(0.85);
+    const [clothingMode, setClothingMode] = useState<'Keep Original' | 'Match Vibe' | 'Professional Attire'>('Keep Original');
     const [locks, setLocks] = useState({ age: true, hair: true, accessories: false });
     const [autoFix, setAutoFix] = useState(true);
+    const [customDescription, setCustomDescription] = useState('');
 
-    const [resultImage, setResultImage] = useState<string | null>(null);
+    // UI State
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
-    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    const [resultImage, setResultImage] = useState<string | null>(null);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -158,43 +158,99 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 5;
+    const refineCost = 2;
 
-    const cost = appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 8;
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const cost = appConfig?.featureCosts['Pixa Together'] || 8;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const availableEnvironments = TIMELINE_ENVIRONMENTS[timeline] || TIMELINE_ENVIRONMENTS['Present Day'];
-
+    // Effect for dynamic loading text
     useEffect(() => {
-        if (!availableEnvironments.includes(environment)) {
-            setEnvironment(availableEnvironments[0]);
+        let interval: any;
+        if (loading || isRefining) {
+            const steps = isRefining 
+                ? ["Analyzing composite lighting...", "Refining facial harmony...", "Polishing material physics...", "Finalizing refined output..."]
+                : ["Scanning biometric data...", "Analyzing spatial relationships...", "Synthesizing environment...", "Generating lighting dapples...", "Polishing photorealistic output..."];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 2000);
         }
-    }, [timeline, availableEnvironments, environment]);
+        return () => clearInterval(interval);
+    }, [loading, isRefining]);
 
-    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing biometric stability...", "Synchronizing subject identities...", "Refining scene physics...", "Polishing masterpiece..."] : ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading, isRefining]);
-    useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
+    // Cleanup blob URLs
+    useEffect(() => {
+        return () => { if (resultImage) URL.revokeObjectURL(resultImage); };
+    }, [resultImage]);
 
-    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
+    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const base64 = await fileToBase64(file);
+            setter({ url: URL.createObjectURL(file), base64 });
+        }
+        e.target.value = '';
+    };
 
     const handleGenerate = async () => {
         if (!personA || (!isSingleSubject && !personB) || !auth.user) return;
+        if (mode === 'reenact' && !refPose) { alert("Please upload a reference pose."); return; }
         if (isLowCredits) { alert("Insufficient credits."); return; }
-        setLoading(true); setResultImage(null); setLastCreationId(null);
-        
-        try {
-            const config: PixaTogetherConfig = {
-                mode, relationship, mood, environment, pose, timeline, customDescription, referencePoseBase64: refPose?.base64.base64, referencePoseMimeType: refPose?.base64.mimeType, faceStrength, clothingMode, locks, autoFix
-            };
 
-            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config);
-            
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+        setLoading(true);
+        setResultImage(null);
+        setLastCreationId(null);
+
+        const config: PixaTogetherConfig = {
+            mode: mode as any,
+            relationship,
+            mood,
+            environment,
+            pose,
+            timeline,
+            customDescription,
+            referencePoseBase64: refPose?.base64.base64,
+            referencePoseMimeType: refPose?.base64.mimeType,
+            faceStrength,
+            clothingMode,
+            locks,
+            autoFix
+        };
+
+        try {
+            const res = await generateMagicSoul(
+                personA.base64.base64,
+                personA.base64.mimeType,
+                isSingleSubject ? null : personB?.base64.base64,
+                isSingleSubject ? null : personB?.base64.mimeType,
+                config,
+                auth.activeBrandKit
+            );
+
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResultImage(blobUrl);
+
+            const dataUri = `data:image/png;base64,${res}`;
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together');
+            setLastCreationId(creationId);
+
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+
+            if (updatedUser.lifetimeGenerations) {
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                if (bonus !== false) setMilestoneBonus(bonus);
+            }
+        } catch (e: any) {
+            console.error(e);
+            alert("Generation failed. Please ensure photos are clear.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleRefine = async (refineText: string) => {
@@ -205,7 +261,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Couple/Duo Portrait");
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Couple/Group Photography");
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);
@@ -220,7 +276,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             
             const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            setNotification({ msg: "Together Retoucher: Changes applied!", type: 'success' });
+            setNotification({ msg: "Creative Retoucher: Scene updated!", type: 'success' });
         } catch (e: any) {
             console.error(e);
             alert("Refinement failed.");
@@ -229,47 +285,66 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
     };
 
-    const handleClaimBonus = async () => {
-        if (!auth.user || !milestoneBonus) return;
-        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-    };
-
-    const handleRefundRequest = async (reason: string) => { 
-        if (!auth.user || !resultImage) return; 
-        setIsRefunding(true); 
-        try { 
-            const config: PixaTogetherConfig = { mode, relationship, mood, environment, pose, timeline, customDescription, faceStrength, clothingMode, locks, autoFix };
-            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Pixa Together", lastCreationId || undefined, config); 
-            if (res.success) { 
-                if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } 
-            } 
-            setShowRefundModal(false); 
-        } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } 
-    };
-    
-    const handleNewSession = () => { setPersonA(null); setPersonB(null); setRefPose(null); setResultImage(null); setLastCreationId(null); setCustomDescription(''); setIsRefineActive(false); };
-    
-    const handleEditorSave = async (newUrl: string) => { 
-        setResultImage(newUrl); 
-        if (lastCreationId && auth.user) {
-            await updateCreation(auth.user.uid, lastCreationId, newUrl);
-        } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Together (Edited)');
-            setLastCreationId(id);
+    const handleRefundRequest = async (reason: string) => {
+        if (!auth.user || !resultImage) return;
+        setIsRefunding(true);
+        try {
+            const res = await processRefundRequest(
+                auth.user.uid, 
+                auth.user.email, 
+                cost, 
+                reason, 
+                resultImage, 
+                lastCreationId || undefined,
+                { mode, relationship, mood, environment, pose, timeline, faceStrength, clothingMode, locks, autoFix, customDescription }
+            );
+            if (res.success) {
+                if (res.type === 'refund') {
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null);
+                    setResultImage(null);
+                    setNotification({ msg: res.message, type: 'success' });
+                } else {
+                    setNotification({ msg: res.message, type: 'info' });
+                }
+            }
+            setShowRefundModal(false);
+        } catch (e: any) {
+            alert("Refund failed: " + e.message);
+        } finally {
+            setIsRefunding(false);
         }
     };
-    
-    const handleDeductEditCredit = async () => { if(auth.user) { const deduct = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...deduct } : null); } };
-    
-    const canGenerate = (isSingleSubject ? !!personA : (!!personA && !!personB)) && !isLowCredits && (mode === 'creative' ? !!relationship : true);
+
+    const handleNewSession = () => {
+        setPersonA(null); setPersonB(null); setRefPose(null); setResultImage(null); 
+        setLastCreationId(null); setIsRefineActive(false); setRelationship('');
+    };
+
+    const handleEditorSave = async (newUrl: string) => { 
+        setResultImage(newUrl); 
+        if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl);
+    };
+
+    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Editor (Soul)'); auth.setUser(prev => prev ? {...prev, ...updatedUser} : null); } };
+
+    const isReady = personA && (isSingleSubject || personB);
 
     return (
         <>
             <FeatureLayout
-                title="Pixa Together" description="Merge people into one hyper-realistic photo. Create team shots, couple photos, or creative portraits." icon={<PixaTogetherIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
-                onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
+                title="Pixa Together"
+                description="Combine people into one hyper-realistic scene. Pixa anchors identities and simulates physical interaction between subjects."
+                icon={<PixaTogetherIcon className="w-14 h-14"/>}
+                rawIcon={true}
+                creditCost={cost}
+                isGenerating={loading || isRefining}
+                canGenerate={isReady && !isLowCredits}
+                onGenerate={handleGenerate}
+                resultImage={resultImage}
+                creationId={lastCreationId}
+                onNewSession={handleNewSession}
                 onEdit={() => setShowMagicEditor(true)}
+                activeBrandKit={auth.activeBrandKit}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
@@ -280,36 +355,48 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Magic" }} scrollRef={scrollRef}
+                resultHeightClass="h-[900px]"
+                hideGenerateButton={isLowCredits}
+                generateButtonStyle={{ 
+                    className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
+                    hideIcon: true, 
+                    label: "Generate Scene" 
+                }}
+                scrollRef={scrollRef}
                 leftContent={
-                    <div className="relative h-full w-full flex flex-col items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {(loading || isRefining) && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-pink-500 to-purple-600 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
-                        
-                        {!personA && !personB ? (
-                            <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaTogetherIcon className="w-10 h-10 text-pink-500" /></div><h3 className="text-xl font-bold text-gray-300">Duo Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload people to begin.</p></div>
-                        ) : (
-                            <div className="relative w-full h-full flex items-center justify-center">
-                                <div className="relative w-72 h-80 mx-auto">
-                                    {personA && (
-                                        <div 
-                                            className={PixaTogetherStyles.visualCardA} 
-                                            style={(!personB || isSingleSubject) ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}
-                                        >
-                                            <img src={personA.url} className="w-full h-full object-cover" />
-                                            <div className={PixaTogetherStyles.visualLabel}>{isSingleSubject ? 'Subject' : 'Person A'}</div>
-                                        </div>
-                                    )}
-                                    {personB && !isSingleSubject && (
-                                        <div className={PixaTogetherStyles.visualCardB}>
-                                            <img src={personB.url} className="w-full h-full object-cover" />
-                                            <div className={PixaTogetherStyles.visualLabel}>Person B</div>
-                                        </div>
-                                    )}
+                    <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                        {(loading || isRefining) && (
+                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                            </div>
+                        )}
+                        {!isReady ? (
+                            <div className="text-center opacity-50 select-none">
+                                <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <PixaTogetherIcon className="w-10 h-10 text-pink-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-300">Composite Canvas</h3>
+                                <p className="text-sm text-gray-300 mt-1">Upload subjects to preview setup.</p>
+                            </div>
+                        ) : (
+                            <div className="relative w-72 h-80 mx-auto transform scale-125 origin-center">
+                                <div className={PixaTogetherStyles.visualCardA} style={isSingleSubject ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}>
+                                    <img src={personA.url} className="w-full h-full object-cover" />
+                                    <div className={PixaTogetherStyles.visualLabel}>Person A</div>
+                                </div>
+                                {!isSingleSubject && personB && (
+                                    <div className={PixaTogetherStyles.visualCardB}>
+                                        <img src={personB.url} className="w-full h-full object-cover" />
+                                        <div className={PixaTogetherStyles.visualLabel}>Person B</div>
+                                    </div>
+                                )}
                                 {mode === 'reenact' && refPose && (
                                     <div className={PixaTogetherStyles.refPoseOverlay}>
-                                        <img src={refPose.url} className="w-full h-full object-cover" />
-                                        <span className={PixaTogetherStyles.refPoseBadge}>Target Pose</span>
+                                        <img src={refPose.url} className="w-full h-full object-cover rounded-lg" />
+                                        <div className={PixaTogetherStyles.refPoseBadge}>Target Pose</div>
                                     </div>
                                 )}
                             </div>
@@ -317,115 +404,100 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     </div>
                 }
                 rightContent={
-                    isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
-                        <div className="space-y-6 p-2 animate-fadeIn">
+                    isLowCredits ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-red-50/50 rounded-2xl border border-red-100 animate-fadeIn">
+                            <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
+                            <p className="text-gray-500 mb-6 max-w-xs text-sm"> requires {cost} credits.</p>
+                            <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg pointer-events-auto">Recharge Now</button>
+                        </div>
+                    ) : (
+                        <div className={`space-y-6 animate-fadeIn p-1 h-full flex flex-col ${loading || isRefining ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                             
-                            {/* 1. Mode Selection */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3 px-1">
-                                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><EngineIcon className="w-4 h-4"/></div>
-                                    <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Engine Mode</h3>
-                                </div>
-                                <div className={PixaTogetherStyles.engineGrid}>
-                                    <EngineModeCard title="Creative" desc="Themed Art" icon={<SparklesIcon className="w-5 h-5"/>} selected={mode === 'creative'} onClick={() => setMode('creative')} />
-                                    <EngineModeCard title="Pose Match" desc="Copy Structure" icon={<CameraIcon className="w-5 h-5"/>} selected={mode === 'reenact'} onClick={() => setMode('reenact')} />
-                                </div>
+                            {/* 1. Mode Switcher (Bento) */}
+                            <div className="flex bg-gray-100 p-1 rounded-2xl w-full">
+                                <button onClick={() => setMode('creative')} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === 'creative' ? 'bg-white text-indigo-600 shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}>Creative Engine</button>
+                                <button onClick={() => setMode('reenact')} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === 'reenact' ? 'bg-white text-indigo-600 shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}>Pose Re-enactment</button>
                             </div>
 
-                            {/* 2. Subjects */}
-                            <PremiumCard className="relative overflow-visible">
-                                <div className="flex justify-between items-center mb-5">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><UserIcon className="w-5 h-5"/></div>
-                                        <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Subjects</h3>
-                                    </div>
-                                    
-                                    {(mode === 'creative' || mode === 'reenact') && (
-                                        <div className="flex bg-gray-100 p-1 rounded-lg">
-                                            <button onClick={() => setIsSingleSubject(true)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Single</button>
-                                            <button onClick={() => setIsSingleSubject(false)} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Duo</button>
-                                        </div>
-                                    )}
+                            {/* 2. Subject Matrix */}
+                            <PremiumCard title="Subject Matrix" icon={<UsersIcon className="w-4 h-4"/>}>
+                                <div className="flex items-center gap-2 mb-4 bg-gray-50 p-1 rounded-xl border border-gray-100">
+                                    <button onClick={() => { setIsSingleSubject(false); setPersonB(null); }} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${!isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Duo / Pair</button>
+                                    <button onClick={() => { setIsSingleSubject(true); setPersonB(null); }} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isSingleSubject ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Solo Shot</button>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
-                                    {/* Fix: Replaced comparison with 'individual' with isSingleSubject toggle check */}
-                                    <PremiumUpload label={isSingleSubject ? "Subject" : "Person A"} uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
-                                    
+                                    <PremiumUpload label={isSingleSubject ? "The Subject" : "Person A"} uploadText={isSingleSubject ? "Subject" : "Person A"} image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
                                     {!isSingleSubject && (
-                                        <PremiumUpload label="Person B" uploadText="Add Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
+                                        <PremiumUpload label="Person B" uploadText="Person B" image={personB} onUpload={handleUpload(setPersonB)} onClear={() => setPersonB(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
                                     )}
-                                    
-                                    {isSingleSubject && (
-                                        <div className="h-40 border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center bg-gray-50/50 opacity-50 select-none">
-                                            <div className="p-3 bg-white rounded-full mb-2 shadow-sm"><CheckIcon className="w-5 h-5 text-gray-300"/></div>
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Single Mode Active</span>
+                                    {isSingleSubject && mode === 'reenact' && (
+                                        <div className="animate-fadeIn">
+                                            <PremiumUpload label="Reference Pose" uploadText="Pose" image={refPose} onUpload={handleUpload(setRefPose)} onClear={() => setRefPose(null)} icon={<CameraIcon className="w-6 h-6 text-purple-300"/>} />
                                         </div>
                                     )}
                                 </div>
+                                {!isSingleSubject && mode === 'reenact' && (
+                                    <div className="mt-4 animate-fadeIn">
+                                        <PremiumUpload label="Reference Pose" uploadText="Add Reference Image" image={refPose} onUpload={handleUpload(setRefPose)} onClear={() => setRefPose(null)} icon={<CameraIcon className="w-6 h-6 text-purple-300"/>} heightClass="h-28" />
+                                    </div>
+                                )}
                             </PremiumCard>
 
-                            {/* 3. Conditional Controls */}
-                            {mode === 'creative' && (
-                                <PremiumCard className="animate-fadeIn">
-                                    <PremiumSelector label="Relationship" options={['Couple', 'Family', 'Friends', 'Siblings', 'Business Partners']} value={relationship} onChange={setRelationship} />
+                            {/* 3. Logic Configuration */}
+                            <div className={`space-y-6 transition-all duration-500 ${!isReady ? 'opacity-30 pointer-events-none' : ''}`}>
+                                <PremiumCard title="Strategic Context" icon={<StrategyStarIcon className="w-4 h-4"/>}>
+                                    <PremiumInput label="Relationship / Dynamic" placeholder="e.g. Best friends, Brother & Sister, Happy Couple" value={relationship} onChange={(e: any) => setRelationship(e.target.value)} />
                                     
-                                    <div className="mb-4 pb-4 border-b border-gray-100">
-                                        <div className="mb-4">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Time Travel</label>
-                                            <select value={timeline} onChange={(e) => setTimeline(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer transition-colors">
-                                                {Object.keys(TIMELINE_ENVIRONMENTS).map(t => <option key={t}>{t}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Vibe</label>
-                                            <select value={mood} onChange={(e) => setMood(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
-                                                {['Happy', 'Cinematic', 'Romantic', 'Vintage', 'Luxury', 'Adventure', 'Candid', 'Professional', 'Ethereal', 'Moody'].map(o => <option key={o}>{o}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Setting</label>
-                                            <select value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer">
-                                                {availableEnvironments.map(o => <option key={o}>{o}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="pt-2">
-                                        <PremiumInput placeholder="Custom Prompt (e.g. riding a bike together in Paris)" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} label="Custom Vision" />
+                                    <div className="space-y-6 border-t border-gray-100 pt-6">
+                                        <PremiumSelector label="Select Timeline" options={['Present Day', 'Future Sci-Fi', '1990s Vintage', '1920s Noir', 'Medieval']} value={timeline} onChange={(val) => { setTimeline(val); setEnvironment(TIMELINE_ENVIRONMENTS[val][0]); }} />
+                                        <PremiumSelector label="Atmosphere (Mood)" options={['Happy', 'Cinematic', 'Romantic', 'Vintage', 'Luxury', 'Adventure', 'Candid', 'Professional', 'Ethereal', 'Moody']} value={mood} onChange={setMood} />
+                                        <PremiumSelector label="Environment" options={TIMELINE_ENVIRONMENTS[timeline] || TIMELINE_ENVIRONMENTS['Present Day']} value={environment} onChange={setEnvironment} />
                                     </div>
                                 </PremiumCard>
-                            )}
 
-                            {mode === 'reenact' && (
-                                <PremiumCard className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100" title="Pose Match">
-                                    <div className="flex items-start gap-3 mb-4">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm"><CameraIcon className="w-4 h-4 text-blue-500" /></div>
-                                        <div><h4 className="text-xs font-bold text-blue-900">Reference Shot</h4><p className="text-[10px] text-blue-600/80 mt-0.5">Upload a photo to copy the exact pose and composition.</p></div>
+                                <PremiumCard title="Rendering Protocol" icon={<EngineIcon className="w-4 h-4"/>}>
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identity Locking Strength</label>
+                                            <span className="text-xs font-black text-indigo-600">{Math.round(faceStrength * 100)}%</span>
+                                        </div>
+                                        <input type="range" min="0.5" max="1" step="0.05" value={faceStrength} onChange={(e) => setFaceStrength(parseFloat(e.target.value))} className="w-full h-1.5 bg-gray-100 rounded-full appearance-none cursor-pointer accent-indigo-600" />
                                     </div>
-                                    <PremiumUpload 
-                                        label="Reference Pose" 
-                                        uploadText="Upload Reference Pose" 
-                                        image={refPose} 
-                                        onUpload={handleUpload(setRefPose)} 
-                                        onClear={() => setRefPose(null)} 
-                                        icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-5 h-5 text-[#008efa]"><path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20s9 20 20 20s20-9 20-20z"/></svg>} 
-                                        heightClass="h-32" 
-                                    />
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {['Keep Original', 'Match Vibe', 'Professional Attire'].map((cMode) => (
+                                            <button key={cMode} onClick={() => setClothingMode(cMode as any)} className={`p-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all text-center ${clothingMode === cMode ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-gray-50 text-gray-400 border-gray-100 hover:bg-white hover:border-gray-200'}`}>{cMode}</button>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-6 flex flex-wrap gap-4 pt-6 border-t border-gray-100">
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div onClick={() => setLocks({...locks, age: !locks.age})} className={`w-10 h-6 rounded-full relative transition-colors ${locks.age ? 'bg-green-500' : 'bg-gray-200'}`}><div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${locks.age ? 'left-5' : 'left-1 shadow-sm'}`}></div></div>
+                                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest group-hover:text-gray-800">Lock Age</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div onClick={() => setLocks({...locks, hair: !locks.hair})} className={`w-10 h-6 rounded-full relative transition-colors ${locks.hair ? 'bg-green-500' : 'bg-gray-200'}`}><div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${locks.hair ? 'left-5' : 'left-1 shadow-sm'}`}></div></div>
+                                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest group-hover:text-gray-800">Lock Hair</span>
+                                        </label>
+                                    </div>
                                 </PremiumCard>
-                            )}
+
+                                <PremiumCard title="Manual Overrides" icon={<PencilIcon className="w-4 h-4"/>}>
+                                    <PremiumInput label="Describe Custom Scene Details" placeholder="e.g. Snow falling lightly, holding hot chocolate mugs, bokeh lights" value={customDescription} onChange={(e: any) => setCustomDescription(e.target.value)} />
+                                </PremiumCard>
+                            </div>
                         </div>
                     )
                 }
             />
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
+
+            {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={async () => { if(auth.user) { const u = await claimMilestoneBonus(auth.user.uid, milestoneBonus); auth.setUser(prev => prev ? {...prev, ...u} : null); } }} onClose={() => setMilestoneBonus(undefined)} />}
             {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
-            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Pixa Together" />}
+            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Soul Composite" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
     );
 };
+
+export default PixaTogether;
