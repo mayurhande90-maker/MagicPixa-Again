@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon, DownloadIcon, InformationCircleIcon } from '../components/icons';
@@ -18,7 +17,7 @@ import { ThumbnailStyles } from '../styles/features/ThumbnailStudio.styles';
 const CompactUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; optional?: boolean; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40", optional }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
-        <div className="relative w-full group"><div className="flex items-center justify-between mb-2 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label} {optional && <span className="text-gray-300 font-normal">(Optional)</span>}</label></div>{image ? (<div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}><img src={image.url} className="max-w-full max-h-full object-contain" alt={label} /><button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"><XIcon className="w-4 h-4"/></button></div>) : (<div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}><div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">{icon}</div><p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p><p className="text-[9px] text-gray-300 mt-1">Best: Expressive / High Res</p></div>)}<input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} /></div>
+        <div className="relative w-full group"><div className="flex items-center justify-between mb-2 ml-1"><label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label} {optional && <span className="text-gray-300 font-normal">(Optional)</span>}</label></div>{image ? (<div className={`relative w-full ${heightClass} bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center overflow-hidden shadow-sm`}><img src={image.url} className="max-w-full max-h-full object-contain" alt={label} /><button onClick={(e) => { e.stopPropagation(); onClear(); }} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors z-10"><XIcon className="w-4 h-4"/></button></div>) : (<div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 hover:border-blue-400 bg-gray-50 hover:bg-blue-50/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group-hover:shadow-sm`}><div className="p-2 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">{icon}</div><p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-wide text-center px-2">Upload {label}</p><p className="text-[9px] text-gray-300 mt-1">Best: Expressive / High Res</p></div>)}<input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} /></div>
     );
 };
 
@@ -69,10 +68,10 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || appConfig?.featureCosts['Thumbnail Studio'] || 8;
     const regenCost = 3;
     const userCredits = auth.user?.credits || 0;
+    const isLowCredits = userCredits < cost;
     const isPodcast = category === 'Podcast';
     
     const hasRequirements = format && (referenceImage ? true : !!mood) && (isPodcast ? (!!hostImage && !!guestImage && !!title) : (!!title));
-    const isLowCredits = userCredits < cost;
     
     const categories = ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'];
     const moods = ['Viral', 'Cinematic', 'Luxury/Premium', 'Minimalist/Clean', 'Gamer', 'Dark Mystery', 'Retro Style', 'Bright & Natural'];
@@ -176,7 +175,13 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass={format === 'portrait' ? "h-[1000px]" : "h-[850px]"} hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Thumbnail" }} scrollRef={scrollRef}
+                resultHeightClass={format === 'portrait' ? "h-[1000px]" : "h-[850px]"} hideGenerateButton={isLowCredits} 
+                generateButtonStyle={{ 
+                    className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
+                    hideIcon: true, 
+                    label: "Generate Thumbnail" 
+                }} 
+                scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {(loading || isRefining) ? (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>) : (<div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><ThumbnailIcon className="w-10 h-10 text-red-500" /></div><h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3><p className="text-sm text-gray-300 mt-1">{format === 'portrait' ? '9:16 Vertical Preview' : (format === 'landscape' ? '16:9 Landscape Preview' : 'Select a format to begin')}</p></div>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style></div>
