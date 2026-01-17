@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../../types';
-import { PixaProductIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, CreditCoinIcon } from '../../components/icons';
+import { PixaProductIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, CreditCoinIcon, ChevronRightIcon, PaletteIcon } from '../../components/icons';
 import { SelectionGrid } from '../../components/FeatureLayout';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/imageUtils';
 import { editImageWithPrompt } from '../../services/photoStudioService';
 import { deductCredits, saveCreation } from '../../firebase';
+import { MobileSheet } from '../components/MobileSheet';
 
 export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
@@ -13,6 +14,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [loadingText, setLoadingText] = useState("Initializing...");
     const [vibe, setVibe] = useState('');
     const [result, setResult] = useState<string | null>(null);
+    const [isThemeSheetOpen, setIsThemeSheetOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa Product Shots'] || 10;
@@ -82,6 +84,8 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setVibe('');
     };
 
+    const themes = ['Luxury', 'Nature', 'Tech', 'Minimal', 'Lifestyle', 'Abstract', 'Industrial', 'Pop Art'];
+
     return (
         <div className="h-full flex flex-col animate-fadeIn">
             {/* Canvas Area (Top) */}
@@ -116,7 +120,8 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             </div>
 
             {/* Controls Area (Bottom - Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-white no-scrollbar">
+                {/* 1. Upload Section */}
                 <div>
                     <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">1. Product Identity</h3>
                     {!image ? (
@@ -134,20 +139,33 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                              </div>
                              <div className="flex-1">
                                  <p className="text-xs font-bold text-indigo-900">Asset Locked</p>
-                                 <p className="text-[10px] text-indigo-400 font-medium">Forensic Identity Sync Active</p>
+                                 <p className="text-[10px] text-indigo-400 font-medium italic">Identity Anchored</p>
                              </div>
                              <CheckIcon className="w-5 h-5 text-indigo-600" />
                         </div>
                     )}
                 </div>
 
+                {/* 2. Visual Theme Trigger */}
                 <div className={!image ? 'opacity-40 grayscale pointer-events-none' : ''}>
-                    <SelectionGrid 
-                        label="2. Visual Theme" 
-                        options={['Luxury', 'Nature', 'Tech', 'Minimal', 'Lifestyle']} 
-                        value={vibe} 
-                        onChange={setVibe} 
-                    />
+                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">2. Visual Strategy</h3>
+                    <button 
+                        onClick={() => setIsThemeSheetOpen(true)}
+                        className="w-full flex items-center justify-between p-5 bg-gray-50 border border-gray-100 rounded-2xl active:bg-gray-100 transition-all group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2.5 rounded-xl shadow-sm transition-all ${vibe ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-500 group-hover:scale-110'}`}>
+                                <PaletteIcon className="w-5 h-5" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Current Theme</p>
+                                <p className={`text-sm font-bold ${vibe ? 'text-gray-900' : 'text-gray-400'}`}>
+                                    {vibe || 'Choose Aesthetic...'}
+                                </p>
+                            </div>
+                        </div>
+                        <ChevronRightIcon className="w-4 h-4 text-gray-300" />
+                    </button>
                 </div>
             </div>
 
@@ -169,6 +187,28 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     </p>
                 </div>
             </div>
+
+            {/* Bottom Sheet for Theme Selection */}
+            <MobileSheet 
+                isOpen={isThemeSheetOpen} 
+                onClose={() => setIsThemeSheetOpen(false)} 
+                title="Visual Strategy"
+            >
+                <div className="space-y-6">
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                        Select an archetype for Pixa AI to follow. Our vision agents will calibrate lighting and materials to match this aesthetic.
+                    </p>
+                    <SelectionGrid 
+                        label="Available Archetypes" 
+                        options={themes} 
+                        value={vibe} 
+                        onChange={(val) => {
+                            setVibe(val);
+                            setIsThemeSheetOpen(false);
+                        }} 
+                    />
+                </div>
+            </MobileSheet>
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
         </div>
