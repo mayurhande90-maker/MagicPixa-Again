@@ -1,17 +1,21 @@
 import React from 'react';
-import { PlusIcon, RegenerateIcon, FlagIcon } from './icons';
+// Added PencilIcon to imports
+import { PlusIcon, RegenerateIcon, FlagIcon, PencilIcon } from './icons';
 
 interface ResultToolbarProps {
     onNew: () => void;
     onRegen: () => void;
-    onEdit: () => void;
     onReport: () => void;
+    // Added optional onEdit property to fix type errors in calling components
+    onEdit?: () => void;
 }
 
-export const ResultToolbar: React.FC<ResultToolbarProps> = ({ onNew, onRegen, onReport }) => {
+export const ResultToolbar: React.FC<ResultToolbarProps> = ({ onNew, onRegen, onReport, onEdit }) => {
     const buttons = [
         { label: 'New Project', icon: PlusIcon, onClick: onNew, color: 'text-gray-700', bg: 'hover:bg-gray-100' },
         { label: 'Regenerate', icon: RegenerateIcon, onClick: onRegen, color: 'text-blue-600', bg: 'hover:bg-blue-50' },
+        // Conditional inclusion of Edit button if onEdit is provided
+        ...(onEdit ? [{ label: 'Magic Edit', icon: PencilIcon, onClick: onEdit, color: 'text-indigo-600', bg: 'hover:bg-indigo-50' }] : []),
         { label: 'Report Issue', icon: FlagIcon, onClick: onReport, color: 'text-red-500', bg: 'hover:bg-red-50' },
     ];
 
