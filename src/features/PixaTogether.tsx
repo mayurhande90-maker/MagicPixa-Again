@@ -4,7 +4,6 @@ import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../compone
 import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../components/icons';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
-// Fix: Import refineStudioImage from photoStudioService as it is not available in imageToolsService
 import { generateMagicSoul, PixaTogetherConfig } from '../services/imageToolsService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
@@ -173,7 +172,33 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
     }, [timeline, availableEnvironments, environment]);
 
-    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing biometric stability...", "Synchronizing subject identities...", "Refining scene physics...", "Polishing masterpiece..."] : ["Analyzing biometric structure...", "Locking identity features...", "Constructing scene geometry...", "Blending lighting & shadows...", "Finalizing high-res output..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2500); } return () => clearInterval(interval); }, [loading, isRefining]);
+    // UPDATED: Triple-Engine Agency Sequence Loading Text
+    useEffect(() => { 
+        let interval: any; 
+        if (loading || isRefining) { 
+            const steps = isRefining ? [
+                "Audit: Analyzing biometric stability...", 
+                "Rigging: Synchronizing subject identities...", 
+                "Retouching: Refining scene physics...", 
+                "Mastery: Polishing high-pass masterpiece..."
+            ] : [
+                "Forensic Analyst: Scanning facial biometrics...", 
+                "Forensic Analyst: Locking identity structures...", 
+                "VFX Architect: Rigging interaction physics...", 
+                "Production: Calculating global illumination...", 
+                "Production: Simulating sub-surface scattering...",
+                "Finalizing: Identity verified, rendering 8K..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2500); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading, isRefining]);
+
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { const file = e.target.files[0]; const base64 = await fileToBase64(file); setter({ url: URL.createObjectURL(file), base64 }); } e.target.value = ''; };
@@ -188,7 +213,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 mode, relationship, mood, environment, pose, timeline, customDescription, referencePoseBase64: refPose?.base64.base64, referencePoseMimeType: refPose?.base64.mimeType, faceStrength, clothingMode, locks, autoFix
             };
 
-            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config);
+            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config, auth.activeBrandKit);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
@@ -266,7 +291,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     return (
         <>
             <FeatureLayout
-                title="Pixa Together" description="Merge people into one hyper-realistic photo. Create team shots, couple photos, or creative portraits." icon={<PixaTogetherIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                title="Pixa Together" description="Hyper-realistic identity rigging. Merge people into cinematic portraits with world-class light-bleed and biometric anchoring." icon={<PixaTogetherIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={handleNewSession}
                 onEdit={() => setShowMagicEditor(true)}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
@@ -348,7 +373,6 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    {/* Fix: Replaced comparison with 'individual' with isSingleSubject toggle check */}
                                     <PremiumUpload label={isSingleSubject ? "Subject" : "Person A"} uploadText={isSingleSubject ? "Add Subject" : "Add Person A"} image={personA} onUpload={handleUpload(setPersonA)} onClear={() => setPersonA(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
                                     
                                     {!isSingleSubject && (
