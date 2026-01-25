@@ -101,7 +101,7 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO)
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -112,26 +112,27 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `You are a Senior CMO and Lead Design Strategist.
-    Develop a high-conversion creative strategy for the ${inputs.industry} product: "${inputs.productName || 'Unnamed Asset'}".
-    Intent Context: "${inputs.description || 'N/A'}"
-
-    *** THE "AIDA" STRATEGIC MANDATE ***
-    1. **RESEARCH**: Identify high-performing ad copy hooks for ${inputs.industry} in 2025.
-    2. **AIDA SYNTHESIS**:
-       - **ATTENTION (Headline)**: Create a benefit-led hook (2-5 words).
-       - **INTEREST (Subheadline)**: Elaborate on the unique value proposition.
-       - **ACTION (CTA)**: Generate a high-intent button label.
-
+    const prompt = `Act as a world-class CMO and Strategy Director. 
+    Develop a high-conversion creative brief for this ${inputs.industry} asset: "${inputs.productName || 'Subject'}".
+    Context: "${inputs.description || 'N/A'}"
+    
+    *** THE STRATEGIC MANDATE ***
+    1. **MARKET RESEARCH**: Use Google Search to analyze 2025 consumer behavior and visual trends for the ${inputs.industry} industry in the user's specific context.
+    2. **AIDA COPYWRITING**: 
+       - **Attention**: Headline (2-5 words) that stops the scroll.
+       - **Interest/Desire**: Subheadline that builds perceived value.
+       - **Action**: High-intent CTA.
+    3. **ART DIRECTION**: Plan a visual hierarchy that follows the "3% Design Rule" (Visual Focal Point, minimal cognitive load).
+    
     RETURN JSON:
     {
         "strategicCopy": { "headline": "string", "subheadline": "string", "cta": "string" },
-        "identityStrategy": { "weight": "string", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
+        "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
         "visualDirection": "string"
     }`;
 
-    const parts: any[] = lowResAssets.map((asset) => ({ text: `PRODUCT SOURCE:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
+    const parts: any[] = lowResAssets.map((asset) => ({ text: `ASSET FOR AUDIT:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
     parts.push({ text: prompt });
 
     try {
@@ -146,7 +147,7 @@ const performAdIntelligence = async (
         return JSON.parse(response.text || "{}");
     } catch (e) {
         return { 
-            strategicCopy: { headline: "Defined by Excellence", subheadline: "The new standard in professional quality.", cta: "Shop Collection" }, 
+            strategicCopy: { headline: "Defined by Excellence", subheadline: "The new standard in premium quality.", cta: "Shop Collection" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
             industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
             visualDirection: "Clean commercial studio aesthetics." 
@@ -155,11 +156,12 @@ const performAdIntelligence = async (
 };
 
 /**
- * --- PHASE 2: THE PRODUCTION ENGINE ---
+ * PHASE 2: THE PRODUCTION ENGINE (Art Director + Visualizer)
  */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
     const ai = getAiClient();
     
+    // 1. Visual DNA & Context Retrieval
     let vaultAssets: { data: string, mimeType: string }[] = [];
     let vaultDna = "";
     try {
@@ -175,6 +177,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
         }));
     } catch (e) { console.warn("Vault retrieval failed", e); }
 
+    // 2. Departmental Engines (Strategy + Prep)
     const [brief, optimizedMains, optLogo, optModel, optRef] = await Promise.all([
         performAdIntelligence(inputs, brand),
         Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
@@ -185,12 +188,14 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const parts: any[] = [];
     
+    // Add Vault References for Style Continuity
     if (vaultAssets.length > 0) {
         vaultAssets.forEach((v, i) => {
-            parts.push({ text: `VAULT LIGHTING REFERENCE ${i+1}:` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
+            parts.push({ text: `AGENCY LIGHTING REF ${i+1}:` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
         });
     }
 
+    // Add Primary Product Assets
     optimizedMains.forEach((opt, idx) => {
         parts.push({ text: `SACRED PRODUCT ASSET ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
@@ -200,54 +205,30 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
 
-    const subjectIdentityLock = optModel ? `
-    *** SUBJECT IDENTITY LOCK (DIGITAL TWIN PROTOCOL) ***
-    1. **FORENSIC REPLICA**: You are FORBIDDEN from altering the subject's facial structure, hair, age, or ethnicity. The person in the ad must be a 1:1 pixel replica of the 'SUBJECT DIGITAL TWIN'.
-    2. **NATURAL INTERACTION**: The subject MUST be realistically interacting with the 'SACRED PRODUCT ASSETS' (e.g. holding them, wearing them, using them).
-    3. **LIGHTING HARMONIZATION**: Synchronize the lighting on the subject with the 'SACRED PRODUCT ASSET' lighting and the global environment.
-    ` : "";
-
-    const modelParamsPrompt = inputs.modelSource === 'ai' && inputs.modelParams ? `
-    *** AI HUMAN MODEL SPECS ***
-    Render a photorealistic model: ${inputs.modelParams.modelType} from ${inputs.modelParams.region}, ${inputs.modelParams.skinTone}, ${inputs.modelParams.bodyType}.
-    Composition: ${inputs.modelParams.composition}, Framing: ${inputs.modelParams.framing}.
-    The model MUST be holding or using the SACRED PRODUCT ASSETS.
-    ` : "";
-
-    const prompt = `You are a World-Class Ad Production Engine.
+    const prompt = `You are a World-Class Ad Production Engine. Execute the following high-fidelity render:
     
-    *** THE OPTICAL RIG ***
-    ${vaultDna ? `STRICT LIGHTING PROTOCOL: ${vaultDna}` : 'Use professional high-end softbox lighting rigs.'}
-    ${optRef ? `**STYLE MATCH**: Mimic the atmosphere and layout logic of the Style Reference Image.` : `**VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional"}.`}
+    *** IDENTITY ANCHOR v5.0 (SACRED ASSET PROTOCOL) ***
+    1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. Every letter and logo must remain 100% sharp and identical to the source.
+    2. **BRAND FIDELITY**: The 'BRAND LOGO' must be rendered with pixel-perfect precision. 
+    ${optModel ? "3. **SUBJECT LOCK**: The person in the ad must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'. No changing age, ethnicity, or facial structure." : ""}
 
-    *** IDENTITY LOCK 3.0 (SACRED ASSET PROTOCOL) ***
-    1. **GEOMETRY**: Do NOT alter the physical shape or proportions of the product.
-    2. **TYPOGRAPHY**: Preserve all labels and text from the "SACRED PRODUCT ASSET" pixels perfectly.
-    3. **LOGOS**: Use 1:1 pixel transfers for the BRAND LOGO. 
+    *** PRODUCTION DIRECTIVES ***
+    - **LIGHTING**: ${vaultDna ? `Adhere to this rigorous lighting protocol: ${vaultDna}` : 'Apply multi-point professional studio lighting.'}
+    - **BLENDING**: Apply "Ray-Traced Graphic Blending". Ensure realistic contact shadows and global illumination bounce between the subject and the environment.
+    - **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
+    - **LAYOUT**: ${blueprintInstruction}
 
-    ${subjectIdentityLock}
-    ${modelParamsPrompt}
-
-    *** FORENSIC PHYSICS MANDATES ***
-    1. **RAY-TRACED CONTACT SHADOWS**: Ensure dark, sharp shadows where the product or subject touches any surface.
-    2. **LIGHT HARMONIZATION**: Unified light source for both product and subject context.
-
-    *** CREATIVE BRIEF ***
-    - Industry: ${inputs.industry.toUpperCase()}
-    - Layout: ${blueprintInstruction}
-    - Art Direction: ${brief.visualDirection}
-
-    *** TYPOGRAPHY & COPY (AIDA) ***
+    *** THE CREATIVE COPY (AIDA) ***
     1. **HEADLINE**: Render "${brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Sans'}.
     2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
-    3. **ACTION**: High-contrast CTA for "${brief.strategicCopy.cta}".
+    3. **CTA**: Add a high-contrast button for "${brief.strategicCopy.cta}".
     
-    OUTPUT: A single 8K photorealistic marketing asset.`;
+    OUTPUT: A single 8K photorealistic marketing masterpiece. Accuracy is your primary KPI.`;
 
     parts.push({ text: prompt });
 
     try {
-        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await ai.models.generateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
@@ -260,10 +241,10 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 ]
             },
-        }));
+        });
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Ad Production engine failed to render.");
+        throw new Error("Ad Production engine failed. Ensure your source photos are clear.");
     } catch (e) { throw e; }
 };
 
@@ -275,9 +256,9 @@ export const refineAdCreative = async (
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
-    const prompt = `You are a Precision Ad Editor. Modify the provided image based on this specific user feedback: "${instruction}".
-    1. **Preservation**: Keep the core product and environment 95% identical.
-    2. **Refinement**: Only modify the specific areas mentioned in the feedback.
+    const prompt = `You are an Elite Ad Retoucher. Modify the provided ad based on feedback: "${instruction}".
+    1. **Preservation**: Maintain 98% of the original product identity and branding.
+    2. **Precision**: Only iterate on the requested areas.
     OUTPUT: A single 4K photorealistic refined image.`;
 
     try {
@@ -289,12 +270,10 @@ export const refineAdCreative = async (
                     { text: prompt }
                 ]
             },
-            config: { 
-                responseModalities: [Modality.IMAGE]
-            },
+            config: { responseModalities: [Modality.IMAGE] },
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Refinement failed.");
+        throw new Error("Refinement engine failed.");
     } catch (e) { throw e; }
 };
