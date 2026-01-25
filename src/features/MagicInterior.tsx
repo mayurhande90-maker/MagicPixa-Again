@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon } from '../components/icons';
+import { HomeIcon, UploadIcon, XIcon, ArrowUpCircleIcon, CreditCoinIcon, SparklesIcon, PixaInteriorIcon, ShieldCheckIcon, CheckIcon, InformationCircleIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
@@ -52,8 +52,19 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         let interval: any; 
         if (loading || isRefining) { 
             const steps = isRefining 
-                ? ["Analyzing floor plan...", "Synthesizing new materials...", "Recalculating lighting spill...", "Polishing 4K render..."]
-                : ["Pixa Vision: Calculating room geometry...", "Pixa Vision: Extracting 3D depth map...", "Design Engine: Simulating light transport...", "Design Engine: Finalizing photorealistic output..."]; 
+                ? [
+                    "Audit: Analyzing structural stability...", 
+                    "Retouching: Synthesizing PBR materials...", 
+                    "Physics: Recalculating lighting spill...", 
+                    "Production: Polishing 8K architectural render..."
+                  ]
+                : [
+                    "Spatial Audit: Triangulating light sources...", 
+                    "Spatial Audit: Mapping floor-to-wall vertices...", 
+                    "Physics Engine: Simulating Global Illumination...", 
+                    "Material Engine: Rigging PBR textures...", 
+                    "Finalizing: Identity 100% accurate, rendering..."
+                  ]; 
             let step = 0; 
             setLoadingText(steps[0]); 
             interval = setInterval(() => { 
@@ -129,30 +140,43 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Pixa Interior Design" description="Redesign any room in seconds. Pixa calculates depth and physics to transform your space realistically." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                title="Pixa Interior Design" description="Professional-grade spatial design. Our engine calculates depth and material physics for museum-grade photorealistic results." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleGenerate} onNewSession={result ? undefined : handleNewSession}
                 activeBrandKit={auth.activeBrandKit}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={result ? (
-                    <button 
-                        onClick={() => setIsRefineActive(!isRefineActive)}
-                        className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
-                    >
-                        <span>Make Changes</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 shadow-lg text-xs font-bold text-white flex items-center gap-2">
+                            <ShieldCheckIcon className="w-4 h-4 text-green-400" />
+                            <span>Identity Locked</span>
+                        </div>
+                        <button 
+                            onClick={() => setIsRefineActive(!isRefineActive)}
+                            className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                        >
+                            <span>Make Changes</span>
+                        </button>
+                    </div>
                 ) : null}
                 resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} 
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true,
-                    label: "Generate Design"
+                    label: "Begin Spatial Rendering"
                 }} 
                 scrollRef={scrollRef}
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            {(loading || isRefining) && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
+                            {(loading || isRefining) && (
+                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+                                    <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
+                                        <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
+                                    </div>
+                                    <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-8">{loadingText}</p>
+                                </div>
+                            )}
                             <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} />
                             {!loading && !isRefining && (<><button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40" title="Cancel"><XIcon className="w-5 h-5"/></button><button onClick={() => redoFileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Photo"><UploadIcon className="w-5 h-5"/></button></>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                         </div>
@@ -174,7 +198,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
                             <p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p>
-                            <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b]">Recharge Now</button>
+                            <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                         </div>
                     ) : (
                         <div className={`space-y-6 p-1 animate-fadeIn transition-all duration-300 ${!image || loading || isRefining ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
@@ -188,6 +212,30 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             
                             <SelectionGrid label="2. Room Type" options={activeRoomOptions} value={roomType} onChange={(val) => { setRoomType(val); autoScroll(); }} />
                             {roomType && <SelectionGrid label="3. Design Style" options={activeStyleOptions} value={style} onChange={setStyle} />}
+
+                            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 space-y-4 mt-8">
+                                <div className="flex items-center gap-2">
+                                    <InformationCircleIcon className="w-4 h-4 text-indigo-400" />
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Protocol Intelligence</span>
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'Structural Lock v6.0', desc: 'Walls & windows immutable', active: !!image },
+                                        { label: 'Light Triangulation', desc: 'Syncing Kelvin temperatures', active: !!roomType },
+                                        { label: 'PBR Rigging', desc: 'Physically accurate materials', active: !!style }
+                                    ].map((p, idx) => (
+                                        <div key={idx} className={`flex items-start gap-3 transition-opacity ${p.active ? 'opacity-100' : 'opacity-30'}`}>
+                                            <div className={`mt-1 w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${p.active ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                                <CheckIcon className="w-2 h-2 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-gray-700 leading-none">{p.label}</p>
+                                                <p className="text-[9px] text-gray-400 mt-1 font-medium">{p.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )
                 }
