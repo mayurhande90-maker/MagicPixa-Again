@@ -8,7 +8,7 @@ import {
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../entropy/firebase';
+import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
 import JSZip from 'jszip';
