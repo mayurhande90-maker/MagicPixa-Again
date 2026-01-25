@@ -14,7 +14,6 @@ import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
-import { MagicEditorModal } from '../components/MagicEditorModal';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
 
 export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appConfig: AppConfig | null }> = ({ auth, navigateTo, appConfig }) => {
@@ -35,7 +34,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -248,19 +246,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         setImage(null); setResult(null); setStudioMode(null); setCategory(''); setCustomCategory(''); setBrandStyle(''); setVisualType(''); setModelType(''); setModelRegion(''); setSkinTone(''); setBodyType(''); setModelComposition(''); setModelFraming(''); setSuggestedPrompts([]); setSuggestedModelPrompts([]); setSelectedPrompt(null); setLastCreationId(null); setIsRefineActive(false);
     };
 
-    const handleEditorSave = async (newUrl: string) => { 
-        setResult(newUrl); 
-        if (lastCreationId && auth.user) {
-            await updateCreation(auth.user.uid, lastCreationId, newUrl);
-        } else if (auth.user) {
-            const featureName = studioMode === 'model' ? 'Pixa Model Shots' : 'Pixa Product Shots';
-            const id = await saveCreation(auth.user.uid, newUrl, featureName); 
-            setLastCreationId(id); 
-        }
-    };
-    
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-
     const canGenerate = !!image && !isAnalyzing && !isAnalyzingModel && !!studioMode && !isLowCredits && (
         studioMode === 'product' 
         ? (!!selectedPrompt || (!!category && (category !== 'Other / Custom' || !!customCategory.trim()) && !!brandStyle && !!visualType)) 
@@ -282,9 +267,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             creationId={lastCreationId}
             onResetResult={result ? undefined : () => setResult(null)}
             onNewSession={result ? undefined : handleNewSession}
-            onEdit={() => setShowMagicEditor(true)}
             activeBrandKit={auth.activeBrandKit}
-            resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+            resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
             canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
             customActionButtons={result ? (
                 <button 
@@ -473,7 +457,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
                                                 <>
                                                     <SelectionGrid label="2. Model Persona" options={modelTypes} value={modelType} onChange={(val) => { setModelType(val); autoScroll(); }} />
                                                     {modelType && <SelectionGrid label="3. Regional Identity" options={modelRegions} value={modelRegion} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
-                                                    {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setSkinTone(val); autoScroll(); }} />}
+                                                    {modelRegion && <SelectionGrid label="4. Skin & Build" options={skinTones} value={skinTone} onChange={(val) => { setModelRegion(val); autoScroll(); }} />}
                                                     {skinTone && <SelectionGrid label="5. Body Archetype" options={bodyTypes} value={bodyType} onChange={(val) => { setBodyType(val); }} />}
                                                     {bodyType && <SelectionGrid label="6. Shot Composition" options={compositionTypes} value={modelComposition} onChange={(val) => { setModelComposition(val); autoScroll(); }} />}
                                                     {modelComposition && <SelectionGrid label="7. Camera Framing" options={shotTypes} value={modelFraming} onChange={setModelFraming} />}
@@ -497,15 +481,6 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         />
         
         {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-        
-        {showMagicEditor && result && (
-            <MagicEditorModal 
-                imageUrl={result} 
-                onClose={() => setShowMagicEditor(false)} 
-                onSave={handleEditorSave} 
-                deductCredit={handleDeductEditCredit} 
-            />
-        )}
         
         {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Product Shot" />}
         {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
