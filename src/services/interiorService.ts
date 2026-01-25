@@ -1,5 +1,5 @@
 import { Modality, Type } from "@google/genai";
-import { getAiClient, secureGenerateContent } from "./geminiClient";
+import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -42,6 +42,7 @@ const performForensicSpatialAudit = async (ai: any, base64: string, mimeType: st
 
 /**
  * PIXA INTERIOR DESIGN v6.0: SPATIAL PHYSICS & MATERIAL RIGGING
+ * Focus: Furniture & Decor ADDITION rather than structural replacement.
  */
 export const generateInteriorDesign = async (
   base64ImageData: string,
@@ -66,25 +67,26 @@ export const generateInteriorDesign = async (
     Instruction: Infuse the design with these brand colors in secondary materials (textiles, art, accent lighting).
     ` : "";
 
-    const prompt = `You are the Pixa Spatial Physics Engine v6.0. 
+    const prompt = `You are the Pixa Spatial Furnishing Engine v6.0. 
     
-    *** CORE MANDATE: ARCHITECTURAL IMMUTABILITY ***
-    1. **STRUCTURAL LOCK**: Windows, doors, and load-bearing walls defined in the Audit (${spatialAudit}) are SACRED. DO NOT warp or move them.
-    2. **PBR MATERIAL RIGGING**: Apply technical Physically Based Rendering logic. If using wood, use 'Low-roughness Walnut with anisotropic reflections'. If fabric, use 'High-density linen weave'.
-    3. **GLOBAL ILLUMINATION**: Calculate light-bounce (GI). Ensure light from windows bleeds naturally onto new floor materials and creates physically accurate contact shadows (AO).
-    4. **SCALE ACCURACY**: Every new furniture item must be sized relative to the audited ceiling height.
+    *** CORE MANDATE: ARCHITECTURAL PRESERVATION (STRICT) ***
+    1. **NO STRUCTURAL CHANGES**: You are FORBIDDEN from modifying the windows, doors, walls, ceiling, or any load-bearing elements of the room.
+    2. **BACKGROUND PLATE**: Treat the original photo as an immutable background plate. Your task is to FURNISH and DECORATE the space, not rebuild it.
+    3. **ZERO WARPING**: The window frames, wall angles, and floor boundaries must remain 100% identical to the source image.
+    4. **SMART DECOR**: Intelligently add furniture (sofas, tables, chairs), plants, rugs, and wall art in the style of "${style}". 
+    5. **PBR MATERIAL RIGGING**: Apply technical Physically Based Rendering logic. If adding wood, use 'Low-roughness Walnut'. If fabric, use 'High-density linen weave'.
+    6. **GLOBAL ILLUMINATION**: Calculate how the existing light from the windows (Audited in: ${spatialAudit}) should realistically fall on the new furniture and decor.
 
-    GOAL: Transform this room into a ${style} ${roomType}.
+    GOAL: Furnish this ${roomType} in a ${style} aesthetic.
     ${brandDNA}
     
-    OUTPUT: A single hyper-realistic 8K architectural visualization. No AI artifacts. Museum-grade texture fidelity.`;
+    OUTPUT: A single hyper-realistic 8K visualization where the room's architecture is exactly the same, but the interior decor is completely redesigned.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
       config: { 
           responseModalities: [Modality.IMAGE],
-          // imageConfig moved to correct location for generateContent
           imageConfig: {
               aspectRatio: "4:3",
               imageSize: "1K"
@@ -94,6 +96,6 @@ export const generateInteriorDesign = async (
     
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("Spatial engine failed to render. Identity sync unstable.");
+    throw new Error("Spatial engine failed to render. identity sync unstable.");
   } catch (error) { throw error; }
 };
