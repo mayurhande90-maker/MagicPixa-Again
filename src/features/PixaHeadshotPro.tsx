@@ -107,9 +107,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     
-    // API KEY SELECTION STATE
-    const [hasApiKey, setHasApiKey] = useState(false);
-
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
@@ -121,17 +118,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const scrollRef = useRef<HTMLDivElement>(null);
     
     const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
-
-    // Initial check for API Key
-    useEffect(() => {
-        const checkKey = async () => {
-            if (window.aistudio) {
-                const hasKey = await window.aistudio.hasSelectedApiKey();
-                setHasApiKey(hasKey);
-            }
-        };
-        checkKey();
-    }, []);
 
     useEffect(() => {
         setBackground('');
@@ -165,13 +151,6 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     }, [loading, isRefining]);
 
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
-
-    const handleSelectKey = async () => {
-        if (window.aistudio) {
-            await window.aistudio.openSelectKey();
-            setHasApiKey(true);
-        }
-    };
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -209,12 +188,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e: any) { 
             console.error(e); 
-            if (e.message.includes("Requested entity was not found")) {
-                setHasApiKey(false);
-                alert("Session expired. Please select your API key again.");
-            } else {
-                alert(`Generation failed: ${e.message}`); 
-            }
+            alert(`Generation failed: ${e.message}`); 
         } finally { 
             setLoading(false); 
         }
@@ -276,37 +250,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     
     const currentAvailableBackgrounds = PERSONA_BACKGROUNDS[archetype] || PERSONA_BACKGROUNDS['Executive'];
 
-    // FIX: Defined canGenerate variable to fix the reference error in FeatureLayout component below.
     const canGenerate = isUploadsReady && !!background && !isLowCredits;
-
-    if (!hasApiKey) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center p-10 animate-fadeIn">
-                <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-indigo-500/5">
-                    <ShieldCheckIcon className="w-12 h-12 text-indigo-600" />
-                </div>
-                <h2 className="text-3xl font-black text-gray-900 mb-2">High-Fidelity Rendering</h2>
-                <p className="text-gray-500 max-w-md text-center mb-10 leading-relaxed font-medium">
-                    To maintain the <span className="text-indigo-600 font-bold">Identity Lock 4.0</span> standard, we use the ultra-powerful Gemini 3 Pro Vision model. Please select your API key from a paid GCP project to continue.
-                </p>
-                <button 
-                    onClick={handleSelectKey}
-                    className="bg-[#1A1A1E] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl hover:bg-black transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
-                >
-                    <LockIcon className="w-6 h-6 text-yellow-400" />
-                    Select API Key
-                </button>
-                <a 
-                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="mt-6 text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors uppercase tracking-widest border-b border-transparent hover:border-indigo-600"
-                >
-                    Learn about billing setup →
-                </a>
-            </div>
-        );
-    }
 
     return (
         <>
