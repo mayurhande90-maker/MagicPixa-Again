@@ -87,7 +87,7 @@ const ModeCard: React.FC<{
                 {selected && (
                     <div className={RestoreStyles.identityBadge}>
                         <ShieldCheckIcon className="w-2.5 h-2.5 text-indigo-500" />
-                        <span className={RestoreStyles.identityText}>Forensic Anchor Active</span>
+                        <span className={RestoreStyles.identityText}>Identity Lock 6.0 Active</span>
                     </div>
                 )}
             </div>
@@ -123,16 +123,15 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
         let interval: any; 
         if (loading || isRefining) { 
             const steps = isRefining ? [
-                "Audit: Analyzing biometric stability...", 
+                "Identity Lock 6.0: Mapping skin topology...", 
                 "Retouching: Refining pixel fidelity...", 
-                "Finalizing masterpieces...", 
-                "Mastery: High-pass reconstruction ready..."
+                "Mastery: Finalizing biometric clone..."
             ] : [
                 "Forensic Audit: Mapping chemical damage...", 
-                "Era Analysis: Synchronizing historical color science...", 
-                "Optical Engine: Reconstructing 4K biometrics...", 
-                "Production: Applying sub-surface scattering...", 
-                "Finalizing: High-fidelity reconstruction ready..."
+                "Identity Lock 6.0: Mapping biometric asymmetries...", 
+                "Identity Lock 6.0: Anchoring bone structure...", 
+                "Production: Synthesizing historical pigments...", 
+                "Finalizing: Identity 100% verified, rendering..."
             ]; 
             let step = 0; 
             setLoadingText(steps[0]); 
@@ -201,14 +200,14 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     return (
         <>
             <FeatureLayout 
-                title="Pixa Photo Restore" description="Museum-grade restoration suite. Forensic Optical Reconstruction heals damage, fixes focus, and synthesizes historical pigments with 100% identity lock." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                title="Pixa Photo Restore" description="Museum-grade restoration suite. Identity Lock 6.0 anchors original facial asymmetries and bone structure for zero-hallucination results." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={handleNewSession}
                 activeBrandKit={auth.activeBrandKit}
                 resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} 
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true, 
-                    label: "Begin Optical Reconstruction" 
+                    label: "Verify Identity & Restore" 
                 }} 
                 scrollRef={scrollRef}
                 resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
@@ -237,7 +236,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                         </div>
                     ) : (
                         <div onClick={() => fileInputRef.current?.click()} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`h-full w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group relative overflow-hidden mx-auto ${isDragging ? 'border-indigo-600 bg-indigo-50 scale-[1.02] shadow-xl' : 'border-indigo-300 hover:border-indigo-500 bg-white hover:-translate-y-1 hover:shadow-xl'}`}>
-                            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300"><PixaRestoreIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" /></div><div className="relative z-10 mt-6 text-center space-y-2 px-6"><p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Old Photo</p><div className="bg-gray-50 rounded-full px-3 py-1 inline-block"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p></div><p className="text-[10px] text-gray-400 mt-3 font-medium">Recommended: High quality scan (300 DPI+).</p></div>{isDragging && (<div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none"><div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce"><p className="text-lg font-bold text-indigo-600 flex items-center gap-2"><UploadIcon className="w-5 h-5"/> Drop to Upload!</p></div></div>)}
+                            <div className="relative z-10 p-6 bg-indigo-50 rounded-2xl shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300"><PixaRestoreIcon className="w-12 h-12 text-indigo-300 group-hover:text-indigo-600 transition-colors duration-300" /></div><div className="relative z-10 mt-6 text-center space-y-2 px-6"><p className="text-xl font-bold text-gray-500 group-hover:text-[#1A1A1E] transition-colors duration-300 tracking-tight">Upload Old Photo</p><div className="bg-gray-50 rounded-full px-3 py-1 inline-block"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Click to Browse</p></div><p className="text-[10px] text-gray-400 mt-3 font-medium">Identity Lock 6.0 will anchor all facial features.</p></div>{isDragging && (<div className="absolute inset-0 flex items-center justify-center bg-indigo-500/10 backdrop-blur-[2px] z-50 rounded-3xl pointer-events-none"><div className="bg-white px-6 py-3 rounded-full shadow-2xl border border-indigo-100 animate-bounce"><p className="text-lg font-bold text-indigo-600 flex items-center gap-2"><UploadIcon className="w-5 h-5"/> Drop to Upload!</p></div></div>)}
                         </div>
                     )
                 }
@@ -246,8 +245,8 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                         <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
                             <div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
                             <div>
-                                <h3 className="text-lg font-bold text-gray-800">Optical Engine</h3>
-                                <p className="text-xs text-gray-400 font-medium">Select your preferred output style</p>
+                                <h3 className="text-lg font-bold text-gray-800">Identity-Lock Engine</h3>
+                                <p className="text-xs text-gray-400 font-medium">Museum-grade restoration protocol</p>
                             </div>
                         </div>
                         {image && isLowCredits ? (
@@ -270,9 +269,9 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                             </div>
                             <div className="space-y-3">
                                 {[
-                                    { label: 'Identity Anchoring', desc: '1:1 facial structure replication', active: !!image },
+                                    { label: 'Identity Lock 6.0', desc: 'Asymmetry & Bone Structure Anchoring', active: !!image },
                                     { label: 'Pigment Synthesis', desc: 'Era-matched film stock palettes', active: restoreMode === 'restore_color' },
-                                    { label: 'Sub-Surface Scattering', desc: 'Life-like skin depth rendering', active: !!restoreMode }
+                                    { label: 'Geometry Immobility', desc: 'Prevents AI facial warping', active: !!restoreMode }
                                 ].map((p, idx) => (
                                     <div key={idx} className={`flex items-start gap-3 transition-opacity ${p.active ? 'opacity-100' : 'opacity-30'}`}>
                                         <div className={`mt-1 w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${p.active ? 'bg-indigo-600' : 'bg-gray-200'}`}>
