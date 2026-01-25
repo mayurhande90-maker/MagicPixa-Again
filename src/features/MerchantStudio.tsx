@@ -8,7 +8,7 @@ import {
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
-import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
+import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../entropy/firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
 import JSZip from 'jszip';
@@ -179,7 +179,28 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => { return () => { results.forEach(url => URL.revokeObjectURL(url)); }; }, [results]);
-    useEffect(() => { let interval: any; if (loading) { const steps = ["Pixa Vision mapping surface...", "Pixa is simulating physics...", "Pixa is calculating reflections...", "Pixa is rendering textures...", "Pixa is polishing pixels..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 1500); } return () => clearInterval(interval); }, [loading]);
+    
+    // NEW LOADING CYCLE: Triple-Engine Agency Sequence
+    useEffect(() => { 
+        let interval: any; 
+        if (loading) { 
+            const steps = [
+                "Forensic Audit: Identifying material physics...",
+                "Forensic Audit: Mapping geometric topology...",
+                "Strategic Architect: Planning visual storytelling...",
+                "Production Engine: Simulating ray-traced shadows...",
+                "Production Engine: Finalizing 8K Global Illumination...",
+                "Elite Retoucher: Final pixel polish..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2500); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -271,19 +292,19 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     return (
         <>
             <FeatureLayout
-                title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
+                title="Pixa Ecommerce Kit" description="The ultimate e-commerce engine. Generate 5, 7, or 10 listing-ready assets in one click using Triple-Engine architecture." icon={<PixaEcommerceIcon className="w-14 h-14" />} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} hideGenerateButton={isLowCredits} resultHeightClass="h-[850px]"
                 activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true, 
                     label: "Generate Kit",
-                    loadingLabel: "Generate Kit"
+                    loadingLabel: "Generating..."
                 }} 
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
-                        {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>)}
+                        {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-8">{loadingText}</p></div>)}
                         {!loading && results.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60"><div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6"><PixaEcommerceIcon className="w-10 h-10 text-indigo-300" /></div><h3 className="text-xl font-bold text-gray-400">Ready to Create</h3><p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">Select a mode and pack size on the right to generate your assets.</p></div>)}
                         {!loading && results.length > 0 && mode && (
                             <div className="flex flex-col lg:flex-row h-full">
@@ -331,9 +352,10 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                 <div className="animate-fadeIn space-y-6">
                                     <div className="flex items-center justify-between"><button onClick={handleNewSession} className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">← BACK TO MODE</button><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mode === 'apparel' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{mode} Mode</span></div>
                                     <div className="mb-4"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block ml-1">Pack Size</label><div className={MerchantStyles.packGrid}><PackCard size={5} label="Standard" subLabel="Essentials" cost={costStandard} selected={packSize === 5} onClick={() => setPackSize(5)} /><PackCard size={7} label="Extended" subLabel="+ Creative" cost={costExtended} selected={packSize === 7} onClick={() => setPackSize(7)} /><PackCard size={10} label="Ultimate" subLabel="Complete Kit" cost={costUltimate} selected={packSize === 10} onClick={() => setPackSize(10)} isPopular={true} /></div></div>
-                                    <CompactUpload label={mode === 'apparel' ? "Cloth Photo (Flat Lay)" : "Product Photo"} image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
+                                    
                                     {mode === 'apparel' && (
                                         <>
+                                            <CompactUpload label="Cloth Photo (Flat Lay)" image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
                                             <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-gray-400"/>} heightClass="h-24" />
                                             <div className="border-t border-gray-100 pt-6">
                                                 <div className="flex justify-between items-center mb-3">
@@ -362,14 +384,31 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             </div>
                                         </>
                                     )}
-                                    {mode === 'product' && (
-                                        <>
-                                            <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>} heightClass="h-24" />
-                                            <div className="border-t border-gray-100 pt-6 space-y-4 mb-4">
-                                                <div><label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Product Type</label><input type="text" placeholder="e.g. Headphones" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl outline-none focus:border-[#4D7CFF] font-medium" /></div>
-                                                <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
+
+                                    {/* Moved Product Type and Visual Vibe inputs outside of specific blocks to improve usability and resolve TS error */}
+                                    {mode && (
+                                        <div className="border-t border-gray-100 pt-6 space-y-4 mb-4">
+                                            {mode === 'product' && (
+                                                 <CompactUpload label="Product Photo" image={mainImage} onUpload={handleUpload(setMainImage)} onClear={() => setMainImage(null)} icon={<UploadTrayIcon className="w-6 h-6 text-indigo-500"/>} />
+                                            )}
+                                            {mode === 'product' && (
+                                                 <CompactUpload label="Back View" subLabel="Optional" image={backImage} onUpload={handleUpload(setBackImage)} onClear={() => setBackImage(null)} icon={<UploadTrayIcon className="w-5 h-5 text-purple-400"/>} heightClass="h-24" />
+                                            )}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Product Type</label>
+                                                <input 
+                                                    type="text" 
+                                                    // FIX: Resolved unintentionally false comparison by providing correct placeholder logic for both modes.
+                                                    placeholder={mode === 'apparel' ? "e.g. Oversized hoodie, Summer linen dress" : "e.g. Luxury face serum, Organic honey jar"} 
+                                                    value={productType} 
+                                                    onChange={(e) => setProductType(e.target.value)} 
+                                                    className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl outline-none focus:border-[#4D7CFF] font-medium" 
+                                                />
                                             </div>
-                                        </>
+                                            {mode === 'product' && (
+                                                <SelectionGrid label="Visual Vibe" options={['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle']} value={productVibe} onChange={setProductVibe} />
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}
