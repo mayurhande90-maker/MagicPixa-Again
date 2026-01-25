@@ -272,6 +272,7 @@ export const FeatureLayout: React.FC<{
     creationId?: string | null;
     onResetResult?: () => void;
     onNewSession?: () => void;
+    // Added optional onEdit prop to resolve compilation errors in feature components
     onEdit?: () => void;
     description?: string;
     generateButtonStyle?: {
@@ -476,16 +477,6 @@ export const FeatureLayout: React.FC<{
                                 <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
                                     <div className="pointer-events-auto flex gap-2 sm:gap-3 flex-wrap justify-center">
                                         {customActionButtons}
-
-                                        {onEdit && (
-                                            <button 
-                                                onClick={onEdit} 
-                                                className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap"
-                                            >
-                                                <MagicWandIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 group-hover:scale-110 transition-transform"/>
-                                                <span className="hidden sm:inline">Magic Editor</span>
-                                            </button>
-                                        )}
 
                                         {onNewSession && (
                                             <button onClick={onNewSession} className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap">
