@@ -24,10 +24,9 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 const performForensicSpatialAudit = async (ai: any, base64: string, mimeType: string, roomType: string): Promise<string> => {
     const prompt = `Act as a Senior Architectural Visualizer and Optical Engineer.
     Perform a Forensic Spatial Audit of this ${roomType}:
-    1. **STRUCTURAL ANCHORS**: Identify the exact vertices of floor-to-wall intersections and ceiling corners.
+    1. **STRUCTURAL ANCHORS**: Identify the exact vertices of floor-to-wall intersections, ceiling corners, and window frame placements.
     2. **LIGHT TRIANGULATION**: Locate all primary light sources (windows, recessed lights, lamps). Estimate Kelvin color temperature (e.g. 3000K Warm or 5500K Daylight).
-    3. **OCCLUSION MAPPING**: Identify objects that create complex contact shadows.
-    4. **SCALE CALIBRATION**: Estimate the ceiling height to ensure furniture scale accuracy.
+    3. **OCCLUSION MAPPING**: Identify the fixed architectural elements that must NOT be changed.
     
     OUTPUT: A technical "Structural & Lighting Rig Protocol" for the render engine.`;
     
@@ -41,8 +40,8 @@ const performForensicSpatialAudit = async (ai: any, base64: string, mimeType: st
 };
 
 /**
- * PIXA INTERIOR DESIGN v6.0: SPATIAL PHYSICS & MATERIAL RIGGING
- * Focus: Furniture & Decor ADDITION rather than structural replacement.
+ * PIXA INTERIOR DESIGN v6.1: ADDITIVE ARCHITECTURAL RIGGING
+ * Focus: Furniture & Decor ADDITION over an immutable base plate.
  */
 export const generateInteriorDesign = async (
   base64ImageData: string,
@@ -64,23 +63,22 @@ export const generateInteriorDesign = async (
     Client: '${brand.companyName || brand.name}'.
     Preferred Tone: ${brand.toneOfVoice || 'Professional'}.
     Brand Palette: Primary=${brand.colors.primary}, Accent=${brand.colors.accent}.
-    Instruction: Infuse the design with these brand colors in secondary materials (textiles, art, accent lighting).
+    Instruction: Use the brand palette for furniture accents and textiles.
     ` : "";
 
-    const prompt = `You are the Pixa Spatial Furnishing Engine v6.0. 
+    const prompt = `You are the Pixa Spatial Furnishing Engine v6.1. 
     
-    *** CORE MANDATE: ARCHITECTURAL PRESERVATION (STRICT) ***
-    1. **NO STRUCTURAL CHANGES**: You are FORBIDDEN from modifying the windows, doors, walls, ceiling, or any load-bearing elements of the room.
-    2. **BACKGROUND PLATE**: Treat the original photo as an immutable background plate. Your task is to FURNISH and DECORATE the space, not rebuild it.
-    3. **ZERO WARPING**: The window frames, wall angles, and floor boundaries must remain 100% identical to the source image.
-    4. **SMART DECOR**: Intelligently add furniture (sofas, tables, chairs), plants, rugs, and wall art in the style of "${style}". 
-    5. **PBR MATERIAL RIGGING**: Apply technical Physically Based Rendering logic. If adding wood, use 'Low-roughness Walnut'. If fabric, use 'High-density linen weave'.
-    6. **GLOBAL ILLUMINATION**: Calculate how the existing light from the windows (Audited in: ${spatialAudit}) should realistically fall on the new furniture and decor.
+    *** CORE MANDATE: ARCHITECTURAL IMMUTABILITY (STRICT) ***
+    1. **NO STRUCTURAL ALTERATIONS**: You are FORBIDDEN from changing the windows, wall positions, ceiling geometry, or room dimensions. 
+    2. **BACKGROUND PLATE LOGIC**: Treat the input photo as an immutable background plate. Your ONLY task is to ADD furniture, decor, and styling items into the existing space.
+    3. **WINDOW INTEGRITY**: The view outside and the frame of the window must remain 100% identical to the source.
+    4. **ADDITIVE FURNISHING**: Render ${style} style furniture (sofas, tables, rugs, plants) onto the existing floor.
+    5. **PHYSICS ALIGNMENT**: Calculate lighting bounce from the original windows (Audit: ${spatialAudit}) onto the new furniture. Ensure physically accurate contact shadows (AO) on the original floor pixels.
 
-    GOAL: Furnish this ${roomType} in a ${style} aesthetic.
+    GOAL: Decorate this ${roomType} in a ${style} aesthetic without changing its architecture.
     ${brandDNA}
     
-    OUTPUT: A single hyper-realistic 8K visualization where the room's architecture is exactly the same, but the interior decor is completely redesigned.`;
+    OUTPUT: A single hyper-realistic 8K architectural render where the original room structure is preserved perfectly.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
