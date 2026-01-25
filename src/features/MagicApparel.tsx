@@ -7,7 +7,6 @@ import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils
 import { generateApparelTryOn } from '../services/apparelService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
-import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
@@ -34,7 +33,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
-    const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
@@ -149,17 +147,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const handleNewSession = () => { setPersonImage(null); setTopGarment(null); setBottomGarment(null); setResultImage(null); setLastCreationId(null); setTuck(''); setSleeve(''); setFit(''); setAccessories(''); setIsRefineActive(false); };
     
-    const handleEditorSave = async (newUrl: string) => { 
-        setResultImage(newUrl); 
-        if (lastCreationId && auth.user) {
-            await updateCreation(auth.user.uid, lastCreationId, newUrl);
-        } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa TryOn');
-            setLastCreationId(id);
-        }
-    };
-    
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const canGenerate = !!personImage && (!!topGarment || !!bottomGarment) && !isLowCredits;
     const isControlsDisabled = !personImage || loading || isRefining;
 
@@ -167,8 +154,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         <>
             <FeatureLayout 
                 title="Pixa TryOn" description="Virtual dressing room. Try clothes on any person instantly." icon={<PixaTryOnIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
-                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                activeBrandKit={auth.activeBrandKit}
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
                     <button 
@@ -221,7 +208,6 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Virtual Try-On" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
