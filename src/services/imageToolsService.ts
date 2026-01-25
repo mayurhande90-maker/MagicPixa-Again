@@ -143,8 +143,8 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     } catch (e) { return "Standard restoration, fix damage and sharpen."; }
 };
 
-const performForensicBiometricScan = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Perform a Forensic Biometric Identity Scan on any faces in this photo.
+const performForensicBiometricScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
+    const prompt = `Perform a Forensic Biometric Identity Scan on the provided photo for ${label}.
     1. **STRUCTURAL ANCHORS**: Identify the exact bone structure, nose shape, and jawline.
     2. **OCULAR DETAIL**: Map eye shape and eyelid geometry.
     3. **IDENTITY LOCK**: Provide a technical description that ensures the person remains EXACTLY the same. No plastic surgery or beautification allowed.
@@ -169,6 +169,9 @@ const analyzeReferenceTechSpecs = async (ai: any, base64: string, mimeType: stri
     } catch (e) { return "Match reference specs."; }
 };
 
+/**
+ * PIXA PHOTO RESTORE: FORENSIC OPTICAL RECONSTRUCTION
+ */
 export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,
@@ -179,7 +182,7 @@ export const colourizeImage = async (
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
     
-    // Step 1: Deep Analysis for Accuracy
+    // Engine 1: Forensic Optical Audit
     const [restorationBlueprint, identityLock] = await Promise.all([
         analyzePhotoCondition(ai, data, optimizedMime),
         performForensicBiometricScan(ai, data, optimizedMime)
@@ -188,30 +191,32 @@ export const colourizeImage = async (
     const brandDNA = getBrandDNA(brand);
 
     const modePrompt = mode === 'restore_color' 
-        ? `TASK: **COLOUR & RESTORE**
-           - **COLORIZATION**: Apply high-fidelity, era-appropriate color. Reference the identified historical era.
-           - **SKIN TONES**: Use realistic human sub-surface scattering for skin. Avoid "flat" colors.
-           - **LUMINANCE PRESERVATION**: The brightness and contrast of the result must match the original's light-to-dark values perfectly.` 
+        ? `TASK: **COLOUR & RESTORE (HISTORICAL PIGMENT SYNTHESIS)**
+           - **COLORIZATION**: Apply high-fidelity, era-appropriate color based on the identified era.
+           - **FILM STOCK MATCHING**: Use a palette that reflects historical film stocks (e.g. Kodachrome for 50s, early Technicolor for 30s).
+           - **SKIN TONES**: Use realistic human sub-surface scattering (SSS) for skin. Avoid "flat" colors.
+           - **LUMINANCE PRESERVATION**: Maintain the original's light-to-dark values perfectly.` 
         : `TASK: **RESTORE ONLY (MONOCHROME)**
            - **STRICT NO-COLOR POLICY**: Do NOT inject any color. The final output must be 100% black and white / sepia (matching original tone).
            - **FOCUS**: Direct all energy into removing damage, deblurring, and enhancing resolution while maintaining the original's BW soul.`;
 
-    const prompt = `You are the Pixa Forensic Restoration Engine. 
+    const prompt = `You are the Pixa Forensic Optical Reconstruction Engine. 
+    
     ${restorationBlueprint}
     ${identityLock}
     ${brandDNA}
     
-    *** CORE MANDATE: SACRED ASSET PROTOCOL ***
-    1. **PIXEL INTEGRITY**: You are a restorer, not an artist. You are FORBIDDEN from altering the subject's face, body, or the core composition of the photo.
-    2. **IDENTITY PRESERVATION**: The person in the photo must remain 100% recognizable. No beautification, no AI-hallucinated features, no changing age.
-    3. **DAMAGE ELIMINATION**: Heal all scratches, dust, cracks, and mold. Remove chemical stains and light leaks seamlessly.
-    4. **ENHANCEMENT**: Upscale to crystal-clear 4K. Sharpen eyes and details without creating "plastic" artifacts.
+    *** CORE MANDATE: SACRED ASSET PROTOCOL v5.0 ***
+    1. **PIXEL INTEGRITY**: You are a forensic reconstructor, not an artist. You are FORBIDDEN from altering the subject's face, body, or the core composition of the photo.
+    2. **IDENTITY ANCHOR**: The person in the photo must remain 100% recognizable. STRICT NO-BEAUTIFICATION RULE: Do not smooth skin into "plastic", do not change features. Preserve wrinkles, original jawlines, and eye shapes.
+    3. **DAMAGE ELIMINATION**: Seamlessly heal silver mirroring, chemical stains, scratches, dust, mold, and physical fold lines.
+    4. **OPTICAL ENHANCEMENT**: Reconstruct lost details using 4K high-pass sharpening. Ensure eyes have realistic catchlights.
 
     ${modePrompt}
 
     ${brand ? `ADDITIONAL: If restoring color, subtly prioritize ${brand.colors.primary} in background accents if appropriate.` : ''}
     
-    OUTPUT: A single hyper-realistic, photorealistic, 4K restored image.`;
+    OUTPUT: A single hyper-realistic, photorealistic, 4K restored image that looks like it was shot on professional film on the day it was taken.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -226,7 +231,7 @@ export const colourizeImage = async (
     });
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
+    throw new Error("Forensic engine failed to reconstruct. The asset may be too degraded.");
   } catch (error) { throw error; }
 };
 
