@@ -25,6 +25,17 @@ const BODY_TYPES = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size 
 const COMPOSITION_TYPES = ['Single Model', 'Group Shot'];
 const SHOT_TYPES = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
 
+const INDUSTRY_PLACEHOLDERS: Record<string, string> = {
+    'ecommerce': "e.g. Organic lavender soap. Focus on artisanal texture and luxury packaging. Target: Eco-conscious gift shoppers.",
+    'realty': "e.g. Modern 3BHK penthouse with floor-to-ceiling glass. Highlight the sunset view and spacious balcony.",
+    'food': "e.g. Triple-stack wagyu burger with melted cheddar. Focus on the juice and steam. Use warm, rustic kitchen lighting.",
+    'saas': "e.g. Project management dashboard. Focus on the 'clean' interface and task completion charts. Minimalist tech vibe.",
+    'fmcg': "e.g. Eco-friendly laundry detergent pods. Highlight the dissolvable packaging and clean scent. Fresh laundry environment.",
+    'fashion': "e.g. Summer linen collection. Model in a sunny beach setting. Focus on fabric texture and natural lighting.",
+    'education': "e.g. Online MBA course. Professional student in a modern workspace. Focus on career growth and flexibility.",
+    'services': "e.g. Business consulting firm. Collaborative meeting room setting. Focus on trust, growth, and teamwork."
+};
+
 // --- HELPERS ---
 const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
     switch (type) {
@@ -174,7 +185,6 @@ const BrandSelectionModal: React.FC<{
                      ) : (
                         <div className={`grid grid-cols-2 gap-4 ${activatingId ? 'pointer-events-none' : ''}`}>
                             {brands.map(brand => {
-                                // Fix: Use the currentBrandId prop instead of non-existent activeBrand
                                 const isActive = currentBrandId === brand.id;
                                 const isActivating = activatingId === brand.id;
                                 return (
@@ -276,30 +286,25 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Master Feature Mode - Default changed to null to prevent pre-selection
     const [integrationMode, setIntegrationMode] = useState<'product' | 'subject' | null>(null);
 
-    // Config - Default layout template changed to empty string
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
     const [layoutTemplate, setLayoutTemplate] = useState('');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); 
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     
-    // Model Config
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [modelParams, setModelParams] = useState<AdMakerInputs['modelParams']>({
         modelType: '', region: '', skinTone: '', bodyType: '', composition: '', framing: ''
     });
 
-    // Strategy Logic
     const [productName, setProductName] = useState('');
     const [website, setWebsite] = useState('');
     const [offer, setOffer] = useState('');
     const [description, setDescription] = useState('');
 
-    // Results
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -310,7 +315,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    // Refinement Panel
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
@@ -322,11 +326,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
-    // --- IDENTITY GUARD LOGIC ---
     const brandIndustry = useMemo(() => auth.activeBrandKit ? MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry) : null, [auth.activeBrandKit]);
     const isMismatch = auth.activeBrandKit && industry && brandIndustry !== industry;
 
-    // --- DYNAMIC VIBE FILTERING ---
     const filteredVibes = useMemo(() => {
         if (!industry) return [];
         const industryVibes = VIBE_MAP[industry] || [];
@@ -340,7 +342,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     }, [layoutTemplate, filteredVibes]);
 
-    // SYNC WITH BRAND KIT
     useEffect(() => {
         if (auth.activeBrandKit) {
             const kit = auth.activeBrandKit;
@@ -357,9 +358,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             setMainImages([]);
             setIsCollectionMode(false);
-            // No longer pre-selecting layout template
             setLayoutTemplate('');
-            // No longer pre-selecting integration mode
             setIntegrationMode(null);
         }
     }, [auth.activeBrandKit]);
@@ -430,6 +429,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleGenerate = async () => {
         if (!industry || mainImages.length === 0 || !auth.user || !description || !aspectRatio || !integrationMode || !layoutTemplate) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
+
+        // PRODUCTION MANDATE: Check for selected API key when using pro models
+        if (window.aistudio) {
+            const hasKey = await window.aistudio.hasSelectedApiKey();
+            if (!hasKey) {
+                if (confirm("MagicPixa AdMaker requires a professional AI processing key for high-fidelity 8K output. Would you like to select yours now? (Billing documentation provided in the dialog)")) {
+                    await window.aistudio.openSelectKey();
+                } else {
+                    return;
+                }
+            }
+        }
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
@@ -997,7 +1008,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 )}
                                                 <TextAreaField 
                                                     label="Ad Context (AIDA Protocol)" 
-                                                    placeholder="e.g. Organic skincare for glowing morning routine. Focus on texture and ingredients." 
+                                                    placeholder={industry ? INDUSTRY_PLACEHOLDERS[industry] : "e.g. Organic skincare for glowing morning routine. Focus on texture and ingredients."} 
                                                     value={description} 
                                                     onChange={(e: any) => setDescription(e.target.value)} 
                                                 />
@@ -1031,7 +1042,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     isOpen={showBrandModal} 
                     onClose={() => setShowBrandModal(false)} 
                     userId={auth.user.uid} 
-                    // Fix: Use auth.activeBrandKit prop in currentBrandId
                     currentBrandId={auth.activeBrandKit?.id} 
                     onSelect={handleBrandSelect} 
                     onCreateNew={() => navigateTo('dashboard', 'brand_manager')} 
