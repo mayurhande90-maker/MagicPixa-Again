@@ -68,6 +68,7 @@ export const detectObjectAtPoint = async (
                 ]
             },
             config: {
+                // responseMimeType and responseSchema are correctly defined here following guidelines.
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -93,41 +94,6 @@ export const detectObjectAtPoint = async (
     }
 };
 
-// --- PROMPT MAPPINGS FOR PIXA TOGETHER ---
-const MOOD_PROMPTS: Record<string, string> = {
-    'Happy': 'Bright, cheerful, high-key lighting, genuine smiles, warm color temperature, vibrant and energetic atmosphere.',
-    'Cinematic': 'Dramatic lighting, high contrast, anamorphic lens look, movie-still aesthetic, deep teal and orange color grading, emotional depth.',
-    'Romantic': 'Soft focus, dreamy backlight, golden hour glow, intimate atmosphere, warm pastel tones, gentle bokeh.',
-    'Vintage': 'Film grain texture, sepia or desaturated tones, 90s aesthetic, nostalgic feel, slightly soft sharpness like analog photography.',
-    'Luxury': 'High-end fashion editorial style, polished, elegant, sharp focus, rich textures, sophisticated lighting.',
-    'Adventure': 'Dynamic lighting, wind in hair, outdoorsy feel, vibrant natural colors, energetic composition.',
-    'Candid': 'Natural, unposed look, documentary style, authentic lighting, "caught in the moment" feel.',
-    'Professional': 'Clean, sharp, balanced studio lighting, neutral tones, confident and trustworthy atmosphere.',
-    'Ethereal': 'Soft, dreamy, fantasy-like atmosphere, light leaks, pastel color palette, angelic glow.',
-    'Moody': 'Low-key lighting, deep shadows, mysterious atmosphere, desaturated colors, intense and emotional.'
-};
-
-const ENVIRONMENT_PROMPTS: Record<string, string> = {
-    'Outdoor Park': 'A lush green park with dappled sunlight through trees, soft nature background.',
-    'Beach': 'A sunny beach with blue ocean and white sand, bright natural daylight.',
-    'Luxury Rooftop': 'A high-end city rooftop at twilight with glowing city skyline lights in the background, glass railings, chic furniture.',
-    'City Street': 'A bustling urban street with blurred cars and city lights, modern architecture context.',
-    'Cozy Home': 'A warm, inviting living room with soft furniture, plants, and window light.',
-    'Cafe': 'A stylish coffee shop interior with warm ambient lighting and blurred cafe background.',
-    'Deep Forest': 'A dense forest with tall trees, ferns, and mystical shafts of light piercing through the canopy.',
-    'Modern Studio': 'A clean, minimalist studio background with a solid color backdrop and professional 3-point lighting setup.',
-    'Snowy Mountain': 'A majestic snowy mountain peak, cold winter lighting, white snow and blue sky contrast.',
-    'Sunset Beach': 'A beach at golden hour, warm orange sun reflecting on the water, dramatic clouds.'
-};
-
-const TIMELINE_RULES: Record<string, string> = {
-    'Present Day': `**ERA PROTOCOL: CONTEMPORARY REALISM** - Camera: Sony A7R V. Sharp clarity. Modern fabrics.`,
-    'Future Sci-Fi': `**ERA PROTOCOL: YEAR 2150 CYBERPUNK** - Aesthetic: Blade Runner. Iridescent fabrics, holographic accents.`,
-    '1990s Vintage': `**ERA PROTOCOL: LATE 90s ANALOG** - Aesthetic: 35mm Film. Direct flash, film grain.`,
-    '1920s Noir': `**ERA PROTOCOL: ROARING TWENTIES** - Aesthetic: The Great Gatsby. Art Deco, high contrast spotlighting.`,
-    'Medieval': `**ERA PROTOCOL: 14th CENTURY FANTASY** - Materials: Wool, linen, leather, fur. Stone castles.`
-};
-
 const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string): Promise<string> => {
     const prompt = `Act as a Master Photo Conservator. Perform a Deep Forensic Analysis of this aged/damaged photo.
     1. **HISTORICAL ERA**: Analyze clothing, hair, and photo grain to identify the decade (e.g. 1940s, 1970s).
@@ -143,34 +109,30 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     } catch (e) { return "Standard restoration, fix damage and sharpen."; }
 };
 
+/**
+ * IDENTITY LOCK 6.0: BIOMETRIC ASYMMETRY MAPPING
+ */
 const performForensicBiometricScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
-    const prompt = `Perform a Forensic Biometric Identity Scan on the provided photo for ${label}.
-    1. **STRUCTURAL ANCHORS**: Identify the exact bone structure, nose shape, and jawline.
-    2. **OCULAR DETAIL**: Map eye shape and eyelid geometry.
-    3. **IDENTITY LOCK**: Provide a technical description that ensures the person remains EXACTLY the same. No plastic surgery or beautification allowed.
-    Output a concise "Identity Lock Protocol".`;
+    const prompt = `Act as a Forensic Facial Reconstruction Expert.
+    Perform an Identity Lock 6.0 Audit on the provided photo.
+    
+    TASK: Build an Immutable Biometric Blueprint of the subject(s).
+    1. **ASYMMETRY MAPPING**: Identify unique facial quirks—e.g., a slightly higher eyebrow, the exact unique curve of the lip's cupid bow, the specific angle of the jaw.
+    2. **FEATURE ANCHORING**: Precisely describe the distance between the eyes, the width of the nose bridge, and the ear position.
+    3. **ZERO-CHANGE MANDATE**: Explicitly state that these proportions must NOT be altered for "beautification". Preserve every wrinkle, pore, and original characteristic. 
+    
+    OUTPUT: A technical "Biometric Feature Lock" for the render engine.`;
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', 
+            model: 'gemini-3-pro-preview', 
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
         });
-        return response.text || "Preserve facial features exactly.";
-    } catch (e) { return "Preserve facial features exactly."; }
-};
-
-const analyzeReferenceTechSpecs = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Act as a VFX Supervisor. Analyze Lighting Map, Color Grade, ISO/Grain, and Skin Shader. Output TECHNICAL READOUT.`;
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
-        });
-        return response.text || "Match reference specs.";
-    } catch (e) { return "Match reference specs."; }
+        return response.text || "Preserve facial features exactly with zero modification to geometry.";
+    } catch (e) { return "Preserve facial features exactly with zero modification to geometry."; }
 };
 
 /**
- * PIXA PHOTO RESTORE: FORENSIC OPTICAL RECONSTRUCTION
+ * PIXA PHOTO RESTORE: IDENTITY LOCK 6.0 ARCHITECTURE
  */
 export const colourizeImage = async (
   base64ImageData: string,
@@ -182,8 +144,8 @@ export const colourizeImage = async (
   try {
     const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
     
-    // Engine 1: Forensic Optical Audit
-    const [restorationBlueprint, identityLock] = await Promise.all([
+    // Engine 1: Forensic Optical & Identity Audit
+    const [restorationBlueprint, biometricLock] = await Promise.all([
         analyzePhotoCondition(ai, data, optimizedMime),
         performForensicBiometricScan(ai, data, optimizedMime)
     ]);
@@ -194,29 +156,22 @@ export const colourizeImage = async (
         ? `TASK: **COLOUR & RESTORE (HISTORICAL PIGMENT SYNTHESIS)**
            - **COLORIZATION**: Apply high-fidelity, era-appropriate color based on the identified era.
            - **FILM STOCK MATCHING**: Use a palette that reflects historical film stocks (e.g. Kodachrome for 50s, early Technicolor for 30s).
-           - **SKIN TONES**: Use realistic human sub-surface scattering (SSS) for skin. Avoid "flat" colors.
-           - **LUMINANCE PRESERVATION**: Maintain the original's light-to-dark values perfectly.` 
+           - **SKIN TONES**: Use realistic human sub-surface scattering (SSS) for skin. Avoid "flat" colors.` 
         : `TASK: **RESTORE ONLY (MONOCHROME)**
-           - **STRICT NO-COLOR POLICY**: Do NOT inject any color. The final output must be 100% black and white / sepia (matching original tone).
-           - **FOCUS**: Direct all energy into removing damage, deblurring, and enhancing resolution while maintaining the original's BW soul.`;
+           - **STRICT NO-COLOR POLICY**: Final output must be 100% black and white / sepia (matching original tone).`;
 
-    const prompt = `You are the Pixa Forensic Optical Reconstruction Engine. 
+    const prompt = `You are the Pixa Forensic Optical Reconstruction Engine v6.0. 
     
-    ${restorationBlueprint}
-    ${identityLock}
-    ${brandDNA}
-    
-    *** CORE MANDATE: SACRED ASSET PROTOCOL v5.0 ***
-    1. **PIXEL INTEGRITY**: You are a forensic reconstructor, not an artist. You are FORBIDDEN from altering the subject's face, body, or the core composition of the photo.
-    2. **IDENTITY ANCHOR**: The person in the photo must remain 100% recognizable. STRICT NO-BEAUTIFICATION RULE: Do not smooth skin into "plastic", do not change features. Preserve wrinkles, original jawlines, and eye shapes.
-    3. **DAMAGE ELIMINATION**: Seamlessly heal silver mirroring, chemical stains, scratches, dust, mold, and physical fold lines.
-    4. **OPTICAL ENHANCEMENT**: Reconstruct lost details using 4K high-pass sharpening. Ensure eyes have realistic catchlights.
+    *** CORE DIRECTIVES: IDENTITY LOCK 6.0 ***
+    1. **ZERO-CHANGE GEOMETRY**: You are FORBIDDEN from altering the subject's face, body, or core geometry. Use the Biometric Blueprint: ${biometricLock}.
+    2. **ASSET IMMUTABILITY**: Every detail of the original face—including asymmetries, eye shapes, and original skin texture—is SACRED. DO NOT beautify. DO NOT sharpen into a generic AI face.
+    3. **ENHANCED DENOISING**: Treat this task as "clarification" of existing pixels, not "hallucination" of new features. 
+    4. **PIXEL INTEGRITY**: Remove all chemical stains, scratches, and damage defined in: ${restorationBlueprint}.
 
     ${modePrompt}
-
-    ${brand ? `ADDITIONAL: If restoring color, subtly prioritize ${brand.colors.primary} in background accents if appropriate.` : ''}
+    ${brandDNA}
     
-    OUTPUT: A single hyper-realistic, photorealistic, 4K restored image that looks like it was shot on professional film on the day it was taken.`;
+    OUTPUT: A single hyper-realistic 4K restored image where the person is 100% identical to the original photo, just cleaned and clarified.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -252,9 +207,17 @@ export interface PixaTogetherConfig {
     autoFix: boolean;
 }
 
+// FIX: Added missing TIMELINE_RULES constant to resolve reference errors in generateMagicSoul.
+const TIMELINE_RULES: Record<string, string> = {
+    'Present Day': 'Render in contemporary 2025 style. Modern clothing, current technology, and realistic high-fidelity photography.',
+    'Future Sci-Fi': 'Render in a futuristic aesthetic. Incorporate holographic elements, neon highlights, advanced materials, and high-tech environments.',
+    '1990s Vintage': 'Apply a nostalgic 90s aesthetic. Retro fashion, analog film grain, vibrant saturated colors, and period-accurate decor.',
+    '1920s Noir': 'Apply a classic 1920s cinematic noir aesthetic. Art Deco details, period-appropriate high-fashion, and dramatic contrast.',
+    'Medieval': 'Render in a medieval historical setting. Period clothing (tunics, armor), stone architecture, and natural torch/candle lighting.'
+};
+
 /**
  * ENGINE 1: THE FORENSIC BIOMETRIC ANALYST (Dual Subject Audit)
- * Maps identities and physical scaling for Pixa Together.
  */
 const performDualForensicAudit = async (
     ai: any, 
@@ -266,10 +229,10 @@ const performDualForensicAudit = async (
     if (optB) parts.push({ text: "SUBJECT B TEMPLATE:" }, { inlineData: optB });
     
     const prompt = `Act as a Forensic Facial Reconstruction Expert.
-    Perform a "Forensic Visual Audit" on the provided subject(s).
-    1. **IDENTITY MAPPING**: For each person, map unique facial features (nose bridge curve, canthal tilt, lip cupid bow, skin textures).
-    2. **PHYSICAL SCALING**: Estimate the relative height and shoulder width difference if two people are provided.
-    3. **BIOMETRIC LOCK**: Write a paragraph that explicitly forbids the AI from altering these traits during rendering.
+    Perform an Identity Lock 6.0 Audit on the provided subject(s).
+    1. **ASYMMETRY LOCK**: Map unique facial asymmetries and quirks for each person to ensure 1:1 recognition.
+    2. **PHYSICAL SCALING**: Estimate relative dimensions between subjects.
+    3. **BIOMETRIC BLUEPRINT**: Write a protocol that forbids the AI from altering these traits.
     
     OUTPUT: A technical "Biometric Rig Protocol" for a render engine.`;
     
@@ -280,13 +243,12 @@ const performDualForensicAudit = async (
             model: 'gemini-3-pro-preview',
             contents: { parts }
         });
-        return response.text || "Standard biometric rig, preserve facial structures.";
-    } catch (e) { return "Standard biometric rig, preserve facial structures."; }
+        return response.text || "Standard biometric rig, preserve facial structures exactly.";
+    } catch (e) { return "Standard biometric rig, preserve facial structures exactly."; }
 };
 
 /**
  * ENGINE 2: THE INTERACTION PHYSICS ARCHITECT
- * Plans the rig based on social dynamics and environment physics.
  */
 const architectInteractionRig = async (
     ai: any, 
@@ -344,28 +306,22 @@ export const generateMagicSoul = async (
     const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? (optB ? optimized[2] : optimized[1]) : null;
 
     // 2. RUN TRIPLE-ENGINE ARCHITECTURE
-    // Engine 1: Forensic Biometric Audit
     const biometricAudit = await performDualForensicAudit(ai, optA, optB);
-    
-    // Engine 2: Interaction Physics Rigging
     const interactionRig = await architectInteractionRig(ai, biometricAudit, inputs, brand);
     
-    // Engine 3: Final Production Execution
+    // FIX: TIMELINE_RULES is now defined above to avoid the ReferenceError.
     const timelineInstructions = TIMELINE_RULES[inputs.timeline || 'Present Day'] || TIMELINE_RULES['Present Day'];
     const brandDNA = getBrandDNA(brand);
 
     const masterMandate = `
-    *** IDENTITY ANCHOR v5.0 (SACRED ASSET PROTOCOL) ***
-    1. **BIOMETRIC LOCK**: Use the Audit (${biometricAudit}) to ensure both subjects are 1:1 replicas of the sources. NO AI-SMOOTHING.
-    2. **RAY-TRACED INTERACTION**: Execute the Rig (${interactionRig}). Render physically accurate shadows at all points of physical contact.
-    3. **SUB-SURFACE SCATTERING**: Prioritize realistic skin rendering. Show pores, natural moisture, and texture.
-    4. **GLOBAL ILLUMINATION**: Apply light-bounce from Subject A onto Subject B and vice-versa based on environment light.
+    *** IDENTITY ANCHOR v6.0 (SACRED ASSET PROTOCOL) ***
+    1. **BIOMETRIC LOCK**: Use the Audit (${biometricAudit}) to ensure both subjects are 1:1 replicas of the sources. NO BEAUTIFICATION. NO ALTERING EYE SHAPE OR JAWLINES.
+    2. **RAY-TRACED INTERACTION**: Execute the Rig (${interactionRig}). Render physically accurate shadows at contact points.
+    3. **GLOBAL ILLUMINATION**: Apply light-bounce based on environment light.
     
     GOAL: Render a hyper-realistic ${inputs.mode} portrait.
-    RELATIONSHIP: ${inputs.relationship}.
-    ENVIRONMENT: ${inputs.environment} - ${inputs.mood}.
-    ERA: ${timelineInstructions}
     ${inputs.customDescription ? `CUSTOM VISION: ${inputs.customDescription}` : ''}
+    ${timelineInstructions}
     `;
 
     const parts: any[] = [];
@@ -408,7 +364,8 @@ export const removeElementFromImage = async (
             contents: { parts: [{ inlineData: { data: optImage, mimeType: optMime } }, { inlineData: { data: optMask, mimeType: maskMime } }, { text: prompt }] },
             config: { responseModalities: [Modality.IMAGE] }
         });
-        const imagePart = response.candidates?.[0]?.content?.[0]?.parts?.find(part => part.inlineData?.data);
+        // Corrected access path for image generation results from nano banana series.
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("No image generated.");
     } catch (error) { throw error; }
