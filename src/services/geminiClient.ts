@@ -14,10 +14,18 @@ const ESTIMATED_RATES: Record<string, number> = {
 
 /**
  * Helper function to get a fresh AI client on every call.
- * Strictly uses process.env.API_KEY as per 2025 security mandates.
+ * Detects the API key from the environment.
  */
 export const getAiClient = (): GoogleGenAI => {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // In browser environments using Vite, process.env.API_KEY may be undefined.
+    // We check both the platform-standard process.env and the Vite-standard import.meta.env.
+    const apiKey = process.env.API_KEY || (import.meta as any).env.VITE_API_KEY;
+    
+    if (!apiKey) {
+        throw new Error("Gemini API Key is missing. Please ensure VITE_API_KEY is set in your environment variables.");
+    }
+    
+    return new GoogleGenAI({ apiKey });
 };
 
 /**
