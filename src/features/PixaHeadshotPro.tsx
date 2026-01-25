@@ -15,7 +15,10 @@ import {
     HomeIcon, 
     PlusIcon, 
     UsersIcon, 
-    PencilIcon
+    PencilIcon,
+    ShieldCheckIcon,
+    InformationCircleIcon,
+    LockIcon
 } from '../components/icons';
 import { 
     PixaHeadshotIcon,
@@ -40,12 +43,12 @@ import { HeadshotStyles } from '../styles/features/PixaHeadshotPro.styles';
 import { PixaTogetherStyles } from '../styles/features/PixaTogether.styles';
 
 const ARCHETYPES = [
-    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-12 h-12"/>, desc: 'Suit & Tie / Formal' },
-    { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-12 h-12"/>, desc: 'Smart Casual / Blazer' },
-    { id: 'Creative', label: 'Creative Director', icon: <CreativeDirectorIcon className="w-12 h-12"/>, desc: 'Stylish & Modern' },
-    { id: 'Medical', label: 'Medical Pro', icon: <MedicalProIcon className="w-12 h-12"/>, desc: 'White Coat / Scrubs' },
-    { id: 'Legal', label: 'Legal / Finance', icon: <LegalFinanceIcon className="w-12 h-12"/>, desc: 'Conservative Formal' },
-    { id: 'Realtor', label: 'Realtor / Sales', icon: <RealtorSalesIcon className="w-12 h-12"/>, desc: 'Friendly Professional' }
+    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-12 h-12"/>, desc: 'Rembrandt / Formal' },
+    { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-12 h-12"/>, desc: 'High-Key / Smart Casual' },
+    { id: 'Creative', label: 'Creative Director', icon: <CreativeDirectorIcon className="w-12 h-12"/>, desc: 'Cinematic / Modern' },
+    { id: 'Medical', label: 'Medical Pro', icon: <MedicalProIcon className="w-12 h-12"/>, desc: 'Butterfly / High-Key' },
+    { id: 'Legal', label: 'Legal / Finance', icon: <LegalFinanceIcon className="w-12 h-12"/>, desc: 'Broad / Formal' },
+    { id: 'Realtor', label: 'Realtor / Sales', icon: <RealtorSalesIcon className="w-12 h-12"/>, desc: 'Approachable / Warm' }
 ];
 
 const PERSONA_BACKGROUNDS: Record<string, string[]> = {
@@ -103,6 +106,9 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    
+    // API KEY SELECTION STATE
+    const [hasApiKey, setHasApiKey] = useState(false);
 
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
@@ -116,13 +122,56 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     
     const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
 
+    // Initial check for API Key
+    useEffect(() => {
+        const checkKey = async () => {
+            if (window.aistudio) {
+                const hasKey = await window.aistudio.hasSelectedApiKey();
+                setHasApiKey(hasKey);
+            }
+        };
+        checkKey();
+    }, []);
+
     useEffect(() => {
         setBackground('');
         setCustomBackgroundPrompt('');
     }, [archetype]);
 
-    useEffect(() => { let interval: any; if (loading || isRefining) { const steps = isRefining ? ["Analyzing facial structure...", "Modifying attire/lighting...", "Retouching micro-details...", "Finalizing refined portrait..."] : ["Scanning facial biometrics...", "Applying professional lighting...", "Styling attire...", "Retouching skin texture...", "Finalizing headshot..."]; let step = 0; setLoadingText(steps[0]); interval = setInterval(() => { step = (step + 1) % steps.length; setLoadingText(steps[step]); }, 2000); } return () => clearInterval(interval); }, [loading, isRefining]);
+    useEffect(() => { 
+        let interval: any; 
+        if (loading || isRefining) { 
+            const steps = isRefining ? [
+                "Identity Lock 4.0: Mapping skin topology...", 
+                "Ocular Audit: Retaining iris patterns...", 
+                "Optical Rig: Adjusting Rembrandt lighting...", 
+                "Polishing final photorealistic portrait..."
+            ] : [
+                "Stage A: Sub-Surface Skin Geometry Audit...", 
+                "Stage B: Locking Ocular Identity...", 
+                "Phase One Rig: Calibrating lighting rig...", 
+                "Fabric Physics: Calculating attire drape...", 
+                "Sub-Surface Scattering: Rendering skin pores...",
+                "Finalizing: Identity 100% verified..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2000); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading, isRefining]);
+
     useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
+
+    const handleSelectKey = async () => {
+        if (window.aistudio) {
+            await window.aistudio.openSelectKey();
+            setHasApiKey(true);
+        }
+    };
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -158,7 +207,17 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot Pro'); 
             if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+        } catch (e: any) { 
+            console.error(e); 
+            if (e.message.includes("Requested entity was not found")) {
+                setHasApiKey(false);
+                alert("Session expired. Please select your API key again.");
+            } else {
+                alert(`Generation failed: ${e.message}`); 
+            }
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const handleRefine = async (refineText: string) => {
@@ -215,13 +274,44 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     
     const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     
-    const canGenerate = !!image && (mode === 'individual' || (mode === 'duo' && !!partnerImage)) && !!background && !isLowCredits;
     const currentAvailableBackgrounds = PERSONA_BACKGROUNDS[archetype] || PERSONA_BACKGROUNDS['Executive'];
+
+    // FIX: Defined canGenerate variable to fix the reference error in FeatureLayout component below.
+    const canGenerate = isUploadsReady && !!background && !isLowCredits;
+
+    if (!hasApiKey) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center p-10 animate-fadeIn">
+                <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-indigo-500/5">
+                    <ShieldCheckIcon className="w-12 h-12 text-indigo-600" />
+                </div>
+                <h2 className="text-3xl font-black text-gray-900 mb-2">High-Fidelity Rendering</h2>
+                <p className="text-gray-500 max-w-md text-center mb-10 leading-relaxed font-medium">
+                    To maintain the <span className="text-indigo-600 font-bold">Identity Lock 4.0</span> standard, we use the ultra-powerful Gemini 3 Pro Vision model. Please select your API key from a paid GCP project to continue.
+                </p>
+                <button 
+                    onClick={handleSelectKey}
+                    className="bg-[#1A1A1E] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl hover:bg-black transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                >
+                    <LockIcon className="w-6 h-6 text-yellow-400" />
+                    Select API Key
+                </button>
+                <a 
+                    href="https://ai.google.dev/gemini-api/docs/billing" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="mt-6 text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors uppercase tracking-widest border-b border-transparent hover:border-indigo-600"
+                >
+                    Learn about billing setup →
+                </a>
+            </div>
+        );
+    }
 
     return (
         <>
             <FeatureLayout 
-                title="Pixa Headshot Pro" description="Create studio-quality professional headshots instantly." icon={<PixaHeadshotIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage}
+                title="Pixa Headshot Pro" description="Elite 4K Professional Headshots. Identity Lock 4.0 forensic protocol ensures 100% recognition and sub-surface skin integrity." icon={<PixaHeadshotIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate} onNewSession={handleNewSession} resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
@@ -236,10 +326,9 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true, 
-                    label: "Generate Headshot" 
+                    label: "Generate 4K Portrait" 
                 }} 
                 scrollRef={scrollRef}
-                creationId={lastCreationId}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         {(loading || isRefining) && (
@@ -247,12 +336,12 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
                                     <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
                                 </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
+                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-8">{loadingText}</p>
                             </div>
                         )}
                         
                         {!image && !partnerImage ? (
-                            <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaHeadshotIcon className="w-10 h-10 text-indigo-500" /></div><h3 className="text-xl font-bold text-gray-300">Headshot Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload photos to begin.</p></div>
+                            <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaHeadshotIcon className="w-10 h-10 text-indigo-500" /></div><h3 className="text-xl font-bold text-gray-300">Identity-Lock Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload portrait to begin forensic sync.</p></div>
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
                                 {mode === 'individual' && image ? (
@@ -265,13 +354,13 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                                 style={(!partnerImage) ? { left: '50%', transform: 'translateX(-50%) rotate(0deg)', top: '2rem' } : {}}
                                             >
                                                 <img src={image.url} className="w-full h-full object-cover" />
-                                                <div className={PixaTogetherStyles.visualLabel}>Person A</div>
+                                                <div className={PixaTogetherStyles.visualLabel}>Primary Subject</div>
                                             </div>
                                         )}
                                         {partnerImage && mode === 'duo' && (
                                             <div className={PixaTogetherStyles.visualCardB}>
                                                 <img src={partnerImage.url} className="w-full h-full object-cover" />
-                                                <div className={PixaTogetherStyles.visualLabel}>Person B</div>
+                                                <div className={PixaTogetherStyles.visualLabel}>Partner</div>
                                             </div>
                                         )}
                                     </div>
@@ -290,7 +379,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 <div className="flex justify-between items-center mb-5">
                                     <div className="flex items-center gap-2">
                                         <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><UserIcon className="w-5 h-5"/></div>
-                                        <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Subjects</h3>
+                                        <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Biometric Template</h3>
                                     </div>
                                     <div className="flex bg-gray-100 p-1 rounded-lg">
                                         <button onClick={() => setMode('individual')} className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${mode === 'individual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Single</button>
@@ -299,10 +388,10 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumUpload label={mode === 'individual' ? "Subject" : "Person A"} uploadText={mode === 'individual' ? "Add Subject" : "Add Person A"} image={image} onUpload={handleUpload(setImage)} onClear={() => setImage(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
+                                    <PremiumUpload label={mode === 'individual' ? "Subject" : "Subject A"} uploadText={mode === 'individual' ? "Add Selfie" : "Add Subject A"} image={image} onUpload={handleUpload(setImage)} onClear={() => setImage(null)} icon={<UserIcon className="w-6 h-6 text-indigo-300"/>} />
                                     
                                     {mode === 'duo' && (
-                                        <PremiumUpload label="Person B" uploadText="Add Person B" image={partnerImage} onUpload={handleUpload(setPartnerImage)} onClear={() => setPartnerImage(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
+                                        <PremiumUpload label="Subject B" uploadText="Add Subject B" image={partnerImage} onUpload={handleUpload(setPartnerImage)} onClear={() => setPartnerImage(null)} icon={<UserIcon className="w-6 h-6 text-pink-300"/>} />
                                     )}
                                 </div>
                             </div>
@@ -310,7 +399,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                             <div className={`space-y-6 transition-all duration-300 ${!isUploadsReady ? 'opacity-50 pointer-events-none grayscale-[0.5]' : ''}`}>
                                 {/* 2. Archetype Selector */}
                                 <div>
-                                    <div className="flex items-center gap-2 mb-3 px-1"><UserIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Persona</label></div>
+                                    <div className="flex items-center gap-2 mb-3 px-1"><UserIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Rig & Style</label></div>
                                     <div className={HeadshotStyles.grid}>
                                         {ARCHETYPES.map((type) => (
                                             <button 
@@ -329,7 +418,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
                                 {/* 3. Background Selector (DYNAMIC) */}
                                 <div>
-                                    <div className="flex items-center gap-2 mb-3 px-1"><LocationIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Location</label></div>
+                                    <div className="flex items-center gap-2 mb-3 px-1"><LocationIcon className="w-4 h-4 text-gray-400"/><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Production Environment</label></div>
                                     <div className="flex flex-wrap gap-2">
                                         {currentAvailableBackgrounds.map((bg) => (
                                             <button 
@@ -351,8 +440,8 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                     {background === 'Custom' && (
                                         <div className="mt-4 animate-fadeIn">
                                             <InputField 
-                                                label="Describe Your Perfect Backdrop" 
-                                                placeholder="e.g. A luxury penthouse balcony at sunset, soft bokeh city lights, cinematic lighting" 
+                                                label="Describe Custom Environment" 
+                                                placeholder="e.g. Modern penthouse at twilight, blurred skyline..." 
                                                 value={customBackgroundPrompt} 
                                                 onChange={(e: any) => setCustomBackgroundPrompt(e.target.value)}
                                                 autoFocus
@@ -365,14 +454,14 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                                 <div className="space-y-4">
                                     <div className="relative">
                                         <InputField 
-                                            label="Additional Details (Optional)" 
-                                            placeholder="e.g. wearing red tie, smiling broadly, add sunglasses" 
+                                            label="Production Notes (Optional)" 
+                                            placeholder="e.g. slight smile, adjust tie, add rim light bleed" 
                                             value={customDesc} 
                                             onChange={(e: any) => setCustomDesc(e.target.value)} 
                                         />
                                         <div className="flex items-center gap-1.5 absolute top-0 right-1">
-                                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
-                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pixa Smart Analysis Active</span>
+                                            <ShieldCheckIcon className="w-3 h-3 text-indigo-400" />
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Rig Protocol Locked</span>
                                         </div>
                                     </div>
                                 </div>
@@ -389,3 +478,5 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         </>
     );
 };
+
+export default PixaHeadshotPro;
