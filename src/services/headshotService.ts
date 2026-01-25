@@ -2,11 +2,11 @@ import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai"
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
-// Helper: Resize to 1536px (High Fidelity for Headshots)
+// Helper: Resize to 1024px (Balanced for Flash model)
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1536, 0.95); 
+        const resizedUri = await resizeImage(dataUri, 1024, 0.85); 
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -16,14 +16,14 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-// --- 2025 PROFESSIONAL PHOTOGRAPHY RIG ARCHETYPES ---
+// --- PROFESSIONAL PHOTOGRAPHY RIG ARCHETYPES ---
 const ARCHETYPE_LIGHTING: Record<string, string> = {
-    'Executive': 'Rembrandt Lighting Protocol (45-degree key), high-fidelity rim light for subject separation, sharp 8K ocular catchlights.',
-    'Tech': 'Phase One North-Facing Window simulation, soft directional daylight, high-key high-fidelity finish with neutral shadows.',
+    'Executive': 'Rembrandt Lighting Protocol (45-degree key), high-fidelity rim light for subject separation, sharp ocular catchlights.',
+    'Tech': 'Phase One North-Facing Window simulation, soft directional daylight, high-key finish with neutral shadows.',
     'Creative': 'Cinematic Low-Key aesthetic, blue-hour rim light accents, dramatic depth-of-field, artistic high-contrast production.',
     'Medical': 'Butterfly/Paramount lighting, high-key sterile clean studio rig, shadowless trustworthy presentation, 5500K temperature.',
     'Legal': 'Broad Studio Lighting, authoritative high-prestige rig, traditional balanced exposure, wood-paneling global illumination spill.',
-    'Realtor': 'Golden Hour approach, friendly natural outdoor rig, warm light-bleed, bright high-reach approachable exposure.'
+    'Realtor': 'Golden Hour approach, friendly natural outdoor rig, warm light-bleed, bright approachable exposure.'
 };
 
 const ENVIRONMENT_PHYSICS: Record<string, string> = {
@@ -62,7 +62,7 @@ const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string
     const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST. 
     Perform an Identity Lock 4.0 Audit on the ${label}.
     
-    1. **SKIN GEOMETRY & UNDERTONE**: Map the exact pore distribution, subtle freckles, and specific skin undertones (e.g. olive, pink, golden). 
+    1. **SKIN GEOMETRY & UNDERTONE**: Map the exact pore distribution, subtle freckles, and specific skin undertones. 
     2. **OCULAR FIDELITY**: Precisely describe the eyelid fold depth, iris pattern density, and canthal tilt. 
     3. **BONE TOPOLOGY**: Map the exact cheekbone height, jawline taper, and temple width. 
     4. **MICRO-TEXTURES**: Note unique fine lines, natural asymmetry, and facial hair grain.
@@ -70,7 +70,7 @@ const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', 
+            model: 'gemini-3-flash-preview', 
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
@@ -157,11 +157,13 @@ export const generateProfessionalHeadshot = async (
         parts.push({ text: prompt });
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-2.5-flash-image',
             contents: { parts },
             config: { 
-                responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: '1:1', imageSize: '1K' },
+                // FIX: aspectRatio must be inside imageConfig in GenerateContentParameters
+                imageConfig: {
+                    aspectRatio: '1:1'
+                },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
