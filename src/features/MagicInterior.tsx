@@ -59,9 +59,9 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     "Production: Polishing 8K architectural render..."
                   ]
                 : [
-                    "Spatial Audit: Locking window geometry...", 
+                    "Spatial Audit: Locking original window geometry...", 
                     "Spatial Audit: Masking architectural boundaries...", 
-                    "Physics Engine: Preserving wall positions...", 
+                    "Physics Engine: Preserving existing wall pixels...", 
                     "Furnishing Engine: Adding decor elements...", 
                     "Finalizing: Structure 100% verified, rendering..."
                   ]; 
@@ -140,7 +140,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Pixa Interior Design" description="Professional-grade spatial design. Our engine locks your room's architecture while adding realistic furniture and decor based on physics." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                title="Pixa Interior Design" description="Professional-grade additive design. Our engine locks your room's architecture while adding realistic furniture and decor based on source physics." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleGenerate} onNewSession={result ? undefined : handleNewSession}
                 activeBrandKit={auth.activeBrandKit}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
@@ -149,7 +149,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="flex gap-2">
                         <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 shadow-lg text-xs font-bold text-white flex items-center gap-2">
                             <ShieldCheckIcon className="w-4 h-4 text-green-400" />
-                            <span>Architecture Preserved</span>
+                            <span>Architecture Locked</span>
                         </div>
                         <button 
                             onClick={() => setIsRefineActive(!isRefineActive)}
@@ -220,8 +220,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 </div>
                                 <div className="space-y-3">
                                     {[
-                                        { label: 'Structural Lock v6.0', desc: 'Windows & walls immutable', active: !!image },
-                                        { label: 'Architectural Plate', desc: 'Decor addition over source', active: !!roomType },
+                                        { label: 'Structural Lock v6.1', desc: 'Existing windows & walls immutable', active: !!image },
+                                        { label: 'Architectural Plate', desc: 'Decor addition over source pixels', active: !!roomType },
                                         { label: 'PBR Furnishing', desc: 'Physically accurate objects', active: !!style }
                                     ].map((p, idx) => (
                                         <div key={idx} className={`flex items-start gap-3 transition-opacity ${p.active ? 'opacity-100' : 'opacity-30'}`}>
