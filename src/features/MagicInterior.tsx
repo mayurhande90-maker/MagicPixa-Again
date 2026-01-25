@@ -59,11 +59,11 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     "Production: Polishing 8K architectural render..."
                   ]
                 : [
-                    "Spatial Audit: Triangulating light sources...", 
-                    "Spatial Audit: Mapping floor-to-wall vertices...", 
-                    "Physics Engine: Simulating Global Illumination...", 
-                    "Material Engine: Rigging PBR textures...", 
-                    "Finalizing: Identity 100% accurate, rendering..."
+                    "Spatial Audit: Locking window geometry...", 
+                    "Spatial Audit: Masking architectural boundaries...", 
+                    "Physics Engine: Preserving wall positions...", 
+                    "Furnishing Engine: Adding decor elements...", 
+                    "Finalizing: Structure 100% verified, rendering..."
                   ]; 
             let step = 0; 
             setLoadingText(steps[0]); 
@@ -140,7 +140,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <>
             <FeatureLayout 
-                title="Pixa Interior Design" description="Professional-grade spatial design. Our engine calculates depth and material physics for museum-grade photorealistic results." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
+                title="Pixa Interior Design" description="Professional-grade spatial design. Our engine locks your room's architecture while adding realistic furniture and decor based on physics." icon={<PixaInteriorIcon className="w-14 h-14"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleGenerate} onNewSession={result ? undefined : handleNewSession}
                 activeBrandKit={auth.activeBrandKit}
                 resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
@@ -149,7 +149,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="flex gap-2">
                         <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 shadow-lg text-xs font-bold text-white flex items-center gap-2">
                             <ShieldCheckIcon className="w-4 h-4 text-green-400" />
-                            <span>Identity Locked</span>
+                            <span>Architecture Preserved</span>
                         </div>
                         <button 
                             onClick={() => setIsRefineActive(!isRefineActive)}
@@ -163,7 +163,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true,
-                    label: "Begin Spatial Rendering"
+                    label: "Begin Spatial Furnishing"
                 }} 
                 scrollRef={scrollRef}
                 leftContent={
@@ -220,9 +220,9 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 </div>
                                 <div className="space-y-3">
                                     {[
-                                        { label: 'Structural Lock v6.0', desc: 'Walls & windows immutable', active: !!image },
-                                        { label: 'Light Triangulation', desc: 'Syncing Kelvin temperatures', active: !!roomType },
-                                        { label: 'PBR Rigging', desc: 'Physically accurate materials', active: !!style }
+                                        { label: 'Structural Lock v6.0', desc: 'Windows & walls immutable', active: !!image },
+                                        { label: 'Architectural Plate', desc: 'Decor addition over source', active: !!roomType },
+                                        { label: 'PBR Furnishing', desc: 'Physically accurate objects', active: !!style }
                                     ].map((p, idx) => (
                                         <div key={idx} className={`flex items-start gap-3 transition-opacity ${p.active ? 'opacity-100' : 'opacity-30'}`}>
                                             <div className={`mt-1 w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${p.active ? 'bg-indigo-600' : 'bg-gray-200'}`}>
