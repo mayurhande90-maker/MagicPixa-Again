@@ -3,7 +3,6 @@ import { AuthProps, AppConfig, Page, View } from '../types';
 import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon, DownloadIcon, InformationCircleIcon } from '../components/icons';
 import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
-import { MagicEditorModal } from '../components/MagicEditorModal';
 import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage, urlToBase64 } from '../utils/imageUtils';
 import { generateThumbnail } from '../services/thumbnailService';
 import { refineStudioImage } from '../services/photoStudioService';
@@ -52,7 +51,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [loadingText, setLoadingText] = useState("");
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
-    const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
@@ -155,8 +153,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Thumbnail Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); setIsRefineActive(false); };
-    const handleEditorSave = (newUrl: string) => { setResult(newUrl); if (lastCreationId && auth.user) updateCreation(auth.user.uid, lastCreationId, newUrl); };
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const handleFormatSelect = (val: 'landscape' | 'portrait') => { setFormat(val); if (val !== format) { setCategory(''); setMood(''); setPodcastGear(''); setTitle(''); setCustomText(''); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setReferenceImage(null); } autoScroll(); };
 
     return (
@@ -164,8 +160,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
             <FeatureLayout 
                 title="Pixa Thumbnail Pro" description="Create viral, high-CTR thumbnails. Analyze trends and generate hyper-realistic results." icon={<ThumbnailIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={!!hasRequirements && !isLowCredits} onGenerate={handleGenerate} resultImage={result} creationId={lastCreationId}
                 onResetResult={result ? undefined : handleRegenerate} onNewSession={result ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit} isBrandCritical={true}
-                resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                activeBrandKit={auth.activeBrandKit} isBrandCritical={true}
+                resultOverlay={result ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!result} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={result ? (
                     <button 
@@ -235,7 +231,6 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && result && <MagicEditorModal imageUrl={result} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Thumbnail" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
