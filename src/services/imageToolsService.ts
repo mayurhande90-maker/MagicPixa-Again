@@ -21,7 +21,6 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
 const optimizeImageForEditing = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        // Use 1536px and higher quality for detailed inpainting
         const resizedUri = await resizeImage(dataUri, 1536, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -145,10 +144,10 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
 };
 
 const performForensicBiometricScan = async (ai: any, base64: string, mimeType: string): Promise<string> => {
-    const prompt = `Perform a Forensic Biometric Identity Scan on any faces in this old photo.
+    const prompt = `Perform a Forensic Biometric Identity Scan on any faces in this photo.
     1. **STRUCTURAL ANCHORS**: Identify the exact bone structure, nose shape, and jawline.
     2. **OCULAR DETAIL**: Map eye shape and eyelid geometry.
-    3. **IDENTITY LOCK**: Provide a technical description that ensures the person remains EXACTLY the same, just "cleaned up". No plastic surgery or beautification allowed.
+    3. **IDENTITY LOCK**: Provide a technical description that ensures the person remains EXACTLY the same. No plastic surgery or beautification allowed.
     Output a concise "Identity Lock Protocol".`;
     try {
         const response = await ai.models.generateContent({
@@ -220,7 +219,6 @@ export const colourizeImage = async (
       config: { 
           responseModalities: [Modality.IMAGE],
           safetySettings: [
-            // Fix: Use HarmCategory and HarmBlockThreshold enums instead of string literals to resolve type errors.
             { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
@@ -249,18 +247,77 @@ export interface PixaTogetherConfig {
     autoFix: boolean;
 }
 
-const analyzeFaceBiometrics = async (ai: any, base64: string, mimeType: string, label: string): Promise<string> => {
-    const prompt = `Deep Biometric Analysis of ${label}: Shape, Eyes, Nose, Mouth, Skin, Hair. Output concise description.`;
+/**
+ * ENGINE 1: THE FORENSIC BIOMETRIC ANALYST (Dual Subject Audit)
+ * Maps identities and physical scaling for Pixa Together.
+ */
+const performDualForensicAudit = async (
+    ai: any, 
+    optA: { data: string; mimeType: string }, 
+    optB: { data: string; mimeType: string } | null
+): Promise<string> => {
+    const parts: any[] = [];
+    parts.push({ text: "SUBJECT A TEMPLATE:" }, { inlineData: optA });
+    if (optB) parts.push({ text: "SUBJECT B TEMPLATE:" }, { inlineData: optB });
+    
+    const prompt = `Act as a Forensic Facial Reconstruction Expert.
+    Perform a "Forensic Visual Audit" on the provided subject(s).
+    1. **IDENTITY MAPPING**: For each person, map unique facial features (nose bridge curve, canthal tilt, lip cupid bow, skin textures).
+    2. **PHYSICAL SCALING**: Estimate the relative height and shoulder width difference if two people are provided.
+    3. **BIOMETRIC LOCK**: Write a paragraph that explicitly forbids the AI from altering these traits during rendering.
+    
+    OUTPUT: A technical "Biometric Rig Protocol" for a render engine.`;
+    
+    parts.push({ text: prompt });
+
     try {
         const response = await ai.models.generateContent({
-            // Fix: Corrected API call structure by adding the missing model and wrapping parts in a contents object.
-            model: 'gemini-3-flash-preview',
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            model: 'gemini-3-pro-preview',
+            contents: { parts }
         });
-        return response.text || "";
-    } catch (e) { return ""; }
+        return response.text || "Standard biometric rig, preserve facial structures.";
+    } catch (e) { return "Standard biometric rig, preserve facial structures."; }
 };
 
+/**
+ * ENGINE 2: THE INTERACTION PHYSICS ARCHITECT
+ * Plans the rig based on social dynamics and environment physics.
+ */
+const architectInteractionRig = async (
+    ai: any, 
+    audit: string, 
+    inputs: PixaTogetherConfig,
+    brand?: BrandKit | null
+): Promise<string> => {
+    const prompt = `Act as a Senior VFX Supervisor.
+    
+    *** INPUT DATA ***
+    Biometric Audit: ${audit}
+    Relationship: ${inputs.relationship}
+    Vibe: ${inputs.mood}
+    Timeline/Era: ${inputs.timeline}
+    Environment: ${inputs.environment}
+    
+    *** TASK: ARCHITECT INTERACTION PHYSICS ***
+    Plan the physical interaction between the subjects.
+    1. **CONTACT OCCLUSION**: Define where deep shadows (Ambient Occlusion) must form (e.g. hand on shoulder, standing arm-to-arm).
+    2. **GLOBAL ILLUMINATION SYNC**: Calculate how light from the environment and Subject A should bounce onto Subject B.
+    3. **POSE TOPOLOGY**: Rig the bodies to look naturally posed according to their relationship (${inputs.relationship}).
+    
+    Output a concise "Spatial Interaction Rig" blueprint.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: { parts: [{ text: prompt }] }
+        });
+        return response.text || "Natural interaction pose, standard contact shadows.";
+    } catch (e) { return "Natural interaction pose, standard contact shadows."; }
+};
+
+/**
+ * ENGINE 3: HIGH-PASS MULTI-SUBJECT PRODUCTION
+ */
 export const generateMagicSoul = async (
   personABase64: string,
   personAMimeType: string,
@@ -271,6 +328,7 @@ export const generateMagicSoul = async (
 ): Promise<string> => {
   const ai = getAiClient();
   try {
+    // 1. Optimize All Source Assets
     const optimizePromises = [optimizeImage(personABase64, personAMimeType)];
     if (personBBase64 && personBMimeType) optimizePromises.push(optimizeImage(personBBase64, personBMimeType));
     if (inputs.mode === 'reenact' && inputs.referencePoseBase64) optimizePromises.push(optimizeImage(inputs.referencePoseBase64, inputs.referencePoseMimeType!));
@@ -278,44 +336,55 @@ export const generateMagicSoul = async (
     
     const optA = optimized[0];
     const optB = (personBBase64 && personBMimeType) ? optimized[1] : null;
-    const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? optimized[optimized.length - 1] : null;
+    const optPose = (inputs.mode === 'reenact' && inputs.referencePoseBase64) ? (optB ? optimized[2] : optimized[1]) : null;
 
-    const [biometricsA, biometricsB, referenceTechSpecs] = await Promise.all([
-        analyzeFaceBiometrics(ai, optA.data, optA.mimeType, "Person A"),
-        optB ? analyzeFaceBiometrics(ai, optB.data, optB.mimeType, "Person B") : Promise.resolve(""),
-        (inputs.mode === 'reenact' && optPose) ? analyzeReferenceTechSpecs(ai, optPose.data, optPose.mimeType) : Promise.resolve("")
-    ]);
-
+    // 2. RUN TRIPLE-ENGINE ARCHITECTURE
+    // Engine 1: Forensic Biometric Audit
+    const biometricAudit = await performDualForensicAudit(ai, optA, optB);
+    
+    // Engine 2: Interaction Physics Rigging
+    const interactionRig = await architectInteractionRig(ai, biometricAudit, inputs, brand);
+    
+    // Engine 3: Final Production Execution
     const timelineInstructions = TIMELINE_RULES[inputs.timeline || 'Present Day'] || TIMELINE_RULES['Present Day'];
     const brandDNA = getBrandDNA(brand);
 
-    let mainPrompt = `*** IDENTITY CLONING PROTOCOL ***
-    SUBJECT A: ${biometricsA}
-    ${optB ? `SUBJECT B: ${biometricsB}` : ''}
+    const masterMandate = `
+    *** IDENTITY ANCHOR v5.0 (SACRED ASSET PROTOCOL) ***
+    1. **BIOMETRIC LOCK**: Use the Audit (${biometricAudit}) to ensure both subjects are 1:1 replicas of the sources. NO AI-SMOOTHING.
+    2. **RAY-TRACED INTERACTION**: Execute the Rig (${interactionRig}). Render physically accurate shadows at all points of physical contact.
+    3. **SUB-SURFACE SCATTERING**: Prioritize realistic skin rendering. Show pores, natural moisture, and texture.
+    4. **GLOBAL ILLUMINATION**: Apply light-bounce from Subject A onto Subject B and vice-versa based on environment light.
     
-    ${brandDNA}
-    ${timelineInstructions}
-    
-    GOAL: Render hyper-realistic ${inputs.mode} scene.
+    GOAL: Render a hyper-realistic ${inputs.mode} portrait.
+    RELATIONSHIP: ${inputs.relationship}.
     ENVIRONMENT: ${inputs.environment} - ${inputs.mood}.
-    ${inputs.customDescription ? `CUSTOM: ${inputs.customDescription}` : ''}
-    
-    BRANDS: If brand is provided, ensure the environment and clothing reflect the '${brand?.toneOfVoice || 'Professional'}' tone.
+    ERA: ${timelineInstructions}
+    ${inputs.customDescription ? `CUSTOM VISION: ${inputs.customDescription}` : ''}
     `;
 
-    const parts: any[] = [{ text: "SOURCE A:" }, { inlineData: { data: optA.data, mimeType: optA.mimeType } }];
-    if (optB) { parts.push({ text: "SOURCE B:" }); parts.push({ inlineData: { data: optB.data, mimeType: optB.mimeType } }); }
-    if (optPose) { parts.push({ text: "POSE:" }); parts.push({ inlineData: { data: optPose.data, mimeType: optPose.mimeType } }); }
-    parts.push({ text: mainPrompt });
+    const parts: any[] = [];
+    parts.push({ text: "SOURCE SUBJECT A (IDENTITY MASTER):" }, { inlineData: { data: optA.data, mimeType: optA.mimeType } });
+    if (optB) parts.push({ text: "SOURCE SUBJECT B (IDENTITY MASTER):" }, { inlineData: { data: optB.data, mimeType: optB.mimeType } });
+    if (optPose) parts.push({ text: "TARGET POSE REFERENCE:" }, { inlineData: { data: optPose.data, mimeType: optPose.mimeType } });
+    parts.push({ text: masterMandate });
+    parts.push({ text: brandDNA });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
-      config: { responseModalities: [Modality.IMAGE] },
+      config: { 
+          responseModalities: [Modality.IMAGE],
+          safetySettings: [
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          ]
+      },
     });
+
     const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error("No image generated.");
+    throw new Error("Production engine failed to render. Identity sync unstable.");
   } catch (error) { throw error; }
 };
 
@@ -334,7 +403,7 @@ export const removeElementFromImage = async (
             contents: { parts: [{ inlineData: { data: optImage, mimeType: optMime } }, { inlineData: { data: optMask, mimeType: maskMime } }, { text: prompt }] },
             config: { responseModalities: [Modality.IMAGE] }
         });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.[0]?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("No image generated.");
     } catch (error) { throw error; }
