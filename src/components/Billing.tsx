@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Transaction, AppConfig, CreditPack, View } from '../types';
 import { getCreditHistory } from '../firebase';
@@ -87,7 +86,11 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
       yesterday.setDate(yesterday.getDate() - 1);
       transactions.forEach(tx => {
           if (!tx.date) return;
-          const date = (tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000 || tx.date);
+          // COMMENT: Fixed type conversion issue. Explicitly handle Timestamp objects, numbers, or fallback to any for legacy data to satisfy Date constructor.
+          const date = (tx.date as any).toDate 
+            ? (tx.date as any).toDate() 
+            : new Date(typeof tx.date === 'number' ? tx.date : ((tx.date as any).seconds * 1000 || tx.date as any));
+          
           let key;
           if (date.toDateString() === today.toDateString()) key = 'Today';
           else if (date.toDateString() === yesterday.toDateString()) key = 'Yesterday';
