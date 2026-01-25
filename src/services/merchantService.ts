@@ -1,4 +1,4 @@
-import { Modality, GenerateContentResponse } from "@google/genai";
+import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { logApiError, auth } from '../firebase';
@@ -36,44 +36,83 @@ export interface MerchantInputs {
 }
 
 /**
- * PHASE 2: FORENSIC AESTHETIC AUDIT (THE LOCK)
- * Analyzes the 'Seed' image to extract technical session DNA.
+ * ENGINE 1: THE FORENSIC ANALYST (Pre-Generation Audit)
+ * Maps labels, geometry, and material science to ensure zero hallucinations.
  */
-const extractSessionDna = async (base64: string, mimeType: string): Promise<string> => {
+const performForensicAudit = async (base64: string, mimeType: string): Promise<string> => {
     const ai = getAiClient();
-    const prompt = `Perform a Forensic Aesthetic Audit on this AI-generated product photo.
+    const prompt = `Act as a Senior Forensic Visual Auditor. 
+    Perform a "Forensic Visual Audit" on this product photo.
     
-    Extract the "TECHNICAL SESSION DNA":
-    1. **LIGHTING KEY**: Map the light source (e.g., 5500K Softbox at 45 degrees left, high-intensity rim light).
-    2. **ENVIRONMENT DNA**: Describe the floor surface (texture, reflectivity %), wall color, and bokeh depth.
-    3. **MATERIAL RESPONSE**: How does the product surface react to light? (e.g., Matte absorption, sharp specular highlights).
+    1. **IDENTITY MAPPING**: Transcribe all visible labels and branding.
+    2. **GEOMETRIC BLUEPRINT**: Define the exact silhouette and dimensions (e.g., Cylindrical bottle, square box, loose-fit garment).
+    3. **MATERIAL SCIENCE**: Identify textures (Glossy glass, Matte fabric, Brushed metal).
+    4. **PHYSICS ANCHOR**: Define the contact points where shadows should naturally form.
     
-    OUTPUT: A single technical paragraph of art direction commands.`;
+    OUTPUT: A technical "Sacred Asset Protocol" paragraph for a render engine.`;
 
     try {
-        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
-        }));
-        return response.text || "Standard studio lighting, neutral environment.";
+        });
+        return response.text || "Standard geometry, matte material.";
     } catch (e) {
-        console.warn("Session DNA extraction failed, using default locking", e);
-        return "Standard studio lighting, neutral environment.";
+        return "Standard geometry, matte material.";
     }
 };
 
 /**
- * Generates a single image based on a specific role (e.g., "Side View", "Hero Shot").
+ * ENGINE 2: THE STRATEGIC PACK ARCHITECT
+ * Plans the visual strategy for the entire pack based on the audit.
+ */
+const architectPackStrategy = async (audit: string, inputs: MerchantInputs): Promise<string[]> => {
+    const ai = getAiClient();
+    const prompt = `Act as a Creative Director for an E-commerce Agency.
+    
+    *** INPUT DATA ***
+    Product Audit: ${audit}
+    Category: ${inputs.type} (${inputs.productType})
+    Vibe: ${inputs.productVibe}
+    Pack Size: ${inputs.packSize}
+    
+    *** TASK: ARCHITECT THE PACK ***
+    Plan a series of ${inputs.packSize} professional shot descriptions. 
+    Tailor shots to the product material (e.g., if liquid, include droplets. if tech, include port details).
+    
+    RETURN: A JSON array of ${inputs.packSize} strings, each being a highly detailed prompt for the production engine.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: { parts: [{ text: prompt }] },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
+            }
+        });
+        return JSON.parse(response.text || "[]");
+    } catch (e) {
+        return []; // Fallback handled in orchestrator
+    }
+};
+
+/**
+ * ENGINE 3: THE PRODUCTION ENGINE (High-Fidelity Rendering)
+ * Applies Ray-Traced physics and Identity Anchoring.
  */
 const generateVariant = async (
     role: string, 
     promptInstruction: string,
     inputs: MerchantInputs,
     optMain: { data: string; mimeType: string },
+    audit: string,
     optBack?: { data: string; mimeType: string } | null,
     optModel?: { data: string; mimeType: string } | null,
-    brand?: BrandKit | null,
-    sessionDna?: string // The Lock
+    brand?: BrandKit | null
 ): Promise<string> => {
     const ai = getAiClient();
     const parts: any[] = [];
@@ -81,173 +120,75 @@ const generateVariant = async (
     const brandDNA = brand ? `
     *** BRAND DNA (STRICT ADHERENCE) ***
     - Brand: '${brand.companyName || brand.name}'. Industry: ${brand.industry}.
-    - Tone: ${brand.toneOfVoice}. Audience: ${brand.targetAudience}.
-    - Guidelines: Infuse the environment and lighting with the brand's primary color: ${brand.colors.primary}.
+    - Tone: ${brand.toneOfVoice}. Primary Color: ${brand.colors.primary}.
     ` : "";
 
-    const lockInstruction = sessionDna ? `
-    *** GLOBAL SESSION LOCK (MANDATORY CONSISTENCY) ***
-    You MUST match the following aesthetic parameters from the previous shot in this session:
-    ${sessionDna}
-    ` : "";
-
-    parts.push({ text: `You are an expert E-commerce Photographer & Retoucher.
-    TASK: Generate the "${role}" image for a product listing.
+    const productionMandate = `
+    *** IDENTITY ANCHOR v5.0 (SACRED ASSET PROTOCOL) ***
+    1. **IDENTITY LOCK**: You are FORBIDDEN from altering the geometry, labels, or typography identified in the Audit: ${audit}. Every letter must stay 100% sharp.
+    2. **RAY-TRACED CONTACT PHYSICS**: Render dark, physically accurate Ambient Occlusion (AO) shadows exactly at the contact points.
+    3. **GLOBAL ILLUMINATION**: Apply subtle color-bleed from the environment onto the subject base.
     
-    ${brandDNA}
-    ${lockInstruction}
-    
-    *** INPUT ASSETS ***` });
+    GOAL: Render "${role}" with following logic: ${promptInstruction}
+    `;
 
-    parts.push({ text: "MAIN PRODUCT REFERENCE (HERO):" });
-    parts.push({ inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
+    parts.push({ text: productionMandate });
+    parts.push({ text: brandDNA });
+    parts.push({ text: "SOURCE HERO ASSET:" }, { inlineData: { data: optMain.data, mimeType: optMain.mimeType } });
+    if (optBack) parts.push({ text: "BACK REFERENCE:" }, { inlineData: { data: optBack.data, mimeType: optBack.mimeType } });
+    if (optModel) parts.push({ text: "MODEL REFERENCE:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
-    if (optBack) {
-        parts.push({ text: "BACK VIEW REFERENCE:" });
-        parts.push({ inlineData: { data: optBack.data, mimeType: optBack.mimeType } });
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: { parts },
+            config: { responseModalities: [Modality.IMAGE] }
+        });
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        throw new Error(`Failed to render ${role}`);
+    } catch (e) {
+        throw e;
     }
-
-    if (optModel && inputs.type === 'apparel') {
-        parts.push({ text: "TARGET MODEL REFERENCE:" });
-        parts.push({ inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
-    }
-
-    let specificInstructions = "";
-
-    if (inputs.type === 'apparel') {
-        let modelDesc = "";
-        if (optModel) {
-            modelDesc = "Use the TARGET MODEL provided. Maintain facial identity and body shape exactly.";
-        } else if (inputs.modelParams) {
-            modelDesc = `Generate a photorealistic model: ${inputs.modelParams.gender}, ${inputs.modelParams.age}, ${inputs.modelParams.ethnicity} ethnicity, ${inputs.modelParams.skinTone} skin tone, ${inputs.modelParams.bodyType} body build.`;
-        }
-
-        specificInstructions = `
-        **CATEGORY**: Fashion/Apparel.
-        **MODEL**: ${modelDesc}
-        **GARMENT**: The model MUST be wearing the product from the Main Product Reference.
-        **FIT & PHYSICS**: Ensure realistic fabric drape, folds, and texture.
-        
-        **SHOT SPECIFIC GOAL (${role}):**
-        ${promptInstruction}
-        `;
-    } else {
-        specificInstructions = `
-        **CATEGORY**: Physical Product (${inputs.productType || 'General Item'}).
-        **VIBE**: ${inputs.productVibe || 'Professional Studio'}.
-        
-        **SHOT SPECIFIC GOAL (${role}):**
-        ${promptInstruction}
-        `;
-    }
-
-    parts.push({ text: `
-    ${specificInstructions}
-    
-    **GLOBAL REQUIREMENTS**:
-    - Photorealistic, 4k, Commercial quality.
-    - Perfect lighting and shadows.
-    - **CRITICAL BACKGROUND RULE**: If the prompt requests a White Background, it must be a SOLID, PURE HEX #FFFFFF background. No grey gradients, no studio floors, no walls. Just the subject isolated on white.
-    - **SHADOWS**: Ground the subject with a subtle, realistic contact shadow only. No harsh dark shadows.
-    - **NEGATIVE CONSTRAINTS**: No props, no furniture, no watermarks, no text overlays unless explicitly requested.
-    
-    OUTPUT: A single image.
-    `});
-
-    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: { parts },
-        config: { responseModalities: [Modality.IMAGE] }
-    }));
-
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-    throw new Error(`Failed to generate ${role}`);
 };
 
 const runBatchWithConcurrency = async <T>(tasks: (() => Promise<T>)[], concurrency: number = 3): Promise<T[]> => {
     const results: (T | undefined)[] = new Array(tasks.length).fill(undefined);
     let taskIndex = 0;
-
     const worker = async () => {
         while (true) {
             const i = taskIndex++;
             if (i >= tasks.length) break;
-            try {
-                const res = await tasks[i]();
-                results[i] = res;
-            } catch (error) {
-                console.warn(`Batch Task ${i} failed`, error);
-                const userId = auth?.currentUser?.uid;
-                logApiError('Merchant Batch Item', (error as any)?.message || 'Unknown Batch Error', userId);
+            try { results[i] = await tasks[i](); } catch (error) {
+                console.warn(`Task ${i} failed`, error);
             }
         }
     };
-
-    const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker());
-    await Promise.all(workers);
+    await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
     return results.filter((r): r is T => r !== undefined);
 };
 
-/**
- * Main function to orchestrate the batch of 5, 7, or 10 images.
- * USES SEQUENTIAL SEEDING FOR GLOBAL SESSION LOCK.
- */
 export const generateMerchantBatch = async (inputs: MerchantInputs, brand?: BrandKit | null): Promise<string[]> => {
     const optMain = await optimizeImage(inputs.mainImage.base64, inputs.mainImage.mimeType);
     const optBack = inputs.backImage ? await optimizeImage(inputs.backImage.base64, inputs.backImage.mimeType) : null;
     const optModel = inputs.modelImage ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType) : null;
 
-    const packSize = inputs.packSize || 5;
-    const taskDefinitions: { role: string, prompt: string }[] = [];
-
-    if (inputs.type === 'apparel') {
-        taskDefinitions.push({ role: "Hero Long Shot", prompt: "Standard E-commerce Catalog Shot. Full body. Model standing neutrally facing forward. Arms relaxed by side. **CRITICAL: Hands must NOT obstruct the garment.** Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props." });
-        taskDefinitions.push({ role: "Editorial Stylized", prompt: "Street style or lifestyle context. Background should be a blurred city street, cafe, or park (matching the outfit vibe). Dynamic pose. Cinematic lighting." });
-        taskDefinitions.push({ role: "Side Profile", prompt: "Model turned 90 degrees to the side. Show the fit and silhouette from the side view. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props." });
-        const backPrompt = optBack ? "Model turned 180 degrees showing the back. Use the 'BACK VIEW REFERENCE' for accurate design details. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props." : "Model turned 180 degrees showing the back. Hallucinate a clean, standard back design consistent with the front. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** No props.";
-        taskDefinitions.push({ role: "Back View", prompt: backPrompt });
-        taskDefinitions.push({ role: "Fabric Detail", prompt: "Macro close-up shot of the chest/torso area. Focus strictly on the fabric texture, stitching quality, and material details. High sharpness." });
-        if (packSize >= 7) {
-            taskDefinitions.push({ role: "Lifestyle Alternative", prompt: "Indoor lifestyle setting. Model posing naturally in a modern living room or clean studio space with soft furniture. Relaxed vibe. Soft daylight." });
-            taskDefinitions.push({ role: "Creative Studio", prompt: "Fashion Editorial. Model posing against a solid pastel or vibrant colored background that complements the garment color. Artistic lighting. High fashion feel." });
-        }
-        if (packSize >= 10) {
-            taskDefinitions.push({ role: "Golden Hour Outdoor", prompt: "Outdoor shot during Golden Hour. Warm sunlight backlighting the model. Dreamy, aspirational vibe. Nature or cityscape background." });
-            taskDefinitions.push({ role: "Action Movement", prompt: "Dynamic motion shot. Model walking briskly or twirling. Capture the fabric movement and flow. Energetic atmosphere." });
-            taskDefinitions.push({ role: "Minimalist Architecture", prompt: "High-end fashion shoot. Model posing against concrete or marble architectural elements. Minimalist geometry. Cool tones." });
-        }
-    } else {
-        taskDefinitions.push({ role: "Hero Front View", prompt: "Direct Front View or Top-Down View (whichever suits the product best). Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Perfect symmetry. No props." });
-        const prodBackPrompt = optBack ? "Direct Back View of the product. Use the 'BACK VIEW REFERENCE' to perfectly recreate the back side details. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**" : "Direct Back View of the product. Hallucinate a realistic back side consistent with the front design logic. Subject to occupy **85% of the canvas**. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).**";
-        taskDefinitions.push({ role: "Back View", prompt: prodBackPrompt });
-        taskDefinitions.push({ role: "Hero 45-Degree", prompt: "Classic E-commerce Hero Shot. Product at a 45-degree angle. Subject to occupy **85% of the canvas** with equal padding. **BACKGROUND: SOLID PURE WHITE (#FFFFFF).** Soft natural contact shadow only. No props." });
-        taskDefinitions.push({ role: "Lifestyle Usage", prompt: "A human model using/holding the product in a natural environment. Focus on the interaction and utility." });
-        taskDefinitions.push({ role: "Build Quality Macro", prompt: "Extreme close-up macro shot. Focus on the material finish, buttons, or texture to highlight build quality. Shallow depth of field." });
-        if (packSize >= 7) {
-            taskDefinitions.push({ role: "Contextual Environment", prompt: "Product placed on a table/desk/surface in a realistic room setting (e.g. Living room, Office, or Kitchen depending on item). Blurred background. 'In-situ' look." });
-            taskDefinitions.push({ role: "Creative Ad", prompt: `High-impact advertising shot. Product on a podium or artistic surface. Dramatic studio lighting. ${inputs.productVibe || 'Luxury'} aesthetic.` });
-        }
-        if (packSize >= 10) {
-            taskDefinitions.push({ role: "Flat Lay Composition", prompt: "Top-down 'Flat Lay' photography. Product arranged neatly on a colored or textured surface with minimal relevant props (e.g. leaves, coffee, tech accessories). Organized and aesthetic." });
-            taskDefinitions.push({ role: "In-Hand Scale", prompt: "Shot of a hand holding the product to show scale and grip. Neutral background. Focus on the hand-product interaction." });
-            const vibePrompt = (inputs.productVibe || '').toLowerCase().includes('tech') ? "Dark background with neon rim lighting. Cyberpunk/Tech vibe." : "Outdoor nature setting with sunlight dapples and organic textures (wood/stone).";
-            taskDefinitions.push({ role: "Dramatic Vibe", prompt: `Stylized mood shot. ${vibePrompt} Highlight the product silhouette.` });
-        }
-    }
-
-    // --- PHASE 1: GENERATE SEED (HERO) ---
-    const heroDef = taskDefinitions[0];
-    const heroImageB64 = await generateVariant(heroDef.role, heroDef.prompt, inputs, optMain, optBack, optModel, brand);
+    // 1. Forensic Audit
+    const audit = await performForensicAudit(optMain.data, optMain.mimeType);
     
-    // --- PHASE 2: AUDIT & LOCK DNA ---
-    const sessionDna = await extractSessionDna(heroImageB64, 'image/jpeg');
+    // 2. Strategic Architecture
+    const shotStrategies = await architectPackStrategy(audit, inputs);
+    
+    // Fallback if strategy engine fails
+    const finalShots = shotStrategies.length >= (inputs.packSize || 5) 
+        ? shotStrategies 
+        : Array.from({ length: inputs.packSize || 5 }, (_, i) => `Professional listing shot variant ${i+1}`);
 
-    // --- PHASE 3: PARALLEL PRODUCTION WITH DNA ENFORCEMENT ---
-    const remainingTasks = taskDefinitions.slice(1).map(def => 
-        () => generateVariant(def.role, def.prompt, inputs, optMain, optBack, optModel, brand, sessionDna)
+    // 3. Parallel Production
+    const tasks = finalShots.map((strategy, idx) => 
+        () => generateVariant(`Asset ${idx+1}`, strategy, inputs, optMain, audit, optBack, optModel, brand)
     );
 
-    const results = await runBatchWithConcurrency(remainingTasks, 3);
-    return [heroImageB64, ...results];
+    return await runBatchWithConcurrency(tasks, 3);
 };
