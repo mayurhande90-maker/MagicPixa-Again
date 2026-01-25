@@ -6,7 +6,7 @@ import { resizeImage } from "../utils/imageUtils";
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1536, 0.95); // High quality for identity retention
+        const resizedUri = await resizeImage(dataUri, 1536, 0.95); 
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -16,14 +16,14 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-// --- PROFESSIONAL PHOTOGRAPHY LIGHTING ARCHETYPES ---
+// --- 2025 PROFESSIONAL PHOTOGRAPHY RIG ARCHETYPES ---
 const ARCHETYPE_LIGHTING: Record<string, string> = {
-    'Executive': 'Rembrandt lighting setup, key light at 45 degrees, soft wrap-around fill, sharp catchlights in eyes.',
-    'Tech': 'Natural north-facing window light, bright and clean, soft shadows, high-key high-fidelity finish.',
-    'Creative': 'Cinematic low-key lighting, moody shadows, blue-hour rim light, stylish artistic contrast.',
-    'Medical': 'Butterfly lighting, high-key clean studio setup, bright and trustworthy, shadowless medical suite vibe.',
-    'Legal': 'Formal broad lighting, authoritative and balanced, classic wood-paneling context.',
-    'Realtor': 'Friendly warm golden hour lighting, approachable and bright, natural outdoor glow.'
+    'Executive': 'Rembrandt Lighting Protocol (45-degree key), high-fidelity rim light for subject separation, sharp 8K ocular catchlights.',
+    'Tech': 'Phase One North-Facing Window simulation, soft directional daylight, high-key high-fidelity finish with neutral shadows.',
+    'Creative': 'Cinematic Low-Key aesthetic, blue-hour rim light accents, dramatic depth-of-field, artistic high-contrast production.',
+    'Medical': 'Butterfly/Paramount lighting, high-key sterile clean studio rig, shadowless trustworthy presentation, 5500K temperature.',
+    'Legal': 'Broad Studio Lighting, authoritative high-prestige rig, traditional balanced exposure, wood-paneling global illumination spill.',
+    'Realtor': 'Golden Hour approach, friendly natural outdoor rig, warm light-bleed, bright high-reach approachable exposure.'
 };
 
 const ENVIRONMENT_PHYSICS: Record<string, string> = {
@@ -55,20 +55,18 @@ const ENVIRONMENT_PHYSICS: Record<string, string> = {
 };
 
 /**
- * PHASE 1: FORENSIC BIOMETRIC SCAN
- * Identifies the immutable visual markers of the user's face.
+ * PHASE 1: IDENTITY LOCK 4.0 (FORENSIC AUDIT)
+ * Maps skin geometry, undertones, and ocular patterns.
  */
 const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string, label: string = "Subject"): Promise<string> => {
     const prompt = `ACT AS A FORENSIC BIOMETRIC ANALYST. 
-    Analyze the ${label} in the photo and provide a STERN description of their unique facial features that MUST NOT change.
+    Perform an Identity Lock 4.0 Audit on the ${label}.
     
-    1. **GEOMETRIC MAPPING**: Note the exact distance between eyes, the height of the forehead, and the specific angle of the jawline.
-    2. **OCULAR IDENTITY**: Describe the eyelid shape, pupil distance, and eyebrow arch height.
-    3. **NASAL & ORAL STRUCTURE**: Note the width of the nose bridge and the specific curvature of the lips.
-    4. **HAIR ARCHITECTURE**: Identify the exact hairline, the density/volume of hair, and its natural texture.
-    5. **BODY TOPOLOGY**: Note the neck thickness and shoulder-to-head ratio.
-    
-    MANDATE: This description is a SACRED GEOMETRIC ANCHOR. You will use this to ensure the final result is a 1:1 physical replica. No "improvement" allowed.`;
+    1. **SKIN GEOMETRY & UNDERTONE**: Map the exact pore distribution, subtle freckles, and specific skin undertones (e.g. olive, pink, golden). 
+    2. **OCULAR FIDELITY**: Precisely describe the eyelid fold depth, iris pattern density, and canthal tilt. 
+    3. **BONE TOPOLOGY**: Map the exact cheekbone height, jawline taper, and temple width. 
+    4. **MICRO-TEXTURES**: Note unique fine lines, natural asymmetry, and facial hair grain.
+    5. **MANDATE**: This is a SACRED IDENTITY ANCHOR. You must ensure the generated output is a 1:1 biometric clone. Any beautification or generic "improvement" is a failure of identity integrity.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -99,7 +97,7 @@ export const generateProfessionalHeadshot = async (
     try {
         const { data: optData, mimeType: optMime } = await optimizeImage(base64ImageData, mimeType);
         
-        // Step 1: Lock Identity via Biometric Scan
+        // Step 1: Identity Lock 4.0 Biometric Audit
         const biometricsA = await performDeepIdentityScan(ai, optData, optMime, "Primary Subject");
 
         let partnerData = null;
@@ -116,36 +114,43 @@ export const generateProfessionalHeadshot = async (
         const lighting = ARCHETYPE_LIGHTING[archetype] || ARCHETYPE_LIGHTING['Executive'];
         const env = background === 'Custom' ? customDescription : (ENVIRONMENT_PHYSICS[background] || ENVIRONMENT_PHYSICS['Studio Photoshoot']);
 
-        // --- MASTER ACCURACY PROMPT (STRUCTURAL LOCK) ---
+        // --- MASTER PRODUCTION PROMPT (IDENTITY LOCK 4.0) ---
         const prompt = `
-        *** FORCED IDENTITY PRESERVATION PROTOCOL (V6) ***
-        TASK: Create a professional portrait of the person provided in the source image.
+        *** PRODUCTION ENGINE: IDENTITY LOCK 4.0 (SACRED ASSET PROTOCOL) ***
+        TASK: Generate a world-class professional portrait for the provided templates.
         
-        **CORE MANDATE: 1:1 STRUCTURAL INTEGRITY**
-        1. **GEOMETRIC TEMPLATE**: Use the source image as a physical template. You are FORBIDDEN from altering the person's bone structure, head shape, jawline, or facial proportions.
-        2. **ZERO CREATIVITY FOR FACE/BODY**: Do NOT "enhance", "beautify", or "smooth" the subject. The person in the output must be the EXACT digital twin of the source. No changes to weight, age, or feature size.
-        3. **HAIR & HAIRLINE**: Copy the exact hairline and hair volume from the source. Do NOT hallucinate a different hairstyle or fuller hair.
-        4. **PHOTOGRAPHIC CLOAKING**: Think of this as "clothing the person" in a new environment. Keep the person identical; only generate the new professional attire (${archetype} style) and the background (${env}).
+        **MANDATE 1: SUB-SURFACE INTEGRITY (NO SMOOTHING)**
+        - Render micro-pores, natural skin moisture, and fine lines. 
+        - STRICT NO-SMOOTHING RULE: Any attempt to airbrush or "AI-beautify" the subject's face into a generic model is strictly forbidden.
+        - Render "flyaway" hair strands and natural hair textures (1:1 with source).
         
-        **BIOMETRIC DATA LOCK**:
-        - **PRIMARY BIOMETRICS**: ${biometricsA}
-        ${partnerData ? `- **PARTNER BIOMETRICS**: ${biometricsPartner}` : ''}
+        **MANDATE 2: OCULAR SOUL LOCK**
+        - Maintain the exact eyelid geometry and iris depth of the subjects.
+        - Ensure "The Soul of the Eyes" remains identical to the source photo.
         
-        **PHOTOGRAPHY SPECS**:
-        - **GEAR**: Sony A7R V with 85mm f/1.2 G-Master.
+        **MANDATE 3: FABRIC PHYSICS & GROOMING SYNC**
+        - **WARDROBE**: Generate professional attire in ${archetype} style. Calculate realistic fabric drape and weight based on the subject's shoulder topology.
+        - **GROOMING**: Sync facial hair (beards, stubble) exactly with the source grain.
+        
+        **BIOMETRIC AUDIT FEED:**
+        - **PRIMARY DATA**: ${biometricsA}
+        ${partnerData ? `- **PARTNER DATA**: ${biometricsPartner}` : ''}
+        
+        **PHOTOGRAPHY RIG**:
+        - **OPTICS**: 8K High-Pass Resolution, 85mm Prime Lens (f/1.2).
         - **LIGHTING**: ${lighting}.
-        - **TEXTURE**: Render real skin pores, fine lines, and natural facial hair. Avoid "plastic" or "synthetic" AI skin.
+        - **ENVIRONMENT**: ${env}. Include global illumination bleed from the background onto the subject's attire.
         
-        OUTPUT: A single 4K photorealistic headshot. The subject MUST be 100% recognizable as the source individual.
+        OUTPUT: A single 4K hyper-realistic headshot. The subject MUST be 100% recognizable as the source template.
         `;
 
         const parts: any[] = [
-            { text: "SACRED SUBJECT TEMPLATE (IMMUTABLE PIXELS):" },
+            { text: "IMMUTABLE SOURCE TEMPLATE (PRIMARY):" },
             { inlineData: { data: optData, mimeType: optMime } }
         ];
 
         if (partnerData && partnerMime) {
-             parts.push({ text: "SACRED PARTNER TEMPLATE (IMMUTABLE PIXELS):" });
+             parts.push({ text: "IMMUTABLE SOURCE TEMPLATE (PARTNER):" });
              parts.push({ inlineData: { data: partnerData, mimeType: partnerMime } });
         }
 
@@ -168,7 +173,7 @@ export const generateProfessionalHeadshot = async (
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-        throw new Error("Identity-lock engine failed to render. Please ensure your photo is clear.");
+        throw new Error("Identity-lock engine failed. Please use a clearer, well-lit photo.");
 
     } catch (error) {
         console.error("Headshot error:", error);
