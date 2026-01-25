@@ -11,7 +11,6 @@ import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, Edu
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
-import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
@@ -175,6 +174,7 @@ const BrandSelectionModal: React.FC<{
                      ) : (
                         <div className={`grid grid-cols-2 gap-4 ${activatingId ? 'pointer-events-none' : ''}`}>
                             {brands.map(brand => {
+                                // Fix: Use the currentBrandId prop instead of non-existent activeBrand
                                 const isActive = currentBrandId === brand.id;
                                 const isActivating = activatingId === brand.id;
                                 return (
@@ -304,7 +304,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
-    const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [showBrandModal, setShowBrandModal] = useState(false);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showRefundModal, setShowRefundModal] = useState(false);
@@ -506,8 +505,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl);
     };
 
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-
     const handleRefundRequest = async (reason: string) => {
         if (!auth.user || !resultImage) return;
         setIsRefunding(true);
@@ -567,10 +564,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 creationId={lastCreationId}
                 onResetResult={resultImage ? undefined : handleGenerate}
                 onNewSession={handleNewSession}
-                onEdit={() => setShowMagicEditor(true)}
                 activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
-                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
                     <button 
@@ -1030,12 +1026,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 }
             />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={claimMilestoneBonus as any} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
             {showBrandModal && auth.user && (
                 <BrandSelectionModal 
                     isOpen={showBrandModal} 
                     onClose={() => setShowBrandModal(false)} 
                     userId={auth.user.uid} 
+                    // Fix: Use auth.activeBrandKit prop in currentBrandId
                     currentBrandId={auth.activeBrandKit?.id} 
                     onSelect={handleBrandSelect} 
                     onCreateNew={() => navigateTo('dashboard', 'brand_manager')} 
