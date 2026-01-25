@@ -4,11 +4,9 @@ import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../compone
 import { PixaRestoreIcon, UploadIcon, XIcon, CreditCoinIcon, MagicWandIcon, PaletteIcon, CheckIcon, InformationCircleIcon, ShieldCheckIcon, ArrowUpCircleIcon } from '../components/icons';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
-// Fix: Import refineStudioImage from photoStudioService as it is not available in imageToolsService
 import { colourizeImage } from '../services/imageToolsService';
 import { refineStudioImage } from '../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
-import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -105,7 +103,6 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
-    const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
@@ -125,7 +122,18 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     useEffect(() => { 
         let interval: any; 
         if (loading || isRefining) { 
-            const steps = isRefining ? ["Analyzing biometric stability...", "Refining forensic details...", "Polishing masterpieces...", "Finalizing refined output..."] : ["Scanning damage patterns...", "Forensic Identity Locking...", "Historical era matching...", "Reconstructing biometrics...", "Polishing final pixels..."]; 
+            const steps = isRefining ? [
+                "Audit: Analyzing biometric stability...", 
+                "Retouching: Refining pixel fidelity...", 
+                "Finalizing masterpieces...", 
+                "Mastery: High-pass reconstruction ready..."
+            ] : [
+                "Forensic Audit: Mapping chemical damage...", 
+                "Era Analysis: Synchronizing historical color science...", 
+                "Optical Engine: Reconstructing 4K biometrics...", 
+                "Production: Applying sub-surface scattering...", 
+                "Finalizing: High-fidelity reconstruction ready..."
+            ]; 
             let step = 0; 
             setLoadingText(steps[0]); 
             interval = setInterval(() => { 
@@ -188,31 +196,29 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Restored Image", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
     const handleNewSession = () => { setImage(null); setResultImage(null); setRestoreMode(null); setLastCreationId(null); setIsRefineActive(false); };
-    const handleEditorSave = async (newUrl: string) => { setResultImage(newUrl); if (lastCreationId && auth.user) await updateCreation(auth.user.uid, lastCreationId, newUrl); };
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 2, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
     const canGenerate = !!image && !!restoreMode && !isLowCredits;
 
     return (
         <>
             <FeatureLayout 
-                title="Pixa Photo Restore" description="Professional restoration suite. Fix damage, enhance resolution, and optionally colorize with 100% identity accuracy." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
-                onResetResult={resultImage ? undefined : handleGenerate} onNewSession={resultImage ? undefined : handleNewSession}
-                onEdit={() => setShowMagicEditor(true)} activeBrandKit={auth.activeBrandKit}
+                title="Pixa Photo Restore" description="Museum-grade restoration suite. Forensic Optical Reconstruction heals damage, fixes focus, and synthesizes historical pigments with 100% identity lock." icon={<PixaRestoreIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading || isRefining} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={resultImage} creationId={lastCreationId}
+                onResetResult={resultImage ? undefined : handleGenerate} onNewSession={handleNewSession}
+                activeBrandKit={auth.activeBrandKit}
                 resultHeightClass="h-[750px]" hideGenerateButton={isLowCredits} 
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true, 
-                    label: "Begin Forensic Restoration" 
+                    label: "Begin Optical Reconstruction" 
                 }} 
                 scrollRef={scrollRef}
-                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onEdit={() => setShowMagicEditor(true)} onReport={() => setShowRefundModal(true)} /> : null}
+                resultOverlay={resultImage ? <ResultToolbar onNew={handleNewSession} onRegen={handleGenerate} onReport={() => setShowRefundModal(true)} /> : null}
                 canvasOverlay={<RefinementPanel isActive={isRefineActive && !!resultImage} isRefining={isRefining} onClose={() => setIsRefineActive(false)} onRefine={handleRefine} refineCost={refineCost} />}
                 customActionButtons={resultImage ? (
                     <button 
                         onClick={() => setIsRefineActive(!isRefineActive)}
                         className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
                     >
-                        <span>Make Changes</span>
+                        <span>Refine Output</span>
                     </button>
                 ) : null}
                 leftContent={
@@ -240,7 +246,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                         <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
                             <div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
                             <div>
-                                <h3 className="text-lg font-bold text-gray-800">Restoration Engine</h3>
+                                <h3 className="text-lg font-bold text-gray-800">Optical Engine</h3>
                                 <p className="text-xs text-gray-400 font-medium">Select your preferred output style</p>
                             </div>
                         </div>
@@ -248,42 +254,44 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                             <div className="h-64 flex flex-col items-center justify-center text-center p-6 bg-red-50/50 rounded-2xl border border-red-100 animate-fadeIn">
                                 <CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" />
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3>
-                                <p className="text-gray-500 mb-6 max-w-xs text-sm">Restoration requires {cost} credits.</p>
-                                <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg pointer-events-auto">Recharge Now</button>
+                                <p className="text-gray-500 mb-6 max-w-xs text-sm">Requires {cost} credits.</p>
+                                <button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button>
                             </div>
                         ) : (
                             <div className={RestoreStyles.modeGrid}>
-                                <ModeCard 
-                                    title="Colour & Restore" 
-                                    description="Repairs damage + AI Colorization" 
-                                    icon={<ColorRestoreIcon className="w-full h-full"/>} 
-                                    selected={restoreMode === 'restore_color'} 
-                                    onClick={() => setRestoreMode('restore_color')} 
-                                    variant="color"
-                                />
-                                <ModeCard 
-                                    title="Restore Only" 
-                                    description="Repairs damage while keeping original BW soul" 
-                                    icon={<RestoreOnlyIcon className="w-full h-full"/>} 
-                                    selected={restoreMode === 'restore_only'} 
-                                    onClick={() => setRestoreMode('restore_only')} 
-                                    variant="restore"
-                                />
+                                <ModeCard title="Colorize & Fix" description="Era-matched pigment synthesis + full damage repair." icon={<ColorRestoreIcon className="w-10 h-10"/>} selected={restoreMode === 'restore_color'} onClick={() => setRestoreMode('restore_color')} variant="color" />
+                                <ModeCard title="Restore Only" description="Museum-grade repair without adding color. Preserves original BW depth." icon={<RestoreOnlyIcon className="w-10 h-10"/>} selected={restoreMode === 'restore_only'} onClick={() => setRestoreMode('restore_only')} variant="restore" />
                             </div>
                         )}
-                        {!image && (
-                            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500 font-medium bg-gray-50/80 py-3 rounded-xl border border-gray-100 border-dashed">
-                                <ArrowUpCircleIcon className="w-4 h-4" />
-                                <span>Upload an image to enable these controls</span>
+                        <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <InformationCircleIcon className="w-4 h-4 text-indigo-400" />
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Protocol Intelligence</span>
                             </div>
-                        )}
+                            <div className="space-y-3">
+                                {[
+                                    { label: 'Identity Anchoring', desc: '1:1 facial structure replication', active: !!image },
+                                    { label: 'Pigment Synthesis', desc: 'Era-matched film stock palettes', active: restoreMode === 'restore_color' },
+                                    { label: 'Sub-Surface Scattering', desc: 'Life-like skin depth rendering', active: !!restoreMode }
+                                ].map((p, idx) => (
+                                    <div key={idx} className={`flex items-start gap-3 transition-opacity ${p.active ? 'opacity-100' : 'opacity-30'}`}>
+                                        <div className={`mt-1 w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${p.active ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                            <CheckIcon className="w-2 h-2 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-700 leading-none">{p.label}</p>
+                                            <p className="text-[9px] text-gray-400 mt-1 font-medium">{p.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 }
             />
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
-            {showMagicEditor && resultImage && <MagicEditorModal imageUrl={resultImage} onClose={() => setShowMagicEditor(false)} onSave={handleEditorSave} deductCredit={handleDeductEditCredit} />}
-            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Restoration" />}
+            {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="Photo Restore" />}
             {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
         </>
     );
