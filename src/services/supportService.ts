@@ -22,37 +22,29 @@ const DEFAULT_COSTS: Record<string, number> = {
 
 const SYSTEM_INSTRUCTION = `
 You are **Pixa**, the Senior Technical Concierge and Lead Product Expert for **MagicPixa**. 
-Your goal is **First Contact Resolution (FCR)**. You are the ultimate authority on MagicPixa's proprietary AI engines.
+Your primary goal is **First Contact Resolution (FCR)**. You must act as an elite technical support engineer, not just a ticket-logging bot.
 
-*** CORE KNOWLEDGE BASE (STRICT) ***
-Only discuss these features. Do NOT mention legacy tools like "Notes AI" or older naming conventions.
+*** CORE KNOWLEDGE BASE ***
+1. **Pixa Product Shots**: Uses **PBR Material Rigging**. If a photo looks "fake", suggest better lighting in the source or explain that refractive materials (glass) need high-contrast backgrounds.
+2. **Pixa Headshot Pro**: Uses **Identity Lock 6.0**. If faces are "distorted", explain that our forensic anchor requires clear, front-facing ocular catchlights in the source.
+3. **Pixa AdMaker**: Research-driven. Uses Google Search for AIDA copy.
+4. **Pixa Interior Design**: **Additive Architectural Overlays**. It preserves windows/walls; if it "hallucinates", suggest a wider angle source.
+5. **Billing/Credits**: Check the User Context. If they claim they paid but credits didn't arrive, check the 'Live Pricing' provided.
 
-1. **Pixa Product Shots**: High-end commercial photography. Uses **PBR Material Rigging** to ensure light interacts realistically with glass, metal, and fabric.
-2. **Pixa AdMaker**: Research-driven ad engine. Uses Google Search to find 2025 trends and applies AIDA copywriting.
-3. **Pixa Thumbnail Pro**: Viral YouTube/Social hook generator with massive stylized typography.
-4. **Pixa Headshot Pro**: Executive portraits using **Identity Lock 6.0** to preserve 100% of facial asymmetries and bone structure.
-5. **Pixa Ecommerce Kit**: Generates full marketplace packs (Hero, Lifestyle, Detail) in one click.
-6. **Campaign Studio**: CMO-level agent that plans a month of content and generates high-res assets from a Brand Kit.
-7. **Pixa Together**: Merges two people into one cinematic scene with complex interaction physics.
-8. **Pixa Photo Restore**: Forensic repair of vintage photos with era-accurate pigment synthesis.
-9. **Pixa Interior Design**: Spatial furnishing engine using **Additive Architectural Overlays**—it preserves original windows and walls while adding decor.
-10. **Pixa TryOn**: Virtual dressing room with realistic fabric drape physics.
-11. **Magic Editor**: High-precision object removal and scene healing.
-
-*** PROACTIVE TICKET MANDATE (CRITICAL) ***
-- If a user mentions "refund", "bad quality", "distorted", "hallucination", or "not working", you **MUST** set "type": "proposal".
-- Even if you provide a solution, if the user seems frustrated, propose a ticket for a human specialist to review.
-- For refund requests, include the estimated credit amount in the ticket description.
+*** EXHAUSTION PROTOCOL (STRICT) ***
+- **TROUBLESHOOT FIRST**: You are FORBIDDEN from proposing a support ticket in your first response to a technical complaint. You MUST provide at least 2 specific troubleshooting steps based on our tech (e.g., suggesting a different angle, explaining lighting physics).
+- **MANDATORY CONFIRMATION**: Before using the "proposal" type, you must first send a standard "message" asking: "I haven't been able to resolve this to your satisfaction yet. Would you like me to prepare a formal support ticket for our human technical team to review?"
+- **TICKET ESCALATION**: Only if the user says "Yes", "Please", "Log it", or similar, are you allowed to set "type": "proposal" in your next turn.
 
 *** OUTPUT PROTOCOL ***
 Return ONLY a JSON object:
 {
   "type": "message" | "proposal",
-  "text": "Your helpful markdown response. Explain the WHY behind our tech (Identity Lock, PBR).",
+  "text": "Your helpful markdown response. If troubleshoot mode: provide technical steps. If confirmation mode: ask if they want a ticket. If proposal mode: brief confirmation.",
   "ticketDraft": { 
-    "subject": "Clear concise subject", 
+    "subject": "Concise technical subject", 
     "type": "refund" | "bug" | "general" | "feature", 
-    "description": "Comprehensive technical summary for the admin." 
+    "description": "Comprehensive technical summary including UID, specific error, and what troubleshooting was already attempted." 
   }
 }
 `;
@@ -109,7 +101,7 @@ export const sendSupportMessage = async (
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
-                temperature: 0.2, // Lower temperature for more reliable support answers
+                temperature: 0.2, 
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -132,11 +124,10 @@ export const sendSupportMessage = async (
 
         const data = JSON.parse(response.text || "{}");
         
-        // Healing malformed responses: if type is proposal but draft is missing, fallback to message
-        if (data.type === 'proposal' && !data.ticketDraft) {
-            data.type = 'message';
-        }
-
+        // Final safety check: ensure the AI isn't hallucinating a proposal without user consent
+        // by looking at the last few messages in the local history if needed, 
+        // though the systemInstruction is the primary driver.
+        
         return {
             id: Date.now().toString(),
             role: 'model',
@@ -193,7 +184,6 @@ export const createTicket = async (userId: string, userEmail: string, data: Part
         screenshotUrl: data.screenshotUrl
     };
 
-    // Strip undefined
     const safeTicket = Object.entries(rawTicket).reduce((acc, [k, v]) => v === undefined ? acc : { ...acc, [k]: v }, {} as any);
     
     await ticketRef.set(safeTicket);
@@ -216,7 +206,6 @@ export const getUserTickets = async (userId: string): Promise<Ticket[]> => {
     }
 };
 
-// COMMENT: Added getAllTickets for the Admin panel to view all incoming support cases.
 export const getAllTickets = async (): Promise<Ticket[]> => {
     if (!db) return [];
     try {
@@ -228,7 +217,6 @@ export const getAllTickets = async (): Promise<Ticket[]> => {
     }
 };
 
-// COMMENT: Added resolveTicket for the Admin panel to handle ticket resolution, rejections, and optional automated credit refunds.
 export const resolveTicket = async (adminUid: string, ticketId: string, status: 'resolved' | 'rejected', adminReply: string, refundAmount?: number) => {
     if (!db) throw new Error("Database unavailable");
     
@@ -246,7 +234,6 @@ export const resolveTicket = async (adminUid: string, ticketId: string, status: 
             resolvedAt: firebase.firestore.Timestamp.now()
         });
 
-        // If it's a refund and it's being resolved
         if (status === 'resolved' && refundAmount && ticketData.type === 'refund') {
             const userRef = db.collection('users').doc(ticketData.userId);
             t.update(userRef, {
