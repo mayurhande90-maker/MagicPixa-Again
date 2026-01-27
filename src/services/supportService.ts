@@ -21,30 +21,40 @@ const DEFAULT_COSTS: Record<string, number> = {
 };
 
 const SYSTEM_INSTRUCTION = `
-You are **Pixa**, the Senior Technical Concierge and Lead Product Expert for **MagicPixa**. 
-Your primary goal is **First Contact Resolution (FCR)**. You must act as an elite technical support engineer, not just a ticket-logging bot.
+You are **Pixa**, the Friendly Product Expert for **MagicPixa**. 
+Your goal is to help users get the best results from our AI tools without needing to wait for a human support agent.
 
-*** CORE KNOWLEDGE BASE ***
-1. **Pixa Product Shots**: Uses **PBR Material Rigging**. If a photo looks "fake", suggest better lighting in the source or explain that refractive materials (glass) need high-contrast backgrounds.
-2. **Pixa Headshot Pro**: Uses **Identity Lock 6.0**. If faces are "distorted", explain that our forensic anchor requires clear, front-facing ocular catchlights in the source.
-3. **Pixa AdMaker**: Research-driven. Uses Google Search for AIDA copy.
-4. **Pixa Interior Design**: **Additive Architectural Overlays**. It preserves windows/walls; if it "hallucinates", suggest a wider angle source.
-5. **Billing/Credits**: Check the User Context. If they claim they paid but credits didn't arrive, check the 'Live Pricing' provided.
+*** COMMUNICATION STYLE ***
+- **KEEP IT SIMPLE**: Never use technical jargon. 
+- Avoid terms like "PBR Rigging", "Biometric Asymmetry", "Sub-surface scattering", or "Global Illumination".
+- Instead use terms like: "Lighting and shadows", "Face details", "How light hits the skin", "Background reflections".
+- Be helpful, encouraging, and clear. Speak like a friendly coach.
 
-*** EXHAUSTION PROTOCOL (STRICT) ***
-- **TROUBLESHOOT FIRST**: You are FORBIDDEN from proposing a support ticket in your first response to a technical complaint. You MUST provide at least 2 specific troubleshooting steps based on our tech (e.g., suggesting a different angle, explaining lighting physics).
-- **MANDATORY CONFIRMATION**: Before using the "proposal" type, you must first send a standard "message" asking: "I haven't been able to resolve this to your satisfaction yet. Would you like me to prepare a formal support ticket for our human technical team to review?"
-- **TICKET ESCALATION**: Only if the user says "Yes", "Please", "Log it", or similar, are you allowed to set "type": "proposal" in your next turn.
+*** KNOWLEDGE BASE (SIMPLE TERMS) ***
+1. **Pixa Product Shots**: If it looks "fake", the original photo might be too dark or have too much glare. Suggest taking a new photo in a bright room or from a different angle to avoid reflections.
+2. **Pixa Headshot Pro**: If faces look "strange", the original selfie needs to be clear and looking straight at the camera.
+3. **Pixa AdMaker**: We research what's trending to help sell your products better.
+4. **Pixa Interior Design**: We try to keep the walls and windows the same while adding new furniture. If it adds things where they shouldn't be, try a wider photo of the room.
+5. **Billing/Credits**: Check the User Context. If credits are missing, remind them they can get free credits by doing the "Daily Check-in" or "Daily Missions" in the dashboard.
+
+*** DIAGNOSTIC PROTOCOL (MANDATORY) ***
+- **ROUND 1 (ASK)**: If a user complains about quality, DO NOT suggest a ticket. Ask which tool they used and if their original photo was a bit blurry or dark.
+- **ROUND 2 (ADVISE)**: Provide 2-3 very simple tips (e.g., "Try cleaning your camera lens," "Make sure you're in a bright room," or "Use a solid color background").
+- **ROUND 3 (FOLLOW UP)**: Ask if those tips helped or if they want to try another tool.
+- **TICKET LOCKDOWN**: You are FORBIDDEN from proposing a ticket unless:
+    1. You have tried at least 3 rounds of troubleshooting.
+    2. OR the user explicitly says "I want to talk to a human" or "Log a ticket".
+- **CONFIRMATION FIRST**: Before showing a "proposal" (the ticket form), you must ask in plain text: "I really want to get this right for you, but I might need to involve our human team. Would you like me to write up a report for them to review?"
 
 *** OUTPUT PROTOCOL ***
 Return ONLY a JSON object:
 {
   "type": "message" | "proposal",
-  "text": "Your helpful markdown response. If troubleshoot mode: provide technical steps. If confirmation mode: ask if they want a ticket. If proposal mode: brief confirmation.",
+  "text": "Your helpful response. Use simple language. No jargon.",
   "ticketDraft": { 
-    "subject": "Concise technical subject", 
+    "subject": "Simple summary", 
     "type": "refund" | "bug" | "general" | "feature", 
-    "description": "Comprehensive technical summary including UID, specific error, and what troubleshooting was already attempted." 
+    "description": "Simple summary of the issue and what the user already tried." 
   }
 }
 `;
@@ -76,7 +86,6 @@ export const sendSupportMessage = async (
     const mergedCosts = { ...DEFAULT_COSTS, ...featureCosts };
     const pricingTable = Object.entries(mergedCosts).map(([f, c]) => `- ${f}: ${c} Credits`).join('\n');
 
-    // Inject User Context as a system turn to ensure the bot knows the current state
     const contextInjection = `
     [USER CONTEXT]
     Name: ${userContext.name}
@@ -88,7 +97,6 @@ export const sendSupportMessage = async (
     ${pricingTable}
     `;
 
-    // Append context to the last user message or start with it
     if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user') {
         chatHistory[chatHistory.length - 1].parts[0].text += `\n\n(System Info: ${contextInjection})`;
     } else {
@@ -101,7 +109,7 @@ export const sendSupportMessage = async (
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
-                temperature: 0.2, 
+                temperature: 0.3, 
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -124,14 +132,10 @@ export const sendSupportMessage = async (
 
         const data = JSON.parse(response.text || "{}");
         
-        // Final safety check: ensure the AI isn't hallucinating a proposal without user consent
-        // by looking at the last few messages in the local history if needed, 
-        // though the systemInstruction is the primary driver.
-        
         return {
             id: Date.now().toString(),
             role: 'model',
-            content: data.text || "I'm processing your request. How else can I assist?",
+            content: data.text || "I'm here to help! What's on your mind?",
             type: data.type || 'message',
             ticketDraft: data.ticketDraft,
             timestamp: Date.now()
@@ -141,7 +145,7 @@ export const sendSupportMessage = async (
         return {
             id: Date.now().toString(),
             role: 'model',
-            content: "I'm having trouble connecting to the Pixa network. Please try again in a moment.",
+            content: "I'm having a little trouble connecting. Could you please try sending that again?",
             type: 'message',
             timestamp: Date.now()
         };
@@ -156,13 +160,13 @@ export const analyzeSupportImage = async (base64: string, mimeType: string): Pro
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
-                    { text: "Act as a Technical Diagnostic Agent. Scan this screenshot for MagicPixa UI elements, generation errors, or distorted images. Provide a technical diagnostic summary for the Support Bot." }
+                    { text: "Look at this screenshot and tell me in very simple, non-technical language what you see. Is there an error message or does an image look a bit strange? Just give a simple summary for a helpful support assistant." }
                 ]
             }
         });
-        return response.text || "No visual errors detected in screenshot.";
+        return response.text || "I couldn't quite see what was in the image. Could you describe the problem?";
     } catch (e) {
-        return "Visual diagnostic engine unavailable.";
+        return "I'm having trouble seeing the picture right now.";
     }
 };
 
@@ -176,7 +180,7 @@ export const createTicket = async (userId: string, userEmail: string, data: Part
         userEmail,
         type: data.type || 'general',
         status: 'open',
-        subject: data.subject || 'Pixa Support Request',
+        subject: data.subject || 'Help Request',
         description: data.description || '',
         createdAt: firebase.firestore.Timestamp.now(),
         relatedTransactionId: data.relatedTransactionId,
@@ -242,7 +246,7 @@ export const resolveTicket = async (adminUid: string, ticketId: string, status: 
             
             const txRef = userRef.collection('transactions').doc();
             t.set(txRef, {
-                feature: 'Admin Refund: ' + ticketData.subject,
+                feature: 'Refund: ' + ticketData.subject,
                 creditChange: `+${refundAmount}`,
                 date: firebase.firestore.FieldValue.serverTimestamp(),
                 grantedBy: adminUid
