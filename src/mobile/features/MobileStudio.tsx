@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -291,7 +290,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                 <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
                                     <ImageIcon className="w-10 h-10 text-indigo-50" />
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 tracking-tight">Drop Asset</h3>
+                                <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Product Photo</h3>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse</p>
                             </div>
                         )}
