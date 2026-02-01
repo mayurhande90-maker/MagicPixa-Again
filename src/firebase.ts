@@ -1,3 +1,4 @@
+
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -310,8 +311,9 @@ export const uploadLabAsset = async (uid: string, dataUri: string, featureId: st
 export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;
-    if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
-        try { finalImage = await resizeImage(finalImage, 1024, 0.7); } catch (e) { console.warn(e); }
+    // QUALITY UPGRADE: Increased threshold and limits to prevent severe detail loss
+    if (finalImage.length > 1200000 && finalImage.startsWith('data:image')) {
+        try { finalImage = await resizeImage(finalImage, 2048, 0.9); } catch (e) { console.warn(e); }
     }
     const docRef = await db.collection('users').doc(uid).collection('creations').add({
         imageUrl: finalImage,
@@ -325,8 +327,9 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
 export const updateCreation = async (uid: string, creationId: string, imageUrl: string): Promise<void> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;
-    if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
-        try { finalImage = await resizeImage(finalImage, 1024, 0.7); } catch (e) { console.warn(e); }
+    // QUALITY UPGRADE: Increased threshold and limits to prevent severe detail loss
+    if (finalImage.length > 1200000 && finalImage.startsWith('data:image')) {
+        try { finalImage = await resizeImage(finalImage, 2048, 0.9); } catch (e) { console.warn(e); }
     }
     await db.collection('users').doc(uid).collection('creations').doc(creationId).update({
         imageUrl: finalImage,
