@@ -311,10 +311,19 @@ export const uploadLabAsset = async (uid: string, dataUri: string, featureId: st
 export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;
-    // QUALITY UPGRADE: Increased threshold and limits to prevent severe detail loss
-    if (finalImage.length > 1200000 && finalImage.startsWith('data:image')) {
-        try { finalImage = await resizeImage(finalImage, 2048, 0.9); } catch (e) { console.warn(e); }
+    
+    // AGGRESSIVE OPTIMIZATION for Firestore 1MB document limit
+    // base64 length is roughly 1.37x the actual byte size.
+    // 1,000,000 chars is approx 730KB.
+    if (finalImage.length > 900000 && finalImage.startsWith('data:image')) {
+        try { 
+            // Resize to 1536px and lower quality (0.7) to guarantee fit
+            finalImage = await resizeImage(finalImage, 1536, 0.7); 
+        } catch (e) { 
+            console.warn("Auto-resize for storage failed", e); 
+        }
     }
+    
     const docRef = await db.collection('users').doc(uid).collection('creations').add({
         imageUrl: finalImage,
         feature,
@@ -327,10 +336,16 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
 export const updateCreation = async (uid: string, creationId: string, imageUrl: string): Promise<void> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;
-    // QUALITY UPGRADE: Increased threshold and limits to prevent severe detail loss
-    if (finalImage.length > 1200000 && finalImage.startsWith('data:image')) {
-        try { finalImage = await resizeImage(finalImage, 2048, 0.9); } catch (e) { console.warn(e); }
+    
+    // AGGRESSIVE OPTIMIZATION for Firestore 1MB document limit
+    if (finalImage.length > 900000 && finalImage.startsWith('data:image')) {
+        try { 
+            finalImage = await resizeImage(finalImage, 1536, 0.7); 
+        } catch (e) { 
+            console.warn("Auto-resize for storage update failed", e); 
+        }
     }
+    
     await db.collection('users').doc(uid).collection('creations').doc(creationId).update({
         imageUrl: finalImage,
         lastEditedAt: firebase.firestore.FieldValue.serverTimestamp()
