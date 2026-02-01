@@ -1,13 +1,14 @@
+
 import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage, makeTransparent } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
-// Helper: Resize to 1280px (HD) for Gemini 3 Pro
+// QUALITY UPGRADE: Increased to 2048px with high quality factor
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1280, 0.85);
+        const resizedUri = await resizeImage(dataUri, 2048, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -17,11 +18,11 @@ const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: 
     }
 };
 
-// Specific optimizer for High-Res Editing (1536px) to avoid pixelation
+// Specific optimizer for High-Res Editing (2048px) to avoid pixelation
 const optimizeImageForEditing = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1536, 0.95);
+        const resizedUri = await resizeImage(dataUri, 2048, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
