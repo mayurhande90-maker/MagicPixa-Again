@@ -43,6 +43,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [isGenerating, setIsGenerating] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
+    const [progressPercent, setProgressPercent] = useState(0);
 
     // Tray Navigation
     const [currentStep, setCurrentStep] = useState(0);
@@ -71,10 +72,11 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         return currentCount >= requiredCount;
     }, [selections, studioMode, activeSteps, customCategory]);
 
-    // --- Dynamic Loading Messages ---
+    // --- Dynamic Loading Messages & Progress ---
     useEffect(() => {
         let interval: any;
         if (isGenerating) {
+            setProgressPercent(0);
             const steps = [
                 "Pixa Vision: Extracting material properties...",
                 "Production Engine: Calibrating lighting rig...",
@@ -87,7 +89,14 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
+                
+                setProgressPercent(prev => {
+                    if (prev >= 98) return prev;
+                    return Math.min(prev + (Math.random() * 4), 98);
+                });
             }, 1800);
+        } else {
+            setProgressPercent(0);
         }
         return () => clearInterval(interval);
     }, [isGenerating]);
@@ -245,12 +254,12 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
             {/* 2. FIXED CANVAS (60% Viewport) */}
             <div className="relative h-[60%] w-full flex items-center justify-center p-6 select-none">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
                     
                     {/* Content */}
                     <div className="relative w-full h-full flex flex-col items-center justify-center">
                         {result ? (
-                            <img src={result} className={`max-w-full max-h-full object-contain animate-fadeIn transition-all ${isGenerating ? 'blur-md grayscale brightness-75' : ''}`} />
+                            <img src={result} className={`max-w-full max-h-full object-contain transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30 scale-95' : 'animate-materialize'}`} />
                         ) : image ? (
                             <img src={image.url} className={`max-w-[85%] max-h-[85%] object-contain animate-fadeIn transition-all ${isAnalyzing || !studioMode || isGenerating ? 'blur-sm scale-95 opacity-50' : ''}`} />
                         ) : (
@@ -263,25 +272,60 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         )}
 
-                        {/* GENERATION / ANALYSIS OVERLAY (Centered Frosted Capsule) */}
+                        {/* NEURAL SCAN LINE */}
+                        {(isAnalyzing || isGenerating) && (
+                            <div className="absolute inset-0 z-40 pointer-events-none">
+                                <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_15px_#6366f1] absolute top-0 left-0 animate-neural-scan opacity-80"></div>
+                                <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]"></div>
+                            </div>
+                        )}
+
+                        {/* GRAIN OVERLAY */}
+                        {isGenerating && (
+                            <div className="absolute inset-0 z-30 pointer-events-none opacity-[0.03] overflow-hidden">
+                                <div className="absolute inset-[-100%] bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')] animate-grain"></div>
+                            </div>
+                        )}
+
+                        {/* GENERATION / ANALYSIS OVERLAY (Upgraded Capsule) */}
                         {(isAnalyzing || isGenerating) && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 px-10 animate-fadeIn">
-                                <div className="bg-black/60 backdrop-blur-md px-6 py-8 rounded-[2.5rem] border border-white/10 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-6">
-                                    {/* Subtle Progress Bar */}
-                                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden relative border border-white/5">
-                                        <div className="h-full bg-indigo-500 shadow-[0_0_15px_#6366f1] animate-bar-slide w-[40%] absolute top-0 rounded-full"></div>
-                                    </div>
+                                <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] w-full max-w-[300px] flex flex-col items-center gap-8 animate-breathe">
                                     
-                                    {/* Status Text - Stacked */}
-                                    <div className="flex flex-col items-center gap-2 text-center">
-                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-                                            {isAnalyzing ? 'Pixa Vision Scanning' : 'Reworking Identity'}
+                                    {/* Progress Ring / Circle Visual */}
+                                    <div className="relative w-20 h-20 flex items-center justify-center">
+                                        <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
+                                        <svg className="w-full h-full transform -rotate-90">
+                                            <circle 
+                                                cx="40" cy="40" r="36" 
+                                                fill="transparent" 
+                                                stroke="currentColor" 
+                                                strokeWidth="4" 
+                                                className="text-indigo-500"
+                                                strokeDasharray={226.2}
+                                                strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))}
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute flex flex-col items-center">
+                                            <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Status Text */}
+                                    <div className="flex flex-col items-center gap-3 text-center">
+                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-90">
+                                            {isAnalyzing ? 'Vision Scan' : 'Neural Core'}
                                         </span>
+                                        <div className="h-px w-8 bg-indigo-500/50"></div>
                                         {isGenerating && (
-                                            <span className="text-[9px] text-white/50 font-bold uppercase tracking-widest animate-pulse">
+                                            <span className="text-[9px] text-indigo-200/60 font-bold uppercase tracking-widest animate-pulse max-w-[180px] leading-relaxed">
                                                 {loadingText}
                                             </span>
                                         )}
+                                        <div className="mt-2 font-mono text-[8px] text-white/30 tracking-widest uppercase">
+                                            HASH: 0x{Math.random().toString(16).slice(2, 10).toUpperCase()}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -453,14 +497,35 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
 
             <style>{`
-                @keyframes bar-slide {
-                    0% { left: -40%; }
-                    100% { left: 100%; }
+                @keyframes neural-scan {
+                    0% { top: 0%; opacity: 0; }
+                    10% { opacity: 1; }
+                    90% { opacity: 1; }
+                    100% { top: 100%; opacity: 0; }
                 }
-                .animate-bar-slide { 
-                    position: absolute;
-                    animation: bar-slide 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite; 
+                .animate-neural-scan { animation: neural-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+                
+                @keyframes grain {
+                    0%, 100% { transform: translate(0, 0); }
+                    10% { transform: translate(-1%, -1%); }
+                    30% { transform: translate(-2%, 2%); }
+                    50% { transform: translate(1%, -2%); }
+                    70% { transform: translate(-1%, 1%); }
+                    90% { transform: translate(2%, 0); }
                 }
+                .animate-grain { animation: grain 1s steps(4) infinite; }
+
+                @keyframes breathe {
+                    0%, 100% { transform: scale(1); border-color: rgba(99, 102, 241, 0.2); }
+                    50% { transform: scale(1.02); border-color: rgba(99, 102, 241, 0.5); }
+                }
+                .animate-breathe { animation: breathe 4s ease-in-out infinite; }
+
+                @keyframes materialize {
+                    0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); }
+                    100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); }
+                }
+                .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 
                 @keyframes pulse-slight {
                     0%, 100% { transform: scale(1); }
