@@ -225,24 +225,26 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         )}
 
-                        {/* GENERATION / ANALYSIS OVERLAY (Subtle Bar Animation) */}
+                        {/* GENERATION / ANALYSIS OVERLAY (Centered Frosted Capsule) */}
                         {(isAnalyzing || isGenerating) && (
-                            <div className="absolute inset-x-0 bottom-12 flex flex-col items-center pointer-events-none z-50 px-10 animate-fadeIn">
-                                {/* Subtle Progress Bar */}
-                                <div className="w-full h-1 bg-black/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/10">
-                                    <div className="h-full bg-indigo-500 shadow-[0_0_15px_#6366f1] animate-bar-slide w-[40%] absolute top-0 rounded-full"></div>
-                                </div>
-                                
-                                {/* Status Text */}
-                                <div className="mt-4 flex flex-col items-center gap-1.5 text-center">
-                                    <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] drop-shadow-md">
-                                        {isAnalyzing ? 'Pixa Vision Scanning...' : 'Reworking Identity'}
-                                    </span>
-                                    {isGenerating && (
-                                        <span className="text-[8px] text-indigo-200 font-bold uppercase tracking-widest animate-pulse drop-shadow-md">
-                                            {loadingText}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 px-10 animate-fadeIn">
+                                <div className="bg-black/60 backdrop-blur-md px-6 py-8 rounded-[2.5rem] border border-white/10 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-6">
+                                    {/* Subtle Progress Bar */}
+                                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden relative border border-white/5">
+                                        <div className="h-full bg-indigo-500 shadow-[0_0_15px_#6366f1] animate-bar-slide w-[40%] absolute top-0 rounded-full"></div>
+                                    </div>
+                                    
+                                    {/* Status Text - Stacked */}
+                                    <div className="flex flex-col items-center gap-2 text-center">
+                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
+                                            {isAnalyzing ? 'Pixa Vision Scanning' : 'Reworking Identity'}
                                         </span>
-                                    )}
+                                        {isGenerating && (
+                                            <span className="text-[9px] text-white/50 font-bold uppercase tracking-widest animate-pulse">
+                                                {loadingText}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -283,7 +285,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 onClick={() => setIsRefineOpen(true)}
                                 className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                             >
-                                <SparklesIcon className="w-5 h-5 text-white" />
+                                <MagicWandIcon className="w-5 h-5 text-white" />
                                 Refine Image
                             </button>
                             
