@@ -1,8 +1,12 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, Creation } from '../types';
-import { getCreations, deleteCreation } from '../firebase';
-import { downloadImage } from '../utils/imageUtils';
+// Add saveCreation to the imports from firebase
+import { getCreations, deleteCreation, updateCreation, deductCredits, saveCreation } from '../firebase';
+import { downloadImage, urlToBase64, base64ToBlobUrl } from '../utils/imageUtils';
+import { refineStudioImage } from '../services/photoStudioService';
 import { ImageModal } from '../components/FeatureLayout';
+import { RefinementPanel } from '../components/RefinementPanel';
 import ToastNotification from '../components/ToastNotification';
 import { 
     AdjustmentsVerticalIcon, 
@@ -12,7 +16,8 @@ import {
     CheckIcon,
     XIcon,
     InformationCircleIcon,
-    CreditCardIcon
+    CreditCardIcon,
+    MagicWandIcon
 } from '../components/icons';
 
 const FILTER_CATEGORIES = [
@@ -39,12 +44,18 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     // View State
     const [viewCreation, setViewCreation] = useState<Creation | null>(null);
 
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const [refineLoadingText, setRefineLoadingText] = useState("");
+    const refineCost = 5;
+
     // Selection Mode State
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Notification State
-    const [toastMsg, setToastMsg] = useState<string | null>(null);
+    const [toastMsg, setToastMsg] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
     // Cleanup Ref to ensure it runs once per mount
     const cleanupRan = useRef(false);
@@ -83,7 +94,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                         Promise.all(expiredCreations.map(c => deleteCreation(auth.user!.uid, c)))
                             .catch(err => console.error("Auto-cleanup error", err));
 
-                        setToastMsg(`Cleaned up ${expiredCreations.length} expired images (older than 15 days).`);
+                        setToastMsg({ msg: `Cleaned up ${expiredCreations.length} expired images (older than 15 days).`, type: 'info' });
                         
                         if (isMounted) {
                             setCreations(validCreations);
@@ -108,11 +119,30 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         return () => { isMounted = false; };
     }, [auth.user]);
 
+    // Refinement Loading Messages
+    useEffect(() => {
+        let interval: any;
+        if (isRefining) {
+            const steps = [
+                "Elite Retoucher: Analyzing previous generation...",
+                "Optical Audit: Sampling light transport...",
+                "Contact Correction: Refining shadow depth...",
+                "Global Illumination: Applying color fidelity...",
+                "Post-Production: Final pixel polish..."
+            ];
+            let step = 0;
+            setRefineLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setRefineLoadingText(steps[step]);
+            }, 1800);
+        }
+        return () => clearInterval(interval);
+    }, [isRefining]);
+
     const filteredCreations = useMemo(() => {
         return creations.filter(c => {
-            // Updated filtering logic to use category search key
             if (selectedFeature && !c.feature.toLowerCase().includes(selectedFeature.toLowerCase())) {
-                // Special check for legacy or slightly different naming conventions
                 if (selectedFeature === 'Product' && c.feature.toLowerCase().includes('model')) return true;
                 return false;
             }
@@ -178,6 +208,47 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
 
     const handleDownload = (url: string) => {
         downloadImage(url, 'creation.png');
+    };
+
+    const handleRefine = async (refineText: string) => {
+        if (!viewCreation || !refineText.trim() || !auth.user) return;
+        if (auth.user.credits < refineCost) {
+            setToastMsg({ msg: "Insufficient credits for refinement.", type: 'error' });
+            return;
+        }
+
+        setIsRefining(true);
+        setIsRefineActive(false);
+        try {
+            const currentB64 = await urlToBase64(viewCreation.imageUrl);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, `${viewCreation.feature} Refinement`);
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            const dataUri = `data:image/png;base64,${res}`;
+            const featureName = `(Refined) ${viewCreation.feature}`;
+            
+            // Deduct Credits
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            
+            // Save as NEW Creation (Versioning)
+            const newId = await saveCreation(auth.user.uid, dataUri, featureName);
+            
+            // Fetch updated list to show the new version in background
+            const freshList = await getCreations(auth.user.uid);
+            setCreations(freshList as Creation[]);
+            
+            // Update view to the new image
+            const newCreation = freshList.find((c: any) => c.id === newId) as Creation;
+            setViewCreation(newCreation || null);
+            
+            setToastMsg({ msg: "Elite Retoucher: Masterpiece refined!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
+            setToastMsg({ msg: "Refinement failed. Try again with a clearer prompt.", type: 'error' });
+        } finally {
+            setIsRefining(false);
+        }
     };
 
     const toggleSelectMode = () => {
@@ -333,7 +404,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                     const daysOld = getDaysOld(c);
                                     const daysRemaining = 15 - daysOld;
                                     const isExpiringSoon = daysRemaining <= 5;
-                                    const featureLabel = c.lastEditedAt ? `(Edited) ${c.feature}` : c.feature;
+                                    const featureLabel = c.feature;
 
                                     return (
                                         <div 
@@ -352,6 +423,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                                     toggleSelection(c.id);
                                                 } else {
                                                     setViewCreation(c);
+                                                    setIsRefineActive(false);
                                                 }
                                             }}
                                         >
@@ -444,16 +516,45 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
             {viewCreation && (
                 <ImageModal 
                     imageUrl={viewCreation.imageUrl} 
-                    onClose={() => setViewCreation(null)}
+                    onClose={() => { setViewCreation(null); setIsRefineActive(false); }}
                     onDownload={() => handleDownload(viewCreation.imageUrl)}
                     onDelete={() => handleDelete(viewCreation)}
-                />
+                >
+                    <div className="flex flex-col items-center gap-4">
+                        {isRefining ? (
+                            <div className="bg-gray-900/90 backdrop-blur-xl px-10 py-6 rounded-[2rem] border border-white/20 shadow-2xl flex flex-col items-center gap-4 animate-fadeIn">
+                                <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                                <p className="text-xs font-black text-white uppercase tracking-[0.2em] animate-pulse text-center">{refineLoadingText}</p>
+                            </div>
+                        ) : (
+                            <>
+                                <RefinementPanel 
+                                    isActive={isRefineActive} 
+                                    isRefining={isRefining} 
+                                    onClose={() => setIsRefineActive(false)} 
+                                    onRefine={handleRefine} 
+                                    refineCost={refineCost} 
+                                />
+                                
+                                {!isRefineActive && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setIsRefineActive(true); }}
+                                        className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-8 py-3.5 rounded-2xl transition-all border border-white/20 shadow-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 hover:scale-105 active:scale-95 pointer-events-auto"
+                                    >
+                                        <MagicWandIcon className="w-5 h-5 text-yellow-300" />
+                                        Make Changes
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </ImageModal>
             )}
 
             {toastMsg && (
                 <ToastNotification 
-                    message={toastMsg} 
-                    type="info" 
+                    message={toastMsg.msg} 
+                    type={toastMsg.type} 
                     onClose={() => setToastMsg(null)} 
                 />
             )}
