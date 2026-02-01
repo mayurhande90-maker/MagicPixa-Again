@@ -1,3 +1,4 @@
+
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -15,10 +16,10 @@ const IDENTITY_LOCK_MANDATE = `
 3. **PHOTOGRAMMETRIC TRUTH**: The output must look like the EXACT object from the raw photo was physically transported into a professional studio.
 `;
 
-const optimizeImage = async (base64: string, mimeType: string, width: number = 2048): Promise<{ data: string; mimeType: string }> => {
+const optimizeImage = async (base64: string, mimeType: string, width: number = 3072): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, width, 0.9);
+        const resizedUri = await resizeImage(dataUri, width, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
@@ -270,7 +271,8 @@ export const refineStudioImage = async (
     instruction: string,
     featureContext: string = "Commercial Product Shot"
 ): Promise<string> => {
-    const optResult = await optimizeImage(base64Result, mimeType, 2048);
+    // QUALITY UPGRADE: Increased width to 3072 and quality to 0.95 for refinements
+    const optResult = await optimizeImage(base64Result, mimeType, 3072);
     const prompt = `You are an Elite Commercial AI Retoucher. 
     CURRENT TASK: Refine this ${featureContext} based on feedback: "${instruction}". 
     
