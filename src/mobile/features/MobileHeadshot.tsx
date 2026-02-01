@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, View, Creation } from '../../types';
+import { AuthProps, AppConfig, Creation } from '../../types';
 import { 
     PixaHeadshotIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
@@ -15,13 +15,13 @@ import {
     LegalFinanceIcon, 
     RealtorSalesIcon 
 } from '../../components/icons/headshotIcons';
-// FIXED: Import Base64File to resolve "Cannot find name 'Base64File'" errors
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../../services/headshotService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
-import { MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
+
+// --- CONFIGURATION ---
 
 const HEADSHOT_STEPS = [
     { id: 'mode', label: 'Mode', options: ['Individual', 'Duo'] },
@@ -49,9 +49,19 @@ const PERSONA_BACKGROUNDS: Record<string, string[]> = {
     'Realtor': ['Studio Photoshoot', 'Living Room', 'Modern Kitchen', 'Outside House', 'Nice Street']
 };
 
+// --- LOCAL HELPERS ---
+
+const checkMilestoneLocal = (gens: number): number | false => {
+    if (gens === 10) return 5;
+    if (gens === 25) return 10;
+    if (gens === 50) return 15;
+    if (gens === 100) return 30;
+    return false;
+};
+
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -62,182 +72,177 @@ interface MobileHeadshotProps {
 }
 
 export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig, onGenerationStart }) => {
-    // --- UI State ---
+    // --- 1. PRE-INITIALIZE CONSTANTS (Prevents TDZ Crash) ---
+    const cost = appConfig?.featureCosts?.['Pixa Headshot Pro'] || 4;
+    const refineCost = 2;
+    const userCredits = auth.user?.credits || 0;
+    const isLowCredits = userCredits < cost;
+
+    // --- 2. STATE ---
     const [result, setResult] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [progressPercent, setProgressPercent] = useState(0);
-    const [loadingText, setLoadingText] = useState("Scanning...");
+    const [loadingText, setLoadingText] = useState("Initializing...");
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | false>(false);
 
-    // --- Config State ---
     const [currentStep, setCurrentStep] = useState(0);
     const [mode, setMode] = useState<'individual' | 'duo'>('individual');
-    // FIXED: Use Base64File interface correctly imported from imageUtils
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    // FIXED: Use Base64File interface correctly imported from imageUtils
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
+    const [archetype, setArchetype] = useState('Executive');
     const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
-    
     const [customDesc, setCustomDesc] = useState('');
-    const [resultImage, setResultImage] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
     
-    // FIXED: Removed duplicate state declarations (loadingText, milestoneBonus, lastCreationId) that were previously duplicated here.
+    const [isRefineOpen, setIsRefineOpen] = useState(false);
+    const [refineText, setRefineText] = useState('');
 
-    const [showMagicEditor, setShowMagicEditor] = useState(false);
-    const [showRefundModal, setShowRefundModal] = useState(false);
-    const [isRefunding, setIsRefunding] = useState(false);
-    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
-    
-    // Refinement State
-    const [isRefineActive, setIsRefineActive] = useState(false);
-    const [isRefining, setIsRefining] = useState(false);
-    const refineCost = 2;
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const partnerInputRef = useRef<HTMLInputElement>(null);
 
-    const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 4;
-    const userCredits = auth.user?.credits || 0;
-    const isLowCredits = userCredits < cost;
-    const scrollRef = useRef<HTMLDivElement>(null);
-    
-    const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
+    // --- 3. LOGIC ---
 
+    const isStepAccessible = (idx: number) => {
+        if (idx === 0) return true;
+        if (idx === 1) return !!mode;
+        if (idx === 2) return mode === 'individual' ? !!image : (!!image && !!partnerImage);
+        if (idx === 3) return !!archetype;
+        if (idx === 4) return !!background;
+        return false;
+    };
+
+    const isStrategyComplete = useMemo(() => {
+        if (!mode || !archetype || !background) return false;
+        if (mode === 'individual' && !image) return false;
+        if (mode === 'duo' && (!image || !partnerImage)) return false;
+        return true;
+    }, [mode, image, partnerImage, archetype, background]);
+
+    // Progress Animation
     useEffect(() => {
-        setBackground('');
-        setCustomBackgroundPrompt('');
-    }, [archetype]);
+        let interval: any;
+        if (isGenerating) {
+            setProgressPercent(0);
+            const steps = [
+                "Biometric Audit: Analyzing skin geometry...",
+                "Identity Lock: Mapping ocular patterns...",
+                "Studio Engine: Calibrating lighting rig...",
+                "Fabric Engine: Simulating suit drape...",
+                "Finalizing: Polishing 4K portrait..."
+            ];
+            let step = 0;
+            setLoadingText(steps[0]);
+            interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+                setProgressPercent(prev => {
+                    if (prev >= 98) return prev;
+                    return Math.min(prev + (Math.random() * 6), 98);
+                });
+            }, 1800);
+        }
+        return () => clearInterval(interval);
+    }, [isGenerating]);
 
-    useEffect(() => { 
-        let interval: any; 
-        if (loading || isRefining) { 
-            const steps = isRefining ? [
-                "Identity Lock 4.0: Mapping skin topology...", 
-                "Ocular Audit: Retaining iris patterns...", 
-                "Optical Rig: Adjusting Rembrandt lighting...", 
-                "Polishing final photorealistic portrait..."
-            ] : [
-                "Stage A: Sub-Surface Skin Geometry Audit...", 
-                "Stage B: Locking Ocular Identity...", 
-                "Phase One Rig: Calibrating lighting rig...", 
-                "Fabric Physics: Calculating attire drape...", 
-                "Sub-Surface Scattering: Rendering skin pores...",
-                "Finalizing: Identity 100% verified..."
-            ]; 
-            let step = 0; 
-            setLoadingText(steps[0]); 
-            interval = setInterval(() => { 
-                step = (step + 1) % steps.length; 
-                setLoadingText(steps[step]); 
-            }, 2000); 
-        } 
-        return () => clearInterval(interval); 
-    }, [loading, isRefining]);
-
-    useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
+    // Auto-advance triggers for Assets
+    useEffect(() => {
+        if (currentStep === 1) {
+            if (mode === 'individual') {
+                if (image) setTimeout(() => setCurrentStep(2), 600);
+            } else {
+                if (image && partnerImage) setTimeout(() => setCurrentStep(2), 600);
+            }
+        }
+    }, [image, partnerImage, mode, currentStep]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
-            setResultImage(null);
+            setResult(null);
         }
         e.target.value = '';
     };
 
     const handleGenerate = async () => {
-        if (!image || !auth.user) return;
-        if (mode === 'duo' && !partnerImage) { alert("Please upload a partner photo for Duo mode."); return; }
-        if (!background) { alert("Please select a location."); return; }
-        if (isLowCredits) { alert("Insufficient credits."); return; }
-        
-        let finalBackground = background;
-        if (background === 'Custom') {
-            if (!customBackgroundPrompt.trim()) {
-                alert("Please enter a description for your custom location.");
-                return;
-            }
-            finalBackground = customBackgroundPrompt;
+        if (!isStrategyComplete || !auth.user || isGenerating) return;
+        if (isLowCredits) {
+            alert("Insufficient credits. Required: " + cost);
+            return;
         }
         
-        setLoading(true); setResultImage(null); setLastCreationId(null);
-        
+        onGenerationStart();
+        setIsGenerating(true);
         try {
-            const res = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot Pro'); setLastCreationId(creationId);
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)'); 
-            if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        } catch (e: any) { 
-            console.error(e); 
-            alert(`Generation failed: ${e.message}`); 
-        } finally { 
-            setLoading(false); 
-        }
-    };
+            const resB64 = await generateProfessionalHeadshot(
+                image!.base64.base64, 
+                image!.base64.mimeType, 
+                archetype, 
+                background === 'Custom' ? customBackgroundPrompt : background, 
+                customDesc, 
+                mode === 'duo' ? partnerImage?.base64.base64 : undefined, 
+                mode === 'duo' ? partnerImage?.base64.mimeType : undefined
+            );
 
-    const handleRefine = async (refineText: string) => {
-        if (!resultImage || !refineText.trim() || !auth.user) return;
-        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
-        
-        setIsRefining(true);
-        setIsRefineActive(false); 
-        try {
-            const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Headshot");
-            
-            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
-            setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`;
-            
-            if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
-            } else {
-                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot (Refined)');
-                setLastCreationId(id);
-            }
-            
-            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
+            setResult(blobUrl);
+            setIsGenerating(false);
+
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            setNotification({ msg: "Headshot Retoucher: Features polished!", type: 'success' });
+
+            const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Headshot Pro');
+            setLastCreationId(id);
+
+            if (updatedUser.lifetimeGenerations) { 
+                const bonus = checkMilestoneLocal(updatedUser.lifetimeGenerations); 
+                if (bonus !== false) setMilestoneBonus(bonus); 
+            }
         } catch (e: any) {
             console.error(e);
+            alert("Generation failed. Please try a clearer photo.");
+            setIsGenerating(false);
+        }
+    };
+
+    const handleRefine = async () => {
+        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
+        
+        setIsGenerating(true);
+        setIsRefineOpen(false);
+        try {
+            const currentB64 = await urlToBase64(result);
+            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Headshot");
+            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
+            setResult(blobUrl);
+            setIsGenerating(false);
+            
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
+            }
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setRefineText('');
+        } catch (e) {
             alert("Refinement failed.");
-        } finally {
-            setIsRefining(false);
+            setIsGenerating(false);
         }
     };
 
-    const handleClaimBonus = async () => {
-        if (!auth.user || !milestoneBonus) return;
-        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        setMilestoneBonus(false);
+    const handleNewProject = () => {
+        setResult(null);
+        setImage(null);
+        setPartnerImage(null);
+        setArchetype('Executive');
+        setBackground('');
+        setCustomBackgroundPrompt('');
+        setCustomDesc('');
+        setCurrentStep(0);
+        setLastCreationId(null);
     };
-
-    const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Headshot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    
-    const handleNewSession = () => { setImage(null); setPartnerImage(null); setResultImage(null); setLastCreationId(null); setCustomDesc(''); setIsRefineActive(false); };
-    
-    const handleEditorSave = async (newUrl: string) => { 
-        setResultImage(newUrl); 
-        if (lastCreationId && auth.user) {
-            await updateCreation(auth.user.uid, lastCreationId, newUrl);
-        } else if (auth.user) {
-            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Headshot Pro'); 
-            setLastCreationId(id);
-        }
-    };
-    
-    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
-    
-    const currentAvailableBackgrounds = PERSONA_BACKGROUNDS[archetype] || PERSONA_BACKGROUNDS['Executive'];
-
-    const canGenerate = isUploadsReady && !!background && !isLowCredits;
 
     const handleBack = () => {
         if (isGenerating) return;
@@ -267,6 +272,15 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             setTimeout(() => setCurrentStep(prev => prev + 1), 150);
         }
     };
+
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        setMilestoneBonus(false);
+    };
+
+    // --- 4. RENDER HELPERS ---
 
     const renderStepContent = (stepId: string) => {
         const activeStep = HEADSHOT_STEPS[currentStep];
@@ -354,6 +368,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 return null;
         }
     };
+
+    // --- 5. MAIN JSX ---
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
@@ -547,7 +563,23 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setImage)} />
             <input ref={partnerInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPartnerImage)} />
 
-            {milestoneBonus !== undefined && milestoneBonus !== false && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(false)} />}
+            {milestoneBonus !== undefined && milestoneBonus !== false && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={() => setMilestoneBonus(false)}>
+                    <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-xs p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white border border-white/10" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                            <SparklesIcon className="w-8 h-8 text-yellow-300 animate-spin-slow" />
+                        </div>
+                        <h2 className="text-xl font-bold mb-2">Milestone!</h2>
+                        <p className="text-indigo-100 mb-6 text-xs leading-relaxed">
+                            You've hit a record number of generations.
+                        </p>
+                        <div className="bg-white/20 backdrop-blur-md text-white font-black text-3xl py-4 rounded-xl mb-6 border border-white/30">
+                            +{milestoneBonus} <span className="text-sm font-bold opacity-80">Credits</span>
+                        </div>
+                        <button onClick={handleClaimBonus} className="w-full bg-white text-indigo-600 font-bold py-3 rounded-lg hover:bg-indigo-50 transition-all shadow-lg active:scale-95">Collect Bonus</button>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
@@ -564,3 +596,5 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         </div>
     );
 };
+
+export default MobileHeadshot;
