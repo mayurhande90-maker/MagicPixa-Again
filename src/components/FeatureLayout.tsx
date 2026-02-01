@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     SparklesIcon, 
@@ -78,7 +79,8 @@ export const ImageModal: React.FC<{
     onPrev?: () => void;
     hasNext?: boolean;
     hasPrev?: boolean;
-}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev }) => {
+    children?: React.ReactNode;
+}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev, children }) => {
     
     // Keyboard navigation support
     useEffect(() => {
@@ -98,7 +100,7 @@ export const ImageModal: React.FC<{
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6" onClick={onClose}>
             <div className="relative w-full h-full flex items-center justify-center">
-                <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-50"><XIcon className="w-8 h-8" /></button>
+                <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-[250]"><XIcon className="w-8 h-8" /></button>
                 
                 {/* Navigation Buttons */}
                 {hasPrev && onPrev && (
@@ -123,9 +125,18 @@ export const ImageModal: React.FC<{
 
                 <img src={imageUrl} alt="Full view" className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain animate-fadeIn" onClick={(e) => e.stopPropagation()} />
                 
+                {/* Overlay Area (for Refinement Panel) */}
+                {children && (
+                    <div className="absolute inset-0 z-[60] flex items-end justify-center pb-24 pointer-events-none px-6">
+                        <div className="pointer-events-auto w-full max-w-lg">
+                            {children}
+                        </div>
+                    </div>
+                )}
+
                 {/* Bottom Action Bar */}
                 {(onDownload || onDelete) && (
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50" onClick={(e) => e.stopPropagation()}>
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-[70] flex-wrap justify-center" onClick={(e) => e.stopPropagation()}>
                         {onDownload && (
                             <button onClick={onDownload} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform">
                                 <DownloadIcon className="w-5 h-5"/> Download
