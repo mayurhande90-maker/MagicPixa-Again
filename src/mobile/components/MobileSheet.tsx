@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { XIcon } from '../../components/icons';
@@ -6,7 +5,7 @@ import { XIcon } from '../../components/icons';
 interface MobileSheetProps {
     isOpen: boolean;
     onClose: () => void;
-    title: string;
+    title: React.ReactNode;
     children: React.ReactNode;
 }
 
@@ -40,11 +39,13 @@ export const MobileSheet: React.FC<MobileSheetProps> = ({ isOpen, onClose, title
 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h3 className="text-xl font-black text-gray-900 tracking-tight leading-none">{title}</h3>
+                    <div className="min-w-0 flex-1 pr-4">
+                        <div className="text-xl font-black text-gray-900 tracking-tight leading-none">
+                            {title}
+                        </div>
                         <div className="h-1 w-8 bg-indigo-500 rounded-full mt-2"></div>
                     </div>
-                    <button onClick={onClose} className="p-2.5 bg-gray-50 rounded-full text-gray-400 active:scale-90 transition-transform">
+                    <button onClick={onClose} className="p-2.5 bg-gray-50 rounded-full text-gray-400 active:scale-90 transition-transform flex-shrink-0">
                         <XIcon className="w-5 h-5" />
                     </button>
                 </div>
