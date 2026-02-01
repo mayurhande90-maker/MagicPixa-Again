@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Creation } from '../../types';
 import { 
     PixaTogetherIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
@@ -7,16 +7,11 @@ import {
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
     CreditCoinIcon, LocationIcon, EngineIcon, FlagIcon
 } from '../../components/icons';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
+import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../../services/imageToolsService';
 import { refineStudioImage } from '../../services/photoStudioService';
-import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
-import { MagicEditorModal } from '../../components/MagicEditorModal';
-import { processRefundRequest } from '../../services/refundService';
-import { RefundModal } from '../../components/RefundModal';
-import ToastNotification from '../../components/ToastNotification';
-import { ResultToolbar } from '../../components/ResultToolbar';
-import { PixaTogetherStyles } from '../../styles/features/PixaTogether.styles';
+import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
+import { MobileSheet } from '../components/MobileSheet';
 
 // --- CONFIGURATION ---
 
@@ -95,8 +90,8 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
         if (idx === 0) return true;
         if (idx === 1) return !!mode;
         if (idx === 2) {
-             const subjectsReady = !!personA && !!personB;
-             return mode === 'reenact' ? (subjectsReady && !!refPose) : subjectsReady;
+             const photosReady = !!personA && !!personB;
+             return mode === 'reenact' ? (photosReady && !!refPose) : photosReady;
         }
         if (idx === 3) return !!relationship;
         if (idx === 4) return !!timeline && !!environment;
@@ -279,7 +274,8 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     // --- 4. RENDER HELPERS ---
 
     const renderStepContent = (stepId: string) => {
-        const activeStep = TOGETHER_STEPS[currentStep];
+        const activeStep = TOGETHER_STEPS.find(s => s.id === stepId);
+        if (!activeStep) return null;
         
         switch (stepId) {
             case 'engine':
@@ -493,7 +489,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                         {step.id === 'timeline' && timeline ? (
                                             <div className="w-full flex flex-col gap-2 animate-fadeIn">
                                                 <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 py-2">
-                                                    {step.options?.map(opt => (
+                                                    {TOGETHER_STEPS.find(s => s.id === 'timeline')?.options?.map(opt => (
                                                         <button 
                                                             key={opt} 
                                                             onClick={() => handleSelectOption(step.id, opt)} 
@@ -569,7 +565,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
             >
                 <div className="space-y-6 pb-6">
                     <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make us smile more, change the lighting to sunset..." />
-                    <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                    <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                 </div>
             </MobileSheet>
 
