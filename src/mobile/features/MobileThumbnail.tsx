@@ -4,7 +4,8 @@ import {
     ThumbnailIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
-    ArrowRightIcon, MagicWandIcon, InformationCircleIcon
+    ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
+    CreditCoinIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateThumbnail } from '../../services/thumbnailService';
@@ -162,7 +163,6 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         }
     };
 
-    // COMMENT: Changed signature to take no arguments and use refineText from state to fix type error at call site.
     const handleRefine = async () => {
         if (!result || !refineText.trim() || !auth.user || isGenerating) return;
         
@@ -297,12 +297,20 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Command Bar */}
             <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
-                <button 
-                    onClick={handleBack} 
-                    className={`p-2 rounded-full transition-all ${format && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                >
-                    <ArrowLeftIcon className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleBack} 
+                        className={`p-2 rounded-full transition-all ${format && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
+                    >
+                        <ArrowLeftIcon className="w-5 h-5" />
+                    </button>
+                    {format && !result && !isGenerating && (
+                        <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                            <CreditCoinIcon className="w-3 h-3 text-indigo-600" />
+                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-3">
                     {result && !isGenerating ? (
@@ -520,7 +528,19 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             </div>
 
             {/* Refinement Sheet */}
-            <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="CTR Refinement">
+            <MobileSheet 
+                isOpen={isRefineOpen} 
+                onClose={() => setIsRefineOpen(false)} 
+                title={
+                    <div className="flex items-center gap-3">
+                        <span>CTR Refinement</span>
+                        <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0">
+                            <CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" />
+                            <span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span>
+                        </div>
+                    </div>
+                }
+            >
                 <div className="space-y-6 pb-6">
                     <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the text yellow and bigger, add more rim light..." />
                     <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
