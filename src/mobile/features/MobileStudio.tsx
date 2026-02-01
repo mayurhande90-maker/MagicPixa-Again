@@ -4,7 +4,8 @@ import {
     UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     CubeIcon, UsersIcon, CameraIcon, ImageIcon, 
     ArrowRightIcon, ArrowLeftIcon, InformationCircleIcon,
-    MagicWandIcon, DownloadIcon, RegenerateIcon, PlusIcon
+    MagicWandIcon, DownloadIcon, RegenerateIcon, PlusIcon,
+    CreditCoinIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { editImageWithPrompt, analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, refineStudioImage } from '../../services/photoStudioService';
@@ -64,6 +65,19 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
 
     const activeSteps = studioMode === 'model' ? MODEL_STEPS : PRODUCT_STEPS;
     
+    const isStepAccessible = (idx: number) => {
+        if (idx === 0) return true;
+        const prevStep = activeSteps[idx - 1];
+        if (!prevStep) return false;
+        
+        // Check if previous step is filled
+        const prevFilled = !!selections[prevStep.id];
+        if (prevStep.id === 'category' && selections['category'] === 'Other / Custom') {
+            return !!customCategory.trim();
+        }
+        return prevFilled;
+    };
+
     const isStrategyComplete = useMemo(() => {
         if (!studioMode) return false;
         const requiredCount = activeSteps.length;
@@ -137,8 +151,6 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
     const handleGenerate = async () => {
         if (!image || !isStrategyComplete || !auth.user || isGenerating) return;
         
-        // Notify the app that we are starting production in THIS tool.
-        // This will trigger a cleanup of any other tools currently "Alive" in the background.
         onGenerationStart();
 
         setIsGenerating(true);
@@ -240,13 +252,22 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
+            {/* Header Command Bar */}
             <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
-                <button 
-                    onClick={handleBack} 
-                    className={`p-2 rounded-full transition-all ${image && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                >
-                    <ArrowLeftIcon className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleBack} 
+                        className={`p-2 rounded-full transition-all ${image && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
+                    >
+                        <ArrowLeftIcon className="w-5 h-5" />
+                    </button>
+                    {image && !result && !isGenerating && (
+                        <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                            <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-3">
                     {result && !isGenerating && (
@@ -274,9 +295,10 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                 </div>
             </div>
 
-            <div className="relative h-[60%] w-full flex items-center justify-center p-6 select-none">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
-                    <div className="relative w-full h-full flex flex-col items-center justify-center">
+            {/* Stage / Canvas Area */}
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
+                    <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
                             <img 
                                 src={result} 
@@ -327,9 +349,6 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                                 {loadingText}
                                             </span>
                                         )}
-                                        <div className="mt-2 font-mono text-[8px] text-white/30 tracking-widest uppercase">
-                                            HASH: 0x{Math.random().toString(16).slice(2, 10).toUpperCase()}
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -353,42 +372,40 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col bg-white overflow-hidden">
+            {/* Controller / Bottom Tray */}
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
                 <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
-                        <div className="flex-1 flex flex-col items-center justify-center px-6 animate-fadeIn">
-                            <div className="w-full flex flex-col gap-4">
-                                <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                    <CustomRefineIcon className="w-5 h-5 text-white" />
-                                    Refine Image
+                        <div className="p-6 animate-fadeIn flex flex-col gap-4">
+                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <CustomRefineIcon className="w-5 h-5" /> Refine image
+                            </button>
+                            <div className="grid grid-cols-2 gap-3 w-full">
+                                <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
+                                    <PlusIcon className="w-4 h-4" /> New Project
                                 </button>
-                                <div className="grid grid-cols-2 gap-3 w-full">
-                                    <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
-                                        <PlusIcon className="w-4 h-4" /> New Project
-                                    </button>
-                                    <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 active:bg-indigo-50 transition-all shadow-sm">
-                                        <RegenerateIcon className="w-4 h-4" /> Regenerate
-                                    </button>
-                                </div>
+                                <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm">
+                                    <RegenerateIcon className="w-4 h-4" /> Regenerate
+                                </button>
                             </div>
-                            <p className="mt-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Elite Production Environment Active</p>
                         </div>
                     ) : (
                         <div className={`flex-1 flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${studioMode ? 'translate-y-0' : 'translate-y-full'}`}>
-                            <div className="flex-1 min-h-0 overflow-hidden relative">
+                            {/* Step Option Container */}
+                            <div className="h-[140px] flex items-center relative overflow-hidden">
                                 {activeSteps.map((step, idx) => (
-                                    <div key={step.id} className={`absolute inset-0 px-6 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
+                                    <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0 pointer-events-auto' : currentStep > idx ? 'opacity-0 -translate-x-full pointer-events-none' : 'opacity-0 translate-x-full pointer-events-none'}`}>
                                         {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
-                                            <div className="w-full flex flex-col gap-3 animate-fadeIn">
+                                            <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn">
                                                 <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm" placeholder="Define Product (e.g. Handmade Soap)..." autoFocus />
                                                 <button onClick={() => setCurrentStep(prev => prev + 1)} disabled={!customCategory.trim()} className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50">Lock Category</button>
                                             </div>
                                         ) : (
-                                            <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                                            <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2">
                                                 {step.options.map(opt => {
                                                     const isSelected = selections[step.id] === opt;
                                                     return (
-                                                        <button key={opt} onClick={() => handleSelectOption(step.id, opt)} className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200 shadow-sm active:bg-gray-100'}`}>
+                                                        <button key={opt} onClick={() => handleSelectOption(step.id, opt)} className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
                                                             {opt}
                                                         </button>
                                                     )
@@ -398,16 +415,25 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     </div>
                                 ))}
                             </div>
-                            <div className="flex-none px-4 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+
+                            {/* Step Navigator (Progress Bar Tray) */}
+                            <div className="px-4 pt-4 pb-6 border-t border-gray-100 bg-white">
                                 <div className="flex items-center justify-between gap-1">
                                     {activeSteps.map((step, idx) => {
                                         const isActive = currentStep === idx;
-                                        const isFilled = !!selections[step.id];
+                                        const isAccessible = isStepAccessible(idx);
+                                        const isFilled = !!selections[step.id] || (step.id === 'category' && selections['category'] === 'Other / Custom' && !!customCategory.trim());
+                                        
                                         return (
-                                            <button key={step.id} onClick={() => setCurrentStep(idx)} className="flex flex-col items-center gap-2 group flex-1 min-w-0">
-                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>{step.label}</span>
-                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
-                                                <span className={`text-[7px] font-bold h-3 transition-opacity truncate w-full text-center px-1 ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                            <button 
+                                                key={step.id} 
+                                                onClick={() => isAccessible && setCurrentStep(idx)} 
+                                                disabled={!isAccessible}
+                                                className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}
+                                            >
+                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
+                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
                                                     {step.id === 'category' && selections['category'] === 'Other / Custom' ? customCategory : selections[step.id]}
                                                 </span>
                                             </button>
@@ -424,7 +450,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                 <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
                     <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
                         <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
-                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
+                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
                     </div>
                     <div className="w-full h-full flex items-center justify-center p-2">
                         <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
@@ -438,7 +464,9 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                     <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                 </div>
             </MobileSheet>
+            
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+            
             <style>{`
                 @keyframes neural-scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
                 .animate-neural-scan { animation: neural-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
