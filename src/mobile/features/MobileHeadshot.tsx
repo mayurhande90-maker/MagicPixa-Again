@@ -464,7 +464,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                         className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
                                     >
                                         {image ? (
-                                            <img src={image.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                            <img src={image.url} className={`w-full h-full object-cover rounded-[1.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                         ) : (
                                             <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">SUBJECT A</span></>
                                         )}
@@ -474,13 +474,13 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                         className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${partnerImage ? 'border-pink-500 bg-pink-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
                                     >
                                         {partnerImage ? (
-                                            <img src={partnerImage.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                            <img src={partnerImage.url} className={`w-full h-full object-cover rounded-[1.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                         ) : (
                                             <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">SUBJECT B</span></>
                                         )}
                                     </button>
                                 </div>
-                                <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] animate-fadeIn">UPLOAD YOUR PHOTO OR SELFIE</span>
+                                <span className={`text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] animate-fadeIn transition-opacity duration-700 ${isGenerating ? 'opacity-0' : ''}`}>UPLOAD YOUR PHOTO OR SELFIE</span>
                             </div>
                         )}
 
