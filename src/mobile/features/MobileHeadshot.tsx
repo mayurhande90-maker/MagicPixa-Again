@@ -324,34 +324,20 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                     </div>
                 );
             case 'assets':
+                const isReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
                 return (
-                    <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn py-2">
-                        {mode === 'individual' ? (
-                            <button 
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95 ${image ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-indigo-600 text-white border border-indigo-600'}`}
-                            >
-                                <UploadIcon className="w-5 h-5" /> {image ? 'Change Photo' : 'Select Your Photo'}
-                            </button>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3 w-full">
-                                <button 
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className={`py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${image ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-white text-gray-400 border-gray-100'}`}
-                                >
-                                    <UserIcon className="w-4 h-4" /> {image ? 'Subject A OK' : 'Photo A'}
-                                </button>
-                                <button 
-                                    onClick={() => partnerInputRef.current?.click()}
-                                    className={`py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${partnerImage ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-white text-gray-400 border-gray-100'}`}
-                                >
-                                    <UserIcon className="w-4 h-4" /> {partnerImage ? 'Subject B OK' : 'Photo B'}
-                                </button>
-                            </div>
+                    <div className="w-full px-6 flex flex-col gap-2 animate-fadeIn py-2 items-center text-center">
+                        <div className={`p-3.5 rounded-2xl border flex items-center justify-center gap-3 w-full max-w-[280px] transition-colors ${isReady ? 'bg-green-50 border-green-100 text-green-700' : 'bg-indigo-50 border-indigo-100 text-indigo-900'}`}>
+                            {isReady ? <CheckIcon className="w-4 h-4" /> : <InformationCircleIcon className="w-4 h-4" />}
+                            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                                {isReady ? 'Identity Template Ready' : 'Tap the canvas to upload'}
+                            </p>
+                        </div>
+                        {!isReady && (
+                            <p className="text-[9px] text-gray-400 font-medium uppercase tracking-wider">
+                                Pro Tip: Use a clear, well-lit selfie for best results.
+                            </p>
                         )}
-                        <p className="text-[9px] text-gray-400 font-medium text-center uppercase tracking-wider">
-                            Identity Lock 4.0 performs best with clear frontal portraits.
-                        </p>
                     </div>
                 );
             case 'background':
