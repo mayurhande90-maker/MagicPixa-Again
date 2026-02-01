@@ -357,7 +357,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                     className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${hostImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                                 >
                                                     {hostImg ? (
-                                                        <img src={hostImg.url} className="w-full h-full object-contain rounded-[1.4rem]" />
+                                                        <img src={hostImg.url} className={`w-full h-full object-contain rounded-[1.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                                     ) : (
                                                         <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">HOST</span></>
                                                     )}
@@ -367,7 +367,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                     className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${guestImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                                 >
                                                     {guestImg ? (
-                                                        <img src={guestImg.url} className="w-full h-full object-contain rounded-[1.4rem]" />
+                                                        <img src={guestImg.url} className={`w-full h-full object-contain rounded-[1.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                                     ) : (
                                                         <><UsersIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">GUEST</span></>
                                                     )}
@@ -379,13 +379,13 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                 className={`w-full max-w-xs aspect-square border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all animate-fadeIn ${subjectImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                             >
                                                 {subjectImg ? (
-                                                    <img src={subjectImg.url} className="w-full h-full object-contain rounded-[2.4rem]" />
+                                                    <img src={subjectImg.url} className={`w-full h-full object-contain rounded-[2.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                                 ) : (
                                                     <><ImageIcon className="w-12 h-12 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em]">UPLOAD SUBJECT</span></>
                                                 )}
                                             </button>
                                         )}
-                                        <div className="mt-6 flex flex-col items-center gap-1 opacity-40">
+                                        <div className={`mt-6 flex flex-col items-center gap-1 transition-opacity duration-700 ${isGenerating ? 'opacity-0' : 'opacity-40'}`}>
                                             <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{format} Slate Ready</span>
                                             <div className="flex gap-1.5 mt-1">
                                                 <div className="w-1 h-1 rounded-full bg-indigo-200"></div>
@@ -429,7 +429,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
+                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-50" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center">
                                             <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
