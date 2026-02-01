@@ -223,7 +223,6 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
             const currentB64 = await urlToBase64(viewCreation.imageUrl);
             const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, `${viewCreation.feature} Refinement`);
             
-            const blobUrl = await base64ToBlobUrl(res, 'image/png');
             const dataUri = `data:image/png;base64,${res}`;
             const featureName = `(Refined) ${viewCreation.feature}`;
             
@@ -238,9 +237,11 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
             const freshList = await getCreations(auth.user.uid);
             setCreations(freshList as Creation[]);
             
-            // Update view to the new image
+            // Update view to the new image if found, else keep current (to avoid closing modal)
             const newCreation = freshList.find((c: any) => c.id === newId) as Creation;
-            setViewCreation(newCreation || null);
+            if (newCreation) {
+                setViewCreation(newCreation);
+            }
             
             setToastMsg({ msg: "Elite Retoucher: Masterpiece refined!", type: 'success' });
         } catch (e: any) {
@@ -520,7 +521,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                     onDownload={() => handleDownload(viewCreation.imageUrl)}
                     onDelete={() => handleDelete(viewCreation)}
                 >
-                    <div className="flex flex-col items-center gap-4">
+                    <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
                         {isRefining ? (
                             <div className="bg-gray-900/90 backdrop-blur-xl px-10 py-6 rounded-[2rem] border border-white/20 shadow-2xl flex flex-col items-center gap-4 animate-fadeIn">
                                 <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
