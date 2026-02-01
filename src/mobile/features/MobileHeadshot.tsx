@@ -32,7 +32,7 @@ const HEADSHOT_STEPS = [
 ];
 
 const ARCHETYPES = [
-    { id: 'Executive', label: 'Corporate', icon: <CorporateExecutiveIcon className="w-6 h-6"/> },
+    { id: 'Executive', label: 'Executive', icon: <CorporateExecutiveIcon className="w-6 h-6"/> },
     { id: 'Tech', label: 'Founder', icon: <TechFounderIcon className="w-6 h-6"/> },
     { id: 'Creative', label: 'Creative', icon: <CreativeDirectorIcon className="w-6 h-6"/> },
     { id: 'Medical', label: 'Medical', icon: <MedicalProIcon className="w-6 h-6"/> },
@@ -61,7 +61,7 @@ const checkMilestoneLocal = (gens: number): number | false => {
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -88,10 +88,9 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     const [milestoneBonus, setMilestoneBonus] = useState<number | false>(false);
 
     const [currentStep, setCurrentStep] = useState(0);
-    const [mode, setMode] = useState<'individual' | 'duo'>('individual');
+    const [mode, setMode] = useState<'individual' | 'duo' | null>(null);
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    // FIXED: Styled (Archetype) initialized as empty string so user must select it.
     const [archetype, setArchetype] = useState('');
     const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
@@ -243,6 +242,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         setCustomDesc('');
         setCurrentStep(0);
         setLastCreationId(null);
+        setMode(null);
     };
 
     const handleBack = () => {
@@ -251,7 +251,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             setResult(null);
         } else if (currentStep > 0) {
             setCurrentStep(prev => prev - 1);
-        } else if (image || partnerImage) {
+        } else if (mode) {
+            setMode(null);
             setImage(null);
             setPartnerImage(null);
         }
@@ -288,13 +289,10 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         
         switch (stepId) {
             case 'mode':
-            case 'archetype':
                 return (
                     <div className="w-full flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
                         {activeStep.options?.map(opt => {
-                            const isSelected = (stepId === 'mode' && mode === opt.toLowerCase()) || 
-                                             (stepId === 'archetype' && archetype === opt);
-                            
+                            const isSelected = mode === opt.toLowerCase();
                             return (
                                 <button 
                                     key={opt} 
@@ -302,6 +300,24 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                     className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
                                 >
                                     {opt}
+                                </button>
+                            );
+                        })}
+                    </div>
+                );
+            case 'archetype':
+                return (
+                    <div className="w-full flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
+                        {ARCHETYPES.map(arch => {
+                            const isSelected = archetype === arch.id;
+                            return (
+                                <button 
+                                    key={arch.id} 
+                                    onClick={() => handleSelectOption(stepId, arch.id)} 
+                                    className={`shrink-0 w-24 h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                                >
+                                    <div className={`${isSelected ? 'text-white' : 'text-indigo-500'}`}>{arch.icon}</div>
+                                    <span className="text-[9px] font-black uppercase tracking-tight text-center px-1 leading-tight">{arch.label}</span>
                                 </button>
                             );
                         })}
@@ -334,43 +350,31 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                             </div>
                         )}
                         <p className="text-[9px] text-gray-400 font-medium text-center uppercase tracking-wider">
-                            Identity Lock 4.0 performs best with clear frontal selfies.
+                            Identity Lock 4.0 performs best with clear frontal portraits.
                         </p>
                     </div>
                 );
             case 'background':
                 return (
-                    <div className="w-full flex flex-col gap-4">
-                        <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
-                            {(PERSONA_BACKGROUNDS[archetype] || []).map(bg => {
-                                const isSelected = background === bg;
-                                return (
-                                    <button 
-                                        key={bg} 
-                                        onClick={() => { setBackground(bg); setCurrentStep(4); }} 
-                                        className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
-                                    >
-                                        {bg}
-                                    </button>
-                                );
-                            })}
-                            <button 
-                                onClick={() => setBackground('Custom')} 
-                                className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${background === 'Custom' ? 'bg-pink-600 text-white border-pink-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
-                            >
-                                Custom
-                            </button>
-                        </div>
-                        {background === 'Custom' && (
-                            <div className="px-6 animate-fadeInUp">
-                                <input 
-                                    className="w-full p-4 bg-white border border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
-                                    placeholder="Describe custom scene (e.g. Modern library at night)..."
-                                    value={customBackgroundPrompt}
-                                    onChange={e => setCustomBackgroundPrompt(e.target.value)}
-                                />
-                            </div>
-                        )}
+                    <div className="w-full flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
+                        {(PERSONA_BACKGROUNDS[archetype] || []).map(bg => {
+                            const isSelected = background === bg;
+                            return (
+                                <button 
+                                    key={bg} 
+                                    onClick={() => { setBackground(bg); setCurrentStep(4); }} 
+                                    className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                                >
+                                    {bg}
+                                </button>
+                            );
+                        })}
+                        <button 
+                            onClick={() => setBackground('Custom')} 
+                            className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${background === 'Custom' ? 'bg-pink-600 text-white border-pink-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                        >
+                            Custom
+                        </button>
                     </div>
                 );
             case 'notes':
@@ -382,7 +386,6 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                             className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner"
                             placeholder="Optional: e.g. slight smile, blue suit..."
                         />
-                        <p className="text-[9px] text-gray-400 italic px-1">Identity Lock 4.0 ensures 1:1 facial recognition.</p>
                     </div>
                 );
             default:
@@ -445,6 +448,14 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                 onClick={() => !isGenerating && setIsFullScreenOpen(true)}
                                 className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30 scale-95' : 'animate-materialize'}`} 
                             />
+                        ) : !mode ? (
+                            <div className="text-center animate-fadeIn px-8">
+                                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <PixaHeadshotIcon className="w-10 h-10 text-indigo-400" />
+                                </div>
+                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest leading-tight">Identity Pending</h4>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 text-center">Select Mode below to unlock canvas</p>
+                            </div>
                         ) : mode === 'individual' ? (
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
@@ -453,31 +464,34 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                 {image ? (
                                     <img src={image.url} className={`w-full h-full object-cover rounded-[1.8rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                 ) : (
-                                    <><UserIcon className="w-12 h-12 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em]">UPLOAD SELFIE</span></>
+                                    <><UserIcon className="w-12 h-12 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-4">UPLOAD YOUR PHOTO OR SELFIE</span></>
                                 )}
                             </button>
                         ) : (
-                            <div className="flex gap-4 w-[90%] max-w-[320px] animate-fadeIn">
-                                <button 
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
-                                >
-                                    {image ? (
-                                        <img src={image.url} className="w-full h-full object-cover rounded-[1.4rem]" />
-                                    ) : (
-                                        <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">SUBJECT A</span></>
-                                    )}
-                                </button>
-                                <button 
-                                    onClick={() => partnerInputRef.current?.click()}
-                                    className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${partnerImage ? 'border-pink-500 bg-pink-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
-                                >
-                                    {partnerImage ? (
-                                        <img src={partnerImage.url} className="w-full h-full object-cover rounded-[1.4rem]" />
-                                    ) : (
-                                        <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">SUBJECT B</span></>
-                                    )}
-                                </button>
+                            <div className="flex flex-col items-center justify-center w-full gap-4">
+                                <div className="flex gap-4 w-[90%] max-w-[320px] animate-fadeIn">
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
+                                    >
+                                        {image ? (
+                                            <img src={image.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                        ) : (
+                                            <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">SUBJECT A</span></>
+                                        )}
+                                    </button>
+                                    <button 
+                                        onClick={() => partnerInputRef.current?.click()}
+                                        className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${partnerImage ? 'border-pink-500 bg-pink-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
+                                    >
+                                        {partnerImage ? (
+                                            <img src={partnerImage.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                        ) : (
+                                            <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">SUBJECT B</span></>
+                                        )}
+                                    </button>
+                                </div>
+                                <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] animate-fadeIn">UPLOAD YOUR PHOTO OR SELFIE</span>
                             </div>
                         )}
 
@@ -530,6 +544,16 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                 {HEADSHOT_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
+                                        {step.id === 'background' && background === 'Custom' && (
+                                            <div className="px-6 pb-2 animate-fadeIn">
+                                                <input 
+                                                    className="w-full p-4 bg-white border border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
+                                                    placeholder="Describe custom scene..."
+                                                    value={customBackgroundPrompt}
+                                                    onChange={e => setCustomBackgroundPrompt(e.target.value)}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -542,7 +566,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                         const isFilled = (idx === 0 && !!mode) || 
                                                         (idx === 1 && (mode === 'individual' ? !!image : (!!image && !!partnerImage))) ||
                                                         (idx === 2 && !!archetype) ||
-                                                        (idx === 3 && !!background);
+                                                        (idx === 3 && !!background) ||
+                                                        (idx === 4 && !!customDesc);
                                         
                                         return (
                                             <button 
@@ -554,7 +579,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
                                                 <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? mode : idx === 2 ? archetype : idx === 3 ? 'Set' : ''}
+                                                    {idx === 0 ? mode : idx === 1 ? 'Ready' : idx === 2 ? archetype : idx === 3 ? background : idx === 4 ? 'Set' : ''}
                                                 </span>
                                             </button>
                                         );
