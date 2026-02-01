@@ -1,34 +1,43 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, View, Creation } from '../../types';
-// Consolidated imports from icons to avoid duplicate identifier errors
 import { 
     PixaHeadshotIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LocationIcon,
+    CreditCoinIcon, LocationIcon
+} from '../../components/icons';
+import { 
     CorporateExecutiveIcon, 
     TechFounderIcon, 
     CreativeDirectorIcon, 
     MedicalProIcon, 
     LegalFinanceIcon, 
     RealtorSalesIcon 
-} from '../../components/icons';
-import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
+} from '../../components/icons/headshotIcons';
+// FIXED: Import Base64File to resolve "Cannot find name 'Base64File'" errors
+import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../../services/headshotService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
-// Fixed missing MilestoneSuccessModal, FeatureLayout, and InputField from the import below
-import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../../components/FeatureLayout';
+import { MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
+
+const HEADSHOT_STEPS = [
+    { id: 'mode', label: 'Mode', options: ['Individual', 'Duo'] },
+    { id: 'assets', label: 'Assets' },
+    { id: 'archetype', label: 'Style', options: ['Executive', 'Tech', 'Creative', 'Medical', 'Legal', 'Realtor'] },
+    { id: 'background', label: 'Scene' },
+    { id: 'notes', label: 'Notes' }
+];
 
 const ARCHETYPES = [
-    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-12 h-12"/>, desc: 'Rembrandt / Formal' },
-    { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-12 h-12"/>, desc: 'High-Key / Smart Casual' },
-    { id: 'Creative', label: 'Creative Director', icon: <CreativeDirectorIcon className="w-12 h-12"/>, desc: 'Cinematic / Modern' },
-    { id: 'Medical', label: 'Medical Pro', icon: <MedicalProIcon className="w-12 h-12"/>, desc: 'Butterfly / High-Key' },
-    { id: 'Legal', label: 'Legal / Finance', icon: <LegalFinanceIcon className="w-12 h-12"/>, desc: 'Broad / Formal' },
-    { id: 'Realtor', label: 'Realtor / Sales', icon: <RealtorSalesIcon className="w-12 h-12"/>, desc: 'Approachable / Warm' }
+    { id: 'Executive', label: 'Corporate', icon: <CorporateExecutiveIcon className="w-6 h-6"/> },
+    { id: 'Tech', label: 'Founder', icon: <TechFounderIcon className="w-6 h-6"/> },
+    { id: 'Creative', label: 'Creative', icon: <CreativeDirectorIcon className="w-6 h-6"/> },
+    { id: 'Medical', label: 'Medical', icon: <MedicalProIcon className="w-6 h-6"/> },
+    { id: 'Legal', label: 'Legal', icon: <LegalFinanceIcon className="w-6 h-6"/> },
+    { id: 'Realtor', label: 'Realtor', icon: <RealtorSalesIcon className="w-6 h-6"/> }
 ];
 
 const PERSONA_BACKGROUNDS: Record<string, string[]> = {
@@ -40,31 +49,11 @@ const PERSONA_BACKGROUNDS: Record<string, string[]> = {
     'Realtor': ['Studio Photoshoot', 'Living Room', 'Modern Kitchen', 'Outside House', 'Nice Street']
 };
 
-const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    return (
-        <div className="relative w-full group">
-            <div className="flex justify-between items-center mb-2 px-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-                {image && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1"><CheckIcon className="w-3 h-3"/> Ready</span>}
-            </div>
-            {image ? (
-                <div className={`relative w-full ${heightClass} bg-gray-50 rounded-2xl border border-indigo-100 flex items-center justify-center overflow-hidden group-hover:border-indigo-300 transition-all shadow-inner`}>
-                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" alt={label} />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-start justify-end p-2">
-                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="bg-white/90 p-2 rounded-xl shadow-lg text-gray-500 hover:text-red-500 hover:scale-110 transition-all backdrop-blur-sm"><XIcon className="w-4 h-4"/></button>
-                    </div>
-                </div>
-            ) : (
-                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
-                    <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
-                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4">{uploadText || "Add Photo"}</p>
-                </div>
-            )}
-            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
-        </div>
-    );
-};
+const CustomRefineIcon = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+    </svg>
+);
 
 interface MobileHeadshotProps {
     auth: AuthProps;
@@ -85,13 +74,20 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     // --- Config State ---
     const [currentStep, setCurrentStep] = useState(0);
     const [mode, setMode] = useState<'individual' | 'duo'>('individual');
-    const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
-    const [partnerImage, setPartnerImage] = useState<{ url: string; base64: any } | null>(null);
+    // FIXED: Use Base64File interface correctly imported from imageUtils
+    const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    // FIXED: Use Base64File interface correctly imported from imageUtils
+    const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
     const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     
     const [customDesc, setCustomDesc] = useState('');
+    const [resultImage, setResultImage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    
+    // FIXED: Removed duplicate state declarations (loadingText, milestoneBonus, lastCreationId) that were previously duplicated here.
+
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
@@ -103,78 +99,51 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     const refineCost = 2;
 
     const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 4;
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const partnerInputRef = useRef<HTMLInputElement>(null);
+    const userCredits = auth.user?.credits || 0;
+    const isLowCredits = userCredits < cost;
     const scrollRef = useRef<HTMLDivElement>(null);
-
-    // --- Config Sheet for Refinement ---
-    const [isRefineOpen, setIsRefineOpen] = useState(false);
-    const [refineText, setRefineText] = useState('');
-
-    // Sequential Access Logic
-    const isStepAccessible = (idx: number) => {
-        if (idx === 0) return true;
-        if (idx === 1) return !!mode;
-        if (idx === 2) return mode === 'individual' ? !!image : (!!image && !!partnerImage);
-        if (idx === 3) return !!archetype;
-        if (idx === 4) return !!background;
-        return false;
-    };
-
-    const isStrategyComplete = useMemo(() => {
-        if (!mode || !archetype || !background) return false;
-        if (mode === 'individual' && !image) return false;
-        if (mode === 'duo' && (!image || !partnerImage)) return false;
-        return true;
-    }, [mode, image, partnerImage, archetype, background]);
-
-    // Auto-advance triggers for Assets
-    useEffect(() => {
-        if (currentStep === 1) {
-            if (mode === 'individual') {
-                if (image) {
-                    setTimeout(() => setCurrentStep(2), 600);
-                }
-            } else {
-                if (image && partnerImage) {
-                    setTimeout(() => setCurrentStep(2), 600);
-                }
-            }
-        }
-    }, [image, partnerImage, mode, currentStep]);
+    
+    const isUploadsReady = mode === 'individual' ? !!image : (!!image && !!partnerImage);
 
     useEffect(() => {
-        let interval: any;
-        if (isGenerating) {
-            setProgressPercent(0);
-            const steps = [
-                "Biometric Audit: Analyzing skin geometry...",
-                "Identity Lock: Mapping ocular patterns...",
-                "Studio Engine: Calibrating Rembrandt rig...",
-                "Fabric Engine: Simulating suit drape...",
-                "Finalizing: Polishing 4K portrait..."
-            ];
-            let step = 0;
-            setLoadingText(steps[0]);
-            interval = setInterval(() => {
-                step = (step + 1) % steps.length;
-                setLoadingText(steps[step]);
-                setProgressPercent(prev => {
-                    if (prev >= 98) return prev;
-                    return Math.min(prev + (Math.random() * 6), 98);
-                });
-            }, 1800);
-        }
-        return () => clearInterval(interval);
-    }, [isGenerating]);
+        setBackground('');
+        setCustomBackgroundPrompt('');
+    }, [archetype]);
+
+    useEffect(() => { 
+        let interval: any; 
+        if (loading || isRefining) { 
+            const steps = isRefining ? [
+                "Identity Lock 4.0: Mapping skin topology...", 
+                "Ocular Audit: Retaining iris patterns...", 
+                "Optical Rig: Adjusting Rembrandt lighting...", 
+                "Polishing final photorealistic portrait..."
+            ] : [
+                "Stage A: Sub-Surface Skin Geometry Audit...", 
+                "Stage B: Locking Ocular Identity...", 
+                "Phase One Rig: Calibrating lighting rig...", 
+                "Fabric Physics: Calculating attire drape...", 
+                "Sub-Surface Scattering: Rendering skin pores...",
+                "Finalizing: Identity 100% verified..."
+            ]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 2000); 
+        } 
+        return () => clearInterval(interval); 
+    }, [loading, isRefining]);
+
+    useEffect(() => { return () => { if (resultImage) URL.revokeObjectURL(resultImage); }; }, [resultImage]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
-            setResult(null);
+            setResultImage(null);
         }
         e.target.value = '';
     };
@@ -194,68 +163,81 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             finalBackground = customBackgroundPrompt;
         }
         
-        onGenerationStart();
-        setIsGenerating(true);
-        setResult(null); 
-        setLastCreationId(null);
+        setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
-            const resB64 = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
-            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
-            setResult(blobUrl);
-            setIsGenerating(false);
-
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)');
+            const res = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot Pro'); setLastCreationId(creationId);
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)'); 
+            if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } 
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            
-            const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Headshot Pro');
-            setLastCreationId(id);
-
-            if (updatedUser.lifetimeGenerations) { 
-                const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
-                if (bonus !== false) setMilestoneBonus(bonus); 
-            }
-        } catch (e: any) {
-            console.error(e);
-            alert("Headshot generation failed.");
-            setIsGenerating(false);
+        } catch (e: any) { 
+            console.error(e); 
+            alert(`Generation failed: ${e.message}`); 
+        } finally { 
+            setLoading(false); 
         }
     };
 
-    const handleRefine = async () => {
-        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
+    const handleRefine = async (refineText: string) => {
+        if (!resultImage || !refineText.trim() || !auth.user) return;
+        if (userCredits < refineCost) { alert("Insufficient credits for refinement."); return; }
         
-        setIsGenerating(true);
-        setIsRefineOpen(false);
+        setIsRefining(true);
+        setIsRefineActive(false); 
         try {
-            const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Headshot");
-            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
-            setResult(blobUrl);
-            setIsGenerating(false);
+            const currentB64 = await urlToBase64(resultImage);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Headshot");
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResultImage(blobUrl);
+            const dataUri = `data:image/png;base64,${res}`;
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
+            } else {
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot (Refined)');
+                setLastCreationId(id);
             }
+            
             const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            setRefineText('');
-        } catch (e) {
+            setNotification({ msg: "Headshot Retoucher: Features polished!", type: 'success' });
+        } catch (e: any) {
+            console.error(e);
             alert("Refinement failed.");
-            setIsGenerating(false);
+        } finally {
+            setIsRefining(false);
         }
     };
 
-    const handleNewProject = () => {
-        setResult(null);
-        setImage(null);
-        setPartnerImage(null);
-        setArchetype('Executive');
-        setBackground('');
-        setCustomDesc('');
-        setCurrentStep(0);
-        setLastCreationId(null);
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        setMilestoneBonus(false);
     };
+
+    const handleRefundRequest = async (reason: string) => { if (!auth.user || !resultImage) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Headshot", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResultImage(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
+    
+    const handleNewSession = () => { setImage(null); setPartnerImage(null); setResultImage(null); setLastCreationId(null); setCustomDesc(''); setIsRefineActive(false); };
+    
+    const handleEditorSave = async (newUrl: string) => { 
+        setResultImage(newUrl); 
+        if (lastCreationId && auth.user) {
+            await updateCreation(auth.user.uid, lastCreationId, newUrl);
+        } else if (auth.user) {
+            const id = await saveCreation(auth.user.uid, newUrl, 'Pixa Headshot Pro'); 
+            setLastCreationId(id);
+        }
+    };
+    
+    const handleDeductEditCredit = async () => { if(auth.user) { const updatedUser = await deductCredits(auth.user.uid, 1, 'Magic Eraser'); auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } };
+    
+    const currentAvailableBackgrounds = PERSONA_BACKGROUNDS[archetype] || PERSONA_BACKGROUNDS['Executive'];
+
+    const canGenerate = isUploadsReady && !!background && !isLowCredits;
 
     const handleBack = () => {
         if (isGenerating) return;
@@ -277,18 +259,13 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             setPartnerImage(null);
         } else if (stepId === 'archetype') {
             setArchetype(option);
+            setBackground('');
+            setCustomBackgroundPrompt('');
         }
 
         if (currentStep < HEADSHOT_STEPS.length - 1) {
             setTimeout(() => setCurrentStep(prev => prev + 1), 150);
         }
-    };
-
-    const handleClaimBonus = async () => {
-        if (!auth.user || !milestoneBonus) return;
-        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
-        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-        setMilestoneBonus(false);
     };
 
     const renderStepContent = (stepId: string) => {
@@ -328,19 +305,37 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 );
             case 'background':
                 return (
-                    <div className="w-full flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
-                        {(PERSONA_BACKGROUNDS[archetype] || []).map(bg => {
-                            const isSelected = background === bg;
-                            return (
-                                <button 
-                                    key={bg} 
-                                    onClick={() => { setBackground(bg); setCurrentStep(4); }} 
-                                    className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
-                                >
-                                    {bg}
-                                </button>
-                            );
-                        })}
+                    <div className="w-full flex flex-col gap-4">
+                        <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
+                            {(PERSONA_BACKGROUNDS[archetype] || []).map(bg => {
+                                const isSelected = background === bg;
+                                return (
+                                    <button 
+                                        key={bg} 
+                                        onClick={() => { setBackground(bg); setCurrentStep(4); }} 
+                                        className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                                    >
+                                        {bg}
+                                    </button>
+                                );
+                            })}
+                            <button 
+                                onClick={() => setBackground('Custom')} 
+                                className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${background === 'Custom' ? 'bg-pink-600 text-white border-pink-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                            >
+                                Custom
+                            </button>
+                        </div>
+                        {background === 'Custom' && (
+                            <div className="px-6 animate-fadeInUp">
+                                <input 
+                                    className="w-full p-4 bg-white border border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
+                                    placeholder="Describe custom scene (e.g. Modern library at night)..."
+                                    value={customBackgroundPrompt}
+                                    onChange={e => setCustomBackgroundPrompt(e.target.value)}
+                                />
+                            </div>
+                        )}
                     </div>
                 );
             case 'notes':
@@ -359,15 +354,6 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 return null;
         }
     };
-
-    const isLowCredits = userCredits < cost;
-
-    // Custom Refine Icon provided by user
-    const CustomRefineIconLocal = ({ className }: { className?: string }) => (
-        <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-            <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-        </svg>
-    );
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
@@ -490,7 +476,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <CustomRefineIconLocal className="w-5 h-5" /> Refine portrait
+                                <CustomRefineIcon className="w-5 h-5" /> Refine portrait
                             </button>
                             <div className="grid grid-cols-2 gap-3">
                                 <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
@@ -578,5 +564,3 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         </div>
     );
 };
-
-export default MobileHeadshot;
