@@ -33,7 +33,8 @@ export const RefinementPanel: React.FC<RefinementPanelProps> = ({
 
     if (!isActive || isRefining) return null;
 
-    const handleSubmit = () => {
+    const handleSubmit = (e: React.MouseEvent | React.KeyboardEvent) => {
+        e.stopPropagation();
         if (text.trim()) {
             onRefine(text);
             setText('');
@@ -41,13 +42,19 @@ export const RefinementPanel: React.FC<RefinementPanelProps> = ({
     };
 
     return (
-        <div className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] pointer-events-auto w-full max-w-lg mx-auto">
+        <div 
+            className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] pointer-events-auto w-full max-w-lg mx-auto"
+            onClick={(e) => e.stopPropagation()}
+        >
             <div className="flex items-center justify-between px-3 pt-2">
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
                     <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Pixa Retoucher Active</span>
                 </div>
-                <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onClose(); }} 
+                    className="text-white/40 hover:text-white transition-colors"
+                >
                     <XIcon className="w-4 h-4"/>
                 </button>
             </div>
@@ -64,7 +71,7 @@ export const RefinementPanel: React.FC<RefinementPanelProps> = ({
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSubmit();
+                            handleSubmit(e);
                         }
                     }}
                 />
