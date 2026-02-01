@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -208,6 +207,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 if (lastCreationId) {
                     await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
                 } else {
+                    // COMMENT: Fixed incorrect number of arguments and invalid document.id property
                     const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Product Shots (Refined)');
                     setLastCreationId(id);
                 }
@@ -235,14 +235,31 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setLastCreationId(null);
     };
 
+    const handleBack = () => {
+        if (isGenerating) return;
+
+        if (result) {
+            // Tapping back from result takes user back to configuration (studioMode)
+            setResult(null);
+        } else if (studioMode) {
+            // Tapping back from configuration takes user back to mode selection
+            setStudioMode(null);
+            setSelections({});
+            setCurrentStep(0);
+        } else if (image) {
+            // Tapping back from mode selection resets project
+            setImage(null);
+        }
+    };
+
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             
             {/* 1. TOP COMMAND BAR (Fixed) */}
             <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
                 <button 
-                    onClick={() => { setImage(null); setResult(null); setStudioMode(null); }} 
-                    className={`p-2 rounded-full transition-all ${image && !result && !isGenerating ? 'bg-gray-100 text-gray-500' : 'opacity-0 pointer-events-none'}`}
+                    onClick={handleBack} 
+                    className={`p-2 rounded-full transition-all ${image && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
                 >
                     <ArrowLeftIcon className="w-5 h-5" />
                 </button>
