@@ -348,13 +348,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
             {/* Stage (Canvas) */}
             <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative p-1 ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
-                    {/* Border Layer Strategy: Dedicated child for dashed border to avoid bleed */}
-                    {!format && (
-                        <div className="absolute inset-1.5 border-2 border-dashed border-gray-300 rounded-[2.2rem] pointer-events-none z-0"></div>
-                    )}
-
-                    <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.2rem] overflow-hidden z-10">
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
+                    <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
                             <img 
                                 src={result} 
