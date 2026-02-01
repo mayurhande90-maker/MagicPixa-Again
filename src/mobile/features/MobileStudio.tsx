@@ -225,21 +225,24 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             </div>
                         )}
 
-                        {/* GENERATION / ANALYSIS OVERLAY */}
+                        {/* GENERATION / ANALYSIS OVERLAY (Subtle Bar Animation) */}
                         {(isAnalyzing || isGenerating) && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-50">
-                                {/* Horizontal Scan Line */}
-                                <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-500 shadow-[0_0_20px_#6366f1] animate-scan-y"></div>
-                                
-                                {/* HUD Ring */}
-                                <div className="relative mb-6">
-                                    <div className="w-24 h-24 border-4 border-white/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                                    <SparklesIcon className="absolute inset-0 m-auto w-8 h-8 text-indigo-500 animate-pulse" />
+                            <div className="absolute inset-x-0 bottom-12 flex flex-col items-center pointer-events-none z-50 px-10 animate-fadeIn">
+                                {/* Subtle Progress Bar */}
+                                <div className="w-full h-1 bg-black/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/10">
+                                    <div className="h-full bg-indigo-500 shadow-[0_0_15px_#6366f1] animate-bar-slide w-[40%] absolute top-0 rounded-full"></div>
                                 </div>
-
-                                <div className="bg-black/80 backdrop-blur-md px-6 py-3 rounded-2xl flex flex-col items-center gap-1 border border-white/10 shadow-2xl animate-bounce-slight text-center mx-10">
-                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{isAnalyzing ? 'Pixa Vision Scanning...' : 'Reworking Identity'}</span>
-                                    {isGenerating && <span className="text-[8px] text-indigo-300 font-bold uppercase tracking-widest animate-pulse">{loadingText}</span>}
+                                
+                                {/* Status Text */}
+                                <div className="mt-4 flex flex-col items-center gap-1.5 text-center">
+                                    <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] drop-shadow-md">
+                                        {isAnalyzing ? 'Pixa Vision Scanning...' : 'Reworking Identity'}
+                                    </span>
+                                    {isGenerating && (
+                                        <span className="text-[8px] text-indigo-200 font-bold uppercase tracking-widest animate-pulse drop-shadow-md">
+                                            {loadingText}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -280,8 +283,8 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 onClick={() => setIsRefineOpen(true)}
                                 className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                             >
-                                <MagicWandIcon className="w-5 h-5 text-yellow-300" />
-                                Refine Masterpiece
+                                <SparklesIcon className="w-5 h-5 text-white" />
+                                Refine Image
                             </button>
                             
                             <div className="grid grid-cols-2 gap-3 w-full">
@@ -389,11 +392,14 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
 
             <style>{`
-                @keyframes scan-y {
-                    0% { top: 0%; }
-                    100% { top: 100%; }
+                @keyframes bar-slide {
+                    0% { left: -40%; }
+                    100% { left: 100%; }
                 }
-                .animate-scan-y { animation: scan-y 2s linear infinite; }
+                .animate-bar-slide { 
+                    position: absolute;
+                    animation: bar-slide 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite; 
+                }
                 
                 @keyframes pulse-slight {
                     0%, 100% { transform: scale(1); }
