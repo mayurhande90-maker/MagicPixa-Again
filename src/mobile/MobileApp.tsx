@@ -22,8 +22,12 @@ interface MobileAppProps {
 
 export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
     const [activeTab, setActiveTab] = useState<View>('home_dashboard');
+    
+    // resetKeys tracks a counter for each tool. 
+    // Changing the key of a component forces it to unmount and reset its internal state.
+    const [resetKeys, setResetKeys] = useState<Record<string, number>>({});
 
-    // List of tabs that should be kept alive
+    // Tabs that stay mounted in the background
     const PERSISTENT_TABS: View[] = [
         'home_dashboard',
         'dashboard',
@@ -36,22 +40,43 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         'profile'
     ];
 
+    // Triggered by any feature when a user starts a "Generate" task
+    const onGenerationStart = (viewId: View) => {
+        setResetKeys(prev => {
+            const next = { ...prev };
+            // We increment the reset key for all OTHER tools.
+            // This clears their memory because we are now "starting fresh" in a new tool.
+            PERSISTENT_TABS.forEach(tab => {
+                if (tab !== viewId && tab !== 'home_dashboard' && tab !== 'creations' && tab !== 'profile' && tab !== 'dashboard') {
+                    next[tab] = (next[tab] || 0) + 1;
+                }
+            });
+            return next;
+        });
+    };
+
     const renderTabContent = (tab: View) => {
+        const commonProps = { 
+            auth, 
+            appConfig, 
+            onGenerationStart: () => onGenerationStart(tab) 
+        };
+
         switch (tab) {
             case 'home_dashboard':
                 return <MobileHome auth={auth} setActiveTab={setActiveTab} />;
             case 'dashboard':
                 return <MobileFeatures setActiveTab={setActiveTab} appConfig={appConfig} />;
             case 'studio':
-                return <MobileStudio auth={auth} appConfig={appConfig} />;
+                return <MobileStudio {...commonProps} />;
             case 'brand_stylist':
-                return <MobileAdMaker auth={auth} appConfig={appConfig} />;
+                return <MobileAdMaker {...commonProps} />;
             case 'headshot':
-                return <MobileHeadshot auth={auth} appConfig={appConfig} />;
+                return <MobileHeadshot {...commonProps} />;
             case 'thumbnail_studio':
-                return <MobileThumbnail auth={auth} appConfig={appConfig} />;
+                return <MobileThumbnail {...commonProps} />;
             case 'soul':
-                return <MobileTogether auth={auth} appConfig={appConfig} />;
+                return <MobileTogether {...commonProps} />;
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
@@ -66,7 +91,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>}>
                 {PERSISTENT_TABS.map((tab) => (
                     <div 
-                        key={tab} 
+                        key={`${tab}-${resetKeys[tab] || 0}`} 
                         className={`h-full w-full ${activeTab === tab ? 'block' : 'hidden'}`}
                     >
                         {renderTabContent(tab)}
