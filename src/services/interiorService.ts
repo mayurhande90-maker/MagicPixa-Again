@@ -1,13 +1,14 @@
+
 import { Modality, Type } from "@google/genai";
 import { getAiClient } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
-// Helper: Resize to 1536px for higher fidelity architectural detail
+// QUALITY UPGRADE: Increased optimization width for architectural detail
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
     try {
         const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, 1536, 0.9);
+        const resizedUri = await resizeImage(dataUri, 2048, 0.95);
         const [header, data] = resizedUri.split(',');
         const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
         return { data, mimeType: newMime };
