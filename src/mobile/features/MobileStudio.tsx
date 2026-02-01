@@ -163,17 +163,28 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 }, auth.activeBrandKit);
             }
 
+            // SUCCESS: AI returned result
+            // Prioritize displaying the result to the user immediately
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
+            setIsGenerating(false);
 
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Studio (Mobile)');
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            const creationId = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Product Shots');
-            setLastCreationId(creationId);
+            // Handle Credits and Persistence as a secondary, resilient block
+            try {
+                const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Studio (Mobile)');
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+                
+                // Firestore document limit is 1MB. saveCreation now handles more aggressive compression internally.
+                const creationId = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Product Shots');
+                setLastCreationId(creationId);
+            } catch (persistenceError) {
+                console.warn("Credits or Save hiccup (Background):", persistenceError);
+                // We do not alert failure here because the user has already successfully seen the result
+            }
 
         } catch (e: any) {
-            alert("Generation failed. Please try again.");
-        } finally {
+            console.error("AI Generation Critical Error:", e);
+            alert("Generation failed. Please try again with a clearer photo.");
             setIsGenerating(false);
         }
     };
@@ -189,17 +200,25 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
+            setIsGenerating(false);
             
-            if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
-            }
+            try {
+                if (lastCreationId) {
+                    await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
+                } else {
+                    const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Product Shots (Refined)');
+                    setLastCreationId(id);
+                }
 
-            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+                const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            } catch (bgError) {
+                console.warn("Refine Background update failed:", bgError);
+            }
+            
             setRefineText('');
         } catch (e) {
             alert("Refinement failed.");
-        } finally {
             setIsGenerating(false);
         }
     };
@@ -265,7 +284,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         ) : (
                             <div onClick={() => fileInputRef.current?.click()} className="text-center group active:scale-95 transition-all">
                                 <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
-                                    <ImageIcon className="w-10 h-10 text-indigo-500" />
+                                    <ImageIcon className="w-10 h-10 text-indigo-50" />
                                 </div>
                                 <h3 className="text-xl font-black text-gray-900 tracking-tight">Drop Asset</h3>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse</p>
