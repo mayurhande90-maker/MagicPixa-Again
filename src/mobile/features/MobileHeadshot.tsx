@@ -592,7 +592,19 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             </div>
 
             {/* Modals & Sheets */}
-            <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="Headshot Refinement">
+            <MobileSheet 
+                isOpen={isRefineOpen} 
+                onClose={() => setIsRefineOpen(false)} 
+                title={
+                    <div className="flex items-center gap-3">
+                        <span>Headshot Refinement</span>
+                        <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0">
+                            <CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" />
+                            <span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span>
+                        </div>
+                    </div>
+                }
+            >
                 <div className="space-y-6 pb-6">
                     <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Adjust hair color to slightly darker, make the lighting softer..." />
                     <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
