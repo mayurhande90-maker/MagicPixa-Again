@@ -24,6 +24,13 @@ const MODEL_STEPS = [
     { id: 'skin', label: 'Skin Tone', options: ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'] }
 ];
 
+// Custom Refine Icon provided by user
+const CustomRefineIcon = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+    </svg>
+);
+
 export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     // --- UI State ---
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
@@ -285,7 +292,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 onClick={() => setIsRefineOpen(true)}
                                 className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                             >
-                                <MagicWandIcon className="w-5 h-5 text-white" />
+                                <CustomRefineIcon className="w-5 h-5 text-white" />
                                 Refine Image
                             </button>
                             
