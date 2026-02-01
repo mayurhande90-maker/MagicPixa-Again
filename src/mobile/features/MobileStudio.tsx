@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -33,7 +34,13 @@ const CustomRefineIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+interface MobileStudioProps {
+    auth: AuthProps;
+    appConfig: AppConfig | null;
+    onGenerationStart: () => void;
+}
+
+export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onGenerationStart }) => {
     // --- UI State ---
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
@@ -58,21 +65,16 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const activeSteps = studioMode === 'model' ? MODEL_STEPS : PRODUCT_STEPS;
     
-    // Updated validity check based on number of active steps
     const isStrategyComplete = useMemo(() => {
         if (!studioMode) return false;
         const requiredCount = activeSteps.length;
         const currentCount = Object.keys(selections).length;
-        
-        // Special check for Custom Category
         if (studioMode === 'product' && selections['category'] === 'Other / Custom' && !customCategory.trim()) {
             return false;
         }
-
         return currentCount >= requiredCount;
     }, [selections, studioMode, activeSteps, customCategory]);
 
-    // --- Dynamic Loading Messages & Progress ---
     useEffect(() => {
         let interval: any;
         if (isGenerating) {
@@ -89,7 +91,6 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-                
                 setProgressPercent(prev => {
                     if (prev >= 98) return prev;
                     return Math.min(prev + (Math.random() * 4), 98);
@@ -101,7 +102,6 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         return () => clearInterval(interval);
     }, [isGenerating]);
 
-    // --- Handlers ---
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -128,10 +128,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handleSelectOption = (stepId: string, option: string) => {
         if (isGenerating) return;
         setSelections(prev => ({ ...prev, [stepId]: option }));
-        
-        // If not the last step, move forward
         if (currentStep < activeSteps.length - 1) {
-            // Delay slightly for visual feedback on button tap
             setTimeout(() => {
                 setCurrentStep(prev => prev + 1);
             }, 150);
@@ -141,6 +138,10 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handleGenerate = async () => {
         if (!image || !isStrategyComplete || !auth.user || isGenerating) return;
         
+        // Notify the app that we are starting production in THIS tool.
+        // This will trigger a cleanup of any other tools currently "Alive" in the background.
+        onGenerationStart();
+
         setIsGenerating(true);
         try {
             const finalCategory = selections['category'] === 'Other / Custom' ? customCategory : selections['category'];
@@ -164,23 +165,17 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 }, auth.activeBrandKit);
             }
 
-            // SUCCESS: AI returned result
-            // Prioritize displaying the result to the user immediately
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
 
-            // Handle Credits and Persistence as a secondary, resilient block
             try {
                 const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Studio (Mobile)');
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-                
-                // Firestore document limit is 1MB. saveCreation now handles more aggressive compression internally.
                 const creationId = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Product Shots');
                 setLastCreationId(creationId);
             } catch (persistenceError) {
-                console.warn("Credits or Save hiccup (Background):", persistenceError);
-                // We do not alert failure here because the user has already successfully seen the result
+                console.warn("Persistence background error:", persistenceError);
             }
 
         } catch (e: any) {
@@ -198,7 +193,6 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         try {
             const currentB64 = await urlToBase64(result);
             const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Studio Rendering");
-            
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
@@ -207,17 +201,14 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 if (lastCreationId) {
                     await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
                 } else {
-                    // COMMENT: Fixed incorrect number of arguments and invalid document.id property
                     const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Product Shots (Refined)');
                     setLastCreationId(id);
                 }
-
                 const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
                 auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             } catch (bgError) {
-                console.warn("Refine Background update failed:", bgError);
+                console.warn("Refine background update failed:", bgError);
             }
-            
             setRefineText('');
         } catch (e) {
             alert("Refinement failed.");
@@ -237,25 +228,19 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
     const handleBack = () => {
         if (isGenerating) return;
-
         if (result) {
-            // Tapping back from result takes user back to configuration (studioMode)
             setResult(null);
         } else if (studioMode) {
-            // Tapping back from configuration takes user back to mode selection
             setStudioMode(null);
             setSelections({});
             setCurrentStep(0);
         } else if (image) {
-            // Tapping back from mode selection resets project
             setImage(null);
         }
     };
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            
-            {/* 1. TOP COMMAND BAR (Fixed) */}
             <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
                 <button 
                     onClick={handleBack} 
@@ -290,11 +275,8 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 </div>
             </div>
 
-            {/* 2. FIXED CANVAS (60% Viewport) */}
             <div className="relative h-[60%] w-full flex items-center justify-center p-6 select-none">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
-                    
-                    {/* Content */}
                     <div className="relative w-full h-full flex flex-col items-center justify-center">
                         {result ? (
                             <img 
@@ -313,48 +295,29 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse</p>
                             </div>
                         )}
-
-                        {/* NEURAL SCAN LINE */}
                         {(isAnalyzing || isGenerating) && (
                             <div className="absolute inset-0 z-40 pointer-events-none">
                                 <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_15px_#6366f1] absolute top-0 left-0 animate-neural-scan opacity-80"></div>
                                 <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]"></div>
                             </div>
                         )}
-
-                        {/* GRAIN OVERLAY */}
                         {isGenerating && (
                             <div className="absolute inset-0 z-30 pointer-events-none opacity-[0.03] overflow-hidden">
                                 <div className="absolute inset-[-100%] bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')] animate-grain"></div>
                             </div>
                         )}
-
-                        {/* GENERATION / ANALYSIS OVERLAY (Upgraded Capsule) */}
                         {(isAnalyzing || isGenerating) && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 px-10 animate-fadeIn">
                                 <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] w-full max-w-[300px] flex flex-col items-center gap-8 animate-breathe">
-                                    
-                                    {/* Progress Ring / Circle Visual */}
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle 
-                                                cx="40" cy="40" r="36" 
-                                                fill="transparent" 
-                                                stroke="currentColor" 
-                                                strokeWidth="4" 
-                                                className="text-indigo-500"
-                                                strokeDasharray={226.2}
-                                                strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))}
-                                                strokeLinecap="round"
-                                            />
+                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center">
                                             <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
                                         </div>
                                     </div>
-
-                                    {/* Status Text */}
                                     <div className="flex flex-col items-center gap-3 text-center">
                                         <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-90">
                                             {isAnalyzing ? 'Vision Scan' : 'Neural Core'}
@@ -372,23 +335,15 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                 </div>
                             </div>
                         )}
-
-                        {/* MODE PICKER */}
                         {image && !studioMode && !isAnalyzing && !isGenerating && !result && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 gap-6 bg-white/40 backdrop-blur-sm animate-fadeIn">
                                 <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Choose Your Path</h3>
                                 <div className="flex gap-4 w-full max-w-sm">
-                                    <button 
-                                        onClick={() => handleModeSelect('product')}
-                                        className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all"
-                                    >
+                                    <button onClick={() => handleModeSelect('product')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
                                         <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><CubeIcon className="w-6 h-6"/></div>
                                         <span className="text-[10px] font-black uppercase text-gray-800 tracking-wider text-center">Product Shot</span>
                                     </button>
-                                    <button 
-                                        onClick={() => handleModeSelect('model')}
-                                        className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all"
-                                    >
+                                    <button onClick={() => handleModeSelect('model')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
                                         <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center"><UsersIcon className="w-6 h-6"/></div>
                                         <span className="text-[10px] font-black uppercase text-gray-800 tracking-wider text-center">Model Shot</span>
                                     </button>
@@ -399,87 +354,42 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 </div>
             </div>
 
-            {/* 3. INTERACTIVE SECTION (Bottom 40%) */}
             <div className="flex-1 flex flex-col bg-white overflow-hidden">
                 <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
-                        /* POST-GENERATION ACTION DECK */
                         <div className="flex-1 flex flex-col items-center justify-center px-6 animate-fadeIn">
                             <div className="w-full flex flex-col gap-4">
-                                <button 
-                                    onClick={() => setIsRefineOpen(true)}
-                                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
-                                >
+                                <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
                                     <CustomRefineIcon className="w-5 h-5 text-white" />
                                     Refine Image
                                 </button>
-                                
                                 <div className="grid grid-cols-2 gap-3 w-full">
-                                    <button 
-                                        onClick={handleNewProject}
-                                        className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"
-                                    >
-                                        <PlusIcon className="w-4 h-4" />
-                                        New Project
+                                    <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
+                                        <PlusIcon className="w-4 h-4" /> New Project
                                     </button>
-                                    <button 
-                                        onClick={handleGenerate}
-                                        className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 active:bg-indigo-50 transition-all shadow-sm"
-                                    >
-                                        <RegenerateIcon className="w-4 h-4" />
-                                        Regenerate
+                                    <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 active:bg-indigo-50 transition-all shadow-sm">
+                                        <RegenerateIcon className="w-4 h-4" /> Regenerate
                                     </button>
                                 </div>
                             </div>
                             <p className="mt-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Elite Production Environment Active</p>
                         </div>
                     ) : (
-                        /* DUAL TIER CONTROL TRAY */
                         <div className={`flex-1 flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${studioMode ? 'translate-y-0' : 'translate-y-full'}`}>
-                            {/* TIER 2: OPTION SCROLLER */}
                             <div className="flex-1 min-h-0 overflow-hidden relative">
                                 {activeSteps.map((step, idx) => (
-                                    <div 
-                                        key={step.id}
-                                        className={`absolute inset-0 px-6 flex flex-col justify-center transition-all duration-500 ${
-                                            currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : 
-                                            currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 
-                                            'opacity-0 translate-y-8 pointer-events-none'
-                                        }`}
-                                    >
-                                        {/* Custom Input for 'Other' category */}
+                                    <div key={step.id} className={`absolute inset-0 px-6 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
                                         {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
                                             <div className="w-full flex flex-col gap-3 animate-fadeIn">
-                                                <input 
-                                                    type="text" 
-                                                    value={customCategory}
-                                                    onChange={e => setCustomCategory(e.target.value)}
-                                                    className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
-                                                    placeholder="Define Product (e.g. Handmade Soap)..."
-                                                    autoFocus
-                                                />
-                                                <button 
-                                                    onClick={() => setCurrentStep(prev => prev + 1)}
-                                                    disabled={!customCategory.trim()}
-                                                    className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
-                                                >
-                                                    Lock Category
-                                                </button>
+                                                <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm" placeholder="Define Product (e.g. Handmade Soap)..." autoFocus />
+                                                <button onClick={() => setCurrentStep(prev => prev + 1)} disabled={!customCategory.trim()} className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50">Lock Category</button>
                                             </div>
                                         ) : (
                                             <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
                                                 {step.options.map(opt => {
                                                     const isSelected = selections[step.id] === opt;
                                                     return (
-                                                        <button 
-                                                            key={opt}
-                                                            onClick={() => handleSelectOption(step.id, opt)}
-                                                            className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
-                                                                isSelected 
-                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' 
-                                                                : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200 shadow-sm active:bg-gray-100'
-                                                            }`}
-                                                        >
+                                                        <button key={opt} onClick={() => handleSelectOption(step.id, opt)} className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200 shadow-sm active:bg-gray-100'}`}>
                                                             {opt}
                                                         </button>
                                                     )
@@ -489,22 +399,14 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                     </div>
                                 ))}
                             </div>
-
-                            {/* TIER 1: MENU BAR (Fixed Bottom) */}
                             <div className="flex-none px-4 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
                                 <div className="flex items-center justify-between gap-1">
                                     {activeSteps.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isFilled = !!selections[step.id];
                                         return (
-                                            <button 
-                                                key={step.id}
-                                                onClick={() => setCurrentStep(idx)}
-                                                className="flex flex-col items-center gap-2 group flex-1 min-w-0"
-                                            >
-                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>
-                                                    {step.label}
-                                                </span>
+                                            <button key={step.id} onClick={() => setCurrentStep(idx)} className="flex flex-col items-center gap-2 group flex-1 min-w-0">
+                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
                                                 <span className={`text-[7px] font-bold h-3 transition-opacity truncate w-full text-center px-1 ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
                                                     {step.id === 'category' && selections['category'] === 'Other / Custom' ? customCategory : selections[step.id]}
@@ -519,95 +421,36 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 </div>
             </div>
 
-            {/* FULL SCREEN PREVIEW MODAL */}
             {isFullScreenOpen && result && (
-                <div 
-                    className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fadeIn"
-                    onClick={() => setIsFullScreenOpen(false)}
-                >
+                <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
                     <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }}
-                            className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"
-                        >
-                            <DownloadIcon className="w-6 h-6" />
-                        </button>
-                        <button 
-                            onClick={() => setIsFullScreenOpen(false)}
-                            className="p-3 bg-white/10 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all border border-white/10"
-                        >
-                            <XIcon className="w-6 h-6" />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
+                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
                     </div>
-                    
                     <div className="w-full h-full flex items-center justify-center p-2">
-                        <img 
-                            src={result} 
-                            className="max-w-full max-h-full object-contain animate-materialize rounded-lg" 
-                            onClick={e => e.stopPropagation()}
-                        />
+                        <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
                     </div>
                 </div>
             )}
 
-            {/* Refinement Modal */}
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="Studio Refinement">
                 <div className="space-y-6 pb-6">
-                    <textarea 
-                        value={refineText}
-                        onChange={e => setRefineText(e.target.value)}
-                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32"
-                        placeholder="e.g. Add luxury water droplets to the bottle surface..."
-                    />
-                    <button 
-                        onClick={handleRefine}
-                        disabled={!refineText.trim() || isGenerating}
-                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}
-                    >
-                        Apply Changes
-                    </button>
+                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Add luxury water droplets to the bottle surface..." />
+                    <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                 </div>
             </MobileSheet>
-
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-
             <style>{`
-                @keyframes neural-scan {
-                    0% { top: 0%; opacity: 0; }
-                    10% { opacity: 1; }
-                    90% { opacity: 1; }
-                    100% { top: 100%; opacity: 0; }
-                }
+                @keyframes neural-scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
                 .animate-neural-scan { animation: neural-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
-                
-                @keyframes grain {
-                    0%, 100% { transform: translate(0, 0); }
-                    10% { transform: translate(-1%, -1%); }
-                    30% { transform: translate(-2%, 2%); }
-                    50% { transform: translate(1%, -2%); }
-                    70% { transform: translate(-1%, 1%); }
-                    90% { transform: translate(2%, 0); }
-                }
+                @keyframes grain { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-1%, -1%); } 30% { transform: translate(-2%, 2%); } 50% { transform: translate(1%, -2%); } 70% { transform: translate(-1%, 1%); } 90% { transform: translate(2%, 0); } }
                 .animate-grain { animation: grain 1s steps(4) infinite; }
-
-                @keyframes breathe {
-                    0%, 100% { transform: scale(1); border-color: rgba(99, 102, 241, 0.2); }
-                    50% { transform: scale(1.02); border-color: rgba(99, 102, 241, 0.5); }
-                }
+                @keyframes breathe { 0%, 100% { transform: scale(1); border-color: rgba(99, 102, 241, 0.2); } 50% { transform: scale(1.02); border-color: rgba(99, 102, 241, 0.5); } }
                 .animate-breathe { animation: breathe 4s ease-in-out infinite; }
-
-                @keyframes materialize {
-                    0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); }
-                    100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); }
-                }
+                @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
                 .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-                
-                @keyframes cta-pulse {
-                    0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); }
-                    50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); }
-                }
+                @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
-                
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
