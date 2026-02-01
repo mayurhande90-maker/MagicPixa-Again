@@ -1,41 +1,34 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, View, Creation } from '../../types';
+// Consolidated imports from icons to avoid duplicate identifier errors
 import { 
     PixaHeadshotIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LocationIcon
-} from '../../components/icons';
-import { 
+    CreditCoinIcon, LocationIcon,
     CorporateExecutiveIcon, 
     TechFounderIcon, 
     CreativeDirectorIcon, 
     MedicalProIcon, 
     LegalFinanceIcon, 
     RealtorSalesIcon 
-} from '../../components/icons/headshotIcons';
+} from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateProfessionalHeadshot } from '../../services/headshotService';
 import { refineStudioImage } from '../../services/photoStudioService';
-import { deductCredits, saveCreation, updateCreation } from '../../firebase';
+import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
-
-const HEADSHOT_STEPS = [
-    { id: 'mode', label: 'Mode', options: ['Individual', 'Duo'] },
-    { id: 'assets', label: 'Assets' },
-    { id: 'archetype', label: 'Style', options: ['Executive', 'Tech', 'Creative', 'Medical', 'Legal', 'Realtor'] },
-    { id: 'background', label: 'Scene' },
-    { id: 'notes', label: 'Notes' }
-];
+// Fixed missing MilestoneSuccessModal, FeatureLayout, and InputField from the import below
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone, InputField } from '../../components/FeatureLayout';
 
 const ARCHETYPES = [
-    { id: 'Executive', label: 'Corporate', icon: <CorporateExecutiveIcon className="w-6 h-6"/> },
-    { id: 'Tech', label: 'Founder', icon: <TechFounderIcon className="w-6 h-6"/> },
-    { id: 'Creative', label: 'Creative', icon: <CreativeDirectorIcon className="w-6 h-6"/> },
-    { id: 'Medical', label: 'Medical', icon: <MedicalProIcon className="w-6 h-6"/> },
-    { id: 'Legal', label: 'Legal', icon: <LegalFinanceIcon className="w-6 h-6"/> },
-    { id: 'Realtor', label: 'Realtor', icon: <RealtorSalesIcon className="w-6 h-6"/> }
+    { id: 'Executive', label: 'Corporate Executive', icon: <CorporateExecutiveIcon className="w-12 h-12"/>, desc: 'Rembrandt / Formal' },
+    { id: 'Tech', label: 'Tech Founder', icon: <TechFounderIcon className="w-12 h-12"/>, desc: 'High-Key / Smart Casual' },
+    { id: 'Creative', label: 'Creative Director', icon: <CreativeDirectorIcon className="w-12 h-12"/>, desc: 'Cinematic / Modern' },
+    { id: 'Medical', label: 'Medical Pro', icon: <MedicalProIcon className="w-12 h-12"/>, desc: 'Butterfly / High-Key' },
+    { id: 'Legal', label: 'Legal / Finance', icon: <LegalFinanceIcon className="w-12 h-12"/>, desc: 'Broad / Formal' },
+    { id: 'Realtor', label: 'Realtor / Sales', icon: <RealtorSalesIcon className="w-12 h-12"/>, desc: 'Approachable / Warm' }
 ];
 
 const PERSONA_BACKGROUNDS: Record<string, string[]> = {
@@ -47,12 +40,31 @@ const PERSONA_BACKGROUNDS: Record<string, string[]> = {
     'Realtor': ['Studio Photoshoot', 'Living Room', 'Modern Kitchen', 'Outside House', 'Nice Street']
 };
 
-// Custom Refine Icon
-const CustomRefineIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-    </svg>
-);
+const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+        <div className="relative w-full group">
+            <div className="flex justify-between items-center mb-2 px-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+                {image && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1"><CheckIcon className="w-3 h-3"/> Ready</span>}
+            </div>
+            {image ? (
+                <div className={`relative w-full ${heightClass} bg-gray-50 rounded-2xl border border-indigo-100 flex items-center justify-center overflow-hidden group-hover:border-indigo-300 transition-all shadow-inner`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" alt={label} />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-start justify-end p-2">
+                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="bg-white/90 p-2 rounded-xl shadow-lg text-gray-500 hover:text-red-500 hover:scale-110 transition-all backdrop-blur-sm"><XIcon className="w-4 h-4"/></button>
+                    </div>
+                </div>
+            ) : (
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
+                    <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
+                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4">{uploadText || "Add Photo"}</p>
+                </div>
+            )}
+            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
+        </div>
+    );
+};
 
 interface MobileHeadshotProps {
     auth: AuthProps;
@@ -60,7 +72,6 @@ interface MobileHeadshotProps {
     onGenerationStart: () => void;
 }
 
-// Fixed Error in line 63: Component must return JSX to be assignable to FC
 export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig, onGenerationStart }) => {
     // --- UI State ---
     const [result, setResult] = useState<string | null>(null);
@@ -69,22 +80,37 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     const [loadingText, setLoadingText] = useState("Scanning...");
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | false>(false);
 
     // --- Config State ---
     const [currentStep, setCurrentStep] = useState(0);
     const [mode, setMode] = useState<'individual' | 'duo'>('individual');
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: any } | null>(null);
-    const [archetype, setArchetype] = useState('Executive');
+    const [archetype, setArchetype] = useState(ARCHETYPES[0].id);
     const [background, setBackground] = useState('');
-    const [customDesc, setCustomDesc] = useState('');
+    const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     
-    // Refinement
-    const [isRefineOpen, setIsRefineOpen] = useState(false);
-    const [refineText, setRefineText] = useState('');
+    const [customDesc, setCustomDesc] = useState('');
+    const [showMagicEditor, setShowMagicEditor] = useState(false);
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    
+    // Refinement State
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const refineCost = 2;
+
+    const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 4;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const partnerInputRef = useRef<HTMLInputElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // --- Config Sheet for Refinement ---
+    const [isRefineOpen, setIsRefineOpen] = useState(false);
+    const [refineText, setRefineText] = useState('');
 
     // Sequential Access Logic
     const isStepAccessible = (idx: number) => {
@@ -154,29 +180,41 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     };
 
     const handleGenerate = async () => {
-        if (!isStrategyComplete || !auth.user || isGenerating) return;
+        if (!image || !auth.user) return;
+        if (mode === 'duo' && !partnerImage) { alert("Please upload a partner photo for Duo mode."); return; }
+        if (!background) { alert("Please select a location."); return; }
+        if (isLowCredits) { alert("Insufficient credits."); return; }
+        
+        let finalBackground = background;
+        if (background === 'Custom') {
+            if (!customBackgroundPrompt.trim()) {
+                alert("Please enter a description for your custom location.");
+                return;
+            }
+            finalBackground = customBackgroundPrompt;
+        }
         
         onGenerationStart();
         setIsGenerating(true);
+        setResult(null); 
+        setLastCreationId(null);
+        
         try {
-            // Fixed typo: base6 changed to base64 on line 166
-            const resB64 = await generateProfessionalHeadshot(
-                image!.base64.base64, 
-                image!.base64.mimeType, 
-                archetype, 
-                background, 
-                customDesc, 
-                mode === 'duo' ? partnerImage?.base64.base64 : undefined, 
-                mode === 'duo' ? partnerImage?.base64.mimeType : undefined
-            );
-
+            const resB64 = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
 
-            await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)');
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            
             const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Headshot Pro');
             setLastCreationId(id);
+
+            if (updatedUser.lifetimeGenerations) { 
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
+                if (bonus !== false) setMilestoneBonus(bonus); 
+            }
         } catch (e: any) {
             console.error(e);
             alert("Headshot generation failed.");
@@ -244,6 +282,13 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         if (currentStep < HEADSHOT_STEPS.length - 1) {
             setTimeout(() => setCurrentStep(prev => prev + 1), 150);
         }
+    };
+
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        setMilestoneBonus(false);
     };
 
     const renderStepContent = (stepId: string) => {
@@ -314,6 +359,15 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 return null;
         }
     };
+
+    const isLowCredits = userCredits < cost;
+
+    // Custom Refine Icon provided by user
+    const CustomRefineIconLocal = ({ className }: { className?: string }) => (
+        <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+            <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        </svg>
+    );
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
@@ -436,7 +490,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <CustomRefineIcon className="w-5 h-5" /> Refine portrait
+                                <CustomRefineIconLocal className="w-5 h-5" /> Refine portrait
                             </button>
                             <div className="grid grid-cols-2 gap-3">
                                 <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
@@ -506,6 +560,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setImage)} />
             <input ref={partnerInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPartnerImage)} />
+
+            {milestoneBonus !== undefined && milestoneBonus !== false && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(false)} />}
 
             <style>{`
                 @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
