@@ -69,6 +69,16 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
     const isPodcast = category === 'Podcast';
 
+    // Sequential Access Logic
+    const isStepAccessible = (idx: number) => {
+        if (idx === 0) return true;
+        if (idx === 1) return !!category;
+        if (idx === 2) return isPodcast ? (!!hostImg && !!guestImg) : !!subjectImg;
+        if (idx === 3) return !!mood;
+        if (idx === 4) return context.trim().length >= 5;
+        return false;
+    };
+
     const isStrategyComplete = useMemo(() => {
         if (!format || !category || !mood || context.trim().length < 5) return false;
         if (isPodcast) {
@@ -504,16 +514,22 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                 <div className="flex items-center justify-between gap-1">
                                     {THUMBNAIL_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
+                                        const isAccessible = isStepAccessible(idx);
                                         const isFilled = (idx === 0 && !!category) || 
                                                         (idx === 1 && (isPodcast ? (!!hostImg && !!guestImg) : !!subjectImg)) ||
                                                         (idx === 2 && !!mood) ||
-                                                        (idx === 3 && context.trim().length > 5) ||
+                                                        (idx === 3 && context.trim().length >= 5) ||
                                                         (idx === 4 && !!hookType);
                                         
                                         return (
-                                            <button key={step.id} onClick={() => setCurrentStep(idx)} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all active:scale-95">
-                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>{step.label}</span>
-                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
+                                            <button 
+                                                key={step.id} 
+                                                onClick={() => isAccessible && setCurrentStep(idx)} 
+                                                disabled={!isAccessible}
+                                                className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}
+                                            >
+                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'opacity-20 text-gray-300'}`}>{step.label}</span>
+                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100/30'}`}></div>
                                                 <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
                                                     {idx === 0 ? category : idx === 2 ? mood : isFilled ? 'Ready' : ''}
                                                 </span>
