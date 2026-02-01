@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Creation } from '../../types';
 import { 
@@ -65,7 +66,6 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
     );
 };
 
-// COMMENT: Fixed "Cannot find name 'MobileTogetherProps'" by defining the interface.
 interface MobileTogetherProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
@@ -95,7 +95,6 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
 
-    // COMMENT: Added missing refs to resolve "Cannot find name 'inputARef', 'inputBRef', 'inputPoseRef'".
     const inputARef = useRef<HTMLInputElement>(null);
     const inputBRef = useRef<HTMLInputElement>(null);
     const inputPoseRef = useRef<HTMLInputElement>(null);
@@ -364,14 +363,14 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                 <div className="relative w-64 h-80">
                                     <div 
                                         onClick={() => !isGenerating && inputARef.current?.click()}
-                                        className={`absolute top-0 left-0 w-44 h-60 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transition-all duration-500 z-10 cursor-pointer ${personA ? 'scale-100 rotate-[-6deg]' : 'scale-90 opacity-40 grayscale border-dashed border-gray-200'}`}
+                                        className={`absolute top-0 left-0 w-44 h-60 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transition-all duration-700 z-10 cursor-pointer ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : personA ? 'scale-100 rotate-[-6deg]' : 'scale-90 opacity-40 grayscale border-dashed border-gray-200'}`}
                                     >
                                         {personA ? <img src={personA.url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><UserIcon className="w-10 h-10 text-gray-200" /></div>}
                                         <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[8px] font-black px-2 py-1 rounded backdrop-blur-sm uppercase">Subject A</div>
                                     </div>
                                     <div 
                                         onClick={() => !isGenerating && inputBRef.current?.click()}
-                                        className={`absolute top-12 right-0 w-44 h-60 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transition-all duration-500 z-20 cursor-pointer ${personB ? 'scale-100 rotate-[6deg]' : 'scale-90 opacity-40 grayscale border-dashed border-gray-200'}`}
+                                        className={`absolute top-12 right-0 w-44 h-60 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transition-all duration-700 z-20 cursor-pointer ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : personB ? 'scale-100 rotate-[6deg]' : 'scale-90 opacity-40 grayscale border-dashed border-gray-200'}`}
                                     >
                                         {personB ? <img src={personB.url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><UserIcon className="w-10 h-10 text-gray-200" /></div>}
                                         <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[8px] font-black px-2 py-1 rounded backdrop-blur-sm uppercase">Subject B</div>
@@ -379,7 +378,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                     {mode === 'reenact' && (
                                         <div 
                                             onClick={() => !isGenerating && inputPoseRef.current?.click()}
-                                            className={`absolute -bottom-4 right-0 w-32 h-44 bg-white rounded-xl shadow-2xl border-4 border-amber-500/30 transition-all duration-500 z-30 transform rotate-[-3deg] cursor-pointer ${refPose ? 'scale-100' : 'scale-75 opacity-40 grayscale'}`}>
+                                            className={`absolute -bottom-4 right-0 w-32 h-44 bg-white rounded-xl shadow-2xl border-4 border-amber-500/30 transition-all duration-700 z-30 transform cursor-pointer ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : refPose ? 'scale-100 rotate-[-3deg]' : 'scale-75 opacity-40 grayscale rotate-[-3deg]'}`}>
                                             {refPose ? <img src={refPose.url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><CameraIcon className="w-8 h-8 text-gray-200" /></div>}
                                             <div className="absolute top-2 right-2 bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase shadow-sm">Target Pose</div>
                                         </div>
@@ -417,7 +416,6 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                         {step.id === 'timeline' && timeline ? (
                                             <div className="w-full flex flex-col gap-2 animate-fadeIn">
                                                 <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 py-1">
-                                                    {/* COMMENT: Fixed incorrect name 'activeStep' to 'step' within the map scope to resolve "Cannot find name" error. */}
                                                     {step.options?.map(opt => (
                                                         <button key={opt} onClick={() => handleSelectOption(step.id, opt)} className={`shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${timeline === opt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-slate-400 border-slate-100'}`}>{opt}</button>
                                                     ))}
