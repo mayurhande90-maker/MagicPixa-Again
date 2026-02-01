@@ -292,7 +292,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                         <button 
                             disabled={context.trim().length < 5}
                             onClick={() => setCurrentStep(4)} 
-                            className="self-end px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-30 active:scale-95"
+                            className="self-end px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-30 active:scale-95 mb-2"
                         >
                             Next Step
                         </button>
@@ -447,7 +447,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-50" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
+                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-600" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center">
                                             <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
@@ -487,8 +487,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${format ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            {/* Step Container - Fixed Height to prevent overlap */}
-                            <div className="h-[140px] flex items-center relative overflow-hidden">
+                            {/* Step Container - Fixed Height increased to 170px to accommodate next button */}
+                            <div className="h-[170px] flex items-center relative overflow-hidden">
                                 {THUMBNAIL_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
