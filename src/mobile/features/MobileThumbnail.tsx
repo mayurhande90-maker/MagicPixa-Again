@@ -348,8 +348,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
             {/* Stage (Canvas) */}
             <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
-                    <div className="relative w-full h-full flex flex-col items-center justify-center">
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative p-1 ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
+                    <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.2rem] overflow-hidden">
                         {result ? (
                             <img 
                                 src={result} 
@@ -369,7 +369,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center animate-fadeIn">
                                         {isPodcast ? (
-                                            <div className="flex gap-4 w-full max-w-xs animate-fadeIn">
+                                            <div className="flex gap-4 w-[90%] max-w-[320px] animate-fadeIn">
                                                 <button 
                                                     onClick={() => hostInputRef.current?.click()}
                                                     className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${hostImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
@@ -394,10 +394,10 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                         ) : (
                                             <button 
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className={`w-full max-w-xs aspect-square border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all animate-fadeIn ${subjectImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
+                                                className={`w-[90%] max-w-[320px] aspect-square border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all animate-fadeIn ${subjectImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                             >
                                                 {subjectImg ? (
-                                                    <img src={subjectImg.url} className={`w-full h-full object-contain rounded-[2.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
+                                                    <img src={subjectImg.url} className={`w-full h-full object-contain rounded-[1.8rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
                                                 ) : (
                                                     <><ImageIcon className="w-12 h-12 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em]">UPLOAD SUBJECT</span></>
                                                 )}
