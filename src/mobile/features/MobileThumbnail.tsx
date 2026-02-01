@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
-// Added InformationCircleIcon to the imports
 import { 
     ThumbnailIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
@@ -10,9 +9,7 @@ import {
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateThumbnail } from '../../services/thumbnailService';
-// Added refineStudioImage import
 import { refineStudioImage } from '../../services/photoStudioService';
-// Added updateCreation import
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 
@@ -61,9 +58,11 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
 
     const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || 8;
     const refineCost = 5;
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hostInputRef = useRef<HTMLInputElement>(null);
     const guestInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +81,21 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         return true;
     }, [format, category, mood, context, hostImg, guestImg, subjectImg, hookType, exactTitle, isPodcast]);
 
+    // Auto-advance triggers for Assets
+    useEffect(() => {
+        if (currentStep === 1) {
+            if (isPodcast) {
+                if (hostImg && guestImg) {
+                    setTimeout(() => setCurrentStep(2), 600);
+                }
+            } else {
+                if (subjectImg) {
+                    setTimeout(() => setCurrentStep(2), 600);
+                }
+            }
+        }
+    }, [hostImg, guestImg, subjectImg, isPodcast, currentStep]);
+
     useEffect(() => {
         let interval: any;
         if (isGenerating) {
@@ -89,7 +103,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             const steps = [
                 "CTR Analytics: Researching trending hooks...",
                 "Creative Engine: Designing visual hierarchy...",
-                "Pixel Forge: Sharpening host identity...",
+                "Pixel Forge: Sharpening identity anchors...",
                 "Vibe Sync: Applying cinematic grading...",
                 "Finalizing: Exporting high-contrast hook..."
             ];
@@ -127,7 +141,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 format: format!,
                 category: category,
                 mood: mood,
-                title: finalTitle,
+                title: context,
                 customText: hookType === 'exact' ? exactTitle : undefined,
                 hostImage: isPodcast ? hostImg?.base64 : undefined,
                 guestImage: isPodcast ? guestImg?.base64 : undefined,
@@ -140,7 +154,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             setIsGenerating(false);
 
             await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail (Mobile)');
-            await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Thumbnail Pro');
+            const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Thumbnail Pro');
+            setLastCreationId(id);
         } catch (e) {
             console.error(e);
             alert("Thumbnail generation failed.");
@@ -148,7 +163,6 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         }
     };
 
-    // Added handleRefine implementation
     const handleRefine = async (text: string) => {
         if (!result || !text.trim() || !auth.user || isGenerating) return;
         
@@ -161,18 +175,11 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             setResult(blobUrl);
             setIsGenerating(false);
             
-            try {
-                if (lastCreationId) {
-                    await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
-                } else {
-                    const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Thumbnail Pro (Refined)');
-                    setLastCreationId(id);
-                }
-                const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
-                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            } catch (bgError) {
-                console.warn("Refine background update failed:", bgError);
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
             }
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             setRefineText('');
         } catch (e) {
             alert("Refinement failed.");
@@ -192,6 +199,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         setGuestImg(null);
         setSubjectImg(null);
         setCurrentStep(0);
+        setLastCreationId(null);
     };
 
     const handleBack = () => {
@@ -211,7 +219,6 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         if (isGenerating) return;
         if (stepId === 'category') {
             setCategory(option);
-            // Clear assets if industry changes
             setHostImg(null);
             setGuestImg(null);
             setSubjectImg(null);
@@ -234,7 +241,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             case 'mood':
             case 'hook':
                 return (
-                    <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 pb-2 animate-fadeIn">
+                    <div className="w-full flex gap-2.5 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
                         {activeStep.options?.map(opt => {
                             const isSelected = (stepId === 'category' && category === opt) || 
                                              (stepId === 'mood' && mood === opt) ||
@@ -244,7 +251,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                 <button 
                                     key={opt} 
                                     onClick={() => handleSelectOption(stepId, opt)} 
-                                    className={`shrink-0 px-6 py-4 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200'}`}
+                                    className={`shrink-0 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all duration-300 transform active:scale-95 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
                                 >
                                     {opt}
                                 </button>
@@ -254,30 +261,30 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 );
             case 'assets':
                 return (
-                    <div className="w-full px-6 flex flex-col justify-center items-center gap-2 animate-fadeIn">
-                        <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3">
-                            <InformationCircleIcon className="w-5 h-5 text-indigo-600" />
-                            <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-wide">Tap the canvas area above to upload photos</p>
+                    <div className="w-full px-6 flex flex-col justify-center items-center gap-2 animate-fadeIn py-2">
+                        <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3 w-full">
+                            <InformationCircleIcon className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest leading-relaxed">
+                                Tap the canvas areas above <br/> to upload source photos
+                            </p>
                         </div>
-                        <button onClick={() => setCurrentStep(2)} className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em] mt-2">I've uploaded them →</button>
                     </div>
                 );
             case 'context':
                 return (
-                    <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn">
+                    <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn py-2">
                         <textarea 
                             value={context}
                             onChange={(e) => setContext(e.target.value)}
-                            className="w-full p-5 bg-white border-2 border-indigo-100 rounded-3xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm resize-none h-28"
+                            className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xs font-bold focus:border-indigo-500 outline-none shadow-inner resize-none h-24"
                             placeholder="What is the video about? (Context)..."
-                            autoFocus
                         />
                         <button 
                             disabled={context.trim().length < 5}
                             onClick={() => setCurrentStep(4)} 
-                            className="self-end px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-30 transition-all active:scale-95"
+                            className="self-end px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-30 active:scale-95"
                         >
-                            Next: The Hook
+                            Next Step
                         </button>
                     </div>
                 );
@@ -288,7 +295,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            {/* Top Bar */}
+            {/* Command Bar */}
             <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
                 <button 
                     onClick={handleBack} 
@@ -306,25 +313,23 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                             <DownloadIcon className="w-5 h-5" />
                         </button>
                     ) : !result && (
-                        <div className="flex flex-col items-end gap-1">
-                            <button 
-                                onClick={handleGenerate}
-                                disabled={!isStrategyComplete || isGenerating}
-                                className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${
-                                    !isStrategyComplete || isGenerating
-                                    ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
-                                    : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
-                                }`}
-                            >
-                                {isGenerating ? 'Rendering...' : 'Generate'}
-                            </button>
-                        </div>
+                        <button 
+                            onClick={handleGenerate}
+                            disabled={!isStrategyComplete || isGenerating}
+                            className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${
+                                !isStrategyComplete || isGenerating
+                                ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
+                                : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
+                            }`}
+                        >
+                            {isGenerating ? 'Drafting...' : 'Generate'}
+                        </button>
                     )}
                 </div>
             </div>
 
-            {/* Canvas Area */}
-            <div className="relative h-[60%] w-full flex items-center justify-center p-6 select-none">
+            {/* Stage (Canvas) */}
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center">
                         {result ? (
@@ -335,55 +340,67 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                             />
                         ) : format ? (
                             <div className="w-full h-full p-4 flex flex-col items-center justify-center">
-                                {isPodcast ? (
-                                    <div className="flex gap-4 w-full max-w-xs animate-fadeIn">
-                                        <button 
-                                            onClick={() => hostInputRef.current?.click()}
-                                            className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${hostImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
-                                        >
-                                            {hostImg ? (
-                                                <img src={hostImg.url} className="w-full h-full object-cover rounded-[1.4rem]" />
-                                            ) : (
-                                                <><UserIcon className="w-8 h-8 text-gray-300"/><span className="text-[8px] font-black text-gray-400">HOST</span></>
-                                            )}
-                                        </button>
-                                        <button 
-                                            onClick={() => guestInputRef.current?.click()}
-                                            className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${guestImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
-                                        >
-                                            {guestImg ? (
-                                                <img src={guestImg.url} className="w-full h-full object-cover rounded-[1.4rem]" />
-                                            ) : (
-                                                <><UserIcon className="w-8 h-8 text-gray-300"/><span className="text-[8px] font-bold text-gray-400">GUEST</span></>
-                                            )}
-                                        </button>
+                                {!category ? (
+                                    <div className="text-center animate-fadeIn px-8">
+                                        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <ThumbnailIcon className="w-10 h-10 text-indigo-400" />
+                                        </div>
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest leading-tight">Identity Pending</h4>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Select Category below to unlock uploads</p>
                                     </div>
                                 ) : (
-                                    <button 
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className={`w-full max-w-xs aspect-square border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all animate-fadeIn ${subjectImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
-                                    >
-                                        {subjectImg ? (
-                                            <img src={subjectImg.url} className="w-full h-full object-cover rounded-[2.4rem]" />
+                                    <div className="w-full h-full flex flex-col items-center justify-center animate-fadeIn">
+                                        {isPodcast ? (
+                                            <div className="flex gap-4 w-full max-w-xs animate-fadeIn">
+                                                <button 
+                                                    onClick={() => hostInputRef.current?.click()}
+                                                    className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${hostImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
+                                                >
+                                                    {hostImg ? (
+                                                        <img src={hostImg.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                                    ) : (
+                                                        <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">HOST</span></>
+                                                    )}
+                                                </button>
+                                                <button 
+                                                    onClick={() => guestInputRef.current?.click()}
+                                                    className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${guestImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
+                                                >
+                                                    {guestImg ? (
+                                                        <img src={guestImg.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                                    ) : (
+                                                        <><UsersIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">GUEST</span></>
+                                                    )}
+                                                </button>
+                                            </div>
                                         ) : (
-                                            <><UploadIcon className="w-10 h-10 text-gray-300"/><span className="text-[10px] font-black text-gray-400 tracking-widest">UPLOAD SUBJECT</span></>
+                                            <button 
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className={`w-full max-w-xs aspect-square border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all animate-fadeIn ${subjectImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
+                                            >
+                                                {subjectImg ? (
+                                                    <img src={subjectImg.url} className="w-full h-full object-cover rounded-[2.4rem]" />
+                                                ) : (
+                                                    <><ImageIcon className="w-12 h-12 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em]">UPLOAD SUBJECT</span></>
+                                                )}
+                                            </button>
                                         )}
-                                    </button>
-                                )}
-                                <div className="mt-6 flex flex-col items-center gap-1 opacity-40">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{format} Blueprint</span>
-                                    <div className="flex gap-1.5">
-                                        <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                                        <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                                        <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                                        <div className="mt-6 flex flex-col items-center gap-1 opacity-40">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{format} Slate Ready</span>
+                                            <div className="flex gap-1.5 mt-1">
+                                                <div className="w-1 h-1 rounded-full bg-indigo-200"></div>
+                                                <div className="w-1 h-1 rounded-full bg-indigo-200"></div>
+                                                <div className="w-1 h-1 rounded-full bg-indigo-200"></div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         ) : (
                             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 gap-6 animate-fadeIn">
-                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Select Format</h3>
+                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Select Format</h3>
                                 <div className="flex gap-4 w-full max-w-sm">
-                                    <button onClick={() => setFormat('landscape')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
+                                    <button onClick={() => setFormat('landscape')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
                                         <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shadow-sm">
                                             <div className="w-6 h-4 border-2 border-current rounded-sm"></div>
                                         </div>
@@ -392,7 +409,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                             <span className="text-[8px] font-bold text-gray-400 block uppercase mt-0.5">(YouTube)</span>
                                         </div>
                                     </button>
-                                    <button onClick={() => setFormat('portrait')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
+                                    <button onClick={() => setFormat('portrait')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
                                         <div className="w-12 h-12 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center shadow-sm">
                                             <div className="w-4 h-6 border-2 border-current rounded-sm"></div>
                                         </div>
@@ -407,8 +424,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
                         {/* Rendering Overlay */}
                         {isGenerating && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none px-10 animate-fadeIn">
-                                <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[300px] flex flex-col items-center gap-8 animate-breathe">
+                            <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-10 animate-fadeIn">
+                                <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-8 animate-breathe">
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
@@ -419,9 +436,9 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-center gap-3 text-center">
-                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-90">Hook Engine</span>
+                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-90">Hook Factory</span>
                                         <div className="h-px w-8 bg-indigo-500/50"></div>
-                                        <span className="text-[9px] text-indigo-200/60 font-bold uppercase tracking-widest animate-pulse max-w-[180px] leading-relaxed">
+                                        <span className="text-[9px] text-indigo-200/60 font-bold uppercase tracking-widest animate-pulse leading-relaxed">
                                             {loadingText}
                                         </span>
                                     </div>
@@ -433,49 +450,49 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 </div>
             </div>
 
-            {/* Controls Tray */}
-            <div className="flex-1 flex flex-col bg-white overflow-hidden">
-                <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
+            {/* Controller (Bottom Tray) */}
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
+                <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
-                        <div className="flex-1 flex flex-col items-center justify-center px-6 animate-fadeIn">
-                            <div className="w-full flex flex-col gap-4">
-                                <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                    <CustomRefineIcon className="w-5 h-5 text-white" />
-                                    Refine Hook
+                        <div className="p-6 animate-fadeIn flex flex-col gap-4">
+                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <CustomRefineIcon className="w-5 h-5" /> Iterate Design
+                            </button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
+                                    <PlusIcon className="w-4 h-4" /> New Project
                                 </button>
-                                <div className="grid grid-cols-2 gap-3 w-full">
-                                    <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
-                                        <PlusIcon className="w-4 h-4" /> New Project
-                                    </button>
-                                    <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 active:bg-indigo-50 transition-all shadow-sm">
-                                        <RegenerateIcon className="w-4 h-4" /> Regenerate
-                                    </button>
-                                </div>
+                                <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm">
+                                    <RegenerateIcon className="w-4 h-4" /> Regenerate
+                                </button>
                             </div>
                         </div>
                     ) : (
-                        <div className={`flex-1 flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${format ? 'translate-y-0' : 'translate-y-full'}`}>
-                            <div className="flex-1 min-h-0 overflow-hidden relative">
+                        <div className={`flex flex-col transition-all duration-700 ${format ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
+                            {/* Step Container - Fixed Height to prevent overlap */}
+                            <div className="h-[140px] flex items-center relative overflow-hidden">
                                 {THUMBNAIL_STEPS.map((step, idx) => (
-                                    <div key={step.id} className={`absolute inset-0 px-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
+                                    <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
-                                        {step.id === 'hook' && hookType === 'exact' && (
-                                            <div className="px-6 mt-4 animate-fadeIn">
-                                                <input 
-                                                    value={exactTitle}
-                                                    onChange={e => setExactTitle(e.target.value)}
-                                                    className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none"
-                                                    placeholder="Enter exact title text..."
-                                                    autoFocus
-                                                />
+                                        {step.id === 'hook' && (
+                                            <div className="px-6 pb-2 animate-fadeIn">
+                                                {hookType === 'exact' && (
+                                                    <input 
+                                                        value={exactTitle}
+                                                        onChange={e => setExactTitle(e.target.value)}
+                                                        className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-[11px] font-black uppercase tracking-widest focus:border-indigo-500 outline-none"
+                                                        placeholder="Enter exact title text..."
+                                                        autoFocus
+                                                    />
+                                                )}
                                             </div>
                                         )}
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Nav Bar (Bottom Progress Tiers) */}
-                            <div className="flex-none px-4 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+                            {/* Nav Bar (Tiers) */}
+                            <div className="px-4 pt-4 pb-6 border-t border-gray-100 bg-white">
                                 <div className="flex items-center justify-between gap-1">
                                     {THUMBNAIL_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
@@ -486,11 +503,11 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                         (idx === 4 && !!hookType);
                                         
                                         return (
-                                            <button key={step.id} onClick={() => setCurrentStep(idx)} className="flex flex-col items-center gap-2 group flex-1 min-w-0">
+                                            <button key={step.id} onClick={() => setCurrentStep(idx)} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all active:scale-95">
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
-                                                <span className={`text-[7px] font-bold h-3 transition-opacity truncate w-full text-center px-1 ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? category : idx === 2 ? mood : isFilled ? 'Done' : ''}
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                    {idx === 0 ? category : idx === 2 ? mood : isFilled ? 'Ready' : ''}
                                                 </span>
                                             </button>
                                         );
@@ -502,7 +519,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 </div>
             </div>
 
-            {/* Refinement Sheet */}
+            {/* Modals & Inputs */}
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="CTR Refinement">
                 <div className="space-y-6 pb-6">
                     <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the text yellow and bigger, add more rim light..." />
@@ -513,11 +530,10 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             {isFullScreenOpen && result && (
                 <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
                     <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10"><XIcon className="w-6 h-6" /></button>
-                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize" />
+                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" />
                 </div>
             )}
 
-            {/* Hidden Inputs */}
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setSubjectImg)} />
             <input ref={hostInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setHostImg)} />
             <input ref={guestInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setGuestImg)} />
