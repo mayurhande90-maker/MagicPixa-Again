@@ -24,7 +24,7 @@ const THUMBNAIL_STEPS = [
 // Custom Refine Icon
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -306,7 +306,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Command Bar */}
-            <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
+            <div className="flex-none px-6 py-4 flex items-center justify-between z-50 bg-white shadow-sm">
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={handleBack} 
@@ -347,9 +347,9 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             </div>
 
             {/* Stage (Canvas) */}
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
-                    <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
+            <div className="relative flex-grow w-full flex items-center justify-center px-6 pb-6 pt-2 select-none overflow-hidden">
+                <div className={`w-full h-full rounded-[2rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
+                    <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2rem] overflow-hidden z-10">
                         {result ? (
                             <img 
                                 src={result} 
@@ -415,7 +415,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                 )}
                             </div>
                         ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 gap-6 animate-fadeIn">
+                            <div className="flex flex-col items-center justify-center p-8 gap-6 animate-fadeIn">
                                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Select Format</h3>
                                 <div className="flex gap-4 w-full max-w-sm">
                                     <button onClick={() => setFormat('landscape')} className="flex-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all">
