@@ -335,7 +335,10 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                         </div>
                         {!isReady && (
                             <p className="text-[9px] text-gray-400 font-medium uppercase tracking-wider">
-                                Pro Tip: Use a clear, well-lit selfie for best results.
+                                {mode === 'individual' 
+                                    ? 'Pro Tip: Use a clear, bright selfie looking straight at the camera for the best result.'
+                                    : 'Pro Tip: Duo mode puts both of you into the same professional photo together.'
+                                }
                             </p>
                         )}
                     </div>
