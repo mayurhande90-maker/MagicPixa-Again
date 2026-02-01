@@ -44,6 +44,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
     const [progressPercent, setProgressPercent] = useState(0);
+    const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
 
     // Tray Navigation
     const [currentStep, setCurrentStep] = useState(0);
@@ -126,6 +127,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     };
 
     const handleSelectOption = (stepId: string, option: string) => {
+        if (isGenerating) return;
         setSelections(prev => ({ ...prev, [stepId]: option }));
         
         // If not the last step, move forward
@@ -240,13 +242,13 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
                 <button 
                     onClick={() => { setImage(null); setResult(null); setStudioMode(null); }} 
-                    className={`p-2 rounded-full transition-all ${image && !result ? 'bg-gray-100 text-gray-500' : 'opacity-0 pointer-events-none'}`}
+                    className={`p-2 rounded-full transition-all ${image && !result && !isGenerating ? 'bg-gray-100 text-gray-500' : 'opacity-0 pointer-events-none'}`}
                 >
                     <ArrowLeftIcon className="w-5 h-5" />
                 </button>
 
                 <div className="flex items-center gap-3">
-                    {result && (
+                    {result && !isGenerating && (
                         <button 
                             onClick={() => downloadImage(result, 'magicpixa-studio.png')}
                             className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"
@@ -259,10 +261,10 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                         <button 
                             onClick={handleGenerate}
                             disabled={!isStrategyComplete || isGenerating}
-                            className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg ${
+                            className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${
                                 !isStrategyComplete || isGenerating
                                 ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
-                                : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/20 scale-105 animate-pulse-slight'
+                                : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
                             }`}
                         >
                             {isGenerating ? 'Rendering...' : 'Generate'}
@@ -278,7 +280,11 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                     {/* Content */}
                     <div className="relative w-full h-full flex flex-col items-center justify-center">
                         {result ? (
-                            <img src={result} className={`max-w-full max-h-full object-contain transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30 scale-95' : 'animate-materialize'}`} />
+                            <img 
+                                src={result} 
+                                onClick={() => !isGenerating && setIsFullScreenOpen(true)}
+                                className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30 scale-95' : 'animate-materialize'}`} 
+                            />
                         ) : image ? (
                             <img src={image.url} className={`max-w-[85%] max-h-[85%] object-contain animate-fadeIn transition-all ${isAnalyzing || !studioMode || isGenerating ? 'blur-sm scale-95 opacity-50' : ''}`} />
                         ) : (
@@ -378,121 +384,154 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
 
             {/* 3. INTERACTIVE SECTION (Bottom 40%) */}
             <div className="flex-1 flex flex-col bg-white overflow-hidden">
-                {result ? (
-                    /* POST-GENERATION ACTION DECK */
-                    <div className="flex-1 flex flex-col items-center justify-center px-6 animate-fadeIn">
-                        <div className="w-full flex flex-col gap-4">
-                            <button 
-                                onClick={() => setIsRefineOpen(true)}
-                                className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
-                            >
-                                <CustomRefineIcon className="w-5 h-5 text-white" />
-                                Refine Image
-                            </button>
-                            
-                            <div className="grid grid-cols-2 gap-3 w-full">
+                <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
+                    {result ? (
+                        /* POST-GENERATION ACTION DECK */
+                        <div className="flex-1 flex flex-col items-center justify-center px-6 animate-fadeIn">
+                            <div className="w-full flex flex-col gap-4">
                                 <button 
-                                    onClick={handleNewProject}
-                                    className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"
+                                    onClick={() => setIsRefineOpen(true)}
+                                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                                 >
-                                    <PlusIcon className="w-4 h-4" />
-                                    New Project
+                                    <CustomRefineIcon className="w-5 h-5 text-white" />
+                                    Refine Image
                                 </button>
-                                <button 
-                                    onClick={handleGenerate}
-                                    className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 active:bg-indigo-50 transition-all shadow-sm"
-                                >
-                                    <RegenerateIcon className="w-4 h-4" />
-                                    Regenerate
-                                </button>
-                            </div>
-                        </div>
-                        <p className="mt-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Elite Production Environment Active</p>
-                    </div>
-                ) : (
-                    /* DUAL TIER CONTROL TRAY */
-                    <div className={`flex-1 flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${studioMode ? 'translate-y-0' : 'translate-y-full'}`}>
-                        {/* TIER 2: OPTION SCROLLER */}
-                        <div className="flex-1 min-h-0 overflow-hidden relative">
-                            {activeSteps.map((step, idx) => (
-                                <div 
-                                    key={step.id}
-                                    className={`absolute inset-0 px-6 flex flex-col justify-center transition-all duration-500 ${
-                                        currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : 
-                                        currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 
-                                        'opacity-0 translate-y-8 pointer-events-none'
-                                    }`}
-                                >
-                                    {/* Custom Input for 'Other' category */}
-                                    {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
-                                        <div className="w-full flex flex-col gap-3 animate-fadeIn">
-                                            <input 
-                                                type="text" 
-                                                value={customCategory}
-                                                onChange={e => setCustomCategory(e.target.value)}
-                                                className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
-                                                placeholder="Define Product (e.g. Handmade Soap)..."
-                                                autoFocus
-                                            />
-                                            <button 
-                                                onClick={() => setCurrentStep(prev => prev + 1)}
-                                                disabled={!customCategory.trim()}
-                                                className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
-                                            >
-                                                Lock Category
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                                            {step.options.map(opt => {
-                                                const isSelected = selections[step.id] === opt;
-                                                return (
-                                                    <button 
-                                                        key={opt}
-                                                        onClick={() => handleSelectOption(step.id, opt)}
-                                                        className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
-                                                            isSelected 
-                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' 
-                                                            : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200 shadow-sm active:bg-gray-100'
-                                                        }`}
-                                                    >
-                                                        {opt}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    )}
+                                
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    <button 
+                                        onClick={handleNewProject}
+                                        className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"
+                                    >
+                                        <PlusIcon className="w-4 h-4" />
+                                        New Project
+                                    </button>
+                                    <button 
+                                        onClick={handleGenerate}
+                                        className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 active:bg-indigo-50 transition-all shadow-sm"
+                                    >
+                                        <RegenerateIcon className="w-4 h-4" />
+                                        Regenerate
+                                    </button>
                                 </div>
-                            ))}
+                            </div>
+                            <p className="mt-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Elite Production Environment Active</p>
                         </div>
+                    ) : (
+                        /* DUAL TIER CONTROL TRAY */
+                        <div className={`flex-1 flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${studioMode ? 'translate-y-0' : 'translate-y-full'}`}>
+                            {/* TIER 2: OPTION SCROLLER */}
+                            <div className="flex-1 min-h-0 overflow-hidden relative">
+                                {activeSteps.map((step, idx) => (
+                                    <div 
+                                        key={step.id}
+                                        className={`absolute inset-0 px-6 flex flex-col justify-center transition-all duration-500 ${
+                                            currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : 
+                                            currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 
+                                            'opacity-0 translate-y-8 pointer-events-none'
+                                        }`}
+                                    >
+                                        {/* Custom Input for 'Other' category */}
+                                        {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
+                                            <div className="w-full flex flex-col gap-3 animate-fadeIn">
+                                                <input 
+                                                    type="text" 
+                                                    value={customCategory}
+                                                    onChange={e => setCustomCategory(e.target.value)}
+                                                    className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
+                                                    placeholder="Define Product (e.g. Handmade Soap)..."
+                                                    autoFocus
+                                                />
+                                                <button 
+                                                    onClick={() => setCurrentStep(prev => prev + 1)}
+                                                    disabled={!customCategory.trim()}
+                                                    className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                                                >
+                                                    Lock Category
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                                                {step.options.map(opt => {
+                                                    const isSelected = selections[step.id] === opt;
+                                                    return (
+                                                        <button 
+                                                            key={opt}
+                                                            onClick={() => handleSelectOption(step.id, opt)}
+                                                            className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
+                                                                isSelected 
+                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' 
+                                                                : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200 shadow-sm active:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
 
-                        {/* TIER 1: MENU BAR (Fixed Bottom) */}
-                        <div className="flex-none px-4 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
-                            <div className="flex items-center justify-between gap-1">
-                                {activeSteps.map((step, idx) => {
-                                    const isActive = currentStep === idx;
-                                    const isFilled = !!selections[step.id];
-                                    return (
-                                        <button 
-                                            key={step.id}
-                                            onClick={() => setCurrentStep(idx)}
-                                            className="flex flex-col items-center gap-2 group flex-1 min-w-0"
-                                        >
-                                            <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>
-                                                {step.label}
-                                            </span>
-                                            <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
-                                            <span className={`text-[7px] font-bold h-3 transition-opacity truncate w-full text-center px-1 ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                {step.id === 'category' && selections['category'] === 'Other / Custom' ? customCategory : selections[step.id]}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
+                            {/* TIER 1: MENU BAR (Fixed Bottom) */}
+                            <div className="flex-none px-4 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+                                <div className="flex items-center justify-between gap-1">
+                                    {activeSteps.map((step, idx) => {
+                                        const isActive = currentStep === idx;
+                                        const isFilled = !!selections[step.id];
+                                        return (
+                                            <button 
+                                                key={step.id}
+                                                onClick={() => setCurrentStep(idx)}
+                                                className="flex flex-col items-center gap-2 group flex-1 min-w-0"
+                                            >
+                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>
+                                                    {step.label}
+                                                </span>
+                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
+                                                <span className={`text-[7px] font-bold h-3 transition-opacity truncate w-full text-center px-1 ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                    {step.id === 'category' && selections['category'] === 'Other / Custom' ? customCategory : selections[step.id]}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
+
+            {/* FULL SCREEN PREVIEW MODAL */}
+            {isFullScreenOpen && result && (
+                <div 
+                    className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fadeIn"
+                    onClick={() => setIsFullScreenOpen(false)}
+                >
+                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }}
+                            className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"
+                        >
+                            <DownloadIcon className="w-6 h-6" />
+                        </button>
+                        <button 
+                            onClick={() => setIsFullScreenOpen(false)}
+                            className="p-3 bg-white/10 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all border border-white/10"
+                        >
+                            <XIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+                    
+                    <div className="w-full h-full flex items-center justify-center p-2">
+                        <img 
+                            src={result} 
+                            className="max-w-full max-h-full object-contain animate-materialize rounded-lg" 
+                            onClick={e => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Refinement Modal */}
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="Studio Refinement">
@@ -546,11 +585,11 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 }
                 .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 
-                @keyframes pulse-slight {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
+                @keyframes cta-pulse {
+                    0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); }
+                    50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); }
                 }
-                .animate-pulse-slight { animation: pulse-slight 2s ease-in-out infinite; }
+                .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
                 
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
