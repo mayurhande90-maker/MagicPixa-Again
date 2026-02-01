@@ -91,7 +91,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     const [mode, setMode] = useState<'individual' | 'duo'>('individual');
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [partnerImage, setPartnerImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [archetype, setArchetype] = useState('Executive');
+    // FIXED: Styled (Archetype) initialized as empty string so user must select it.
+    const [archetype, setArchetype] = useState('');
     const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
     const [customDesc, setCustomDesc] = useState('');
@@ -236,7 +237,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         setResult(null);
         setImage(null);
         setPartnerImage(null);
-        setArchetype('Executive');
+        setArchetype('');
         setBackground('');
         setCustomBackgroundPrompt('');
         setCustomDesc('');
@@ -308,13 +309,33 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 );
             case 'assets':
                 return (
-                    <div className="w-full px-6 flex flex-col justify-center items-center gap-2 animate-fadeIn py-2">
-                        <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3 w-full">
-                            <InformationCircleIcon className="w-4 h-4 text-indigo-600 shrink-0" />
-                            <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest leading-relaxed text-center">
-                                Tap the canvas areas above <br/> to upload your photos
-                            </p>
-                        </div>
+                    <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn py-2">
+                        {mode === 'individual' ? (
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95 ${image ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-indigo-600 text-white border border-indigo-600'}`}
+                            >
+                                <UploadIcon className="w-5 h-5" /> {image ? 'Change Photo' : 'Select Your Photo'}
+                            </button>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-3 w-full">
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${image ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-white text-gray-400 border-gray-100'}`}
+                                >
+                                    <UserIcon className="w-4 h-4" /> {image ? 'Subject A OK' : 'Photo A'}
+                                </button>
+                                <button 
+                                    onClick={() => partnerInputRef.current?.click()}
+                                    className={`py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${partnerImage ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-white text-gray-400 border-gray-100'}`}
+                                >
+                                    <UserIcon className="w-4 h-4" /> {partnerImage ? 'Subject B OK' : 'Photo B'}
+                                </button>
+                            </div>
+                        )}
+                        <p className="text-[9px] text-gray-400 font-medium text-center uppercase tracking-wider">
+                            Identity Lock 4.0 performs best with clear frontal selfies.
+                        </p>
                     </div>
                 );
             case 'background':
