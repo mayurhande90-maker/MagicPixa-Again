@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -163,14 +162,15 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         }
     };
 
-    const handleRefine = async (text: string) => {
-        if (!result || !text.trim() || !auth.user || isGenerating) return;
+    // COMMENT: Changed signature to take no arguments and use refineText from state to fix type error at call site.
+    const handleRefine = async () => {
+        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
         
         setIsGenerating(true);
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "YouTube/Social Media Thumbnail");
+            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "YouTube/Social Media Thumbnail");
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
@@ -264,7 +264,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                     <div className="w-full px-6 flex flex-col justify-center items-center gap-2 animate-fadeIn py-2">
                         <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3 w-full">
                             <InformationCircleIcon className="w-4 h-4 text-indigo-600 shrink-0" />
-                            <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest leading-relaxed">
+                            <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest leading-relaxed text-center">
                                 Tap the canvas areas above <br/> to upload source photos
                             </p>
                         </div>
@@ -276,7 +276,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                         <textarea 
                             value={context}
                             onChange={(e) => setContext(e.target.value)}
-                            className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xs font-bold focus:border-indigo-500 outline-none shadow-inner resize-none h-24"
+                            className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner resize-none h-24"
                             placeholder="What is the video about? (Context)..."
                         />
                         <button 
@@ -357,7 +357,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                     className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${hostImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                                 >
                                                     {hostImg ? (
-                                                        <img src={hostImg.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                                        <img src={hostImg.url} className="w-full h-full object-contain rounded-[1.4rem]" />
                                                     ) : (
                                                         <><UserIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">HOST</span></>
                                                     )}
@@ -367,7 +367,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                     className={`flex-1 aspect-[3/4] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${guestImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                                 >
                                                     {guestImg ? (
-                                                        <img src={guestImg.url} className="w-full h-full object-cover rounded-[1.4rem]" />
+                                                        <img src={guestImg.url} className="w-full h-full object-contain rounded-[1.4rem]" />
                                                     ) : (
                                                         <><UsersIcon className="w-8 h-8 text-gray-200"/><span className="text-[8px] font-black text-gray-300">GUEST</span></>
                                                     )}
@@ -379,7 +379,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                 className={`w-full max-w-xs aspect-square border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all animate-fadeIn ${subjectImg ? 'border-indigo-500 bg-indigo-50/20' : 'border-gray-200 bg-gray-50'}`}
                                             >
                                                 {subjectImg ? (
-                                                    <img src={subjectImg.url} className="w-full h-full object-cover rounded-[2.4rem]" />
+                                                    <img src={subjectImg.url} className="w-full h-full object-contain rounded-[2.4rem]" />
                                                 ) : (
                                                     <><ImageIcon className="w-12 h-12 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em]">UPLOAD SUBJECT</span></>
                                                 )}
@@ -456,7 +456,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <CustomRefineIcon className="w-5 h-5" /> Iterate Design
+                                <CustomRefineIcon className="w-5 h-5" /> Refine image
                             </button>
                             <div className="grid grid-cols-2 gap-3">
                                 <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
@@ -480,7 +480,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                                     <input 
                                                         value={exactTitle}
                                                         onChange={e => setExactTitle(e.target.value)}
-                                                        className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-[11px] font-black uppercase tracking-widest focus:border-indigo-500 outline-none"
+                                                        className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-[16px] font-black uppercase tracking-widest focus:border-indigo-500 outline-none"
                                                         placeholder="Enter exact title text..."
                                                         autoFocus
                                                     />
@@ -519,11 +519,11 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 </div>
             </div>
 
-            {/* Modals & Inputs */}
+            {/* Refinement Sheet */}
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="CTR Refinement">
                 <div className="space-y-6 pb-6">
-                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the text yellow and bigger, add more rim light..." />
-                    <button onClick={() => { handleRefine(refineText); setIsRefineOpen(false); }} disabled={!refineText.trim()} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Apply Changes</button>
+                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the text yellow and bigger, add more rim light..." />
+                    <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                 </div>
             </MobileSheet>
 
@@ -534,6 +534,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 </div>
             )}
 
+            {/* Hidden Inputs */}
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setSubjectImg)} />
             <input ref={hostInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setHostImg)} />
             <input ref={guestInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setGuestImg)} />
