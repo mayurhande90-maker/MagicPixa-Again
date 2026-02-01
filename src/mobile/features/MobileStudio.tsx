@@ -13,15 +13,18 @@ import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 
 const PRODUCT_STEPS = [
-    { id: 'category', label: 'Category', options: ['Beauty', 'Tech', 'Food', 'Fashion', 'Home', 'Jewelry', 'Footwear', 'Other'] },
-    { id: 'style', label: 'Brand Style', options: ['Clean', 'Luxury', 'Minimalist', 'Bold', 'Natural', 'High-tech', 'Playful'] },
-    { id: 'theme', label: 'Visual Theme', options: ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'] }
+    { id: 'category', label: 'Category', options: ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Medical Product', 'Jewellery', 'Footwear', 'Toys', 'Automotive', 'Other / Custom'] },
+    { id: 'style', label: 'Style', options: ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'] },
+    { id: 'theme', label: 'Theme', options: ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'] }
 ];
 
 const MODEL_STEPS = [
     { id: 'persona', label: 'Persona', options: ['Adult Female', 'Adult Male', 'Young Female', 'Young Male', 'Senior', 'Kid Model'] },
-    { id: 'region', label: 'Region', options: ['Global', 'South Asian', 'East Asian', 'African', 'European', 'American'] },
-    { id: 'skin', label: 'Skin Tone', options: ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'] }
+    { id: 'region', label: 'Region', options: ['Indian', 'South Asian', 'East Asian', 'African', 'European', 'American'] },
+    { id: 'skin', label: 'Skin', options: ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'] },
+    { id: 'body', label: 'Body', options: ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'] },
+    { id: 'composition', label: 'Layout', options: ['Single Model', 'Group Shot'] },
+    { id: 'framing', label: 'Shot', options: ['Tight Close', 'Close-Up', 'Mid Shot', 'Wide Shot'] }
 ];
 
 // Custom Refine Icon provided by user
@@ -44,6 +47,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Tray Navigation
     const [currentStep, setCurrentStep] = useState(0);
     const [selections, setSelections] = useState<Record<string, string>>({});
+    const [customCategory, setCustomCategory] = useState('');
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
 
@@ -52,7 +56,20 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const refineCost = 5;
 
     const activeSteps = studioMode === 'model' ? MODEL_STEPS : PRODUCT_STEPS;
-    const isStrategyComplete = Object.keys(selections).length === 3;
+    
+    // Updated validity check based on number of active steps
+    const isStrategyComplete = useMemo(() => {
+        if (!studioMode) return false;
+        const requiredCount = activeSteps.length;
+        const currentCount = Object.keys(selections).length;
+        
+        // Special check for Custom Category
+        if (studioMode === 'product' && selections['category'] === 'Other / Custom' && !customCategory.trim()) {
+            return false;
+        }
+
+        return currentCount >= requiredCount;
+    }, [selections, studioMode, activeSteps, customCategory]);
 
     // --- Dynamic Loading Messages ---
     useEffect(() => {
@@ -84,6 +101,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResult(null);
             setStudioMode(null);
             setSelections({});
+            setCustomCategory('');
             setCurrentStep(0);
             
             setIsAnalyzing(true);
@@ -94,12 +112,16 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const handleModeSelect = (mode: 'product' | 'model') => {
         setStudioMode(mode);
         setSelections({});
+        setCustomCategory('');
         setCurrentStep(0);
     };
 
     const handleSelectOption = (stepId: string, option: string) => {
         setSelections(prev => ({ ...prev, [stepId]: option }));
-        if (currentStep < 2) {
+        
+        // If not the last step, move forward
+        if (currentStep < activeSteps.length - 1) {
+            // Delay slightly for visual feedback on button tap
             setTimeout(() => {
                 setCurrentStep(prev => prev + 1);
             }, 150);
@@ -111,16 +133,24 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         
         setIsGenerating(true);
         try {
-            const promptStr = Object.values(selections).join(', ');
+            const finalCategory = selections['category'] === 'Other / Custom' ? customCategory : selections['category'];
+            const promptParts = Object.entries(selections).map(([key, val]) => {
+                if (key === 'category') return finalCategory;
+                return val;
+            });
+            const promptStr = promptParts.join(', ');
+
             let resB64;
-            
             if (studioMode === 'product') {
                 resB64 = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, promptStr, auth.activeBrandKit);
             } else {
                 resB64 = await generateModelShot(image.base64.base64, image.base64.mimeType, { 
                     modelType: selections['persona'], 
                     region: selections['region'], 
-                    skinTone: selections['skin'] 
+                    skinTone: selections['skin'],
+                    bodyType: selections['body'],
+                    composition: selections['composition'],
+                    framing: selections['framing']
                 }, auth.activeBrandKit);
             }
 
@@ -170,6 +200,7 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setResult(null);
         setStudioMode(null);
         setSelections({});
+        setCustomCategory('');
         setCurrentStep(0);
         setLastCreationId(null);
     };
@@ -323,37 +354,58 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                             {activeSteps.map((step, idx) => (
                                 <div 
                                     key={step.id}
-                                    className={`absolute inset-0 px-6 flex items-center transition-all duration-500 ${
+                                    className={`absolute inset-0 px-6 flex flex-col justify-center transition-all duration-500 ${
                                         currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : 
                                         currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 
                                         'opacity-0 translate-y-8 pointer-events-none'
                                     }`}
                                 >
-                                    <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                                        {step.options.map(opt => {
-                                            const isSelected = selections[step.id] === opt;
-                                            return (
-                                                <button 
-                                                    key={opt}
-                                                    onClick={() => handleSelectOption(step.id, opt)}
-                                                    className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all ${
-                                                        isSelected 
-                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg scale-105' 
-                                                        : 'bg-gray-50 text-gray-500 border-gray-100 active:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {opt}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
+                                    {/* Custom Input for 'Other' category */}
+                                    {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
+                                        <div className="w-full flex flex-col gap-3 animate-fadeIn">
+                                            <input 
+                                                type="text" 
+                                                value={customCategory}
+                                                onChange={e => setCustomCategory(e.target.value)}
+                                                className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm"
+                                                placeholder="Define Product (e.g. Handmade Soap)..."
+                                                autoFocus
+                                            />
+                                            <button 
+                                                onClick={() => setCurrentStep(prev => prev + 1)}
+                                                disabled={!customCategory.trim()}
+                                                className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                                            >
+                                                Lock Category
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                                            {step.options.map(opt => {
+                                                const isSelected = selections[step.id] === opt;
+                                                return (
+                                                    <button 
+                                                        key={opt}
+                                                        onClick={() => handleSelectOption(step.id, opt)}
+                                                        className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 transform active:scale-95 ${
+                                                            isSelected 
+                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' 
+                                                            : 'bg-gradient-to-b from-white to-gray-50 text-slate-600 border-slate-200 shadow-sm active:bg-gray-100'
+                                                        }`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
 
                         {/* TIER 1: MENU BAR (Fixed Bottom) */}
-                        <div className="flex-none px-6 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
-                            <div className="flex items-center justify-between">
+                        <div className="flex-none px-4 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+                            <div className="flex items-center justify-between gap-1">
                                 {activeSteps.map((step, idx) => {
                                     const isActive = currentStep === idx;
                                     const isFilled = !!selections[step.id];
@@ -361,14 +413,14 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                                         <button 
                                             key={step.id}
                                             onClick={() => setCurrentStep(idx)}
-                                            className="flex flex-col items-center gap-2 group flex-1"
+                                            className="flex flex-col items-center gap-2 group flex-1 min-w-0"
                                         >
-                                            <span className={`text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>
+                                            <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>
                                                 {step.label}
                                             </span>
-                                            <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
-                                            <span className={`text-[9px] font-bold h-3 transition-opacity ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                {selections[step.id]}
+                                            <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
+                                            <span className={`text-[7px] font-bold h-3 transition-opacity truncate w-full text-center px-1 ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                {step.id === 'category' && selections['category'] === 'Other / Custom' ? customCategory : selections[step.id]}
                                             </span>
                                         </button>
                                     );
