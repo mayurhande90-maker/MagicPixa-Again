@@ -23,8 +23,21 @@ interface MobileAppProps {
 export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
     const [activeTab, setActiveTab] = useState<View>('home_dashboard');
 
-    const renderContent = () => {
-        switch (activeTab) {
+    // List of tabs that should be kept alive
+    const PERSISTENT_TABS: View[] = [
+        'home_dashboard',
+        'dashboard',
+        'studio',
+        'brand_stylist',
+        'headshot',
+        'thumbnail_studio',
+        'soul',
+        'creations',
+        'profile'
+    ];
+
+    const renderTabContent = (tab: View) => {
+        switch (tab) {
             case 'home_dashboard':
                 return <MobileHome auth={auth} setActiveTab={setActiveTab} />;
             case 'dashboard':
@@ -44,14 +57,21 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             case 'profile':
                 return <MobileProfile auth={auth} />;
             default:
-                return <MobileHome auth={auth} setActiveTab={setActiveTab} />;
+                return null;
         }
     };
 
     return (
         <MobileLayout activeTab={activeTab} setActiveTab={setActiveTab} auth={auth}>
             <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>}>
-                {renderContent()}
+                {PERSISTENT_TABS.map((tab) => (
+                    <div 
+                        key={tab} 
+                        className={`h-full w-full ${activeTab === tab ? 'block' : 'hidden'}`}
+                    >
+                        {renderTabContent(tab)}
+                    </div>
+                ))}
             </Suspense>
         </MobileLayout>
     );
