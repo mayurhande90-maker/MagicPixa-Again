@@ -16,11 +16,11 @@ export const PixaTogetherStyles = {
   proModeBanner: "animate-fadeIn bg-blue-50/50 p-5 rounded-2xl border border-blue-100 text-xs text-blue-900 leading-relaxed shadow-sm",
   
   visualCardA: "absolute top-8 left-4 w-48 h-64 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transform -rotate-6 transition-all duration-500 hover:rotate-0 hover:z-30 hover:scale-105 z-10 origin-bottom-left",
-  visualCardB: "absolute top-8 right-4 w-48 h-64 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transform rotate-6 transition-all duration-500 hover:rotate-0 hover:z-30 hover:scale-105 z-20 origin-bottom-right",
+  visualCardB: "absolute top-8 right-4 w-48 h-64 bg-gray-50 rounded-2xl overflow-hidden shadow-xl border-4 border-white transform rotate(6deg) transition-all duration-500 hover:rotate-0 hover:z-30 hover:scale-105 z-20 origin-bottom-right",
   
   visualLabel: "absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm",
   
-  refPoseOverlay: "absolute bottom-4 right-4 w-32 aspect-[3/4] bg-white rounded-xl shadow-2xl border-4 border-white transform rotate-6 z-30 animate-fadeInUp",
+  refPoseOverlay: "absolute bottom-4 right-4 w-32 aspect-[3/4] bg-white rounded-xl shadow-2xl border-4 border-white transform rotate(6deg) z-30 animate-fadeInUp",
   refPoseBadge: "absolute top-2 right-2 bg-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase",
 
   // New Engine Card Styles
