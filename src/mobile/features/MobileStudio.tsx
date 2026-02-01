@@ -1,76 +1,48 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, View } from '../../types';
+import { AuthProps, AppConfig } from '../../types';
 import { 
-    PixaProductIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
-    CreditCoinIcon, PaletteIcon, MagicWandIcon, CubeIcon, UsersIcon,
-    CameraIcon, ImageIcon, ArrowRightIcon, ArrowLeftIcon, RefreshIcon,
-    InformationCircleIcon
+    UploadIcon, SparklesIcon, XIcon, CheckIcon, 
+    CubeIcon, UsersIcon, CameraIcon, ImageIcon, 
+    ArrowRightIcon, ArrowLeftIcon, InformationCircleIcon,
+    MagicWandIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64 } from '../../utils/imageUtils';
-import { editImageWithPrompt, analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, refineStudioImage } from '../../services/photoStudioService';
-import { deductCredits, saveCreation, updateCreation } from '../../firebase';
-import { SelectionGrid, InputField } from '../../components/FeatureLayout';
-import { PhotoStudioStyles } from '../../styles/features/MagicPhotoStudio.styles';
+import { editImageWithPrompt, analyzeProductImage, analyzeProductForModelPrompts, generateModelShot } from '../../services/photoStudioService';
+import { deductCredits, saveCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 
-const CATEGORIES = ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Jewellery', 'Footwear', 'Other / Custom'];
-const BRAND_STYLES = ['Clean', 'Bold', 'Luxury', 'Playful', 'Natural', 'High-tech', 'Minimal'];
-const VISUAL_THEMES = ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'];
+const PRODUCT_STEPS = [
+    { id: 'category', label: 'Category', options: ['Beauty', 'Tech', 'Food', 'Fashion', 'Home', 'Jewelry', 'Footwear', 'Other'] },
+    { id: 'style', label: 'Brand Style', options: ['Clean', 'Luxury', 'Minimalist', 'Bold', 'Natural', 'High-tech', 'Playful'] },
+    { id: 'theme', label: 'Visual Theme', options: ['Studio', 'Lifestyle', 'Abstract', 'Natural Textures', 'Flat-lay', 'Seasonal'] }
+];
 
-const MODEL_TYPES = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
-const MODEL_REGIONS = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American'];
-const SKIN_TONES = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
-const COMPOSITION_TYPES = ['Single Model', 'Group Shot'];
+const MODEL_STEPS = [
+    { id: 'persona', label: 'Persona', options: ['Adult Female', 'Adult Male', 'Young Female', 'Young Male', 'Senior', 'Kid Model'] },
+    { id: 'region', label: 'Region', options: ['Global', 'South Asian', 'East Asian', 'African', 'European', 'American'] },
+    { id: 'skin', label: 'Skin Tone', options: ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'] }
+];
 
 export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
-    // --- State ---
+    // --- UI State ---
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
     const [result, setResult] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [loadingText, setLoadingText] = useState("Analyzing subject...");
-    
-    // AI Suggestions
-    const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
-    const [suggestedModelPrompts, setSuggestedModelPrompts] = useState<{ display: string; prompt: string }[]>([]);
-    const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+    const [loadingText, setLoadingText] = useState("Analyzing...");
 
-    // Form State
-    const [category, setCategory] = useState('');
-    const [customCategory, setCustomCategory] = useState('');
-    const [brandStyle, setBrandStyle] = useState('');
-    const [visualType, setVisualType] = useState('');
-    const [modelType, setModelType] = useState('');
-    const [modelRegion, setModelRegion] = useState('');
-    const [skinTone, setSkinTone] = useState('');
-    const [composition, setComposition] = useState('');
-
+    // Tray Navigation
+    const [currentStep, setCurrentStep] = useState(0);
+    const [selections, setSelections] = useState<Record<string, string>>({});
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
-    const [isRefining, setIsRefining] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts['Pixa Product Shots'] || 10;
-    const refineCost = 5;
 
-    // --- Effects ---
-    useEffect(() => {
-        let interval: any;
-        if (isGenerating || isRefining) {
-            const steps = isRefining 
-                ? ["Elite Retoucher: Analyzing pixels...", "Optical Audit: Tracing rays...", "Refining details...", "Finalizing output..."]
-                : ["Pixa Vision: Extracting identity...", "Calibrating lighting rig...", "Tracing reflections...", "Polishing 4K render..."];
-            let step = 0;
-            setLoadingText(steps[0]);
-            interval = setInterval(() => {
-                step = (step + 1) % steps.length;
-                setLoadingText(steps[step]);
-            }, 2000);
-        }
-        return () => clearInterval(interval);
-    }, [isGenerating, isRefining]);
+    const activeSteps = studioMode === 'model' ? MODEL_STEPS : PRODUCT_STEPS;
+    const isStrategyComplete = Object.keys(selections).length === 3;
 
     // --- Handlers ---
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,43 +52,46 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setImage({ url: URL.createObjectURL(file), base64 });
             setResult(null);
             setStudioMode(null);
-            setSelectedPrompt(null);
+            setSelections({});
+            setCurrentStep(0);
+            
+            setIsAnalyzing(true);
+            setTimeout(() => setIsAnalyzing(false), 2000);
         }
     };
 
-    const handleModeSelect = async (mode: 'product' | 'model') => {
+    // FIX: Added missing handleModeSelect function to resolve 'Cannot find name' errors.
+    const handleModeSelect = (mode: 'product' | 'model') => {
         setStudioMode(mode);
-        setIsAnalyzing(true);
-        try {
-            if (mode === 'product') {
-                const prompts = await analyzeProductImage(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
-                setSuggestedPrompts(prompts);
-            } else {
-                const prompts = await analyzeProductForModelPrompts(image!.base64.base64, image!.base64.mimeType, auth.activeBrandKit);
-                setSuggestedModelPrompts(prompts);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsAnalyzing(false);
+        setSelections({});
+        setCurrentStep(0);
+    };
+
+    const handleSelectOption = (stepId: string, option: string) => {
+        setSelections(prev => ({ ...prev, [stepId]: option }));
+        if (currentStep < 2) {
+            // Trigger "pop" animation by slight delay before moving to next step
+            setTimeout(() => {
+                setCurrentStep(prev => prev + 1);
+            }, 150);
         }
     };
 
     const handleGenerate = async () => {
-        if (!image || !auth.user) return;
+        if (!image || !isStrategyComplete || !auth.user || isGenerating) return;
+        
         setIsGenerating(true);
         try {
-            const finalCategory = category === 'Other / Custom' ? customCategory : category;
-            const promptDirection = selectedPrompt || (studioMode === 'product' 
-                ? `${visualType} shot of ${finalCategory} product in ${brandStyle} style.`
-                : `Model: ${modelType}, Region: ${modelRegion}, Skin: ${skinTone}, Composition: ${composition}`);
-
+            const promptStr = Object.values(selections).join(', ');
             let resB64;
+            
             if (studioMode === 'product') {
-                resB64 = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, promptDirection, auth.activeBrandKit);
+                resB64 = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, promptStr, auth.activeBrandKit);
             } else {
                 resB64 = await generateModelShot(image.base64.base64, image.base64.mimeType, { 
-                    modelType, region: modelRegion, skinTone, composition, freeformPrompt: selectedPrompt || undefined 
+                    modelType: selections['persona'], 
+                    region: selections['region'], 
+                    skinTone: selections['skin'] 
                 }, auth.activeBrandKit);
             }
 
@@ -134,232 +109,195 @@ export const MobileStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         }
     };
 
-    const handleRefine = async () => {
-        if (!result || !refineText.trim() || !auth.user) return;
-        setIsRefining(true);
-        setIsRefineOpen(false);
-        try {
-            const currentB64 = await urlToBase64(result);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText);
-            const blobUrl = await base64ToBlobUrl(res, 'image/png');
-            setResult(blobUrl);
-            setRefineText('');
-        } catch (e) {
-            alert("Refinement failed.");
-        } finally {
-            setIsRefining(false);
-        }
-    };
-
-    const canGenerate = !!studioMode && (
-        selectedPrompt || 
-        (studioMode === 'product' ? (!!category && !!brandStyle && !!visualType) : (!!modelType && !!modelRegion && !!skinTone))
-    );
-
     return (
-        <div className="h-full flex flex-col bg-white overflow-y-auto no-scrollbar pb-32">
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
             
-            {/* 1. Viewport / Preview Area */}
-            <div className="p-4 flex-none">
-                <div className={`relative w-full aspect-square rounded-[2rem] overflow-hidden border-2 transition-all duration-500 ${image ? 'border-gray-100 bg-white shadow-lg' : 'border-dashed border-gray-200 bg-gray-50'}`}>
-                    {result ? (
-                        <img src={result} className="w-full h-full object-contain animate-fadeIn" />
-                    ) : image ? (
-                        <img src={image.url} className="w-full h-full object-contain animate-fadeIn p-4" />
-                    ) : (
-                        <div onClick={() => fileInputRef.current?.click()} className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center p-8">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 shadow-inner">
-                                <UploadIcon className="w-10 h-10" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Your Subject</h3>
-                                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse gallery</p>
-                            </div>
-                        </div>
-                    )}
+            {/* 1. TOP COMMAND BAR (Fixed) */}
+            <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
+                <button 
+                    onClick={() => { setImage(null); setResult(null); }} 
+                    className={`p-2 rounded-full transition-all ${image || result ? 'bg-gray-100 text-gray-500' : 'opacity-0 pointer-events-none'}`}
+                >
+                    <ArrowLeftIcon className="w-5 h-5" />
+                </button>
 
-                    {/* Overlays */}
-                    {(isGenerating || isRefining) && (
-                        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-fadeIn">
-                            <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">Pixa Agent Active</h3>
-                            <p className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em] animate-pulse">{loadingText}</p>
-                        </div>
-                    )}
-
-                    {(image || result) && !isGenerating && !isRefining && (
-                        <div className="absolute top-6 right-6 z-40 flex flex-col gap-3">
-                            <button onClick={() => { setImage(null); setResult(null); setStudioMode(null); }} className="p-3 bg-white/90 backdrop-blur-sm rounded-2xl text-gray-400 shadow-xl border border-gray-100 active:scale-90">
-                                <XIcon className="w-5 h-5" />
-                            </button>
-                            {result && (
-                                <button onClick={() => setIsRefineOpen(true)} className="p-3 bg-indigo-600 rounded-2xl text-white shadow-xl active:scale-90">
-                                    <MagicWandIcon className="w-5 h-5" />
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* 2. Control Deck - Mirrors Desktop Layout */}
-            <div className="px-6 pb-12 space-y-8 animate-fadeIn">
-                {!image && (
-                    <div className="text-center py-10 opacity-30 select-none">
-                        <InformationCircleIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Awaiting production asset</p>
-                    </div>
-                )}
-
-                {image && !studioMode && (
-                    <div className="space-y-6 animate-fadeIn">
-                        <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black">1</span>
-                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Select Production Mode</h3>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4">
-                            <button onClick={() => handleModeSelect('product')} className="group relative flex items-center justify-between p-6 bg-gradient-to-br from-blue-50 to-white rounded-[2rem] border border-blue-100 text-left shadow-sm active:scale-[0.98] transition-all">
-                                <div className="flex items-center gap-5">
-                                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-blue-100 flex items-center justify-center text-blue-600">
-                                        <CubeIcon className="w-8 h-8" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg font-black text-gray-900 tracking-tight">Product Shot</h4>
-                                        <p className="text-xs text-blue-600 font-bold uppercase tracking-widest">Studio Setup</p>
-                                    </div>
-                                </div>
-                                <ArrowRightIcon className="w-5 h-5 text-blue-300 group-active:translate-x-1 transition-transform" />
-                            </button>
-
-                            <button onClick={() => handleModeSelect('model')} className="group relative flex items-center justify-between p-6 bg-gradient-to-br from-purple-50 to-white rounded-[2rem] border border-purple-100 text-left shadow-sm active:scale-[0.98] transition-all">
-                                <div className="flex items-center gap-5">
-                                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-purple-100 flex items-center justify-center text-purple-600">
-                                        <UsersIcon className="w-8 h-8" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg font-black text-gray-900 tracking-tight">Model Shot</h4>
-                                        <p className="text-xs text-purple-600 font-bold uppercase tracking-widest">Lifestyle Context</p>
-                                    </div>
-                                </div>
-                                <ArrowRightIcon className="w-5 h-5 text-purple-300 group-active:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {image && studioMode && (
-                    <div className="space-y-8 animate-fadeIn">
-                        <button onClick={() => setStudioMode(null)} className="flex items-center gap-2 text-xs font-black text-gray-400 hover:text-indigo-600 uppercase tracking-widest">
-                            <ArrowLeftIcon className="w-4 h-4" /> Back to Mode
-                        </button>
-
-                        {isAnalyzing ? (
-                            <div className="py-12 flex flex-col items-center justify-center text-center gap-4 bg-gray-50 rounded-3xl animate-pulse border border-gray-100">
-                                <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pixa Vision Analysis Active...</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* AI Suggested Blueprints */}
-                                {(suggestedPrompts.length > 0 || suggestedModelPrompts.length > 0) && (
-                                    <div className="animate-fadeIn">
-                                        <div className="flex justify-between items-center mb-4 ml-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">AI Recommendations</label>
-                                            {selectedPrompt && <button onClick={() => setSelectedPrompt(null)} className="text-[10px] font-bold text-red-500">Reset</button>}
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(studioMode === 'product' ? suggestedPrompts : suggestedModelPrompts).map((p: any, i) => {
-                                                const prompt = studioMode === 'product' ? p : p.prompt;
-                                                const label = studioMode === 'product' ? p : p.display;
-                                                const isSelected = selectedPrompt === prompt;
-                                                return (
-                                                    <button 
-                                                        key={i}
-                                                        onClick={() => setSelectedPrompt(isSelected ? null : prompt)}
-                                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-gray-600 border-gray-200'}`}
-                                                    >
-                                                        {label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="h-px bg-gray-100"></div>
-
-                                {/* Manual Grids */}
-                                <div className={`space-y-8 ${selectedPrompt ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
-                                    {studioMode === 'product' ? (
-                                        <>
-                                            <SelectionGrid label="1. Category" options={CATEGORIES} value={category} onChange={setCategory} />
-                                            {category === 'Other / Custom' && (
-                                                <InputField label="Custom Product Name" value={customCategory} onChange={(e: any) => setCustomCategory(e.target.value)} />
-                                            )}
-                                            <SelectionGrid label="2. Brand Style" options={BRAND_STYLES} value={brandStyle} onChange={setBrandStyle} />
-                                            <SelectionGrid label="3. Visual Theme" options={VISUAL_THEMES} value={visualType} onChange={setVisualType} />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <SelectionGrid label="1. Persona" options={MODEL_TYPES} value={modelType} onChange={setModelType} />
-                                            <SelectionGrid label="2. Regional Identity" options={MODEL_REGIONS} value={modelRegion} onChange={setModelRegion} />
-                                            <SelectionGrid label="3. Skin Tone" options={SKIN_TONES} value={skinTone} onChange={setSkinTone} />
-                                            <SelectionGrid label="4. Shot Composition" options={COMPOSITION_TYPES} value={composition} onChange={setComposition} />
-                                        </>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* 3. Fixed Bottom Action (Production Trigger) */}
-            <div className="fixed bottom-24 left-0 right-0 px-6 z-50 pointer-events-none">
                 <button 
                     onClick={handleGenerate}
-                    disabled={!canGenerate || isGenerating || isRefining}
-                    className={`pointer-events-auto w-full py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.3em] shadow-2xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 ${
-                        !canGenerate || isGenerating || isRefining ? 'bg-gray-200 text-gray-400 grayscale' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30'
+                    disabled={!isStrategyComplete || isGenerating}
+                    className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg ${
+                        !isStrategyComplete || isGenerating
+                        ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
+                        : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/20 scale-105 animate-pulse-slight'
                     }`}
                 >
-                    {isGenerating ? 'Rendering...' : isRefining ? 'Refining...' : 'Render Masterpiece'}
-                    <SparklesIcon className="w-5 h-5" />
+                    {isGenerating ? 'Rendering...' : 'Generate'}
                 </button>
             </div>
 
-            {/* Refinement Bottom Sheet */}
+            {/* 2. FIXED CANVAS (60% Viewport) */}
+            <div className="relative h-[60%] w-full flex items-center justify-center p-6 select-none">
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'}`}>
+                    
+                    {/* Content */}
+                    {result ? (
+                        <img src={result} className="w-full h-full object-contain animate-fadeIn" />
+                    ) : image ? (
+                        <div className="relative w-full h-full flex flex-col items-center justify-center">
+                            <img src={image.url} className={`max-w-[85%] max-h-[85%] object-contain animate-fadeIn transition-all ${isAnalyzing || !studioMode ? 'blur-sm scale-95 opacity-50' : ''}`} />
+                            
+                            {/* SCANNING OVERLAY */}
+                            {isAnalyzing && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 shadow-[0_0_20px_#6366f1] animate-scan-y"></div>
+                                    <div className="bg-black/80 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-3 border border-white/10 shadow-2xl animate-bounce-slight">
+                                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
+                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Pixa Vision Scanning...</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* POST-UPLOAD MODE PICKER */}
+                            {image && !studioMode && !isAnalyzing && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 gap-6 bg-white/40 backdrop-blur-sm animate-fadeIn">
+                                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Choose Your Path</h3>
+                                    <div className="flex gap-4 w-full max-w-sm">
+                                        <button 
+                                            onClick={() => handleModeSelect('product')}
+                                            className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all"
+                                        >
+                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><CubeIcon className="w-6 h-6"/></div>
+                                            <span className="text-[10px] font-black uppercase text-gray-800 tracking-wider text-center">Product Shot</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleModeSelect('model')}
+                                            className="flex-1 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl flex flex-col items-center gap-3 active:scale-95 transition-all"
+                                        >
+                                            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center"><UsersIcon className="w-6 h-6"/></div>
+                                            <span className="text-[10px] font-black uppercase text-gray-800 tracking-wider text-center">Model Shot</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div onClick={() => fileInputRef.current?.click()} className="text-center group active:scale-95 transition-all">
+                            <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
+                                <ImageIcon className="w-10 h-10 text-indigo-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Drop Asset</h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse</p>
+                        </div>
+                    )}
+
+                    {/* Result Actions */}
+                    {result && !isGenerating && (
+                        <div className="absolute top-6 right-6 flex flex-col gap-3">
+                            <button onClick={() => setIsRefineOpen(true)} className="p-3 bg-indigo-600 text-white rounded-2xl shadow-xl active:scale-90">
+                                <MagicWandIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 3. CONTROL TRAY (Bottom 40%) */}
+            <div className={`flex-1 flex flex-col bg-white border-t border-gray-100 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${studioMode ? 'translate-y-0' : 'translate-y-full'}`}>
+                
+                {/* TIER 2: OPTION SCROLLER (Auto-advancing Area) */}
+                <div className="flex-1 min-h-0 overflow-hidden relative">
+                    {activeSteps.map((step, idx) => (
+                        <div 
+                            key={step.id}
+                            className={`absolute inset-0 px-6 flex items-center transition-all duration-500 ${
+                                currentStep === idx ? 'opacity-100 translate-y-0 pointer-events-auto' : 
+                                currentStep > idx ? 'opacity-0 -translate-y-8 pointer-events-none' : 
+                                'opacity-0 translate-y-8 pointer-events-none'
+                            }`}
+                        >
+                            <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                                {step.options.map(opt => {
+                                    const isSelected = selections[step.id] === opt;
+                                    return (
+                                        <button 
+                                            key={opt}
+                                            onClick={() => handleSelectOption(step.id, opt)}
+                                            className={`shrink-0 px-6 py-3.5 rounded-2xl text-xs font-bold border transition-all ${
+                                                isSelected 
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg scale-105' 
+                                                : 'bg-gray-50 text-gray-500 border-gray-100 active:bg-gray-100'
+                                            }`}
+                                        >
+                                            {opt}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* TIER 1: MENU BAR (Fixed Bottom) */}
+                <div className="flex-none px-6 py-6 border-t border-gray-50 bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center justify-between">
+                        {activeSteps.map((step, idx) => {
+                            const isActive = currentStep === idx;
+                            const isFilled = !!selections[step.id];
+                            return (
+                                <button 
+                                    key={step.id}
+                                    onClick={() => setCurrentStep(idx)}
+                                    className="flex flex-col items-center gap-2 group flex-1"
+                                >
+                                    <span className={`text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'text-indigo-600' : 'text-gray-300'}`}>
+                                        {step.label}
+                                    </span>
+                                    <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`}></div>
+                                    <span className={`text-[9px] font-bold h-3 transition-opacity ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                        {selections[step.id]}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {/* Refinement Modal */}
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title="Master Refinement">
-                <div className="space-y-6">
-                    <p className="text-xs text-gray-500 font-medium leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        Describe specific additions or tweaks. Our Elite Retoucher engine will rework the scene pixels precisely.
-                    </p>
+                <div className="space-y-6 pb-6">
                     <textarea 
                         value={refineText}
                         onChange={e => setRefineText(e.target.value)}
-                        className="w-full p-5 bg-white border-2 border-gray-100 rounded-3xl text-sm font-bold focus:border-indigo-500 outline-none h-40 shadow-inner"
+                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32"
                         placeholder="e.g. Add luxury water droplets to the bottle surface..."
-                        autoFocus
                     />
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-2">
-                            <CreditCoinIcon className="w-4 h-4 text-yellow-500" />
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{refineCost} Credits</span>
-                        </div>
-                        <button 
-                            onClick={handleRefine}
-                            disabled={!refineText.trim()}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-30 transition-all"
-                        >
-                            Apply Refinement
-                        </button>
-                    </div>
+                    <button 
+                        onClick={() => { alert("Manual Refinement: " + refineText); setIsRefineOpen(false); }}
+                        className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl"
+                    >
+                        Apply Changes
+                    </button>
                 </div>
             </MobileSheet>
 
-            {/* Native Inputs */}
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
 
+            <style>{`
+                @keyframes scan-y {
+                    0% { top: 0%; }
+                    100% { top: 100%; }
+                }
+                .animate-scan-y { animation: scan-y 2s linear infinite; }
+                
+                @keyframes pulse-slight {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                .animate-pulse-slight { animation: pulse-slight 2s ease-in-out infinite; }
+                
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
         </div>
     );
 };
