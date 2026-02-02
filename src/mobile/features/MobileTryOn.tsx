@@ -384,7 +384,14 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            <div className="h-[140px] flex items-center relative overflow-hidden">{TRYON_STEPS.map((step, idx) => (<div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>{renderStepContent(step.id)}</div>))}</div>
+                            {/* Updated Tray Height from h-[140px] to h-[200px] */}
+                            <div className="h-[200px] flex items-center relative overflow-hidden">
+                                {TRYON_STEPS.map((step, idx) => (
+                                    <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
+                                        {renderStepContent(step.id)}
+                                    </div>
+                                ))}
+                            </div>
                             <div className="px-4 pt-4 pb-6 border-t border-gray-100 bg-white">
                                 <div className="flex items-center justify-between gap-1">
                                     {TRYON_STEPS.map((step, idx) => {
@@ -430,6 +437,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     );
