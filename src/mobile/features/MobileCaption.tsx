@@ -280,7 +280,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     <CaptionResultCard key={i} item={item} index={i} onCopy={handleCopy} copiedIndex={copiedIndex} />
                                 ))}
                             </div>
-                        ) : !image ? (
+                        ) : (currentStep === 0 && !image) ? (
                             <div className="text-center animate-fadeIn px-8">
                                 <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6"><PixaCaptionIcon className="w-10 h-10 text-indigo-400" /></div>
                                 <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest leading-tight">Copy Hub</h4>
