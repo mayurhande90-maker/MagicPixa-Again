@@ -31,11 +31,16 @@
 }
 </script>
 <style>
+  :root {
+    --vh: 1vh;
+  }
   html, body {
     height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
     margin: 0;
     padding: 0;
     overflow: hidden;
+    overscroll-behavior-y: none;
   }
   #root {
     height: 100%;
@@ -109,6 +114,15 @@
 </head>
   <body>
     <div id="root"></div>
+    <script>
+      const syncVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      };
+      window.addEventListener('resize', syncVH);
+      window.addEventListener('orientationchange', syncVH);
+      syncVH();
+    </script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
