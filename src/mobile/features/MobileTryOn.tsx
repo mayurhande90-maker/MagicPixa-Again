@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -6,9 +5,9 @@ import {
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, ShieldCheckIcon
+    CreditCoinIcon, ShieldCheckIcon, GarmentTrousersIcon
 } from '../../components/icons';
-import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateApparelTryOn } from '../../services/apparelService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
@@ -36,14 +35,12 @@ const LOADING_MESSAGES = [
 
 // --- COMPONENTS ---
 
-// COMMENT: Defined missing CustomRefineIcon component.
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
         <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
-// COMMENT: Defined missing PremiumUpload component.
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; compact?: boolean; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40", compact }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
@@ -70,14 +67,19 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
     );
 };
 
-export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; }> = ({ auth, appConfig, onGenerationStart }) => {
+interface MobileTryOnProps {
+    auth: AuthProps;
+    appConfig: AppConfig | null;
+    onGenerationStart: () => void;
+}
+
+export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGenerationStart }) => {
     // --- STATE ---
     const [currentStep, setCurrentStep] = useState(0);
     const [personImage, setPersonImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    // Styling Options
     const [fitType, setFitType] = useState('Regular');
     const [finishType, setFinishType] = useState<string[]>([]);
     const [accessories, setAccessories] = useState('');
@@ -92,8 +94,6 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [refineText, setRefineText] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const topInputRef = useRef<HTMLInputElement>(null);
-    const bottomInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts?.['Pixa TryOn'] || 8;
     const refineCost = 5;
@@ -113,7 +113,6 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return !!personImage && (!!topGarment || !!bottomGarment);
     }, [personImage, topGarment, bottomGarment]);
 
-    // Progressive Loading Animation
     useEffect(() => {
         let interval: any;
         if (isGenerating) {
@@ -131,7 +130,6 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return () => clearInterval(interval);
     }, [isGenerating]);
 
-    // Handlers
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -139,7 +137,6 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setter({ url: URL.createObjectURL(file), base64 });
             setResult(null);
             
-            // Auto-advance if filling crucial slots
             if (setter === setPersonImage) {
                 setTimeout(() => setCurrentStep(1), 500);
             }
@@ -213,7 +210,6 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    // COMMENT: Defined missing handleNewSession handler.
     const handleNewSession = () => {
         setResult(null);
         setPersonImage(null);
@@ -253,8 +249,8 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             case 'closet':
                 return (
                     <div className="w-full px-6 flex gap-4 animate-fadeIn py-2 items-center h-full">
-                        <PremiumUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-rose-400"/>} heightClass="h-28" compact />
-                        <PremiumUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
+                        <PremiumUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
+                        <PremiumUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
                     </div>
                 );
             case 'tailoring':
@@ -274,13 +270,13 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <button key={opt} onClick={() => handleToggleFinish(opt)} className={`${styles.optionBtn} ${isSelected ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
                             );
                         })}
-                        <button onClick={() => setCurrentStep(4)} className="shrink-0 px-6 py-3.5 rounded-2xl text-[10px] font-black bg-rose-50 text-rose-600 uppercase tracking-widest">Done</button>
+                        <button onClick={() => setCurrentStep(4)} className="shrink-0 px-6 py-3.5 rounded-2xl text-[10px] font-black bg-indigo-50 text-indigo-600 uppercase tracking-widest">Done</button>
                     </div>
                 );
             case 'addons':
                 return (
                     <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn py-2">
-                        <input value={accessories} onChange={e => setAccessories(e.target.value)} className="w-full p-4 bg-gray-50 border-2 border-rose-100 rounded-2xl text-[16px] font-bold focus:border-rose-500 outline-none shadow-inner" placeholder="Accessories: e.g. Gold watch, leather bag..." />
+                        <input value={accessories} onChange={e => setAccessories(e.target.value)} className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Accessories: e.g. Gold watch, leather bag..." />
                     </div>
                 );
             default: return null;
@@ -292,17 +288,25 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             {/* Header */}
             <div className="flex-none flex flex-col bg-white z-50">
                 <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-rose-500">Pixa TryOn Mobile</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-indigo-600">Pixa TryOn Mobile</span>
                 </div>
                 <div className="px-6 py-3 flex items-center justify-between">
-                    <button onClick={handleBack} className={`p-2 rounded-full bg-gray-50 text-gray-500 transition-all ${personImage && !isGenerating ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                        <ArrowLeftIcon className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleBack} className={`p-2 rounded-full bg-gray-50 text-gray-500 transition-all ${personImage && !isGenerating ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                            <ArrowLeftIcon className="w-5 h-5" />
+                        </button>
+                        {!isGenerating && (
+                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex items-center gap-3">
                         {result && !isGenerating ? (
-                            <button onClick={() => downloadImage(result, 'tryon.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-rose-500 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
+                            <button onClick={() => downloadImage(result, 'tryon.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-indigo-600 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-rose-600 text-white shadow-rose-200'}`}>
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-200'}`}>
                                 {isGenerating ? 'Tailoring...' : 'Generate'}
                             </button>
                         )}
@@ -328,10 +332,11 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                             )}
                         </div>
                     ) : (
-                        <div onClick={() => fileInputRef.current?.click()} className="text-center group active:scale-95 transition-all">
-                            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-rose-100"><UserIcon className="w-10 h-10 text-rose-500" /></div>
+                        <div onClick={() => document.getElementById('tryon-mobile-upload')?.click()} className="text-center group active:scale-95 transition-all">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-indigo-100"><UserIcon className="w-10 h-10 text-indigo-600" /></div>
                             <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Model</h3>
                             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Selfie or Full-body</p>
+                            <input id="tryon-mobile-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />
                         </div>
                     )}
                     
@@ -339,13 +344,13 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl">
                             <div className="flex flex-col items-center gap-6 px-10 text-center animate-fadeIn">
                                 <div className="relative w-24 h-24 flex items-center justify-center">
-                                    <svg className="w-full h-full transform -rotate-90"><circle cx="48" cy="48" r="44" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-rose-500" strokeDasharray={276.4} strokeDashoffset={276.4 - (276.4 * (progressPercent / 100))} strokeLinecap="round" /></svg>
+                                    <svg className="w-full h-full transform -rotate-90"><circle cx="48" cy="48" r="44" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={276.4} strokeDashoffset={276.4 - (276.4 * (progressPercent / 100))} strokeLinecap="round" /></svg>
                                     <div className="absolute"><span className="text-sm font-mono font-black text-white">{Math.round(progressPercent)}%</span></div>
                                 </div>
                                 <div>
                                     <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] opacity-80">Fabric Scan</span>
-                                    <div className="h-px w-8 bg-rose-500/50 mx-auto my-3" />
-                                    <span className="text-[10px] text-rose-200 font-bold uppercase tracking-widest animate-pulse leading-relaxed">{loadingText}</span>
+                                    <div className="h-px w-8 bg-indigo-500/50 mx-auto my-3" />
+                                    <span className="text-[10px] text-indigo-200 font-bold uppercase tracking-widest animate-pulse leading-relaxed">{loadingText}</span>
                                 </div>
                             </div>
                         </div>
@@ -360,8 +365,8 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 <div className={`transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Tailor's Adjustment</button>
-                            <div className="grid grid-cols-2 gap-3"><button onClick={handleNewSession} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Shoot</button><button onClick={handleGenerate} className="py-4 bg-white text-rose-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-rose-100 flex items-center justify-center gap-2">Regenerate</button></div>
+                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Tailor's Adjustment</button>
+                            <div className="grid grid-cols-2 gap-3"><button onClick={handleNewSession} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Shoot</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
@@ -374,9 +379,9 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         const isFilled = (idx === 0 && !!personImage) || (idx === 1 && (!!topGarment || !!bottomGarment)) || (idx === 2 && !!fitType) || (idx === 3 && finishType.length > 0) || (idx === 4 && !!accessories);
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
-                                                <span className={`${styles.stepLabel} ${isActive ? 'text-rose-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
-                                                <div className={`${styles.stepBar} ${isActive ? 'bg-rose-600' : isFilled ? 'bg-rose-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-rose-500' : 'opacity-0'}`}>Ready</span>
+                                                <span className={`${styles.stepLabel} ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
+                                                <div className={`${styles.stepBar} ${isActive ? 'bg-indigo-600' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>Ready</span>
                                             </button>
                                         );
                                     })}
@@ -387,9 +392,22 @@ export const MobileTryOn: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 </div>
             </div>
 
-            <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Tailor Refinement</span><div className="flex items-center gap-1.5 bg-rose-50 px-2 py-1 rounded-full border border-rose-100"><CreditCoinIcon className="w-2.5 h-2.5 text-rose-600" /><span className="text-[9px] font-black text-rose-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
-                <div className="space-y-6 pb-6"><textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." /><button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-rose-600 text-white shadow-rose-500/20'}`}>Update Outfit</button></div>
+            <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Tailor Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
+                <div className="space-y-6 pb-6">
+                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
+                    {/* Fixed: Pass refineText argument to handleRefine instead of passing the function directly */}
+                    <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
+                </div>
             </MobileSheet>
+
+            {isFullScreenOpen && result && (
+                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
+                    <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10">
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" />
+                </div>
+            )}
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />
             <style>{`
