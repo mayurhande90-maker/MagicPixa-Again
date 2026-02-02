@@ -66,7 +66,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         const commonProps = { 
             auth, 
             appConfig, 
-            onGenerationStart: () => onGenerationStart(tab) 
+            onGenerationStart: () => onGenerationStart(tab),
+            setActiveTab
         };
 
         switch (tab) {
@@ -75,7 +76,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             case 'dashboard':
                 return <MobileFeatures setActiveTab={setActiveTab} appConfig={appConfig} />;
             case 'studio':
-                return <MobileStudio {...commonProps} setActiveTab={setActiveTab} />;
+                return <MobileStudio {...commonProps} />;
             case 'brand_stylist':
                 return <MobileAdMaker {...commonProps} />;
             case 'headshot':
