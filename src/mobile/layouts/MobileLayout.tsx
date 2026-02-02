@@ -26,7 +26,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
             </header>
 
             {/* Main Content Area */}
-            <main className="flex-1 relative overflow-y-auto custom-scrollbar bg-white safe-area-bottom">
+            <main className="flex-1 min-h-0 relative overflow-y-auto custom-scrollbar bg-white safe-area-bottom">
                 {children}
             </main>
 
