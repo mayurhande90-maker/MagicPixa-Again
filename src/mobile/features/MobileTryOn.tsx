@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -258,7 +257,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                 onUpload={handleUpload(setTopGarment)} 
                                 onClear={() => setTopGarment(null)} 
                                 icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} 
-                                heightClass="h-32" 
+                                heightClass="h-28" 
                                 compact 
                             />
                             <PremiumUpload 
@@ -268,7 +267,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                 onUpload={handleUpload(setBottomGarment)} 
                                 onClear={() => setBottomGarment(null)} 
                                 icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} 
-                                heightClass="h-32" 
+                                heightClass="h-28" 
                                 compact 
                             />
                         </div>
@@ -335,8 +334,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 </div>
             </div>
 
-            {/* Stage */}
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 overflow-hidden pb-10">
+            {/* Stage Area - flex-1 min-h-0 for fluidity */}
+            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center p-6 overflow-hidden pb-10">
                 <div className={styles.canvasBox}>
                     {result ? (
                         <img src={result} onClick={() => setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
@@ -365,7 +364,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl">
                             <div className="flex flex-col items-center gap-6 px-10 text-center animate-fadeIn">
                                 <div className="relative w-24 h-24 flex items-center justify-center">
-                                    <svg className="w-full h-full transform -rotate-90"><circle cx="48" cy="48" r="44" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={276.4} strokeDashoffset={276.4 - (276.4 * (progressPercent / 100))} strokeLinecap="round" /></svg>
+                                    <svg className="w-full h-full transform -rotate-90"><circle cx="48" cy="48" r="44" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-50" strokeDasharray={276.4} strokeDashoffset={276.4 - (276.4 * (progressPercent / 100))} strokeLinecap="round" /></svg>
                                     <div className="absolute"><span className="text-sm font-mono font-black text-white">{Math.round(progressPercent)}%</span></div>
                                 </div>
                                 <div>
@@ -391,8 +390,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            {/* Updated Tray Height to h-[160px] to increase canvas space */}
-                            <div className="h-[160px] flex items-center relative overflow-hidden">
+                            <div className="h-[140px] flex items-center relative overflow-hidden">
                                 {TRYON_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
