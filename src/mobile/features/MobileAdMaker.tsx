@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { AuthProps, AppConfig } from '../../types';
+import { AuthProps, AppConfig, View } from '../../types';
 import { MagicAdsIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, PaletteIcon, ChevronRightIcon, CreditCoinIcon, ArrowLeftIcon } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/imageUtils';
 import { generateAdCreative } from '../../services/adMakerService';
@@ -8,7 +7,13 @@ import { deductCredits, saveCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 import { SelectionGrid } from '../../components/FeatureLayout';
 
-export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
+interface MobileAdMakerProps {
+    auth: AuthProps;
+    appConfig: AppConfig | null;
+    onGenerationStart: () => void;
+}
+
+export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, onGenerationStart }) => {
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
     const [vibe, setVibe] = useState('');
@@ -23,6 +28,8 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const handleGenerate = async () => {
         if (!image || !vibe || !description || !auth.user) return;
+        
+        onGenerationStart();
         setIsGenerating(true);
         try {
             const resB64 = await generateAdCreative({
@@ -57,7 +64,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     return (
-        <div className="h-full flex flex-col animate-fadeIn">
+        <div className="min-h-full flex flex-col animate-fadeIn">
             {/* Header with Back */}
             <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-50 shrink-0">
                 <MagicAdsIcon className="w-5 h-5 text-indigo-600" />
@@ -97,7 +104,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             </div>
 
             {/* Controls */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white no-scrollbar pb-10">
+            <div className="flex-none p-6 space-y-6 bg-white pb-10">
                 <div className="grid grid-cols-2 gap-4">
                     <button 
                         onClick={() => fileInputRef.current?.click()}
@@ -141,7 +148,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             </div>
 
             {/* Action Bar */}
-            <div className="flex-none p-6 bg-white border-t border-gray-100">
+            <div className="flex-none p-6 bg-white border-t border-gray-100 sticky bottom-0 z-50">
                 <button 
                     onClick={handleGenerate}
                     disabled={!image || !vibe || !description || isGenerating}
