@@ -251,7 +251,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
     };
 
     return (
-        <div className="h-full flex flex-col bg-white overflow-hidden relative">
+        <div className="min-h-full flex flex-col bg-white relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
                 {/* Top Row: Identity (Gradient Text Design) */}
@@ -304,7 +304,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {/* Stage / Canvas Area - Using flex-1 min-h-0 for absolute fluidity */}
-            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden">
+            <div className="relative flex-1 min-h-[400px] w-full flex items-center justify-center p-6 select-none overflow-hidden">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -341,7 +341,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-50" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
+                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center">
                                             <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
@@ -381,7 +381,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {/* Controller / Bottom Tray */}
-            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
+            <div className="flex-none flex flex-col bg-white min-h-0">
                 <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
