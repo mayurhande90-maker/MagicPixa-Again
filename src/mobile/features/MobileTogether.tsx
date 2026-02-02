@@ -33,7 +33,7 @@ const checkMilestoneLocal = (gens: number): number | false => {
 // Custom Refine Icon component
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -324,12 +324,13 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     };
 
     return (
-        <div className="min-h-full flex flex-col bg-white relative">
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
-                {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <PixaTogetherIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
                         Pixa Together
                     </span>
                 </div>
@@ -359,8 +360,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 </div>
             </div>
 
-            {/* Stage Area - Precise fluidity with flex-1 min-h-0 */}
-            <div className="relative flex-1 min-h-[400px] w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -414,7 +414,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 </div>
             </div>
 
-            <div className="flex-none flex flex-col bg-white min-h-0">
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
@@ -423,8 +423,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {/* Tray height adjusted to h-[150px] */}
-                            <div className="h-[150px] flex items-center relative overflow-hidden">
+                            <div className="h-[140px] flex items-center relative overflow-hidden">
                                 {activeSteps.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {step.id === 'timeline' && timeline ? (
