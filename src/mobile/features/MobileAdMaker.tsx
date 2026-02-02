@@ -25,10 +25,16 @@ export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, o
     const logoInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
+    const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const handleGenerate = async () => {
-        if (!image || !vibe || !description || !auth.user) return;
+        if (!image || !vibe || !description || !auth.user || isGenerating) return;
         
+        if (isLowCredits) {
+            alert(`Insufficient credits. Required: ${cost}`);
+            return;
+        }
+
         onGenerationStart();
         setIsGenerating(true);
         try {
@@ -168,8 +174,8 @@ export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, o
             <div className="flex-none p-6 bg-white border-t border-gray-100">
                 <button 
                     onClick={handleGenerate}
-                    disabled={!image || !vibe || !description || isGenerating}
-                    className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 ${!image || !vibe || !description ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}
+                    disabled={!image || !vibe || !description || isGenerating || isLowCredits}
+                    className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 ${!image || !vibe || !description || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}
                 >
                     {isGenerating ? 'Designing...' : 'Generate Pro Ad'}
                     <SparklesIcon className="w-4 h-4" />
