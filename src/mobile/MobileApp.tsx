@@ -1,4 +1,3 @@
-
 import React, { useState, Suspense, lazy } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from '../types';
 import { MobileLayout } from './layouts/MobileLayout';
@@ -17,6 +16,7 @@ const MobileCaption = lazy(() => import('./features/MobileCaption').then(m => ({
 const MobileCreations = lazy(() => import('./features/MobileCreations').then(m => ({ default: m.MobileCreations })));
 const MobileProfile = lazy(() => import('./features/MobileProfile').then(m => ({ default: m.MobileProfile })));
 const MobileTryOn = lazy(() => import('./features/MobileTryOn').then(m => ({ default: m.MobileTryOn })));
+const Billing = lazy(() => import('../components/Billing').then(m => ({ default: m.Billing })));
 
 interface MobileAppProps {
     auth: AuthProps;
@@ -43,7 +43,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         'caption',
         'creations',
         'profile',
-        'apparel'
+        'apparel',
+        'billing'
     ];
 
     // Triggered by any feature when a user starts a "Generate" task
@@ -74,7 +75,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             case 'dashboard':
                 return <MobileFeatures setActiveTab={setActiveTab} appConfig={appConfig} />;
             case 'studio':
-                return <MobileStudio {...commonProps} />;
+                return <MobileStudio {...commonProps} setActiveTab={setActiveTab} />;
             case 'brand_stylist':
                 return <MobileAdMaker {...commonProps} />;
             case 'headshot':
@@ -93,6 +94,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
                 return <MobileCreations auth={auth} />;
             case 'profile':
                 return <MobileProfile auth={auth} />;
+            case 'billing':
+                return <div className="h-full overflow-y-auto no-scrollbar pb-10"><Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} setActiveView={setActiveTab} /></div>;
             default:
                 return null;
         }
