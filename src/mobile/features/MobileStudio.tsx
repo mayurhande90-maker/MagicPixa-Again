@@ -303,8 +303,8 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                 </div>
             </div>
 
-            {/* Stage / Canvas Area */}
-            <div className="relative flex-grow min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden">
+            {/* Stage / Canvas Area - Using flex-1 min-h-0 for absolute fluidity */}
+            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -341,7 +341,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
+                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-50" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center">
                                             <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
@@ -405,7 +405,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
                                             <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn">
-                                                <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm" placeholder="Define Product (e.g. Handmade Soap)..." autoFocus />
+                                                <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm" placeholder="Define Product (e.g. Handmade Soap)..." autoFocus />
                                                 <button onClick={() => setCurrentStep(prev => prev + 1)} disabled={!customCategory.trim()} className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50">Lock Category</button>
                                             </div>
                                         ) : (
