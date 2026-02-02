@@ -242,12 +242,14 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
-            <div className="flex-none flex flex-col bg-white border-b border-gray-50 z-50">
-                {/* Top Row: Identity */}
-                <div className="py-2.5 flex justify-center border-b border-gray-50/50 bg-gray-50/30">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] pointer-events-none">
-                        Pixa Caption Pro
-                    </span>
+            <div className="flex-none flex flex-col bg-white z-50">
+                {/* Top Row: Identity Badge (Capsule Design) */}
+                <div className="pt-4 pb-2 flex justify-center">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-1.5 rounded-full shadow-lg shadow-indigo-500/20 transform transition-transform active:scale-95">
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest pointer-events-none">
+                            Pixa Caption Pro
+                        </span>
+                    </div>
                 </div>
 
                 {/* Bottom Row: Commands */}
