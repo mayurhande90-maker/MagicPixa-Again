@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Creation } from '../../types';
 import { 
@@ -73,7 +72,7 @@ interface MobileHeadshotProps {
 }
 
 export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig, onGenerationStart }) => {
-    // --- 1. PRE-INITIALIZE CONSTANTS (Prevents TDZ Crash) ---
+    // --- 1. PRE-INITIALIZE CONSTANTS ---
     const cost = appConfig?.featureCosts?.['Pixa Headshot Pro'] || 4;
     const refineCost = 2;
     const userCredits = auth.user?.credits || 0;
@@ -438,8 +437,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 </div>
             </div>
 
-            {/* Stage Area */}
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            {/* Stage Area - flex-1 min-h-0 for fluidity */}
+            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -472,7 +471,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                 <div className="flex gap-4 w-[90%] max-w-[320px] animate-fadeIn">
                                     <button 
                                         onClick={() => fileInputRef.current?.click()}
-                                        className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
+                                        className={`flex-1 aspect-[3/4] border-2 rounded-3xl flex items-center justify-center gap-2 transition-all ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-100 bg-gray-50'}`}
                                     >
                                         {image ? (
                                             <img src={image.url} className={`w-full h-full object-cover rounded-[1.4rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale-[0.3]' : ''}`} />
