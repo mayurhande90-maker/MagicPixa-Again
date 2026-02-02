@@ -12,6 +12,7 @@ const MobileAdMaker = lazy(() => import('./features/MobileAdMaker').then(m => ({
 const MobileHeadshot = lazy(() => import('./features/MobileHeadshot').then(m => ({ default: m.MobileHeadshot })));
 const MobileThumbnail = lazy(() => import('./features/MobileThumbnail').then(m => ({ default: m.MobileThumbnail })));
 const MobileTogether = lazy(() => import('./features/MobileTogether').then(m => ({ default: m.MobileTogether })));
+const MobileRestore = lazy(() => import('./features/MobileRestore').then(m => ({ default: m.MobileRestore })));
 const MobileCreations = lazy(() => import('./features/MobileCreations').then(m => ({ default: m.MobileCreations })));
 const MobileProfile = lazy(() => import('./features/MobileProfile').then(m => ({ default: m.MobileProfile })));
 
@@ -36,6 +37,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         'headshot',
         'thumbnail_studio',
         'soul',
+        'colour',
         'creations',
         'profile'
     ];
@@ -77,6 +79,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
                 return <MobileThumbnail {...commonProps} />;
             case 'soul':
                 return <MobileTogether {...commonProps} />;
+            case 'colour':
+                return <MobileRestore {...commonProps} />;
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
