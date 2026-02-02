@@ -28,8 +28,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
                 )}
             </header>
 
-            {/* Main Content Area - Fluidity fix with flex-basis: 0 */}
-            <main className="flex-1 flex flex-col min-h-0 relative bg-white safe-area-bottom overflow-hidden">
+            {/* Main Content Area - Fluidity fix with flex-basis: 0 and Scroll enabled */}
+            <main className="flex-1 flex flex-col min-h-0 relative bg-white safe-area-bottom overflow-y-auto overflow-x-hidden custom-scrollbar">
                 {children}
             </main>
 
@@ -39,6 +39,16 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
             <style>{`
                 .safe-area-bottom {
                     padding-bottom: env(safe-area-inset-bottom);
+                }
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #e2e8f0;
+                    border-radius: 10px;
                 }
             `}</style>
         </div>
