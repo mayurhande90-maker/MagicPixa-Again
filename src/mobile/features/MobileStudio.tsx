@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -305,7 +304,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {/* Stage / Canvas Area */}
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
+            <div className="relative flex-grow min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
