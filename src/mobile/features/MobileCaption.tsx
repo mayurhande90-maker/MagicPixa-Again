@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig } from '../../types';
+import { AuthProps, AppConfig, View } from '../../types';
 import { 
     PixaCaptionIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     CopyIcon, ArrowLeftIcon, ImageIcon, CameraIcon, GlobeIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, PlusIcon, RegenerateIcon
+    CreditCoinIcon, PlusIcon, RegenerateIcon, LockIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateCaptions } from '../../services/captionService';
@@ -66,7 +66,7 @@ const CaptionResultCard: React.FC<{
     );
 };
 
-export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; }> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; setActiveTab: (tab: View) => void; }> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- STATE ---
     const [currentStep, setCurrentStep] = useState(0);
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -341,6 +341,24 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={handleGenerate} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><RegenerateIcon className="w-5 h-5" /> Regenerate Mix</button>
                             <button onClick={handleNewProject} className="w-full py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> Start New Photo</button>
+                        </div>
+                    ) : isLowCredits && language ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Generating these captions requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
                         </div>
                     ) : (
                         <div className="flex flex-col">
