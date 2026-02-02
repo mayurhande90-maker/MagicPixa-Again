@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig } from '../../types';
+import { AuthProps, AppConfig, View } from '../../types';
 import { 
     ApparelIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, ShieldCheckIcon, GarmentTrousersIcon, PixaTryOnIcon
+    CreditCoinIcon, ShieldCheckIcon, GarmentTrousersIcon, PixaTryOnIcon, LockIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateApparelTryOn } from '../../services/apparelService';
@@ -37,7 +37,7 @@ const LOADING_MESSAGES = [
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -71,9 +71,10 @@ interface MobileTryOnProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- STATE ---
     const [currentStep, setCurrentStep] = useState(0);
     const [personImage, setPersonImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -97,6 +98,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
 
     const cost = appConfig?.featureCosts?.['Pixa TryOn'] || 8;
     const refineCost = 5;
+    const isLowCredits = (auth.user?.credits || 0) < cost;
 
     // --- LOGIC ---
 
@@ -332,7 +334,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'tryon.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-indigo-600 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-200'}`}>
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-200'}`}>
                                 {isGenerating ? 'Tailoring...' : 'Generate'}
                             </button>
                         )}
@@ -393,6 +395,24 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Tailor's Adjustment</button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewSession} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Shoot</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
+                        </div>
+                    ) : isLowCredits && personImage ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Tailoring this outfit requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
