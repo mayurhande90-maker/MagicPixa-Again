@@ -1,20 +1,13 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../../types';
-import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
-import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../../components/icons';
-import { RefinementPanel } from '../../components/RefinementPanel';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../../utils/imageUtils';
+import { 
+    PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon, ArrowLeftIcon, DownloadIcon, RegenerateIcon, PlusIcon, ImageIcon
+} from '../../components/icons';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../../services/imageToolsService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
-import { MagicEditorModal } from '../../components/MagicEditorModal';
-import { processRefundRequest } from '../../services/refundService';
-import { RefundModal } from '../../components/RefundModal';
-import ToastNotification from '../../components/ToastNotification';
-import { ResultToolbar } from '../../components/ResultToolbar';
-import { PixaTogetherStyles } from '../../styles/features/PixaTogether.styles';
-// COMMENT: Added missing import for MobileSheet
 import { MobileSheet } from '../components/MobileSheet';
 
 // --- CONFIGURATION CONSTANTS ---
@@ -27,7 +20,7 @@ const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
     'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
 };
 
-// COMMENT: Added missing local helper checkMilestoneLocal to resolve line 225 error
+// Local helper to track milestones for rewarding credits
 const checkMilestoneLocal = (gens: number): number | false => {
     if (gens === 10) return 5;
     if (gens === 25) return 10;
@@ -38,7 +31,7 @@ const checkMilestoneLocal = (gens: number): number | false => {
     return false;
 };
 
-// COMMENT: Added missing CustomRefineIcon component to resolve line 422 error
+// Custom Refine Icon component
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
         <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
@@ -46,18 +39,6 @@ const CustomRefineIcon = ({ className }: { className?: string }) => (
 );
 
 // --- PREMIUM UI COMPONENTS ---
-
-const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: React.ReactNode; className?: string }> = ({ children, title, icon, className = "" }) => (
-    <div className={`bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_2px_20px_-10px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.1)] ${className}`}>
-        {title && (
-            <div className="flex items-center gap-2 mb-5">
-                {icon && <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">{icon}</div>}
-                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{title}</h3>
-            </div>
-        )}
-        {children}
-    </div>
-);
 
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; compact?: boolean; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40", compact }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +95,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
 
-    // COMMENT: Corrected typo "inputARef i" to "inputARef"
+    // Fixed typo from previous implementation
     const inputARef = useRef<HTMLInputElement>(null);
     const inputBRef = useRef<HTMLInputElement>(null);
     const inputPoseRef = useRef<HTMLInputElement>(null);
