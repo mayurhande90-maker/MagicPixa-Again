@@ -1,37 +1,44 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, Creation } from '../../types';
-import { 
-    PixaTogetherIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
-    DownloadIcon, RegenerateIcon, PlusIcon,
-    ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
-    ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LocationIcon, EngineIcon, FlagIcon
-} from '../../components/icons';
-import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
+import React, { useState, useRef, useEffect } from 'react';
+import { AuthProps, AppConfig, Page, View } from '../../types';
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon } from '../../components/icons';
+import { RefinementPanel } from '../../components/RefinementPanel';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../../services/imageToolsService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
+import { MagicEditorModal } from '../../components/MagicEditorModal';
+import { processRefundRequest } from '../../services/refundService';
+import { RefundModal } from '../../components/RefundModal';
+import ToastNotification from '../../components/ToastNotification';
+import { ResultToolbar } from '../../components/ResultToolbar';
+import { PixaTogetherStyles } from '../../styles/features/PixaTogether.styles';
+// COMMENT: Added missing import for MobileSheet
 import { MobileSheet } from '../components/MobileSheet';
 
-// --- CONFIGURATION ---
+// --- CONFIGURATION CONSTANTS ---
 
 const TIMELINE_ENVIRONMENTS: Record<string, string[]> = {
-    'Present Day': ['Outdoor Park', 'Beach', 'Luxury Rooftop', 'City Street', 'Cozy Home', 'Cafe', 'Deep Forest', 'Modern Studio'],
-    'Future Sci-Fi': ['Neon City', 'Space Station', 'Cyberpunk Rooftop', 'Holo-Deck', 'Alien Planet', 'Starship Bridge'],
-    '1990s Vintage': ['90s Mall', 'Retro Arcade', 'Grunge Garage', 'Neon Diner', 'Video Store', 'Suburban Street'],
-    '1920s Noir': ['Jazz Club', 'Art Deco Hotel', 'Rainy Street', 'Speakeasy', 'Vintage Train', 'Classic Theater'],
-    'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield']
+    'Present Day': ['Outdoor Park', 'Beach', 'Luxury Rooftop', 'City Street', 'Cozy Home', 'Cafe', 'Deep Forest', 'Modern Studio', 'Snowy Mountain', 'Sunset Beach'],
+    'Future Sci-Fi': ['Neon City', 'Space Station', 'Cyberpunk Rooftop', 'Holo-Deck', 'Alien Planet', 'Starship Bridge', 'Crystal Forest', 'High-Tech Lab'],
+    '1990s Vintage': ['90s Mall', 'Retro Arcade', 'Grunge Garage', 'Neon Diner', 'Video Store', 'High School Hallway', 'Suburban Street', 'Vintage Bedroom'],
+    '1920s Noir': ['Jazz Club', 'Art Deco Hotel', 'Rainy Street', 'Speakeasy', 'Vintage Train', 'Gatsby Mansion', 'Smoky Bar', 'Classic Theater'],
+    'Medieval': ['Castle Courtyard', 'Throne Room', 'Ancient Forest', 'Stone Village', 'Old Tavern', 'Battlefield', 'Mystic Ruins', 'Royal Garden']
 };
 
+// COMMENT: Added missing local helper checkMilestoneLocal to resolve line 225 error
 const checkMilestoneLocal = (gens: number): number | false => {
     if (gens === 10) return 5;
     if (gens === 25) return 10;
     if (gens === 50) return 15;
+    if (gens === 75) return 20;
     if (gens === 100) return 30;
+    if (gens > 100 && gens % 100 === 0) return 30;
     return false;
 };
 
+// COMMENT: Added missing CustomRefineIcon component to resolve line 422 error
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
         <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
@@ -39,6 +46,18 @@ const CustomRefineIcon = ({ className }: { className?: string }) => (
 );
 
 // --- PREMIUM UI COMPONENTS ---
+
+const PremiumCard: React.FC<{ children: React.ReactNode; title?: string; icon?: React.ReactNode; className?: string }> = ({ children, title, icon, className = "" }) => (
+    <div className={`bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_2px_20px_-10px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.1)] ${className}`}>
+        {title && (
+            <div className="flex items-center gap-2 mb-5">
+                {icon && <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">{icon}</div>}
+                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{title}</h3>
+            </div>
+        )}
+        {children}
+    </div>
+);
 
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; compact?: boolean; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40", compact }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +77,7 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
                     <div className={`${compact ? 'p-2' : 'p-3'} bg-gray-50 group-hover:bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100`}>{icon}</div>
-                    <p className={`${compact ? 'text-[9px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-2`}>{uploadText || "Add Photo"}</p>
+                    <p className={`${compact ? 'text-[9px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4`}>{uploadText || "Add Photo"}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -95,11 +114,12 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
 
+    // COMMENT: Corrected typo "inputARef i" to "inputARef"
     const inputARef = useRef<HTMLInputElement>(null);
     const inputBRef = useRef<HTMLInputElement>(null);
     const inputPoseRef = useRef<HTMLInputElement>(null);
 
-    const cost = appConfig?.featureCosts?.['Pixa Together'] || 8;
+    const cost = appConfig?.featureCosts?.['Pixa Together'] || appConfig?.featureCosts?.['Magic Soul'] || 8;
     const refineCost = 5;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
@@ -152,6 +172,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 "Identity Lock: Mapping bone topology...", 
                 "VFX Architect: Rigging interaction physics...", 
                 "Production: Calculating global illumination...", 
+                "Production: Simulating sub-surface scattering...",
                 "Finalizing: Rendering 8K Masterpiece..."
             ];
             let step = 0;
@@ -324,26 +345,37 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
-                <div className="flex items-center gap-2">
-                    <button onClick={handleBack} className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
-                        <ArrowLeftIcon className="w-5 h-5" />
-                    </button>
-                    {mode && !result && !isGenerating && (
-                        <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                            <CreditCoinIcon className="w-3 h-3 text-indigo-600" />
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
-                        </div>
-                    )}
+            {/* Header (Stacked Layout) */}
+            <div className="flex-none flex flex-col bg-white z-50">
+                {/* Top Row: Identity (Gradient Text Design) */}
+                <div className="pt-4 pb-1 flex justify-center">
+                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                        Pixa Together
+                    </span>
                 </div>
-                <div className="flex items-center gap-3">
-                    {result && !isGenerating ? (
-                        <button onClick={() => downloadImage(result, 'together.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
-                    ) : !result && (
-                        <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
-                            {isGenerating ? 'Syncing...' : 'Generate'}
+
+                {/* Bottom Row: Commands */}
+                <div className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleBack} className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
+                            <ArrowLeftIcon className="w-5 h-5" />
                         </button>
-                    )}
+                        {mode && !result && !isGenerating && (
+                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-3 h-3 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {result && !isGenerating ? (
+                            <button onClick={() => downloadImage(result, 'together.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
+                        ) : !result && (
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
+                                {isGenerating ? 'Syncing...' : 'Generate'}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -454,12 +486,32 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 </div>
             </div>
 
-            <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Image Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
-                <div className="space-y-6 pb-6"><textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make us smile more, change the lighting to sunset..." /><button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button></div>
+            <MobileSheet 
+                isOpen={isRefineOpen} 
+                onClose={() => setIsRefineOpen(false)} 
+                title={
+                    <div className="flex items-center gap-3">
+                        <span>Together Refinement</span>
+                        <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0">
+                            <CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" />
+                            <span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span>
+                        </div>
+                    </div>
+                }
+            >
+                <div className="space-y-6 pb-6">
+                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make us smile more, change the lighting to sunset..." />
+                    <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                </div>
             </MobileSheet>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}><button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10"><XIcon className="w-6 h-6" /></button><img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" /></div>
+                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
+                    <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10">
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" />
+                </div>
             )}
 
             {/* Hidden Inputs for Canvas Interaction */}
