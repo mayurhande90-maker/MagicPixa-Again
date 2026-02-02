@@ -254,10 +254,10 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
-                {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center items-center gap-1.5">
-                    <PixaProductIcon className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <span className="text-[11px] font-black uppercase tracking-tighter pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <PixaProductIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
                         Pixa Product Shots
                     </span>
                 </div>
@@ -456,7 +456,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
+                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
                     <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
                         <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
                         <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
