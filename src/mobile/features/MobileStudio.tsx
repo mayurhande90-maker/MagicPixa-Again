@@ -5,7 +5,7 @@ import {
     CubeIcon, UsersIcon, CameraIcon, ImageIcon, 
     ArrowRightIcon, ArrowLeftIcon, InformationCircleIcon,
     MagicWandIcon, DownloadIcon, RegenerateIcon, PlusIcon,
-    CreditCoinIcon
+    CreditCoinIcon, PixaProductIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { editImageWithPrompt, analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, refineStudioImage } from '../../services/photoStudioService';
@@ -251,12 +251,13 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
     };
 
     return (
-        <div className="min-h-full flex flex-col bg-white relative">
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
                 {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                <div className="pt-4 pb-1 flex justify-center items-center gap-1.5">
+                    <PixaProductIcon className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="text-[11px] font-black uppercase tracking-tighter pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
                         Pixa Product Shots
                     </span>
                 </div>
@@ -303,8 +304,8 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                 </div>
             </div>
 
-            {/* Stage / Canvas Area - Using flex-1 min-h-0 for absolute fluidity */}
-            <div className="relative flex-1 min-h-[400px] w-full flex items-center justify-center p-6 select-none overflow-hidden">
+            {/* Stage / Canvas Area */}
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -381,7 +382,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {/* Controller / Bottom Tray */}
-            <div className="flex-none flex flex-col bg-white min-h-0">
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
                 <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
@@ -405,7 +406,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {step.id === 'category' && selections['category'] === 'Other / Custom' ? (
                                             <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn">
-                                                <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm" placeholder="Define Product (e.g. Handmade Soap)..." autoFocus />
+                                                <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full p-4 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-sm" placeholder="Define Product (e.g. Handmade Soap)..." autoFocus />
                                                 <button onClick={() => setCurrentStep(prev => prev + 1)} disabled={!customCategory.trim()} className="self-end px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50">Lock Category</button>
                                             </div>
                                         ) : (
@@ -504,3 +505,5 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
         </div>
     );
 };
+
+export default MobileStudio;
