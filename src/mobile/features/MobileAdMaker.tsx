@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig, View } from '../../types';
-import { MagicAdsIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, PaletteIcon, ChevronRightIcon, CreditCoinIcon, ArrowLeftIcon } from '../../components/icons';
+import { MagicAdsIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, PaletteIcon, ChevronRightIcon, CreditCoinIcon, ArrowLeftIcon, LockIcon } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/imageUtils';
 import { generateAdCreative } from '../../services/adMakerService';
 import { deductCredits, saveCreation } from '../../firebase';
@@ -11,9 +11,10 @@ interface MobileAdMakerProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
     const [vibe, setVibe] = useState('');
@@ -126,61 +127,85 @@ export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, o
                 </div>
             </div>
 
-            {/* Controls */}
+            {/* Controls area - Replaced with Guard if Low Credits */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white no-scrollbar pb-10">
-                <div className="grid grid-cols-2 gap-4">
-                    <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 transition-all ${image ? 'border-green-100 bg-green-50/30' : 'border-gray-100 bg-gray-50'}`}
-                    >
-                        <div className="p-2 bg-white rounded-xl shadow-sm"><UploadIcon className="w-4 h-4 text-blue-500"/></div>
-                        <span className="text-[10px] font-black uppercase text-gray-500">{image ? 'Swap Photo' : 'Product Photo'}</span>
-                    </button>
-
-                    <button 
-                        onClick={() => logoInputRef.current?.click()}
-                        className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 transition-all ${logo ? 'border-green-100 bg-green-50/30' : 'border-gray-100 bg-gray-50'}`}
-                    >
-                        <div className="p-2 bg-white rounded-xl shadow-sm"><CheckIcon className="w-4 h-4 text-indigo-500"/></div>
-                        <span className="text-[10px] font-black uppercase text-gray-500">{logo ? 'Logo Set' : 'Brand Logo'}</span>
-                    </button>
-                </div>
-
-                <div className={!image ? 'opacity-40 grayscale pointer-events-none' : ''}>
-                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Ad Strategy</h3>
-                    <button 
-                        onClick={() => setIsVibeSheetOpen(true)}
-                        className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition-all"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-white rounded-xl text-indigo-500 shadow-sm"><PaletteIcon className="w-4 h-4"/></div>
-                            <span className="text-xs font-bold text-gray-700">{vibe || 'Choose Visual Vibe...'}</span>
-                        </div>
-                        <ChevronRightIcon className="w-4 h-4 text-gray-300" />
-                    </button>
-                    
-                    <div className="mt-4">
-                        <textarea 
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none placeholder-gray-400 resize-none h-24"
-                            placeholder="What is this ad about? (e.g. Summer sale for organic skincare)"
-                        />
+                {isLowCredits && image ? (
+                    <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100">
+                         <div className="flex items-center gap-3">
+                             <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                <LockIcon className="w-5 h-5" />
+                             </div>
+                             <div className="text-left">
+                                <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                <p className="text-[10px] font-bold text-red-700/70">Generating this ad requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                             </div>
+                         </div>
+                         <button 
+                            onClick={() => setActiveTab('billing')}
+                            className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                         >
+                            Recharge Credits
+                         </button>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 transition-all ${image ? 'border-green-100 bg-green-50/30' : 'border-gray-100 bg-gray-50'}`}
+                            >
+                                <div className="p-2 bg-white rounded-xl shadow-sm"><UploadIcon className="w-4 h-4 text-blue-500"/></div>
+                                <span className="text-[10px] font-black uppercase text-gray-500">{image ? 'Swap Photo' : 'Product Photo'}</span>
+                            </button>
+
+                            <button 
+                                onClick={() => logoInputRef.current?.click()}
+                                className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 transition-all ${logo ? 'border-green-100 bg-green-50/30' : 'border-gray-100 bg-gray-50'}`}
+                            >
+                                <div className="p-2 bg-white rounded-xl shadow-sm"><CheckIcon className="w-4 h-4 text-indigo-500"/></div>
+                                <span className="text-[10px] font-black uppercase text-gray-500">{logo ? 'Logo Set' : 'Brand Logo'}</span>
+                            </button>
+                        </div>
+
+                        <div className={!image ? 'opacity-40 grayscale pointer-events-none' : ''}>
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Ad Strategy</h3>
+                            <button 
+                                onClick={() => setIsVibeSheetOpen(true)}
+                                className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition-all"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white rounded-xl text-indigo-500 shadow-sm"><PaletteIcon className="w-4 h-4"/></div>
+                                    <span className="text-xs font-bold text-gray-700">{vibe || 'Choose Visual Vibe...'}</span>
+                                </div>
+                                <ChevronRightIcon className="w-4 h-4 text-gray-300" />
+                            </button>
+                            
+                            <div className="mt-4">
+                                <textarea 
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none placeholder-gray-400 resize-none h-24"
+                                    placeholder="What is this ad about? (e.g. Summer sale for organic skincare)"
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Action Bar */}
-            <div className="flex-none p-6 bg-white border-t border-gray-100">
-                <button 
-                    onClick={handleGenerate}
-                    disabled={!image || !vibe || !description || isGenerating || isLowCredits}
-                    className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 ${!image || !vibe || !description || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}
-                >
-                    {isGenerating ? 'Designing...' : 'Generate Pro Ad'}
-                    <SparklesIcon className="w-4 h-4" />
-                </button>
-            </div>
+            {!isLowCredits && (
+                <div className="flex-none p-6 bg-white border-t border-gray-100">
+                    <button 
+                        onClick={handleGenerate}
+                        disabled={!image || !vibe || !description || isGenerating}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 ${!image || !vibe || !description ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}
+                    >
+                        {isGenerating ? 'Designing...' : 'Generate Pro Ad'}
+                        <SparklesIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {/* Sheet for Vibes */}
             <MobileSheet isOpen={isVibeSheetOpen} onClose={() => setIsVibeSheetOpen(false)} title="Ad Aesthetic">
