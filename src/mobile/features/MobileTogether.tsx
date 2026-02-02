@@ -8,6 +8,7 @@ import { generateMagicSoul, PixaTogetherConfig } from '../../services/imageTools
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { PixaTogetherStyles } from '../../styles/features/PixaTogether.styles';
 
 // --- CONFIGURATION CONSTANTS ---
 
@@ -65,13 +66,35 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
     );
 };
 
+const EngineModeCard: React.FC<{ 
+    title: string; 
+    desc: string; 
+    icon: React.ReactNode; 
+    selected: boolean; 
+    onClick: () => void; 
+}> = ({ title, desc, icon, selected, onClick }) => (
+    <div 
+        onClick={onClick} 
+        className={`${PixaTogetherStyles.engineCard} ${selected ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}
+    >
+        <div>
+            <h4 className={PixaTogetherStyles.engineTitle}>{title}</h4>
+            <p className={`${PixaTogetherStyles.engineDesc} ${selected ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>{desc}</p>
+        </div>
+        <div className={`${PixaTogetherStyles.engineIconBox} ${selected ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}>
+            {icon}
+        </div>
+    </div>
+);
+
 interface MobileTogetherProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- 1. STATE ---
     const [result, setResult] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -94,12 +117,11 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
 
-    // Fixed typo from previous implementation
     const inputARef = useRef<HTMLInputElement>(null);
     const inputBRef = useRef<HTMLInputElement>(null);
     const inputPoseRef = useRef<HTMLInputElement>(null);
 
-    const cost = appConfig?.featureCosts?.['Pixa Together'] || appConfig?.featureCosts?.['Magic Soul'] || 8;
+    const cost = appConfig?.featureCosts?.['Pixa Together'] || 8;
     const refineCost = 5;
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
@@ -352,7 +374,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'together.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : !result && (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
                                 {isGenerating ? 'Syncing...' : 'Generate'}
                             </button>
                         )}
@@ -421,6 +443,24 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Refine image</button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> New Project</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm"><RegenerateIcon className="w-4 h-4" /> Regenerate</button></div>
                         </div>
+                    ) : isLowCredits && mode ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Merging these souls requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
+                        </div>
                     ) : (
                         <div className="flex flex-col">
                             <div className="h-[140px] flex items-center relative overflow-hidden">
@@ -430,7 +470,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                             <div className="w-full flex flex-col gap-2 animate-fadeIn">
                                                 <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 py-1">
                                                     {step.options?.map(opt => (
-                                                        <button key={opt} onClick={() => handleSelectOption(step.id, opt)} className={`shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${timeline === opt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-slate-400 border-slate-100'}`}>{opt}</button>
+                                                        <button key={opt} onClick={() => handleSelectOption(step.id, opt)} className={`shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${timeline === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-gray-50 text-slate-400 border-slate-100'}`}>{opt}</button>
                                                     ))}
                                                 </div>
                                                 <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-2">
