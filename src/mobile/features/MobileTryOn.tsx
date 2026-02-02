@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -7,7 +8,7 @@ import {
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
     CreditCoinIcon, ShieldCheckIcon, GarmentTrousersIcon
 } from '../../components/icons';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
+import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateApparelTryOn } from '../../services/apparelService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
@@ -20,8 +21,8 @@ const TRYON_STEPS = [
     { id: 'model', label: 'Model' },
     { id: 'closet', label: 'Closet' },
     { id: 'tailoring', label: 'Tailoring', options: ['Regular', 'Slim Fit', 'Oversized'] },
-    { id: 'finish', label: 'Finish', options: ['Untucked', 'Tucked In', 'Long Sleeves', 'Rolled Sleeves'] },
-    { id: 'addons', label: 'Add-ons' }
+    { id: 'finish', label: 'Finish (Optional)', options: ['Untucked', 'Tucked In', 'Long Sleeves', 'Rolled Sleeves'] },
+    { id: 'addons', label: 'Add-ons (Optional)' }
 ];
 
 const LOADING_MESSAGES = [
@@ -80,7 +81,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    const [fitType, setFitType] = useState('Regular');
+    const [fitType, setFitType] = useState(''); // Initialized as empty as requested
     const [finishType, setFinishType] = useState<string[]>([]);
     const [accessories, setAccessories] = useState('');
 
@@ -103,15 +104,15 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     const isStepAccessible = (idx: number) => {
         if (idx === 0) return true;
         if (idx === 1) return !!personImage;
-        if (idx === 2) return !!topGarment || !!bottomGarment;
-        if (idx === 3) return !!fitType;
-        if (idx === 4) return finishType.length > 0;
+        if (idx === 2) return (!!topGarment || !!bottomGarment);
+        if (idx === 3) return !!fitType; // Mandatory fit selection
+        if (idx === 4) return !!fitType; // Finish is optional, so addons accessible after fit
         return false;
     };
 
     const isStrategyComplete = useMemo(() => {
-        return !!personImage && (!!topGarment || !!bottomGarment);
-    }, [personImage, topGarment, bottomGarment]);
+        return !!personImage && (!!topGarment || !!bottomGarment) && !!fitType;
+    }, [personImage, topGarment, bottomGarment, fitType]);
 
     useEffect(() => {
         let interval: any;
@@ -216,7 +217,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
         setTopGarment(null);
         setBottomGarment(null);
         setCurrentStep(0);
-        setFitType('Regular');
+        setFitType('');
         setFinishType([]);
         setAccessories('');
         setLastCreationId(null);
@@ -248,9 +249,22 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 );
             case 'closet':
                 return (
-                    <div className="w-full px-6 flex gap-4 animate-fadeIn py-2 items-center h-full">
-                        <PremiumUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
-                        <PremiumUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
+                    <div className="w-full px-6 flex flex-col gap-4 animate-fadeIn py-2">
+                        <div className="flex gap-4 items-center h-full">
+                            <PremiumUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
+                            <PremiumUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
+                        </div>
+                        <div className="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/50">
+                            <p className="text-[8px] text-indigo-600 font-bold leading-tight flex items-start gap-2">
+                                <InformationCircleIcon className="w-3 h-3 shrink-0 mt-0.5" />
+                                <span>At least one item required. To transfer a full outfit, upload the same photo to both slots.</span>
+                            </p>
+                        </div>
+                        {(topGarment || bottomGarment) && (
+                            <button onClick={() => setCurrentStep(2)} className="w-full py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg animate-fadeInUp">
+                                Next: Selection Fit
+                            </button>
+                        )}
                     </div>
                 );
             case 'tailoring':
@@ -263,20 +277,20 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 );
             case 'finish':
                 return (
-                    <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
+                    <div className="w-full flex flex-wrap gap-2.5 px-6 py-2 animate-fadeIn justify-center">
                         {activeStep.options?.map(opt => {
                             const isSelected = finishType.includes(opt);
                             return (
-                                <button key={opt} onClick={() => handleToggleFinish(opt)} className={`${styles.optionBtn} ${isSelected ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
+                                <button key={opt} onClick={() => handleToggleFinish(opt)} className={`${styles.optionBtn} !px-4 !py-2.5 !shrink-1 ${isSelected ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
                             );
                         })}
-                        <button onClick={() => setCurrentStep(4)} className="shrink-0 px-6 py-3.5 rounded-2xl text-[10px] font-black bg-indigo-50 text-indigo-600 uppercase tracking-widest">Done</button>
+                        <button onClick={() => setCurrentStep(4)} className="px-6 py-2.5 rounded-2xl text-[10px] font-black bg-indigo-600 text-white uppercase tracking-widest shadow-lg border border-indigo-600">Done</button>
                     </div>
                 );
             case 'addons':
                 return (
                     <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn py-2">
-                        <input value={accessories} onChange={e => setAccessories(e.target.value)} className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Accessories: e.g. Gold watch, leather bag..." />
+                        <input value={accessories} onChange={e => setAccessories(e.target.value)} className="w-full p-4 bg-gray-50 border-2 border-indigo-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Add-ons (Optional): e.g. Gold watch, leather bag..." />
                     </div>
                 );
             default: return null;
@@ -395,7 +409,6 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Tailor Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
                 <div className="space-y-6 pb-6">
                     <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
-                    {/* Fixed: Pass refineText argument to handleRefine instead of passing the function directly */}
                     <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
                 </div>
             </MobileSheet>
@@ -415,7 +428,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 .animate-weave-scan { animation: weave-scan 3s ease-in-out infinite; }
                 @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
                 .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-                @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); } 50% { transform: scale(1.08); } }
+                @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
             `}</style>
         </div>
