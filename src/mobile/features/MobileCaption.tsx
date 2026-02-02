@@ -241,36 +241,45 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            {/* Header Command Bar */}
-            <div className="flex-none px-6 py-4 flex items-center justify-between z-50 relative">
-                <div className="flex items-center gap-2 z-10">
-                    <button onClick={handleBack} className={`p-2 rounded-full transition-all ${((image && currentStep > 0) || results.length > 0) && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
-                        <ArrowLeftIcon className="w-5 h-5" />
-                    </button>
-                    {(image || results.length > 0) && !isGenerating && (
-                        <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                            <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
-                        </div>
-                    )}
+            {/* Header (Stacked Layout) */}
+            <div className="flex-none flex flex-col bg-white border-b border-gray-50 z-50">
+                {/* Top Row: Identity */}
+                <div className="py-2.5 flex justify-center border-b border-gray-50/50 bg-gray-50/30">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] pointer-events-none">
+                        Pixa Caption Pro
+                    </span>
                 </div>
 
-                <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap">Caption Pro</span>
-                </div>
-
-                <div className="flex items-center gap-3 z-10">
-                    {results.length > 0 && !isGenerating ? (
-                        <button onClick={handleNewProject} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><PlusIcon className="w-5 h-5" /></button>
-                    ) : (
+                {/* Bottom Row: Commands */}
+                <div className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                         <button 
-                            onClick={handleGenerate} 
-                            disabled={!isStrategyComplete || isGenerating} 
-                            className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}
+                            onClick={handleBack} 
+                            className={`p-2 rounded-full transition-all ${((image && currentStep > 0) || results.length > 0) && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
                         >
-                            {isGenerating ? 'Analyzing...' : 'Generate'}
+                            <ArrowLeftIcon className="w-5 h-5" />
                         </button>
-                    )}
+                        {(image || results.length > 0) && !isGenerating && (
+                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {results.length > 0 && !isGenerating ? (
+                            <button onClick={handleNewProject} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><PlusIcon className="w-5 h-5" /></button>
+                        ) : (
+                            <button 
+                                onClick={handleGenerate} 
+                                disabled={!isStrategyComplete || isGenerating} 
+                                className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 active:scale-95'}`}
+                            >
+                                {isGenerating ? 'Analyzing...' : 'Generate'}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
