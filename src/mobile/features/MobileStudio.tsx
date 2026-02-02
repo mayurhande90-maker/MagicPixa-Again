@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig } from '../../types';
+import { AuthProps, AppConfig, View } from '../../types';
 import { 
     UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     CubeIcon, UsersIcon, CameraIcon, ImageIcon, 
     ArrowRightIcon, ArrowLeftIcon, InformationCircleIcon,
     MagicWandIcon, DownloadIcon, RegenerateIcon, PlusIcon,
-    CreditCoinIcon, PixaProductIcon
+    CreditCoinIcon, PixaProductIcon, LockIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { editImageWithPrompt, analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, refineStudioImage } from '../../services/photoStudioService';
@@ -38,9 +38,10 @@ interface MobileStudioProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- UI State ---
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [studioMode, setStudioMode] = useState<'product' | 'model' | null>(null);
@@ -388,7 +389,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {/* Controller / Bottom Tray */}
-            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
                 <div className={`flex-1 flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
@@ -403,6 +404,24 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     <RegenerateIcon className="w-4 h-4" /> Regenerate
                                 </button>
                             </div>
+                        </div>
+                    ) : isLowCredits && image ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Generating this shot requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
                         </div>
                     ) : (
                         <div className={`flex-1 flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${studioMode ? 'translate-y-0' : 'translate-y-full'}`}>
