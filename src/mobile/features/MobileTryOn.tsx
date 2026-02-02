@@ -98,7 +98,9 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
 
     const cost = appConfig?.featureCosts?.['Pixa TryOn'] || 8;
     const refineCost = 5;
-    const isLowCredits = (auth.user?.credits || 0) < cost;
+    const userCredits = auth.user?.credits || 0;
+    const isLowCredits = userCredits < cost;
+    const isLowRefineCredits = userCredits < refineCost;
 
     // --- LOGIC ---
 
@@ -194,6 +196,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
 
     const handleRefine = async (text: string) => {
         if (!result || !text.trim() || !auth.user || isGenerating) return;
+        if (isLowRefineCredits) return;
+
         setIsGenerating(true);
         setIsRefineOpen(false);
         try {
@@ -463,7 +467,26 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Tailor Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
                 <div className="space-y-6 pb-6">
                     <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
-                    <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
+                    
+                    {isLowRefineCredits ? (
+                        <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center gap-3 animate-fadeIn">
+                            <div className="flex items-center gap-2 text-red-700">
+                                <LockIcon className="w-4 h-4" />
+                                <span className="text-[11px] font-black uppercase tracking-tight">Insufficient Balance</span>
+                            </div>
+                            <p className="text-[10px] text-red-600/80 font-medium text-center px-4">
+                                Refinement requires {refineCost} credits. Your balance: {auth.user?.credits || 0}
+                            </p>
+                            <button 
+                                onClick={() => { setIsRefineOpen(false); setActiveTab('billing'); }}
+                                className="w-full py-3 bg-[#1A1A1E] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                            >
+                                Recharge Credits
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
+                    )}
                 </div>
             </MobileSheet>
 
