@@ -21,8 +21,8 @@ const TRYON_STEPS = [
     { id: 'model', label: 'Model' },
     { id: 'closet', label: 'Closet' },
     { id: 'tailoring', label: 'Tailoring', options: ['Regular', 'Slim Fit', 'Oversized'] },
-    { id: 'finish', label: 'Finish (Optional)', options: ['Untucked', 'Tucked In', 'Long Sleeves', 'Rolled Sleeves'] },
-    { id: 'addons', label: 'Add-ons (Optional)' }
+    { id: 'finish', label: 'Finish', options: ['Untucked', 'Tucked In', 'Long Sleeves', 'Rolled Sleeves'] },
+    { id: 'addons', label: 'Add-ons' }
 ];
 
 const LOADING_MESSAGES = [
@@ -60,7 +60,7 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
                     <div className={`${compact ? 'p-2' : 'p-3'} bg-gray-50 group-hover:bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100`}>{icon}</div>
-                    <p className={`${compact ? 'text-[8px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-2`}>{uploadText || "Add Photo"}</p>
+                    <p className={`${compact ? 'text-[8px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-2 leading-tight`}>{uploadText || "Add Photo"}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -81,7 +81,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     const [topGarment, setTopGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     const [bottomGarment, setBottomGarment] = useState<{ url: string; base64: Base64File } | null>(null);
     
-    const [fitType, setFitType] = useState(''); // Initialized as empty as requested
+    const [fitType, setFitType] = useState(''); 
     const [finishType, setFinishType] = useState<string[]>([]);
     const [accessories, setAccessories] = useState('');
 
@@ -105,8 +105,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
         if (idx === 0) return true;
         if (idx === 1) return !!personImage;
         if (idx === 2) return (!!topGarment || !!bottomGarment);
-        if (idx === 3) return !!fitType; // Mandatory fit selection
-        if (idx === 4) return !!fitType; // Finish is optional, so addons accessible after fit
+        if (idx === 3) return !!fitType; 
+        if (idx === 4) return !!fitType; 
         return false;
     };
 
@@ -249,11 +249,11 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 );
             case 'closet':
                 return (
-                    <div className="w-full px-6 flex flex-col gap-4 animate-fadeIn py-4">
-                        <div className="flex gap-4 items-center h-full">
+                    <div className="w-full px-6 flex flex-col gap-4 animate-fadeIn py-2">
+                        <div className="flex gap-3 items-center h-full">
                             <PremiumUpload 
                                 label="Upper Wear" 
-                                uploadText="Upload at least one item"
+                                uploadText="upload at least one item"
                                 image={topGarment} 
                                 onUpload={handleUpload(setTopGarment)} 
                                 onClear={() => setTopGarment(null)} 
@@ -263,7 +263,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                             />
                             <PremiumUpload 
                                 label="Bottom Wear" 
-                                uploadText="Full outfit? Same photo both slots"
+                                uploadText="Full outfit? Use same photo"
                                 image={bottomGarment} 
                                 onUpload={handleUpload(setBottomGarment)} 
                                 onClear={() => setBottomGarment(null)} 
@@ -276,18 +276,10 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 );
             case 'tailoring':
                 return (
-                    <div className="w-full flex flex-col items-center gap-6 animate-fadeIn py-4">
-                        <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6">
-                            {activeStep.options?.map(opt => (
-                                <button key={opt} onClick={() => { setFitType(opt); setCurrentStep(3); }} className={`${styles.optionBtn} ${fitType === opt ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
-                            ))}
-                        </div>
-                        <button 
-                            onClick={() => setCurrentStep(3)} 
-                            className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.4em] animate-flash-next transition-all active:scale-95"
-                        >
-                            NEXT
-                        </button>
+                    <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-4 animate-fadeIn">
+                        {activeStep.options?.map(opt => (
+                            <button key={opt} onClick={() => { setFitType(opt); setCurrentStep(3); }} className={`${styles.optionBtn} ${fitType === opt ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
+                        ))}
                     </div>
                 );
             case 'finish':
@@ -399,8 +391,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            {/* Updated Tray Height to h-[220px] */}
-                            <div className="h-[220px] flex items-center relative overflow-hidden">
+                            {/* Updated Tray Height to h-[160px] to increase canvas space */}
+                            <div className="h-[160px] flex items-center relative overflow-hidden">
                                 {TRYON_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
@@ -413,16 +405,26 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
                                         const isFilled = (idx === 0 && !!personImage) || (idx === 1 && (!!topGarment || !!bottomGarment)) || (idx === 2 && !!fitType) || (idx === 3 && finishType.length > 0) || (idx === 4 && !!accessories);
+                                        
+                                        // UI CUE: Flash NEXT under Tailoring (idx 2) when user is on Closet step and has uploaded something
+                                        const showNextCue = currentStep === 1 && idx === 2 && (!!topGarment || !!bottomGarment);
+
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
                                                 <span className={`${styles.stepLabel} ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`${styles.stepBar} ${isActive ? 'bg-indigo-600' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 || idx === 1 ? 'Ready' : 
-                                                     idx === 2 ? fitType : 
-                                                     idx === 3 ? (finishType.length > 0 ? finishType.join(', ') : '') : 
-                                                     idx === 4 ? accessories : ''}
-                                                </span>
+                                                <div className="relative h-3 w-full">
+                                                    {showNextCue ? (
+                                                        <span className="absolute inset-0 text-[8px] font-black text-indigo-600 uppercase tracking-widest animate-flash-next text-center">NEXT</span>
+                                                    ) : (
+                                                        <span className={`absolute inset-0 text-[7px] font-black transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                            {idx === 0 || idx === 1 ? 'Ready' : 
+                                                             idx === 2 ? fitType : 
+                                                             idx === 3 ? (finishType.length > 0 ? finishType.length + ' Styles' : '') : 
+                                                             idx === 4 ? (accessories.length > 8 ? accessories.substring(0, 8) + '...' : accessories) : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </button>
                                         );
                                     })}
@@ -458,7 +460,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
                 @keyframes pulse-next { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.1); } }
-                .animate-flash-next { animation: pulse-next 1.5s ease-in-out infinite; }
+                .animate-flash-next { animation: pulse-next 1.2s ease-in-out infinite; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
