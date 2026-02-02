@@ -62,6 +62,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
     const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || 8;
     const refineCost = 5;
+    const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hostInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +144,11 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
     const handleGenerate = async () => {
         if (!isStrategyComplete || !auth.user || isGenerating) return;
         
+        if (isLowCredits) {
+            alert(`Insufficient credits. Required: ${cost}`);
+            return;
+        }
+
         onGenerationStart();
         setIsGenerating(true);
         try {
@@ -343,9 +349,9 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                         ) : !result && (
                             <button 
                                 onClick={handleGenerate}
-                                disabled={!isStrategyComplete || isGenerating}
+                                disabled={!isStrategyComplete || isGenerating || isLowCredits}
                                 className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${
-                                    !isStrategyComplete || isGenerating
+                                    !isStrategyComplete || isGenerating || isLowCredits
                                     ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
                                     : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
                                 }`}
