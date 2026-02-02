@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig } from '../../types';
+import { AuthProps, AppConfig, View } from '../../types';
 import { 
     ThumbnailIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon
+    CreditCoinIcon, LockIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateThumbnail } from '../../services/thumbnailService';
@@ -32,9 +32,10 @@ interface MobileThumbnailProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- UI State ---
     const [format, setFormat] = useState<'landscape' | 'portrait' | null>(null);
     const [result, setResult] = useState<string | null>(null);
@@ -499,6 +500,24 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                     <RegenerateIcon className="w-4 h-4" /> Regenerate
                                 </button>
                             </div>
+                        </div>
+                    ) : isLowCredits && format ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Generating this hook requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${format ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
