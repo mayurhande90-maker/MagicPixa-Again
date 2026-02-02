@@ -82,6 +82,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts?.['Pixa Caption Pro'] || 2;
+    const isLowCredits = (auth.user?.credits || 0) < cost;
 
     // --- LOGIC ---
 
@@ -145,6 +146,11 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const handleGenerate = async () => {
         if (!image || !tone || !style || !auth.user || isGenerating) return;
         
+        if (isLowCredits) {
+            alert(`Insufficient credits. Required: ${cost}`);
+            return;
+        }
+
         onGenerationStart();
         setIsGenerating(true);
         try {
@@ -273,8 +279,8 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         ) : (
                             <button 
                                 onClick={handleGenerate} 
-                                disabled={!isStrategyComplete || isGenerating} 
-                                className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 active:scale-95'}`}
+                                disabled={!isStrategyComplete || isGenerating || isLowCredits} 
+                                className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 active:scale-95'}`}
                             >
                                 {isGenerating ? 'Analyzing...' : 'Generate'}
                             </button>
