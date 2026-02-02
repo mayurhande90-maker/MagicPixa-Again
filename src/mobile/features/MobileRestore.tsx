@@ -31,7 +31,7 @@ const checkMilestoneLocal = (gens: number): number | false => {
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -100,7 +100,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                     if (prev >= 98) return prev;
                     return Math.min(prev + (Math.random() * 5), 98);
                 });
-            }, 2000);
+            }, 1800);
         }
         return () => clearInterval(interval);
     }, [isGenerating]);
@@ -153,13 +153,13 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
         }
     };
 
-    const handleRefine = async (text: string) => {
-        if (!result || !text.trim() || !auth.user || isGenerating) return;
+    const handleRefine = async () => {
+        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
         setIsGenerating(true);
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "Vintage Photo Restoration");
+            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Vintage Photo Restoration");
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
@@ -234,12 +234,13 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
     };
 
     return (
-        <div className="min-h-full flex flex-col bg-white relative">
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
-                {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <PixaRestoreIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
                         Pixa Photo Restore
                     </span>
                 </div>
@@ -286,8 +287,8 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                 </div>
             </div>
 
-            {/* Stage Area - Precise fluidity fix with flex-1 min-h-0 */}
-            <div className="relative flex-1 min-h-[400px] w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            {/* Stage Area */}
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -330,7 +331,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                 </div>
             </div>
 
-            <div className="flex-none flex flex-col bg-white min-h-0">
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
@@ -339,8 +340,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {/* Tray height reduced to h-[120px] */}
-                            <div className="h-[120px] flex items-center relative overflow-hidden">
+                            <div className="h-[140px] flex items-center relative overflow-hidden">
                                 {RESTORE_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
@@ -371,11 +371,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
             </div>
 
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Restoration Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
-                <div className="space-y-6 pb-6">
-                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the eyes sharper, reduce the background noise more..." />
-                    {/* Fixed handleRefine call to pass the expected refineText string argument */}
-                    <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
-                </div>
+                <div className="space-y-6 pb-6"><textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the eyes sharper, reduce the background noise more..." /><button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button></div>
             </MobileSheet>
 
             {isFullScreenOpen && result && (
