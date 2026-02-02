@@ -242,8 +242,8 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header Command Bar */}
-            <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
-                <div className="flex items-center gap-2">
+            <div className="flex-none px-6 py-4 flex items-center justify-between z-50 relative">
+                <div className="flex items-center gap-2 z-10">
                     <button onClick={handleBack} className={`p-2 rounded-full transition-all ${((image && currentStep > 0) || results.length > 0) && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
                         <ArrowLeftIcon className="w-5 h-5" />
                     </button>
@@ -255,7 +255,11 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap">Caption Pro</span>
+                </div>
+
+                <div className="flex items-center gap-3 z-10">
                     {results.length > 0 && !isGenerating ? (
                         <button onClick={handleNewProject} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><PlusIcon className="w-5 h-5" /></button>
                     ) : (
