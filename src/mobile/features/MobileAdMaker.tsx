@@ -64,11 +64,28 @@ export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, o
     };
 
     return (
-        <div className="min-h-full flex flex-col animate-fadeIn">
-            {/* Header with Back */}
-            <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-50 shrink-0">
-                <MagicAdsIcon className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-sm font-black uppercase tracking-widest text-gray-800">AdMaker Pro</h2>
+        <div className="h-full flex flex-col animate-fadeIn">
+            {/* Header (Stacked Layout) */}
+            <div className="flex-none flex flex-col bg-white z-50">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <MagicAdsIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
+                        Pixa AdMaker
+                    </span>
+                </div>
+
+                {/* Bottom Row: Commands */}
+                <div className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={handleNew} 
+                            className={`p-2 rounded-full transition-all ${image && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
+                        >
+                            <ArrowLeftIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Preview Area */}
@@ -104,7 +121,7 @@ export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, o
             </div>
 
             {/* Controls */}
-            <div className="flex-none p-6 space-y-6 bg-white pb-10">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white no-scrollbar pb-10">
                 <div className="grid grid-cols-2 gap-4">
                     <button 
                         onClick={() => fileInputRef.current?.click()}
@@ -148,7 +165,7 @@ export const MobileAdMaker: React.FC<MobileAdMakerProps> = ({ auth, appConfig, o
             </div>
 
             {/* Action Bar */}
-            <div className="flex-none p-6 bg-white border-t border-gray-100 sticky bottom-0 z-50">
+            <div className="flex-none p-6 bg-white border-t border-gray-100">
                 <button 
                     onClick={handleGenerate}
                     disabled={!image || !vibe || !description || isGenerating}
