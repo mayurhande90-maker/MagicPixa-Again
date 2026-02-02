@@ -62,6 +62,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts['Pixa Product Shots'] || 10;
     const refineCost = 5;
+    const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const activeSteps = studioMode === 'model' ? MODEL_STEPS : PRODUCT_STEPS;
     
@@ -151,6 +152,11 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
     const handleGenerate = async () => {
         if (!image || !isStrategyComplete || !auth.user || isGenerating) return;
         
+        if (isLowCredits) {
+            alert(`Insufficient credits. Required: ${cost}`);
+            return;
+        }
+
         onGenerationStart();
 
         setIsGenerating(true);
@@ -290,9 +296,9 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                         ) : (
                             <button 
                                 onClick={handleGenerate}
-                                disabled={!isStrategyComplete || isGenerating}
+                                disabled={!isStrategyComplete || isGenerating || isLowCredits}
                                 className={`px-10 py-3.5 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${
-                                    !isStrategyComplete || isGenerating
+                                    !isStrategyComplete || isGenerating || isLowCredits
                                     ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
                                     : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
                                 }`}
@@ -342,7 +348,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                     <div className="relative w-20 h-20 flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
                                         <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-500" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
+                                            <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-50" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center">
                                             <span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span>
