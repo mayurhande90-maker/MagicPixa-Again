@@ -60,7 +60,7 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
                     <div className={`${compact ? 'p-2' : 'p-3'} bg-gray-50 group-hover:bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100`}>{icon}</div>
-                    <p className={`${compact ? 'text-[9px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4`}>{uploadText || "Add Photo"}</p>
+                    <p className={`${compact ? 'text-[8px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-2`}>{uploadText || "Add Photo"}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -249,30 +249,45 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 );
             case 'closet':
                 return (
-                    <div className="w-full px-6 flex flex-col gap-2 animate-fadeIn py-1">
+                    <div className="w-full px-6 flex flex-col gap-4 animate-fadeIn py-4">
                         <div className="flex gap-4 items-center h-full">
-                            <PremiumUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
-                            <PremiumUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
+                            <PremiumUpload 
+                                label="Upper Wear" 
+                                uploadText="Upload at least one item"
+                                image={topGarment} 
+                                onUpload={handleUpload(setTopGarment)} 
+                                onClear={() => setTopGarment(null)} 
+                                icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} 
+                                heightClass="h-32" 
+                                compact 
+                            />
+                            <PremiumUpload 
+                                label="Bottom Wear" 
+                                uploadText="Full outfit? Same photo both slots"
+                                image={bottomGarment} 
+                                onUpload={handleUpload(setBottomGarment)} 
+                                onClear={() => setBottomGarment(null)} 
+                                icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} 
+                                heightClass="h-32" 
+                                compact 
+                            />
                         </div>
-                        <div className="bg-indigo-50/50 p-2 rounded-xl border border-indigo-100/50">
-                            <p className="text-[8px] text-indigo-600 font-bold leading-tight flex items-start gap-2">
-                                <InformationCircleIcon className="w-3 h-3 shrink-0 mt-0.5" />
-                                <span>Upload at least one item. To transfer a full outfit, upload same photo to both slots.</span>
-                            </p>
-                        </div>
-                        {(topGarment || bottomGarment) && (
-                            <button onClick={() => setCurrentStep(2)} className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg animate-fadeInUp">
-                                Next: Selection Fit
-                            </button>
-                        )}
                     </div>
                 );
             case 'tailoring':
                 return (
-                    <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2 animate-fadeIn">
-                        {activeStep.options?.map(opt => (
-                            <button key={opt} onClick={() => { setFitType(opt); setCurrentStep(3); }} className={`${styles.optionBtn} ${fitType === opt ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
-                        ))}
+                    <div className="w-full flex flex-col items-center gap-6 animate-fadeIn py-4">
+                        <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6">
+                            {activeStep.options?.map(opt => (
+                                <button key={opt} onClick={() => { setFitType(opt); setCurrentStep(3); }} className={`${styles.optionBtn} ${fitType === opt ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
+                            ))}
+                        </div>
+                        <button 
+                            onClick={() => setCurrentStep(3)} 
+                            className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.4em] animate-flash-next transition-all active:scale-95"
+                        >
+                            NEXT
+                        </button>
                     </div>
                 );
             case 'finish':
@@ -384,7 +399,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            {/* Updated Tray Height from h-[200px] to h-[220px] */}
+                            {/* Updated Tray Height to h-[220px] */}
                             <div className="h-[220px] flex items-center relative overflow-hidden">
                                 {TRYON_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
@@ -442,6 +457,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.08); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
+                @keyframes pulse-next { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.1); } }
+                .animate-flash-next { animation: pulse-next 1.5s ease-in-out infinite; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
