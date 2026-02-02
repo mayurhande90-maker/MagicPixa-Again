@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig } from '../../types';
 import { 
@@ -305,44 +306,54 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            {/* Command Bar */}
-            <div className="flex-none px-6 py-4 flex items-center justify-between z-50 bg-white shadow-sm">
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={handleBack} 
-                        className={`p-2 rounded-full transition-all ${format && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                    >
-                        <ArrowLeftIcon className="w-5 h-5" />
-                    </button>
-                    {format && !result && !isGenerating && (
-                        <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                            <CreditCoinIcon className="w-3 h-3 text-indigo-600" />
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
-                        </div>
-                    )}
+            {/* Header (Stacked Layout) */}
+            <div className="flex-none flex flex-col bg-white z-50">
+                {/* Top Row: Identity (Gradient Text Design) */}
+                <div className="pt-4 pb-1 flex justify-center">
+                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                        Pixa Thumbnail Pro
+                    </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {result && !isGenerating ? (
+                {/* Bottom Row: Commands */}
+                <div className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                         <button 
-                            onClick={() => downloadImage(result, 'thumbnail-pro.png')}
-                            className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"
+                            onClick={handleBack} 
+                            className={`p-2 rounded-full transition-all ${format && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
                         >
-                            <DownloadIcon className="w-5 h-5" />
+                            <ArrowLeftIcon className="w-5 h-5" />
                         </button>
-                    ) : !result && (
-                        <button 
-                            onClick={handleGenerate}
-                            disabled={!isStrategyComplete || isGenerating}
-                            className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${
-                                !isStrategyComplete || isGenerating
-                                ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
-                                : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
-                            }`}
-                        >
-                            {isGenerating ? 'Drafting...' : 'Generate'}
-                        </button>
-                    )}
+                        {format && !result && !isGenerating && (
+                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {result && !isGenerating ? (
+                            <button 
+                                onClick={() => downloadImage(result, 'thumbnail-pro.png')}
+                                className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"
+                            >
+                                <DownloadIcon className="w-5 h-5" />
+                            </button>
+                        ) : !result && (
+                            <button 
+                                onClick={handleGenerate}
+                                disabled={!isStrategyComplete || isGenerating}
+                                className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${
+                                    !isStrategyComplete || isGenerating
+                                    ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
+                                    : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
+                                }`}
+                            >
+                                {isGenerating ? 'Drafting...' : 'Generate'}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -364,7 +375,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                             <ThumbnailIcon className="w-10 h-10 text-indigo-400" />
                                         </div>
                                         <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest leading-tight">Identity Pending</h4>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Select Category below to unlock uploads</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 text-center">Select Category below to unlock uploads</p>
                                     </div>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center animate-fadeIn">
@@ -590,3 +601,5 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         </div>
     );
 };
+
+export default MobileThumbnail;
