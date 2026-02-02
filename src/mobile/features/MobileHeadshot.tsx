@@ -61,9 +61,35 @@ const checkMilestoneLocal = (gens: number): number | false => {
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
+
+const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+        <div className="relative w-full group">
+            <div className="flex justify-between items-center mb-2 px-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
+                {image && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1"><CheckIcon className="w-3 h-3"/> Ready</span>}
+            </div>
+            {image ? (
+                <div className={`relative w-full ${heightClass} bg-gray-50 rounded-2xl border border-indigo-100 flex items-center justify-center overflow-hidden group-hover:border-indigo-300 transition-all shadow-inner`}>
+                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" alt={label} />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-start justify-end p-2">
+                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="bg-white/90 p-2 rounded-xl shadow-lg text-gray-500 hover:text-red-500 hover:scale-110 transition-all backdrop-blur-sm"><XIcon className="w-4 h-4"/></button>
+                    </div>
+                </div>
+            ) : (
+                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
+                    <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
+                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4">{uploadText || "Add Photo"}</p>
+                </div>
+            )}
+            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
+        </div>
+    );
+};
 
 interface MobileHeadshotProps {
     auth: AuthProps;
@@ -385,12 +411,13 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     // --- 5. MAIN JSX ---
 
     return (
-        <div className="min-h-full flex flex-col bg-white relative">
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
-                {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <PixaHeadshotIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
                         Pixa Headshot Pro
                     </span>
                 </div>
@@ -437,8 +464,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 </div>
             </div>
 
-            {/* Stage Area - flex-1 min-h-0 for fluidity */}
-            <div className="relative flex-1 min-h-[400px] w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            {/* Stage Area */}
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -521,7 +548,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             </div>
 
             {/* Controller Area */}
-            <div className="flex-none flex flex-col bg-white min-h-0">
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
