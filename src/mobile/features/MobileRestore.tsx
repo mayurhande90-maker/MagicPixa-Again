@@ -1,17 +1,18 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, Creation } from '../../types';
+import { AuthProps, AppConfig, Creation, View } from '../../types';
 import { 
     PixaRestoreIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, ShieldCheckIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, EngineIcon, PaletteIcon
+    CreditCoinIcon, EngineIcon, PaletteIcon, LockIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { colourizeImage } from '../../services/imageToolsService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { RestoreStyles } from '../../styles/features/PixaPhotoRestore.styles';
 
 // --- CONFIGURATION ---
 
@@ -39,9 +40,10 @@ interface MobileRestoreProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- 1. STATE ---
     const [result, setResult] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -337,6 +339,24 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Refine image</button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> New Project</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm"><RegenerateIcon className="w-4 h-4" /> Regenerate</button></div>
+                        </div>
+                    ) : isLowCredits && mode ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Generating this restoration requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
                         </div>
                     ) : (
                         <div className="flex flex-col">
