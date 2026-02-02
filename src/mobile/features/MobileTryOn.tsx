@@ -249,19 +249,19 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 );
             case 'closet':
                 return (
-                    <div className="w-full px-6 flex flex-col gap-4 animate-fadeIn py-2">
+                    <div className="w-full px-6 flex flex-col gap-2 animate-fadeIn py-1">
                         <div className="flex gap-4 items-center h-full">
                             <PremiumUpload label="Upper Wear" image={topGarment} onUpload={handleUpload(setTopGarment)} onClear={() => setTopGarment(null)} icon={<ApparelIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
                             <PremiumUpload label="Bottom Wear" image={bottomGarment} onUpload={handleUpload(setBottomGarment)} onClear={() => setBottomGarment(null)} icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} heightClass="h-28" compact />
                         </div>
-                        <div className="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/50">
+                        <div className="bg-indigo-50/50 p-2 rounded-xl border border-indigo-100/50">
                             <p className="text-[8px] text-indigo-600 font-bold leading-tight flex items-start gap-2">
                                 <InformationCircleIcon className="w-3 h-3 shrink-0 mt-0.5" />
-                                <span>At least one item required. To transfer a full outfit, upload the same photo to both slots.</span>
+                                <span>Upload at least one item. To transfer a full outfit, upload same photo to both slots.</span>
                             </p>
                         </div>
                         {(topGarment || bottomGarment) && (
-                            <button onClick={() => setCurrentStep(2)} className="w-full py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg animate-fadeInUp">
+                            <button onClick={() => setCurrentStep(2)} className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg animate-fadeInUp">
                                 Next: Selection Fit
                             </button>
                         )}
@@ -384,8 +384,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            {/* Updated Tray Height from h-[140px] to h-[200px] */}
-                            <div className="h-[200px] flex items-center relative overflow-hidden">
+                            {/* Updated Tray Height from h-[200px] to h-[220px] */}
+                            <div className="h-[220px] flex items-center relative overflow-hidden">
                                 {TRYON_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {renderStepContent(step.id)}
@@ -402,7 +402,12 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
                                                 <span className={`${styles.stepLabel} ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`${styles.stepBar} ${isActive ? 'bg-indigo-600' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>Ready</span>
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                    {idx === 0 || idx === 1 ? 'Ready' : 
+                                                     idx === 2 ? fitType : 
+                                                     idx === 3 ? (finishType.length > 0 ? finishType.join(', ') : '') : 
+                                                     idx === 4 ? accessories : ''}
+                                                </span>
                                             </button>
                                         );
                                     })}
