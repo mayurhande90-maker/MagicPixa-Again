@@ -239,12 +239,13 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     return (
-        <div className="min-h-full flex flex-col bg-white relative">
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
-                {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <PixaCaptionIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
                         Pixa Caption Pro
                     </span>
                 </div>
@@ -283,7 +284,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             </div>
 
             {/* Stage Area */}
-            <div className="relative flex-1 min-h-[300px] w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {results.length > 0 ? (
@@ -316,7 +317,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             <div className="absolute inset-0 z-[100] flex items-center justify-center px-10 animate-fadeIn">
                                 <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-8 animate-breathe">
                                     <div className="relative w-20 h-20 flex items-center justify-center">
-                                        <svg className="w-full h-full transform -rotate-90"><circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-600" strokeDasharray={226.2} strokeDashoffset={226.2 * (1 - progressPercent / 100)} strokeLinecap="round" /></svg>
+                                        <svg className="w-full h-full transform -rotate-90"><circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-indigo-600" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" /></svg>
                                         <div className="absolute"><span className="text-[12px] font-mono font-black text-white">{Math.round(progressPercent)}%</span></div>
                                     </div>
                                     <div className="text-center"><span className="text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-90">Social Architect</span><div className="h-px w-8 bg-indigo-500/50 mx-auto my-3" /><span className="text-[9px] text-indigo-200/60 font-bold uppercase tracking-widest animate-pulse leading-relaxed">{loadingText}</span></div>
@@ -328,7 +329,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             </div>
 
             {/* Controller Tray */}
-            <div className="flex-none flex flex-col bg-white min-h-0">
+            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {results.length > 0 ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
