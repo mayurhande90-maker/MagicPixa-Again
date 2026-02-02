@@ -307,9 +307,10 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
-                {/* Top Row: Identity (Gradient Text Design) */}
-                <div className="pt-4 pb-1 flex justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* Top Row: Identity (Solid Black Design) */}
+                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
+                    <ThumbnailIcon className="w-5 h-5 text-black shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tighter pointer-events-none text-black">
                         Pixa Thumbnail Pro
                     </span>
                 </div>
@@ -356,8 +357,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 </div>
             </div>
 
-            {/* Stage (Canvas) - flex-1 min-h-0 for vertical fluidity */}
-            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center px-6 pb-6 pt-2 select-none overflow-hidden">
+            {/* Stage (Canvas) */}
+            <div className="relative flex-grow w-full flex items-center justify-center px-6 pb-6 pt-2 select-none overflow-hidden">
                 <div className={`w-full h-full rounded-[2rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${format ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2rem] overflow-hidden z-10">
                         {result ? (
