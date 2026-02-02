@@ -16,6 +16,7 @@ const MobileRestore = lazy(() => import('./features/MobileRestore').then(m => ({
 const MobileCaption = lazy(() => import('./features/MobileCaption').then(m => ({ default: m.MobileCaption })));
 const MobileCreations = lazy(() => import('./features/MobileCreations').then(m => ({ default: m.MobileCreations })));
 const MobileProfile = lazy(() => import('./features/MobileProfile').then(m => ({ default: m.MobileProfile })));
+const MobileTryOn = lazy(() => import('./features/MobileTryOn').then(m => ({ default: m.MobileTryOn })));
 
 interface MobileAppProps {
     auth: AuthProps;
@@ -41,7 +42,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         'colour',
         'caption',
         'creations',
-        'profile'
+        'profile',
+        'apparel'
     ];
 
     // Triggered by any feature when a user starts a "Generate" task
@@ -85,6 +87,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
                 return <MobileRestore {...commonProps} />;
             case 'caption':
                 return <MobileCaption {...commonProps} />;
+            case 'apparel':
+                return <MobileTryOn {...commonProps} />;
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
