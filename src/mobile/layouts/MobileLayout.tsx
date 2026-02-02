@@ -12,7 +12,10 @@ interface MobileLayoutProps {
 
 export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab, setActiveTab, auth }) => {
     return (
-        <div className="fixed top-0 left-0 w-full h-[100dvh] flex flex-col bg-white overflow-hidden">
+        <div 
+            className="fixed top-0 left-0 w-full flex flex-col bg-white overflow-hidden"
+            style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
+        >
             {/* Header - Compact */}
             <header className="flex-none px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-md z-50">
                 <MagicPixaLogo className="scale-90 origin-left" />
@@ -25,8 +28,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
                 )}
             </header>
 
-            {/* Main Content Area */}
-            <main className="flex-1 min-h-0 relative overflow-y-auto custom-scrollbar bg-white safe-area-bottom">
+            {/* Main Content Area - Fluidity fix with flex-basis: 0 */}
+            <main className="flex-1 flex flex-col min-h-0 relative bg-white safe-area-bottom overflow-hidden">
                 {children}
             </main>
 
