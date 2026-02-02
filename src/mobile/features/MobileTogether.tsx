@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../../types';
 import { 
@@ -58,7 +57,7 @@ const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url
             ) : (
                 <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border-2 border-dashed border-gray-200 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
                     <div className={`${compact ? 'p-2' : 'p-3'} bg-gray-50 group-hover:bg-white rounded-xl shadow-sm mb-2 group-hover:scale-110 transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100`}>{icon}</div>
-                    <p className={`${compact ? 'text-[9px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4`}>{uploadText || "Add Photo"}</p>
+                    <p className={`${compact ? 'text-[8px]' : 'text-xs'} font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4`}>{uploadText || "Add Photo"}</p>
                 </div>
             )}
             <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
@@ -360,7 +359,8 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 </div>
             </div>
 
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            {/* Stage Area - Precise fluidity with flex-1 min-h-0 */}
+            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -423,7 +423,8 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            <div className="h-[140px] flex items-center relative overflow-hidden">
+                            {/* Tray height adjusted to h-[150px] */}
+                            <div className="h-[150px] flex items-center relative overflow-hidden">
                                 {activeSteps.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {step.id === 'timeline' && timeline ? (
