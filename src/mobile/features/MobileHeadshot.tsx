@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, Creation } from '../../types';
+import { AuthProps, AppConfig, Creation, View } from '../../types';
 import { 
     PixaHeadshotIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LocationIcon
+    CreditCoinIcon, LocationIcon, LockIcon
 } from '../../components/icons';
 import { 
     CorporateExecutiveIcon, 
@@ -61,7 +61,7 @@ const checkMilestoneLocal = (gens: number): number | false => {
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -95,9 +95,10 @@ interface MobileHeadshotProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
     onGenerationStart: () => void;
+    setActiveTab: (tab: View) => void;
 }
 
-export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig, onGenerationStart }) => {
+export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- 1. PRE-INITIALIZE CONSTANTS ---
     const cost = appConfig?.featureCosts?.['Pixa Headshot Pro'] || 4;
     const refineCost = 2;
@@ -433,7 +434,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                         </button>
                         {mode && !result && !isGenerating && (
                             <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3 h-3 text-indigo-600" />
+                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
@@ -450,9 +451,9 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                         ) : !result && (
                             <button 
                                 onClick={handleGenerate}
-                                disabled={!isStrategyComplete || isGenerating}
+                                disabled={!isStrategyComplete || isGenerating || isLowCredits}
                                 className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${
-                                    !isStrategyComplete || isGenerating
+                                    !isStrategyComplete || isGenerating || isLowCredits
                                     ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
                                     : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
                                 }`}
@@ -563,6 +564,24 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                     <RegenerateIcon className="w-4 h-4" /> Regenerate
                                 </button>
                             </div>
+                        </div>
+                    ) : isLowCredits && mode ? (
+                        <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                    <LockIcon className="w-5 h-5" />
+                                 </div>
+                                 <div className="text-left">
+                                    <p className="text-sm font-black text-red-900 uppercase tracking-tight">Insufficient Balance</p>
+                                    <p className="text-[10px] font-bold text-red-700/70">Generating this portrait requires {cost} credits. Your balance: {auth.user?.credits || 0}</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => setActiveTab('billing')}
+                                className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                             >
+                                Recharge Credits
+                             </button>
                         </div>
                     ) : (
                         <div className="flex flex-col">
