@@ -236,29 +236,58 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            <div className="flex-none px-6 py-4 flex items-center justify-between z-50">
-                <div className="flex items-center gap-2">
-                    <button onClick={handleBack} className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
-                        <ArrowLeftIcon className="w-5 h-5" />
-                    </button>
-                    {mode && !result && !isGenerating && (
-                        <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                            <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
-                        </div>
-                    )}
+            {/* Header (Stacked Layout) */}
+            <div className="flex-none flex flex-col bg-white z-50">
+                {/* Top Row: Identity (Gradient Text Design) */}
+                <div className="pt-4 pb-1 flex justify-center">
+                    <span className="text-[11px] font-black uppercase tracking-widest pointer-events-none text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                        Pixa Photo Restore
+                    </span>
                 </div>
-                <div className="flex items-center gap-3">
-                    {result && !isGenerating ? (
-                        <button onClick={() => downloadImage(result, 'restored.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
-                    ) : !result && (
-                        <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating} className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
-                            {isGenerating ? 'Restoring...' : 'Generate'}
+
+                {/* Bottom Row: Commands */}
+                <div className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={handleBack} 
+                            className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
+                        >
+                            <ArrowLeftIcon className="w-5 h-5" />
                         </button>
-                    )}
+                        {mode && !result && !isGenerating && (
+                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {result && !isGenerating ? (
+                            <button 
+                                onClick={() => downloadImage(result, 'restored.png')}
+                                className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"
+                            >
+                                <DownloadIcon className="w-5 h-5" />
+                            </button>
+                        ) : !result && (
+                            <button 
+                                onClick={handleGenerate}
+                                disabled={!isStrategyComplete || isGenerating}
+                                className={`px-10 py-3.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${
+                                    !isStrategyComplete || isGenerating
+                                    ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed'
+                                    : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'
+                                }`}
+                            >
+                                {isGenerating ? 'Restoring...' : 'Generate'}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
+            {/* Stage Area */}
             <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
