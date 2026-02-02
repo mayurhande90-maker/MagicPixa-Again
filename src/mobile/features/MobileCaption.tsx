@@ -71,7 +71,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     // --- STATE ---
     const [currentStep, setCurrentStep] = useState(0);
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [language, setLanguage] = useState('English');
+    const [language, setLanguage] = useState(''); // FIX: Language now starts empty
     const [tone, setTone] = useState('');
     const [style, setStyle] = useState('');
     
@@ -177,7 +177,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const handleNewProject = () => {
-        setResults([]); setImage(null); setTone(''); setStyle('');
+        setResults([]); setImage(null); setLanguage(''); setTone(''); setStyle('');
         setCurrentStep(0);
     };
 
