@@ -234,7 +234,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
     };
 
     return (
-        <div className="h-full flex flex-col bg-white overflow-hidden relative">
+        <div className="min-h-full flex flex-col bg-white relative">
             {/* Header (Stacked Layout) */}
             <div className="flex-none flex flex-col bg-white z-50">
                 {/* Top Row: Identity (Gradient Text Design) */}
@@ -287,7 +287,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
             </div>
 
             {/* Stage Area - Precise fluidity fix with flex-1 min-h-0 */}
-            <div className="relative flex-1 min-h-0 w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
+            <div className="relative flex-1 min-h-[400px] w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
@@ -330,7 +330,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                 </div>
             </div>
 
-            <div className="flex-none flex flex-col bg-white overflow-hidden min-h-0">
+            <div className="flex-none flex flex-col bg-white min-h-0">
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
