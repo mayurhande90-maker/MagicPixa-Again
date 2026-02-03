@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Creation, View } from '../../types';
 import { 
@@ -5,7 +6,7 @@ import {
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, ShieldCheckIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, EngineIcon, PaletteIcon, LockIcon
+    CreditCoinIcon, EngineIcon, PaletteIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { colourizeImage } from '../../services/imageToolsService';
@@ -29,12 +30,6 @@ const checkMilestoneLocal = (gens: number): number | false => {
     if (gens === 100) return 30;
     return false;
 };
-
-const CustomRefineIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-    </svg>
-);
 
 interface MobileRestoreProps {
     auth: AuthProps;
@@ -198,6 +193,13 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
         }
     };
 
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        setMilestoneBonus(false);
+    };
+
     // --- 4. RENDERERS ---
 
     const renderStepContent = (stepId: string) => {
@@ -253,14 +255,9 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button 
-                            onClick={handleBack} 
-                            className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                        >
-                            <ArrowLeftIcon className="w-5 h-5" />
-                        </button>
-                        {mode && !result && !isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
+                        {/* NO BACK BUTTON HERE AS REQUESTED */}
+                        {!isGenerating && (
+                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
                                 <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
@@ -296,7 +293,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
             <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${mode ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
-                        {result ? (
+                        {isGenerating ? null : result ? (
                             <img src={result} onClick={() => !isGenerating && setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30 scale-95' : 'animate-materialize'}`} />
                         ) : !mode ? (
                             <div className="text-center animate-fadeIn px-8">
@@ -305,11 +302,11 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 text-center">Select restoration engine to start</p>
                             </div>
                         ) : (
-                            <button onClick={() => !isGenerating && fileInputRef.current?.click()} className={`w-[85%] aspect-square border-2 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-200 border-dashed bg-white active:bg-gray-50'}`}>
+                            <button onClick={() => !isGenerating && fileInputRef.current?.click()} className={`w-[85%] aspect-square border-2 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all relative overflow-hidden ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-200 border-dashed bg-white active:bg-gray-50'}`}>
                                 {image ? (
                                     <img src={image.url} className={`w-full h-full object-cover rounded-[1.8rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : ''}`} />
                                 ) : (
-                                    <><div className="p-4 bg-gray-50 rounded-2xl text-gray-200"><ImageIcon className="w-10 h-10"/></div><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD VINTAGE PHOTO</span></>
+                                    <><div className="p-4 bg-gray-50 rounded-2xl text-gray-200"><PixaRestoreIcon className="w-10 h-10"/></div><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD VINTAGE PHOTO</span></>
                                 )}
                                 {image && !isGenerating && (
                                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg animate-fadeIn">
@@ -321,6 +318,17 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                                 )}
                             </button>
                         )}
+
+                        {image && !result && !isGenerating && (
+                            <button 
+                                onClick={handleNewProject}
+                                className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                            >
+                                <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                            </button>
+                        )}
+
                         {isGenerating && (
                             <div className="absolute inset-0 z-[100] flex items-center justify-center px-10 animate-fadeIn">
                                 <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-8 animate-breathe">
@@ -340,7 +348,9 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Refine image</button>
+                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <MagicWandIcon className="w-5 h-5 brightness-0 invert" /> Refine image
+                            </button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> New Project</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm"><RegenerateIcon className="w-4 h-4" /> Regenerate</button></div>
                         </div>
                     ) : isLowCredits && mode ? (
@@ -414,13 +424,32 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                        // COMMENT: Fixed error on line 427: Removed unnecessary argument from handleRefine call as the function uses local state.
+                        <button onClick={() => handleRefine()} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                     )}
                 </div>
             </MobileSheet>
 
             {isFullScreenOpen && result && (
                 <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}><button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10"><XIcon className="w-6 h-6" /></button><img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" /></div>
+            )}
+
+            {milestoneBonus !== undefined && milestoneBonus !== false && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={() => setMilestoneBonus(false)}>
+                    <div className="relative bg-gradient-to-br from-indigo-600 to-purple-700 w-full max-w-xs p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slight text-white border border-white/10" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                            <SparklesIcon className="w-8 h-8 text-yellow-300 animate-spin-slow" />
+                        </div>
+                        <h2 className="text-xl font-bold mb-2">Milestone!</h2>
+                        <p className="text-indigo-100 mb-6 text-xs leading-relaxed">
+                            You've hit a record number of generations.
+                        </p>
+                        <div className="bg-white/20 backdrop-blur-md text-white font-black text-3xl py-4 rounded-xl mb-6 border border-white/30">
+                            +{milestoneBonus} <span className="text-sm font-bold opacity-80">Credits</span>
+                        </div>
+                        <button onClick={handleClaimBonus} className="w-full bg-white text-indigo-600 font-bold py-3 rounded-lg hover:bg-indigo-50 transition-all shadow-lg active:scale-95">Collect Bonus</button>
+                    </div>
+                </div>
             )}
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
@@ -432,6 +461,8 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
                 @keyframes breathe { 0%, 100% { transform: scale(1); border-color: rgba(99, 102, 241, 0.2); } 50% { transform: scale(1.02); border-color: rgba(99, 102, 241, 0.5); } }
                 .animate-breathe { animation: breathe 4s ease-in-out infinite; }
+                @keyframes neural-scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+                .animate-neural-scan { animation: neural-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
