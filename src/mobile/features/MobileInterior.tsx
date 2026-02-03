@@ -226,21 +226,13 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         {!isGenerating && (
-                            <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
-                                <span className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            <div className="flex items-center gap-2 bg-indigo-50 px-5 py-2.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4.5 h-4.5 text-indigo-600" />
+                                <span className="text-xs font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
                     </div>
                     <div className="flex items-center gap-3">
-                        {image && !isGenerating && (
-                            <button 
-                                onClick={handleReset}
-                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                                Reset
-                            </button>
-                        )}
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'interior.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : !result && (
@@ -276,6 +268,17 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                         </div>
                     )}
+
+                    {image && !isGenerating && (
+                        <button 
+                            onClick={handleReset}
+                            className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                        >
+                            <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                        </button>
+                    )}
+
                     {isGenerating && (
                         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl animate-fadeIn">
                             <div className="flex flex-col items-center gap-8 text-center px-10">
