@@ -8,7 +8,7 @@ import {
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
     CreditCoinIcon, ShieldCheckIcon, GarmentTrousersIcon, PixaTryOnIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
-import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
+import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateApparelTryOn } from '../../services/apparelService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
@@ -38,7 +38,7 @@ const LOADING_MESSAGES = [
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -81,27 +81,6 @@ const PremiumUpload: React.FC<{
         </div>
     );
 };
-
-const EngineModeCard: React.FC<{ 
-    title: string; 
-    desc: string; 
-    icon: React.ReactNode; 
-    selected: boolean; 
-    onClick: () => void; 
-}> = ({ title, desc, icon, selected, onClick }) => (
-    <div 
-        onClick={onClick} 
-        className={`${PixaTogetherStyles.engineCard} ${selected ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}
-    >
-        <div>
-            <h4 className={PixaTogetherStyles.engineTitle}>{title}</h4>
-            <p className={`${PixaTogetherStyles.engineDesc} ${selected ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>{desc}</p>
-        </div>
-        <div className={`${PixaTogetherStyles.engineIconBox} ${selected ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}>
-            {icon}
-        </div>
-    </div>
-);
 
 interface MobileTryOnProps {
     auth: AuthProps;
@@ -336,7 +315,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                 <button key={opt} onClick={() => handleToggleFinish(opt)} className={`${styles.optionBtn} !px-4 !py-2.5 !shrink-1 ${isSelected ? styles.optionActive : styles.optionInactive}`}>{opt}</button>
                             );
                         })}
-                        <button onClick={() => setCurrentStep(4)} className="px-6 py-2.5 rounded-2xl text-[10px] font-black bg-indigo-600 text-white uppercase tracking-widest shadow-lg border border-indigo-600">Done</button>
+                        <button onClick={() => setCurrentStep(4)} className="px-6 py-2.5 rounded-2xl text-[10px] font-black bg-indigo-600 text-white uppercase tracking-widest shadow-lg border border-indigo-100">Done</button>
                     </div>
                 );
             case 'addons':
@@ -389,7 +368,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                     {result ? (
                         <img src={result} onClick={() => setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
                     ) : personImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center p-4">
+                        <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
                             <img src={personImage.url} className={`max-w-full max-h-full object-contain transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : ''}`} />
                             
                             {/* Garment Shelf Overlay */}
@@ -446,7 +425,6 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 <div className={`transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            {/* FIX: handleRefine call was missing the required argument 'refineText' */}
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Tailor's Adjustment</button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewSession} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Shoot</button>
                             <button onClick={() => handleGenerate()} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
@@ -471,7 +449,6 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${personImage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none'}`}>
-                            {/* Updated Tray Height to h-[160px] to increase canvas space */}
                             <div className="h-[160px] flex items-center relative overflow-hidden">
                                 {TRYON_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
@@ -486,7 +463,6 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                         const isAccessible = isStepAccessible(idx);
                                         const isFilled = (idx === 0 && !!personImage) || (idx === 1 && (!!topGarment || !!bottomGarment)) || (idx === 2 && !!fitType) || (idx === 3 && finishType.length > 0) || (idx === 4 && !!accessories);
                                         
-                                        // UI CUE: Flash NEXT under Tailoring (idx 2) when user is on Closet step and has uploaded something
                                         const showNextCue = currentStep === 1 && idx === 2 && (!!topGarment || !!bottomGarment);
 
                                         return (
@@ -517,7 +493,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
 
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Tailor Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
                 <div className="space-y-6 pb-6">
-                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
+                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
                     
                     {isLowRefineCredits ? (
                         <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center gap-3 animate-fadeIn">
@@ -536,8 +512,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                             </button>
                         </div>
                     ) : (
-                        {/* FIX: handleRefine call was missing the required argument 'refineText' */}
-                        <button onClick={() => handleRefine(refineText)} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
+                        <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
                     )}
                 </div>
             </MobileSheet>
