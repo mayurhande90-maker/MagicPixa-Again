@@ -22,9 +22,9 @@ const INTERIOR_STEPS = [
 ];
 
 const HOME_ROOMS = ['Living Room', 'Bedroom', 'Kitchen', 'Dining Room', 'Bathroom', 'Home Office', 'Balcony/Patio', 'Gaming Room'];
-const OFFICE_ROOMS = ['Open Workspace', 'Private Office', 'Conference Room', 'Reception', 'Break Room', 'Meeting Pod'];
-const HOME_STYLES = ['Modern', 'Minimalist', 'Japandi', 'Scandinavian', 'Industrial', 'Bohemian', 'Luxury', 'Classic'];
-const OFFICE_STYLES = ['Corporate', 'Creative', 'Tech/Future', 'Minimal', 'Industrial', 'Luxury Executive'];
+const OFFICE_ROOMS = ['Open Workspace', 'Private Office', 'Conference Room', 'Reception / Lobby', 'Break Room', 'Meeting Pod'];
+const HOME_STYLES = ['Modern', 'Minimalist', 'Japanese', 'American', 'Coastal', 'Traditional Indian', 'Arabic', 'Futuristic', 'African'];
+const OFFICE_STYLES = ['Modern Corporate', 'Minimalist', 'Industrial', 'Creative / Artistic', 'Luxury Executive', 'Biophilic / Nature-Inspired', 'Tech Futuristic', 'Traditional Indian'];
 
 export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; setActiveTab: (tab: View) => void; }> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- STATE ---
