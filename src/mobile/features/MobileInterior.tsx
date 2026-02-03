@@ -5,7 +5,7 @@ import {
     PixaInteriorIcon, HomeIcon, BuildingIcon, UploadIcon, SparklesIcon, 
     XIcon, CheckIcon, ArrowLeftIcon, ImageIcon, ArrowRightIcon, 
     MagicWandIcon, DownloadIcon, RegenerateIcon, PlusIcon,
-    CreditCoinIcon, ShieldCheckIcon, InformationCircleIcon, LockIcon
+    CreditCoinIcon, ShieldCheckIcon, InformationCircleIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateInteriorDesign } from '../../services/interiorService';
@@ -55,6 +55,17 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const activeStyles = spaceType === 'office' ? OFFICE_STYLES : HOME_STYLES;
 
     // --- LOGIC ---
+
+    const handleReset = () => {
+        setImage(null);
+        setSpaceType(null);
+        setRoomType('');
+        setDesignStyle('');
+        setNotes('');
+        setResult(null);
+        setCurrentStep(0);
+        setLastCreationId(null);
+    };
 
     const isStepAccessible = (idx: number) => {
         if (idx === 0) return !!image;
@@ -214,17 +225,22 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 </div>
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button onClick={() => result ? setResult(null) : currentStep > 0 ? setCurrentStep(prev => prev - 1) : setImage(null)} className={`p-2 rounded-full transition-all ${image && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
-                            <ArrowLeftIcon className="w-5 h-5" />
-                        </button>
-                        {!result && !isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
-                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                        {!isGenerating && (
+                            <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-fadeIn">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
+                                <span className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
                     </div>
                     <div className="flex items-center gap-3">
+                        {image && !isGenerating && (
+                            <button 
+                                onClick={handleReset}
+                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                                Reset
+                            </button>
+                        )}
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'interior.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : !result && (
@@ -284,7 +300,7 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><MagicWandIcon className="w-5 h-5" /> Refine Design</button>
-                            <div className="grid grid-cols-2 gap-3"><button onClick={() => { setImage(null); setResult(null); setCurrentStep(0); }} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Room</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
+                            <div className="grid grid-cols-2 gap-3"><button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Room</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
                         </div>
                     ) : isLowCredits && image ? (
                         <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 mx-6 mb-6 rounded-[2rem] border border-red-100">
