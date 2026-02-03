@@ -240,7 +240,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <div className={`p-4 rounded-2xl border flex items-center justify-center gap-3 w-full max-w-[280px] transition-colors ${image ? 'bg-green-50 border-green-100 text-green-700' : 'bg-indigo-50 border-indigo-100 text-indigo-900'}`}>
                             {image ? <CheckIcon className="w-4 h-4" /> : <InformationCircleIcon className="w-4 h-4" />}
                             <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                                {image ? 'Photo Analyzed' : 'Tap canvas to upload'}
+                                {image ? 'ready' : 'Tap canvas to upload'}
                             </p>
                         </div>
                     </div>
@@ -264,8 +264,8 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        {/* Remove Back Button for consistent experience */}
-                        {(image || results.length > 0) && !isGenerating && (
+                        {/* Credits visible immediately upon opening, hidden during generation */}
+                        {!isGenerating && (
                             <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
                                 <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
@@ -289,7 +289,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
             {/* Stage Area */}
             <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image && !isGenerating ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {results.length > 0 ? (
                             <div className="w-full h-full overflow-y-auto px-6 pt-10 pb-20 custom-scrollbar animate-fadeIn">
@@ -303,23 +303,19 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest leading-tight">Copy Hub</h4>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 text-center">Pick language below to start</p>
                             </div>
-                        ) : (
+                        ) : !isGenerating ? (
                             <button onClick={() => !isGenerating && fileInputRef.current?.click()} className={`w-[85%] aspect-square border-2 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all relative overflow-hidden ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-200 border-dashed bg-white active:bg-gray-50'}`}>
                                 {image ? (
                                     <>
-                                        <img src={image.url} className={`w-full h-full object-cover rounded-[2.3rem] transition-all duration-700 ${isGenerating ? 'opacity-0 scale-95' : ''}`} />
-                                        {!isGenerating && (
-                                            <>
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                                                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600">Scan Ready</div>
-                                            </>
-                                        )}
+                                        <img src={image.url} className="w-full h-full object-cover rounded-[2.3rem] animate-fadeIn" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600">Scan Ready</div>
                                     </>
                                 ) : (
                                     <><PixaCaptionIcon className="w-12 h-12 text-indigo-100"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD PHOTO TO SCAN</span></>
                                 )}
                             </button>
-                        )}
+                        ) : null}
 
                         {image && results.length === 0 && !isGenerating && (
                             <button 
@@ -393,7 +389,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
                                                 <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? language : idx === 2 ? tone : idx === 3 ? style : ''}
+                                                    {idx === 0 ? language : idx === 1 ? 'ready' : idx === 2 ? tone : idx === 3 ? style : ''}
                                                 </span>
                                             </button>
                                         );
