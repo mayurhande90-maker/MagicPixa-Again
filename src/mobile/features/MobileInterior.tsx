@@ -225,9 +225,9 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 </div>
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                        <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
                             <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
-                            <span className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -260,14 +260,16 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         </div>
                     ) : (
                         <div onClick={() => fileInputRef.current?.click()} className="text-center group active:scale-95 transition-all">
-                            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform"><ImageIcon className="w-10 h-10 text-indigo-100" /></div>
+                            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
+                                <PixaInteriorIcon className="w-14 h-14 text-indigo-500/20" />
+                            </div>
                             <h3 className="text-xl font-black text-gray-900 tracking-tight">Redesign Room</h3>
                             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to upload space</p>
                             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
                         </div>
                     )}
 
-                    {image && !isGenerating && (
+                    {image && !result && !isGenerating && (
                         <button 
                             onClick={handleReset}
                             className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
@@ -300,8 +302,17 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 <div className={`transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><MagicWandIcon className="w-5 h-5" /> Refine Design</button>
-                            <div className="grid grid-cols-2 gap-3"><button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Room</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
+                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <MagicWandIcon className="w-5 h-5 brightness-0 invert" /> Refine Image
+                            </button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">
+                                    <PlusIcon className="w-3.5 h-3.5" /> New Project
+                                </button>
+                                <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">
+                                    <RegenerateIcon className="w-3.5 h-3.5" /> Regenerate
+                                </button>
+                            </div>
                         </div>
                     ) : isLowCredits && image ? (
                         <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 mx-6 mb-6 rounded-[2rem] border border-red-100">
