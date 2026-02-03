@@ -225,12 +225,10 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 </div>
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        {!isGenerating && (
-                            <div className="flex items-center gap-2 bg-indigo-50 px-5 py-2.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
-                                <CreditCoinIcon className="w-4.5 h-4.5 text-indigo-600" />
-                                <span className="text-xs font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                            <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
+                            <span className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         {result && !isGenerating ? (
