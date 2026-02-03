@@ -8,7 +8,7 @@ import {
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
     CreditCoinIcon, ShieldCheckIcon, GarmentTrousersIcon, PixaTryOnIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
-import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
+import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateApparelTryOn } from '../../services/apparelService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
@@ -82,6 +82,27 @@ const PremiumUpload: React.FC<{
     );
 };
 
+const EngineModeCard: React.FC<{ 
+    title: string; 
+    desc: string; 
+    icon: React.ReactNode; 
+    selected: boolean; 
+    onClick: () => void; 
+}> = ({ title, desc, icon, selected, onClick }) => (
+    <div 
+        onClick={onClick} 
+        className={`${PixaTogetherStyles.engineCard} ${selected ? PixaTogetherStyles.engineCardSelected : PixaTogetherStyles.engineCardInactive}`}
+    >
+        <div>
+            <h4 className={PixaTogetherStyles.engineTitle}>{title}</h4>
+            <p className={`${PixaTogetherStyles.engineDesc} ${selected ? PixaTogetherStyles.engineDescSelected : PixaTogetherStyles.engineDescInactive}`}>{desc}</p>
+        </div>
+        <div className={`${PixaTogetherStyles.engineIconBox} ${selected ? PixaTogetherStyles.engineIconSelected : PixaTogetherStyles.engineIconInactive}`}>
+            {icon}
+        </div>
+    </div>
+);
+
 interface MobileTryOnProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
@@ -122,15 +143,14 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     const isStepAccessible = (idx: number) => {
         if (idx === 0) return true;
         if (idx === 1) return !!personImage;
-        if (idx === 2) return (!!topGarment || !!bottomGarment);
-        if (idx === 3) return !!fitType; 
-        if (idx === 4) return !!fitType; 
+        if (idx >= 2) return (!!topGarment || !!bottomGarment);
         return false;
     };
 
     const isStrategyComplete = useMemo(() => {
-        return !!personImage && (!!topGarment || !!bottomGarment) && !!fitType;
-    }, [personImage, topGarment, bottomGarment, fitType]);
+        // Tailoring is now optional. Just need model + at least one garment.
+        return !!personImage && (!!topGarment || !!bottomGarment);
+    }, [personImage, topGarment, bottomGarment]);
 
     useEffect(() => {
         let interval: any;
@@ -170,10 +190,18 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     };
 
     const handleGenerate = async () => {
-        if (!personImage || !auth.user) return; if (!topGarment && !bottomGarment) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
+        if (!personImage || !auth.user || isGenerating) return; 
+        if (!topGarment && !bottomGarment) return; 
+        if (isLowCredits) { alert("Insufficient credits."); return; } 
+
+        onGenerationStart();
+        setIsGenerating(true); 
+        setResult(null); 
+        setLastCreationId(null);
+        
         try {
             const styling = {
-                fit: fitType,
+                fit: fitType || 'Regular',
                 tuck: finishType.find(f => f.includes('Tucked')) || 'Untucked',
                 sleeve: finishType.find(f => f.includes('Sleeves')) || 'Original',
                 accessories: accessories
@@ -347,7 +375,6 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'tryon.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-indigo-600 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : !result && (
-                            // COMMENT: Wrap handleGenerate in an arrow function to avoid Promise type mismatch on onClick
                             <button onClick={() => handleGenerate()} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
                                 {isGenerating ? 'Tailoring...' : 'Generate'}
                             </button>
@@ -362,7 +389,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                     {result ? (
                         <img src={result} onClick={() => setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
                     ) : personImage ? (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+                        <div className="relative w-full h-full flex items-center justify-center p-4">
                             <img src={personImage.url} className={`max-w-full max-h-full object-contain transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : ''}`} />
                             
                             {/* Garment Shelf Overlay */}
@@ -419,9 +446,9 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 <div className={`transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
+                            {/* FIX: handleRefine call was missing the required argument 'refineText' */}
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Tailor's Adjustment</button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewSession} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Shoot</button>
-                            {/* // COMMENT: Wrap handleGenerate in an arrow function */}
                             <button onClick={() => handleGenerate()} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
                         </div>
                     ) : isLowCredits && personImage ? (
@@ -490,7 +517,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
 
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Tailor Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
                 <div className="space-y-6 pb-6">
-                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
+                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the shirt a bit looser, adjust colors to match background..." />
                     
                     {isLowRefineCredits ? (
                         <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center gap-3 animate-fadeIn">
@@ -509,8 +536,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                             </button>
                         </div>
                     ) : (
-                        // COMMENT: Wrap handleRefine in an arrow function to avoid immediate execution and Promise type error
-                        <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
+                        {/* FIX: handleRefine call was missing the required argument 'refineText' */}
+                        <button onClick={() => handleRefine(refineText)} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Update Outfit</button>
                     )}
                 </div>
             </MobileSheet>
