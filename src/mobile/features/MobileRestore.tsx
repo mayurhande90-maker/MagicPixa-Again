@@ -309,7 +309,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                                     <><div className="p-4 bg-gray-50 rounded-2xl text-gray-200"><PixaRestoreIcon className="w-10 h-10"/></div><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD VINTAGE PHOTO</span></>
                                 )}
                                 {image && !isGenerating && (
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg animate-fadeIn">
+                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg animate-fadeIn">
                                         <div className="flex items-center gap-1.5">
                                             <ShieldCheckIcon className="w-3 h-3 text-indigo-500" />
                                             <span className="text-[8px] font-black text-indigo-900 uppercase tracking-widest">Identity Lock 6.0</span>
