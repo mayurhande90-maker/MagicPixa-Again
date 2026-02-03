@@ -1,14 +1,17 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, View } from '../../types';
 import { 
     PixaCaptionIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     CopyIcon, ArrowLeftIcon, ImageIcon, CameraIcon, GlobeIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, PlusIcon, RegenerateIcon, LockIcon
+    CreditCoinIcon, PlusIcon, RegenerateIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateCaptions } from '../../services/captionService';
 import { deductCredits, saveCreation } from '../../firebase';
+import { MobileSheet } from '../components/MobileSheet';
+import { SelectionGrid } from '../../components/FeatureLayout';
 
 // --- CONFIGURATION ---
 
@@ -70,7 +73,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     // --- STATE ---
     const [currentStep, setCurrentStep] = useState(0);
     const [image, setImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [language, setLanguage] = useState(''); // FIX: Language now starts empty
+    const [language, setLanguage] = useState(''); 
     const [tone, setTone] = useState('');
     const [style, setStyle] = useState('');
     
@@ -85,6 +88,11 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const isLowCredits = (auth.user?.credits || 0) < cost;
 
     // --- LOGIC ---
+
+    const handleReset = () => {
+        setResults([]); setImage(null); setLanguage(''); setTone(''); setStyle('');
+        setCurrentStep(0);
+    };
 
     const isStepAccessible = (idx: number) => {
         if (idx === 0) return true;
@@ -167,8 +175,6 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Caption Pro (Mobile)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-
-            // Note: Captions aren't currently "saved" to gallery as images are, but we can log usage
         } catch (e) {
             alert("Generation failed. Please try again.");
             setIsGenerating(false);
@@ -182,8 +188,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const handleNewProject = () => {
-        setResults([]); setImage(null); setLanguage(''); setTone(''); setStyle('');
-        setCurrentStep(0);
+        handleReset();
     };
 
     const handleBack = () => {
@@ -259,24 +264,17 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button 
-                            onClick={handleBack} 
-                            className={`p-2 rounded-full transition-all ${((image && currentStep > 0) || results.length > 0) && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                        >
-                            <ArrowLeftIcon className="w-5 h-5" />
-                        </button>
+                        {/* Remove Back Button for consistent experience */}
                         {(image || results.length > 0) && !isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {results.length > 0 && !isGenerating ? (
-                            <button onClick={handleNewProject} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><PlusIcon className="w-5 h-5" /></button>
-                        ) : (
+                        {results.length === 0 && (
                             <button 
                                 onClick={handleGenerate} 
                                 disabled={!isStrategyComplete || isGenerating || isLowCredits} 
@@ -309,13 +307,27 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             <button onClick={() => !isGenerating && fileInputRef.current?.click()} className={`w-[85%] aspect-square border-2 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all relative overflow-hidden ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-200 border-dashed bg-white active:bg-gray-50'}`}>
                                 {image ? (
                                     <>
-                                        <img src={image.url} className={`w-full h-full object-cover rounded-[2.3rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : ''}`} />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600">Scan Ready</div>
+                                        <img src={image.url} className={`w-full h-full object-cover rounded-[2.3rem] transition-all duration-700 ${isGenerating ? 'opacity-0 scale-95' : ''}`} />
+                                        {!isGenerating && (
+                                            <>
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                                                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600">Scan Ready</div>
+                                            </>
+                                        )}
                                     </>
                                 ) : (
-                                    <><ImageIcon className="w-10 h-10 text-gray-200"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD PHOTO TO SCAN</span></>
+                                    <><PixaCaptionIcon className="w-12 h-12 text-indigo-100"/><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD PHOTO TO SCAN</span></>
                                 )}
+                            </button>
+                        )}
+
+                        {image && results.length === 0 && !isGenerating && (
+                            <button 
+                                onClick={handleReset}
+                                className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                            >
+                                <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
                             </button>
                         )}
 
@@ -339,8 +351,8 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {results.length > 0 ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            <button onClick={handleGenerate} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><RegenerateIcon className="w-5 h-5" /> Regenerate Mix</button>
-                            <button onClick={handleNewProject} className="w-full py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> Start New Photo</button>
+                            <button onClick={handleGenerate} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><RegenerateIcon className="w-5 h-5" /> Regenerate</button>
+                            <button onClick={handleNewProject} className="w-full py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> New Project</button>
                         </div>
                     ) : isLowCredits && language ? (
                         <div className="p-6 animate-fadeIn bg-red-50/50 flex flex-col items-center gap-4 rounded-[2rem] border border-red-100 mx-6 mb-6">
@@ -381,7 +393,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
                                                 <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? language : idx === 2 ? tone : idx === 3 ? style : 'Ready'}
+                                                    {idx === 0 ? language : idx === 2 ? tone : idx === 3 ? style : ''}
                                                 </span>
                                             </button>
                                         );
