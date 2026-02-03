@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, View } from '../../types';
 import { 
@@ -10,7 +11,7 @@ import {
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage, Base64File } from '../../utils/imageUtils';
 import { generateApparelTryOn } from '../../services/apparelService';
 import { refineStudioImage } from '../../services/photoStudioService';
-import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
+import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 import { MobileTryOnStyles as styles } from '../../styles/features/MobileTryOn.styles';
 
@@ -39,6 +40,10 @@ const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
         <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
+);
+
+const TrousersIconCustom = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none"><g fill="none"><path d="M24 0v24H0V0h24ZM12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427c-.002-.01-.009-.017-.017-.018Zm.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093c.012.004.023 0 .029-.008l.004-.014l-.034-.614c-.003-.012-.01-.02-.02-.022Zm-.715.002a.023.023 0 0 0-.027.006l-.006.014l-.034.614c0 .012.007.02.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01l-.184-.092Z"/><path fill="currentColor" d="M7.895 2a2 2 0 0 0-1.988 1.78L5.883 4h12.234l-.024-.22A2 2 0 0 0 16.105 2h-8.21Zm10.444 4H5.66L4.13 19.78A2 2 0 0 0 6.116 22h3.08a2 2 0 0 0 1.953-1.566L12 13.61l.85 6.824A2 2 0 0 0 14.802 22h3.08a2 2 0 0 0 1.988-2.22L18.34 6Z"/></g></svg>
 );
 
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; compact?: boolean; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40", compact }) => {
@@ -272,7 +277,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                 image={bottomGarment} 
                                 onUpload={handleUpload(setBottomGarment)} 
                                 onClear={() => setBottomGarment(null)} 
-                                icon={<GarmentTrousersIcon className="w-6 h-6 text-indigo-400"/>} 
+                                icon={<TrousersIconCustom className="w-6 h-6 text-indigo-400"/>} 
                                 heightClass="h-32" 
                                 compact 
                             />
@@ -302,7 +307,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
             case 'addons':
                 return (
                     <div className="w-full px-6 flex flex-col gap-3 animate-fadeIn py-2">
-                        <input value={accessories} onChange={e => setAccessories(e.target.value)} className="w-full p-4 bg-gray-50 border border-indigo-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Add-ons (Optional): e.g. Gold watch, leather bag..." />
+                        <input value={accessories} onChange={e => setAccessories(e.target.value)} className="w-full p-4 bg-gray-50 border border-indigo-100 rounded-2xl text-[16px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Optional: e.g. gold watch, sunglasses..." />
                     </div>
                 );
             default: return null;
@@ -324,12 +329,12 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button onClick={handleBack} className={`p-2 rounded-full bg-gray-50 text-gray-500 transition-all ${personImage && !isGenerating ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                        <button onClick={handleBack} className={`p-2 rounded-full transition-all ${personImage && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
                             <ArrowLeftIcon className="w-5 h-5" />
                         </button>
                         {!isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
@@ -337,8 +342,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                     <div className="flex items-center gap-3">
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'tryon.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-indigo-600 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
-                        ) : (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-indigo-600 text-white shadow-indigo-200'}`}>
+                        ) : !result && (
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
                                 {isGenerating ? 'Tailoring...' : 'Generate'}
                             </button>
                         )}
@@ -365,7 +370,9 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                         </div>
                     ) : (
                         <div onClick={() => document.getElementById('tryon-mobile-upload')?.click()} className="text-center group active:scale-95 transition-all">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-indigo-100"><UserIcon className="w-10 h-10 text-indigo-600" /></div>
+                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-indigo-100">
+                                <PixaTryOnIcon className="w-14 h-14" />
+                            </div>
                             <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Model</h3>
                             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Selfie or Full-body</p>
                             <input id="tryon-mobile-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />
@@ -446,10 +453,10 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                                     {showNextCue ? (
                                                         <span className="absolute inset-0 text-[8px] font-black text-indigo-600 uppercase tracking-widest animate-flash-next text-center">NEXT</span>
                                                     ) : (
-                                                        <span className={`absolute inset-0 text-[7px] font-black transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                        <span className={`absolute inset-0 text-[7px] font-black transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${idx === 3 ? 'opacity-100' : isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'} ${idx === 3 && finishType.length === 0 ? 'text-gray-400' : idx === 3 ? 'text-indigo-500' : ''}`}>
                                                             {idx === 0 || idx === 1 ? 'Ready' : 
                                                              idx === 2 ? fitType : 
-                                                             idx === 3 ? (finishType.length > 0 ? finishType.length + ' Styles' : '') : 
+                                                             idx === 3 ? (finishType.length > 0 ? finishType.join(', ') : 'Optional') : 
                                                              idx === 4 ? (accessories.length > 8 ? accessories.substring(0, 8) + '...' : accessories) : ''}
                                                         </span>
                                                     )}
@@ -516,4 +523,5 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     );
 };
 
+export const TrousersIconCustomComp = TrousersIconCustom;
 export default MobileTryOn;
