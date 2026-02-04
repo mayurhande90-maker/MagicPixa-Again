@@ -344,8 +344,8 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                                                 <span className={`${styles.stepLabel} ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`${styles.stepBar} ${isActive ? 'bg-indigo-600' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? spaceType : idx === 1 ? roomType : idx === 2 ? designStyle : 'Locked'}
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : (step.id === 'notes' ? 'opacity-100 text-gray-400' : 'opacity-0')}`}>
+                                                    {idx === 0 ? spaceType : idx === 1 ? roomType : idx === 2 ? designStyle : (isFilled ? 'Note Set' : 'Optional')}
                                                 </span>
                                             </button>
                                         );
