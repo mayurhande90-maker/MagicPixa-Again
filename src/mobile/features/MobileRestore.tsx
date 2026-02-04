@@ -304,12 +304,12 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                         ) : (
                             <button onClick={() => !isGenerating && fileInputRef.current?.click()} className={`w-[85%] aspect-square border-2 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all relative overflow-hidden ${image ? 'border-indigo-500 bg-indigo-50/20 shadow-sm' : 'border-gray-200 border-dashed bg-white active:bg-gray-50'}`}>
                                 {image ? (
-                                    <img src={image.url} className={`w-full h-full object-cover rounded-[1.8rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : ''}`} />
+                                    <img src={image.url} className={`w-full h-full object-contain rounded-[1.8rem] transition-all duration-700 ${isGenerating ? 'blur-md opacity-40 scale-95 grayscale' : ''}`} />
                                 ) : (
                                     <><div className="p-4 bg-gray-50 rounded-2xl text-gray-200"><PixaRestoreIcon className="w-10 h-10"/></div><span className="text-[10px] font-black text-gray-300 tracking-[0.2em] text-center px-6">UPLOAD VINTAGE PHOTO</span></>
                                 )}
                                 {image && !isGenerating && (
-                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg animate-fadeIn">
+                                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg animate-fadeIn z-40">
                                         <div className="flex items-center gap-1.5">
                                             <ShieldCheckIcon className="w-3 h-3 text-indigo-500" />
                                             <span className="text-[8px] font-black text-indigo-900 uppercase tracking-widest">Identity Lock 6.0</span>
@@ -391,7 +391,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
                                                 <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? (mode === 'restore_only' ? 'BW Only' : 'Full Color') : idx === 1 ? 'Ready' : 'Note Set'}
+                                                    {idx === 0 ? (mode === 'restore_only' ? 'Restore' : 'Full Color') : idx === 1 ? 'Ready' : 'Note Set'}
                                                 </span>
                                             </button>
                                         );
@@ -424,7 +424,6 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                             </button>
                         </div>
                     ) : (
-                        // COMMENT: Fixed error on line 427: Removed unnecessary argument from handleRefine call as the function uses local state.
                         <button onClick={() => handleRefine()} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                     )}
                 </div>
