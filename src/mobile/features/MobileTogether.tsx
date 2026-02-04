@@ -1,12 +1,18 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../../types';
-import { 
-    PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon, ArrowLeftIcon, DownloadIcon, RegenerateIcon, PlusIcon, ImageIcon
-} from '../../components/icons';
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
+import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon, ArrowLeftIcon, DownloadIcon, RegenerateIcon, PlusIcon, ImageIcon, RefreshIcon } from '../../components/icons';
+import { RefinementPanel } from '../../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateMagicSoul, PixaTogetherConfig } from '../../services/imageToolsService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
+import { MagicEditorModal } from '../../components/MagicEditorModal';
+import { processRefundRequest } from '../../services/refundService';
+import { RefundModal } from '../../components/RefundModal';
+import ToastNotification from '../../components/ToastNotification';
+import { ResultToolbar } from '../../components/ResultToolbar';
 import { MobileSheet } from '../components/MobileSheet';
 import { PixaTogetherStyles } from '../../styles/features/PixaTogether.styles';
 
@@ -30,13 +36,6 @@ const checkMilestoneLocal = (gens: number): number | false => {
     if (gens > 100 && gens % 100 === 0) return 30;
     return false;
 };
-
-// Custom Refine Icon component
-const CustomRefineIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-    </svg>
-);
 
 // --- PREMIUM UI COMPONENTS ---
 
@@ -363,12 +362,10 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button onClick={handleBack} className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}>
-                            <ArrowLeftIcon className="w-5 h-5" />
-                        </button>
-                        {mode && !result && !isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3 h-3 text-indigo-600" />
+                        {/* NO BACK BUTTON HERE AS REQUESTED */}
+                        {!result && !isGenerating && (
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
@@ -424,6 +421,17 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                 </div>
                             </div>
                         )}
+
+                        {(personA || personB) && !result && !isGenerating && (
+                            <button 
+                                onClick={handleNewProject}
+                                className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                            >
+                                <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                            </button>
+                        )}
+
                         {isGenerating && (
                             <div className="absolute inset-0 z-[100] flex items-center justify-center px-10 animate-fadeIn">
                                 <div className="bg-black/60 backdrop-blur-xl px-8 py-10 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-8 animate-breathe">
@@ -443,7 +451,9 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                 <div className={`flex flex-col transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Refine image</button>
+                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <MagicWandIcon className="w-5 h-5 brightness-0 invert" /> Refine image
+                            </button>
                             <div className="grid grid-cols-2 gap-3"><button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"><PlusIcon className="w-4 h-4" /> New Project</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm"><RegenerateIcon className="w-4 h-4" /> Regenerate</button></div>
                         </div>
                     ) : isLowCredits && mode ? (
