@@ -502,13 +502,30 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
                                     {activeSteps.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (step.id === 'engine' && !!mode) || (step.id === 'subjects' && !!personA && !!personB) || (step.id === 'pose_ref' && !!refPose) || (step.id === 'bond' && !!relationship) || (step.id === 'timeline' && !!timeline && !!environment);
+                                        const isFilled = (step.id === 'engine' && !!mode) || 
+                                                        (step.id === 'subjects' && !!personA && !!personB) || 
+                                                        (step.id === 'pose_ref' && !!refPose) || 
+                                                        (step.id === 'bond' && !!relationship) || 
+                                                        (step.id === 'timeline' && !!timeline && !!environment) ||
+                                                        (step.id === 'notes' && customDescription.trim().length > 0);
+                                        
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}>
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {step.id === 'engine' ? mode : step.id === 'subjects' ? 'Ready' : step.id === 'pose_ref' ? 'Locked' : step.id === 'bond' ? relationship : step.id === 'timeline' ? environment : ''}
+                                                <span className={`text-[7px] font-black h-3 transition-all truncate w-full text-center px-1 uppercase tracking-tighter ${
+                                                    isFilled 
+                                                    ? 'opacity-100 text-indigo-500' 
+                                                    : step.id === 'notes' 
+                                                        ? 'opacity-100 text-gray-400' 
+                                                        : 'opacity-0'
+                                                }`}>
+                                                    {step.id === 'engine' ? mode : 
+                                                     step.id === 'subjects' ? 'Ready' : 
+                                                     step.id === 'pose_ref' ? 'Locked' : 
+                                                     step.id === 'bond' ? relationship : 
+                                                     step.id === 'timeline' ? environment : 
+                                                     step.id === 'notes' ? (isFilled ? 'Note Set' : 'Optional') : ''}
                                                 </span>
                                             </button>
                                         );
