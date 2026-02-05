@@ -5,7 +5,7 @@ import {
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LockIcon
+    CreditCoinIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
 import { generateThumbnail } from '../../services/thumbnailService';
@@ -24,7 +24,7 @@ const THUMBNAIL_STEPS = [
 // Custom Refine Icon
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
@@ -94,21 +94,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         return true;
     }, [format, category, mood, context, hostImg, guestImg, subjectImg, hookType, exactTitle, isPodcast]);
 
-    // Auto-advance triggers for Assets
-    useEffect(() => {
-        if (currentStep === 1) {
-            if (isPodcast) {
-                if (hostImg && guestImg) {
-                    setTimeout(() => setCurrentStep(2), 600);
-                }
-            } else {
-                if (subjectImg) {
-                    setTimeout(() => setCurrentStep(2), 600);
-                }
-            }
-        }
-    }, [hostImg, guestImg, subjectImg, isPodcast, currentStep]);
-
+    // Progress Animation
     useEffect(() => {
         let interval: any;
         if (isGenerating) {
@@ -181,15 +167,15 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         }
     };
 
-    const handleRefine = async () => {
-        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
+    const handleRefine = async (text: string) => {
+        if (!result || !text.trim() || !auth.user || isGenerating) return;
         if (isLowRefineCredits) return;
 
         setIsGenerating(true);
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "YouTube/Social Media Thumbnail");
+            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "YouTube/Social Media Thumbnail");
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
@@ -327,16 +313,11 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button 
-                            onClick={handleBack} 
-                            className={`p-2 rounded-full transition-all ${format && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                        >
-                            <ArrowLeftIcon className="w-5 h-5" />
-                        </button>
-                        {format && !result && !isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
-                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                        {/* Persistent Credits Capsule - Left Aligned */}
+                        {!result && !isGenerating && (
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits Required</span>
                             </div>
                         )}
                     </div>
@@ -458,6 +439,17 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                                     </button>
                                 </div>
                             </div>
+                        )}
+                        
+                        {/* Floating Reset Button */}
+                        {format && !result && !isGenerating && (
+                            <button 
+                                onClick={handleNewProject}
+                                className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                            >
+                                <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                            </button>
                         )}
 
                         {/* Rendering Overlay */}
@@ -613,7 +605,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                        // COMMENT: Fixed type mismatch in handleRefine call by passing refineText instead of the mouse event object.
+                        <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                     )}
                 </div>
             </MobileSheet>
