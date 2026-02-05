@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Creation, View } from '../../types';
 import { 
@@ -146,20 +145,20 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
             }
         } catch (e: any) {
             console.error(e);
-            alert("Restoration failed. Please try a clearer vintage photo.");
+            alert("Restoration failed. Please try clearer vintage photos.");
             setIsGenerating(false);
         }
     };
 
-    const handleRefine = async () => {
-        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
+    const handleRefine = async (text: string) => {
+        if (!result || !text.trim() || !auth.user || isGenerating) return;
         if (isLowRefineCredits) return;
 
         setIsGenerating(true);
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Vintage Photo Restoration");
+            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "Vintage Photo Restoration");
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
@@ -257,8 +256,8 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                     <div className="flex items-center gap-2">
                         {/* NO BACK BUTTON HERE AS REQUESTED */}
                         {!isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
-                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
@@ -390,8 +389,10 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}>
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? (mode === 'restore_only' ? 'Restore' : 'Full Color') : idx === 1 ? 'Ready' : 'Note Set'}
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${(isFilled || idx === 2) ? 'opacity-100' : 'opacity-0'} ${isFilled ? 'text-indigo-500' : 'text-gray-400'}`}>
+                                                    {idx === 0 ? (mode === 'restore_only' ? 'Restore' : 'Full Color') : 
+                                                     idx === 1 ? 'Ready' : 
+                                                     (notes.trim().length > 0 ? 'Note Set' : 'Optional')}
                                                 </span>
                                             </button>
                                         );
@@ -424,7 +425,8 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
                             </button>
                         </div>
                     ) : (
-                        <button onClick={() => handleRefine()} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                        // COMMENT: Fixed missing argument in handleRefine call. Passed refineText to satisfy expected arguments.
+                        <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                     )}
                 </div>
             </MobileSheet>
