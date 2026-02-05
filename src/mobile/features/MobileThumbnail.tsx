@@ -1,32 +1,28 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+// Corrected import path from '../types' to '../../types'
 import { AuthProps, AppConfig, View } from '../../types';
-import { 
-    ThumbnailIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
-    DownloadIcon, RegenerateIcon, PlusIcon,
-    ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
-    ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LockIcon, RefreshIcon
-} from '../../components/icons';
-import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
+// Corrected import path from '../components/icons' to '../../components/icons'
+import { ThumbnailIcon, XIcon, UploadTrayIcon, CreditCoinIcon, SparklesIcon, MagicWandIcon, CheckIcon, CubeIcon, DownloadIcon, InformationCircleIcon } from '../../components/icons';
+// Corrected import path from '../components/FeatureLayout' to '../../components/FeatureLayout'
+import { FeatureLayout, SelectionGrid, InputField, MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
+// Corrected import path from '../components/RefinementPanel' to '../../components/RefinementPanel'
+import { RefinementPanel } from '../../components/RefinementPanel';
+// Corrected import path from '../utils/imageUtils' to '../../utils/imageUtils'
+import { fileToBase64, Base64File, base64ToBlobUrl, downloadImage, urlToBase64 } from '../../utils/imageUtils';
 import { generateThumbnail } from '../../services/thumbnailService';
 import { refineStudioImage } from '../../services/photoStudioService';
-import { deductCredits, saveCreation, updateCreation } from '../../firebase';
-import { MobileSheet } from '../components/MobileSheet';
-
-const THUMBNAIL_STEPS = [
-    { id: 'category', label: 'Category', options: ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'] },
-    { id: 'assets', label: 'Assets' },
-    { id: 'mood', label: 'Visual Mood', options: ['Viral', 'Cinematic', 'Luxury/Premium', 'Minimalist/Clean', 'Gamer', 'Dark Mystery', 'Retro Style', 'Bright & Natural'] },
-    { id: 'context', label: 'Context' },
-    { id: 'hook', label: 'The Hook', options: ['Let AI decide the hook', 'Use exact title text'] }
-];
-
-// Custom Refine Icon
-const CustomRefineIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-    </svg>
-);
+// Corrected import path from '../firebase' to '../../firebase'
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
+// Corrected import path from '../components/ResultToolbar' to '../../components/ResultToolbar'
+import { ResultToolbar } from '../../components/ResultToolbar';
+// Corrected import path from '../components/RefundModal' to '../../components/RefundModal'
+import { RefundModal } from '../../components/RefundModal';
+// Corrected import path from '../services/refundService' to '../../services/refundService'
+import { processRefundRequest } from '../../services/refundService';
+// Corrected import path from '../components/ToastNotification' to '../../components/ToastNotification'
+import ToastNotification from '../../components/ToastNotification';
+// Corrected import path from '../styles/features/ThumbnailStudio.styles' to '../../styles/features/ThumbnailStudio.styles'
+import { ThumbnailStyles } from '../../styles/features/ThumbnailStudio.styles';
 
 const CompactUpload: React.FC<{ label: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; optional?: boolean; }> = ({ label, image, onUpload, onClear, icon, heightClass = "h-40", optional }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +46,8 @@ const FormatSelector: React.FC<{ selected: 'landscape' | 'portrait' | null; onSe
         </div></div>
 );
 
-export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void; }> = ({ auth, appConfig, navigateTo }) => {
+// Renamed component to MobileThumbnail to match MobileApp import
+export const MobileThumbnail: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; setActiveTab: (tab: View) => void; }> = ({ auth, appConfig, setActiveTab }) => {
     const [format, setFormat] = useState<'landscape' | 'portrait' | null>(null);
     const [category, setCategory] = useState('');
     const [mood, setMood] = useState('');
@@ -58,9 +55,10 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const [title, setTitle] = useState('');
     const [customText, setCustomText] = useState('');
     const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [subjectImage, setSubjectImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [hostImage, setHostImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [guestImage, setGuestImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    // Renamed state variables to match JSX (e.g., hostImage -> hostImg)
+    const [subjectImg, setSubjectImg] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [hostImg, setHostImg] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [guestImg, setGuestImg] = useState<{ url: string; base64: Base64File } | null>(null);
     const [elementImage, setElementImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -84,7 +82,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     const isLowCredits = userCredits < cost;
     const isPodcast = category === 'Podcast';
     
-    const hasRequirements = format && (referenceImage ? true : !!mood) && (isPodcast ? (!!hostImage && !!guestImage && !!title) : (!!title));
+    const hasRequirements = format && (referenceImage ? true : !!mood) && (isPodcast ? (!!hostImg && !!guestImg && !!title) : (!!title));
     
     const categories = ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'];
     const moods = ['Viral', 'Cinematic', 'Luxury/Premium', 'Minimalist/Clean', 'Gamer', 'Dark Mystery', 'Retro Style', 'Bright & Natural'];
@@ -102,7 +100,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (!hasRequirements || !auth.user || !format) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
-        const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
+        const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImg?.base64, hostImage: hostImg?.base64, guestImage: guestImg?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try {
             const res = await generateThumbnail(currentInputs, auth.activeBrandKit);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
@@ -155,7 +153,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         if (!hasRequirements || !auth.user || !format) return; 
         if (userCredits < regenCost) { alert("Insufficient credits."); return; } 
         setLoading(true); setResult(null); setLastCreationId(null); 
-        const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
+        const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImg?.base64, hostImage: hostImg?.base64, guestImage: guestImg?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try { 
             const res = await generateThumbnail(currentInputs, auth.activeBrandKit); 
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); 
@@ -167,8 +165,8 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     };
 
     const handleRefundRequest = async (reason: string) => { if (!auth.user || !result) return; setIsRefunding(true); try { const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "Thumbnail Generation", lastCreationId || undefined); if (res.success) { if (res.type === 'refund') { auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); setResult(null); setNotification({ msg: res.message, type: 'success' }); } else { setNotification({ msg: res.message, type: 'info' }); } } setShowRefundModal(false); } catch (e: any) { alert("Refund processing failed: " + e.message); } finally { setIsRefunding(false); } };
-    const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); setIsRefineActive(false); };
-    const handleFormatSelect = (val: 'landscape' | 'portrait') => { setFormat(val); if (val !== format) { setCategory(''); setMood(''); setPodcastGear(''); setTitle(''); setCustomText(''); setSubjectImage(null); setHostImage(null); setGuestImage(null); setElementImage(null); setReferenceImage(null); } autoScroll(); };
+    const handleNewSession = () => { setFormat(null); setReferenceImage(null); setSubjectImg(null); setHostImg(null); setGuestImg(null); setElementImage(null); setResult(null); setTitle(''); setCustomText(''); setCategory(''); setMood(''); setPodcastGear(''); setLastCreationId(null); setIsRefineActive(false); };
+    const handleFormatSelect = (val: 'landscape' | 'portrait') => { setFormat(val); if (val !== format) { setCategory(''); setMood(''); setPodcastGear(''); setTitle(''); setCustomText(''); setSubjectImg(null); setHostImg(null); setGuestImg(null); setElementImage(null); setReferenceImage(null); } autoScroll(); };
 
     return (
         <>
@@ -198,7 +196,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                         {(loading || isRefining) ? (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p></div>) : (<div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><ThumbnailIcon className="w-10 h-10 text-red-500" /></div><h3 className="text-xl font-bold text-gray-300">Thumbnail Canvas</h3><p className="text-sm text-gray-300 mt-1">{format === 'portrait' ? '9:16 Vertical Preview' : (format === 'landscape' ? '16:9 Landscape Preview' : 'Select a format to begin')}</p></div>)}<style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style></div>
                 }
                 rightContent={
-                    isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => navigateTo('dashboard', 'billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
+                    isLowCredits ? (<div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn bg-red-50/50 rounded-2xl border border-red-100"><CreditCoinIcon className="w-16 h-16 text-red-400 mb-4" /><h3 className="text-xl font-bold text-gray-800 mb-2">Insufficient Credits</h3><button onClick={() => setActiveTab('billing')} className="bg-[#F9D230] text-[#1A1A1E] px-8 py-3 rounded-xl font-bold hover:bg-[#dfbc2b] transition-all shadow-lg">Recharge Now</button></div>) : (
                         <div className={`space-y-8 p-1 animate-fadeIn transition-all duration-300 ${loading || isRefining ? 'opacity-40 pointer-events-none select-none grayscale-[0.5]' : ''}`}>
                             <FormatSelector selected={format} onSelect={handleFormatSelect} />
                             {format && (
@@ -252,4 +250,4 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     );
 };
 
-export default ThumbnailStudio;
+export default MobileThumbnail;
