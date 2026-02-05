@@ -484,7 +484,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
                                                             {idx === 0 || idx === 1 ? 'Ready' : 
                                                              idx === 2 ? fitType : 
                                                              idx === 3 ? (finishType.length > 0 ? finishType.join(', ') : 'Optional') : 
-                                                             idx === 4 ? (accessories ? (accessories.length > 8 ? accessories.substring(0, 8) + '...' : accessories) : 'Optional') : ''}
+                                                             idx === 4 ? (accessories ? 'Note Set' : 'Optional') : ''}
                                                         </span>
                                                     )}
                                                 </div>
