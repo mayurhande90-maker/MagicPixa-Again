@@ -21,10 +21,10 @@ interface MobileHomeProps {
 }
 
 const BENTO_TOOLS = [
-    { id: 'studio', label: 'Pixa Studio', sub: 'Pro Products', icon: PixaProductIcon, color: 'bg-blue-600', text: 'text-blue-500' },
-    { id: 'brand_stylist', label: 'AdMaker', sub: 'Viral Creatives', icon: MagicAdsIcon, color: 'bg-orange-600', text: 'text-orange-500' },
-    { id: 'headshot', label: 'Headshot Pro', sub: 'Executive', icon: PixaHeadshotIcon, color: 'bg-amber-600', text: 'text-amber-500' },
-    { id: 'thumbnail_studio', label: 'Viral Hook', sub: 'CTR Boost', icon: ThumbnailIcon, color: 'bg-red-600', text: 'text-red-500' },
+    { id: 'studio', label: 'Pixa Studio', sub: 'Pro Products', icon: PixaProductIcon, text: 'text-blue-500' },
+    { id: 'brand_stylist', label: 'AdMaker', sub: 'Viral Creatives', icon: MagicAdsIcon, text: 'text-orange-500' },
+    { id: 'headshot', label: 'Headshot Pro', sub: 'Executive', icon: PixaHeadshotIcon, text: 'text-amber-500' },
+    { id: 'thumbnail_studio', label: 'Viral Hook', sub: 'CTR Boost', icon: ThumbnailIcon, text: 'text-red-500' },
 ];
 
 const GALLERY_ITEMS_DEFINITION = [
@@ -217,7 +217,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* 2. LATEST CREATION BANNER (UPGRADED) */}
+            {/* 2. LATEST CREATION BANNER */}
             <div className="px-6 pt-6">
                 <div className="relative w-full h-[320px] rounded-[2.5rem] bg-white border border-gray-100 shadow-xl overflow-hidden group active:scale-[0.98] transition-all">
                     {loadingRecent ? (
@@ -263,53 +263,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 3. TOOL HUB (Bento Grid Discovery) */}
-            <div className="px-6 py-8">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-1">Advanced Tool Hub</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    {BENTO_TOOLS.map((tool) => (
-                        <button 
-                            key={tool.id}
-                            onClick={() => setActiveTab(tool.id as View)}
-                            className="group relative bg-white p-5 rounded-[2rem] border border-gray-100 shadow-lg shadow-gray-200/50 flex flex-col justify-between h-40 text-left active:scale-[0.98] transition-all overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full -mr-8 -mt-8 opacity-0 group-active:opacity-100 transition-opacity"></div>
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-black/5 ${tool.color} text-white`}>
-                                <tool.icon className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-black text-gray-900 leading-tight">{tool.label}</h4>
-                                <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${tool.text}`}>{tool.sub}</p>
-                            </div>
-                            <div className="absolute bottom-4 right-4 opacity-20 group-hover:opacity-100 transition-all transform group-active:translate-x-1">
-                                <ArrowRightIcon className="w-4 h-4 text-gray-400" />
-                            </div>
-                        </button>
-                    ))}
-                </div>
-                <button 
-                    onClick={() => setActiveTab('dashboard')}
-                    className="w-full mt-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"
-                >
-                    Explore all tools <ArrowRightIcon className="w-3.5 h-3.5" />
-                </button>
-            </div>
-
-            {/* 4. THE TRANSFORMATION GALLERY (NEW) */}
-            <div className="px-6 py-4">
-                <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Transformation Gallery</h3>
-                    <SparklesIcon className="w-4 h-4 text-indigo-500 animate-pulse" />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                    {galleryItems.slice(0, 3).map((item, i) => (
-                        <AutoWipeBox key={item.id} item={item} delay={i * 800} />
-                    ))}
-                </div>
-            </div>
-
-            {/* 5. MISSION CONTROL (Gamification) */}
+            {/* 3. MISSION CONTROL (Moved up) */}
             <div className="px-6 py-8">
                  <div className="bg-gray-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
@@ -354,8 +308,22 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 6. EXTRA GALLERY TILES (Grid) */}
-            <div className="px-6 py-4 pb-16">
+            {/* 4. THE TRANSFORMATION GALLERY */}
+            <div className="px-6 py-4">
+                <div className="flex items-center justify-between mb-4 px-1">
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Transformation Gallery</h3>
+                    <SparklesIcon className="w-4 h-4 text-indigo-500 animate-pulse" />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                    {galleryItems.slice(0, 3).map((item, i) => (
+                        <AutoWipeBox key={item.id} item={item} delay={i * 800} />
+                    ))}
+                </div>
+            </div>
+
+            {/* 5. EXTRA GALLERY TILES */}
+            <div className="px-6 py-4 pb-8">
                 <div className="grid grid-cols-2 gap-4">
                     {galleryItems.slice(3, 7).map((item, i) => (
                         <div key={item.id} className="h-44">
@@ -363,6 +331,38 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* 6. TOOL HUB (Moved to bottom) */}
+            <div className="px-6 py-8 pb-16">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 ml-1">Advanced Tool Hub</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    {BENTO_TOOLS.map((tool) => (
+                        <button 
+                            key={tool.id}
+                            onClick={() => setActiveTab(tool.id as View)}
+                            className="group relative bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-lg shadow-gray-200/50 flex flex-col justify-between h-48 text-left active:scale-[0.98] transition-all overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full -mr-12 -mt-12 opacity-0 group-active:opacity-100 transition-opacity"></div>
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${tool.text}`}>
+                                <tool.icon className="w-12 h-12" />
+                            </div>
+                            <div>
+                                <h4 className="text-base font-black text-gray-900 leading-tight">{tool.label}</h4>
+                                <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${tool.text}`}>{tool.sub}</p>
+                            </div>
+                            <div className="absolute bottom-5 right-5 opacity-20 group-hover:opacity-100 transition-all transform group-active:translate-x-1">
+                                <ArrowRightIcon className="w-5 h-5 text-gray-400" />
+                            </div>
+                        </button>
+                    ))}
+                </div>
+                <button 
+                    onClick={() => setActiveTab('dashboard')}
+                    className="w-full mt-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center justify-center gap-2 active:bg-gray-100 transition-all"
+                >
+                    Explore all tools <ArrowRightIcon className="w-4 h-4" />
+                </button>
             </div>
 
         </div>
