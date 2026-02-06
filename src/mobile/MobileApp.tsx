@@ -1,7 +1,7 @@
-
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from '../types';
 import { MobileLayout } from './layouts/MobileLayout';
+import { MobileSplashScreen } from './components/MobileSplashScreen';
 import AuthModal from '../components/AuthModal';
 
 // Lazy load mobile features
@@ -27,6 +27,7 @@ interface MobileAppProps {
 
 export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
     const [activeTab, setActiveTab] = useState<View>('home_dashboard');
+    const [showSplash, setShowSplash] = useState(true);
     
     // resetKeys tracks a counter for each tool. 
     // Changing the key of a component forces it to unmount and reset its internal state.
@@ -108,17 +109,21 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
     };
 
     return (
-        <MobileLayout activeTab={activeTab} setActiveTab={setActiveTab} auth={auth}>
-            <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>}>
-                {PERSISTENT_TABS.map((tab) => (
-                    <div 
-                        key={`${tab}-${resetKeys[tab] || 0}`} 
-                        className={`h-full w-full ${activeTab === tab ? 'block' : 'hidden'}`}
-                    >
-                        {renderTabContent(tab)}
-                    </div>
-                ))}
-            </Suspense>
-        </MobileLayout>
+        <>
+            {showSplash && <MobileSplashScreen onComplete={() => setShowSplash(false)} />}
+            
+            <MobileLayout activeTab={activeTab} setActiveTab={setActiveTab} auth={auth}>
+                <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>}>
+                    {PERSISTENT_TABS.map((tab) => (
+                        <div 
+                            key={`${tab}-${resetKeys[tab] || 0}`} 
+                            className={`h-full w-full ${activeTab === tab ? 'block' : 'hidden'}`}
+                        >
+                            {renderTabContent(tab)}
+                        </div>
+                    ))}
+                </Suspense>
+            </MobileLayout>
+        </>
     );
 };
