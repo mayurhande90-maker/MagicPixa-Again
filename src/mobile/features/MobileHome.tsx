@@ -300,16 +300,26 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* 2. INTELLIGENCE TICKER - Fast speed (8s) with dynamic randomized content */}
+            {/* 2. INTELLIGENCE TICKER - Fast speed (6s) with dynamic randomized content */}
             <div className="px-6 mb-6">
                 <div className="bg-indigo-600/5 border border-indigo-100/50 rounded-full py-2 overflow-hidden relative">
                     <div className="flex whitespace-nowrap animate-marquee">
-                        {[...dynamicTickerMessages, ...dynamicTickerMessages].map((msg, i) => (
-                            <div key={i} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
-                                <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
-                                <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
-                            </div>
-                        ))}
+                        <div className="flex whitespace-nowrap">
+                            {dynamicTickerMessages.map((msg, i) => (
+                                <div key={`orig-${i}`} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
+                                    <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
+                                    <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex whitespace-nowrap">
+                            {dynamicTickerMessages.map((msg, i) => (
+                                <div key={`clone-${i}`} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
+                                    <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
+                                    <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -486,7 +496,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     100% { transform: translateX(-50%); }
                 }
                 .animate-marquee {
-                    animation: marquee 8s linear infinite;
+                    animation: marquee 6s linear infinite;
                 }
             `}</style>
 
