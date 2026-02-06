@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { SparklesIcon } from '../../components/icons';
 
 interface MobileSplashScreenProps {
     onComplete: () => void;
@@ -9,102 +8,106 @@ export const MobileSplashScreen: React.FC<MobileSplashScreenProps> = ({ onComple
     const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
-        // Total duration of the animation sequence before starting the exit
+        // Professional duration: long enough to feel premium, short enough to be efficient
         const timer = setTimeout(() => {
             setIsClosing(true);
-            // Allow exit animation to finish
-            setTimeout(onComplete, 800);
-        }, 2800);
+            setTimeout(onComplete, 1000); // Wait for the high-fidelity blur dissolve
+        }, 3200);
 
         return () => clearTimeout(timer);
     }, [onComplete]);
 
     return (
-        <div className={`fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center overflow-hidden transition-all duration-700 ease-in-out ${isClosing ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100'}`}>
-            {/* Ambient Background Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/50 opacity-0 animate-fade-in-slow"></div>
+        <div className={`fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center overflow-hidden transition-all duration-1000 ease-in-out ${isClosing ? 'opacity-0 backdrop-blur-xl scale-105 pointer-events-none' : 'opacity-100'}`}>
             
-            {/* Logo Container */}
-            <div className="relative flex items-center justify-center scale-150 sm:scale-[2]">
-                {/* "Magic" Text */}
-                <span className="text-4xl font-logo font-black text-[#1A1A1E] opacity-0 animate-magic-entrance tracking-tighter">
-                    Magic
-                </span>
-                
-                {/* "Pixa" Text */}
-                <span className="text-4xl font-logo font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 animate-pixa-entrance tracking-tighter ml-1">
-                    Pixa
-                </span>
-
-                {/* Final Sparkle Overlay */}
-                <div className="absolute -top-6 -right-6 opacity-0 animate-sparkle-pop">
-                    <SparklesIcon className="w-8 h-8 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+            {/* Living Canvas: Subtle ambient lighting */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(77,124,255,0.03)_0%,rgba(255,255,255,1)_70%)] animate-ambient-glow"></div>
+            
+            {/* Logo Core: Perfectly Centered */}
+            <div className="relative flex flex-col items-center">
+                <div className="flex items-center justify-center animate-aperture-bloom">
+                    <h1 className="text-4xl font-logo font-black tracking-tighter flex items-center">
+                        <span className="text-[#1A1A1E] animate-kerning-flow px-0.5">
+                            Magic
+                        </span>
+                        <span className="relative ml-1 overflow-hidden rounded-sm px-0.5">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-blue-600 bg-[length:200%_auto] animate-light-sweep">
+                                Pixa
+                            </span>
+                        </span>
+                    </h1>
                 </div>
 
-                {/* Subtle Glow behind the logo */}
-                <div className="absolute inset-0 bg-blue-400/10 blur-3xl rounded-full scale-150 opacity-0 animate-glow-pulse"></div>
-            </div>
-
-            {/* Bottom Status */}
-            <div className="absolute bottom-20 flex flex-col items-center gap-3 opacity-0 animate-status-fade">
-                <div className="flex gap-1.5">
-                    <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></div>
+                {/* Refined Loading Trace: Minimalist 1px line */}
+                <div className="mt-12 w-32 h-[1px] bg-gray-100 relative overflow-hidden rounded-full opacity-0 animate-trace-reveal">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-400 to-transparent w-1/2 animate-loading-trace"></div>
                 </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Initializing Studio</p>
             </div>
 
             <style>{`
-                @keyframes magic-entrance {
-                    0% { opacity: 0; transform: translateX(-30px) scale(0.9); filter: blur(10px); }
-                    100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+                @keyframes ambient-glow {
+                    0%, 100% { opacity: 0.5; transform: scale(1); }
+                    50% { opacity: 1; transform: scale(1.1); }
                 }
-                @keyframes pixa-entrance {
-                    0% { opacity: 0; transform: translateY(20px) scale(1.2); }
-                    60% { transform: translateY(-5px) scale(1.05); }
-                    100% { opacity: 1; transform: translateY(0) scale(1); }
+
+                @keyframes aperture-bloom {
+                    0% { 
+                        opacity: 0; 
+                        filter: blur(12px); 
+                        transform: scale(0.94); 
+                    }
+                    20% { opacity: 1; }
+                    100% { 
+                        opacity: 1; 
+                        filter: blur(0px); 
+                        transform: scale(1); 
+                    }
                 }
-                @keyframes sparkle-pop {
-                    0% { opacity: 0; transform: scale(0) rotate(-45deg); }
-                    70% { opacity: 1; transform: scale(1.3) rotate(10deg); }
-                    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+
+                @keyframes kerning-flow {
+                    0% { letter-spacing: 0.4em; opacity: 0; }
+                    100% { letter-spacing: -0.05em; opacity: 1; }
                 }
-                @keyframes glow-pulse {
-                    0%, 100% { opacity: 0; transform: scale(1); }
-                    50% { opacity: 0.3; transform: scale(1.8); }
+
+                @keyframes light-sweep {
+                    0% { background-position: 200% center; }
+                    100% { background-position: -200% center; }
                 }
-                @keyframes status-fade {
+
+                @keyframes trace-reveal {
                     0% { opacity: 0; transform: translateY(10px); }
                     100% { opacity: 1; transform: translateY(0); }
                 }
-                @keyframes fade-in-slow {
-                    0% { opacity: 0; }
-                    100% { opacity: 1; }
+
+                @keyframes loading-trace {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(200%); }
                 }
 
-                .animate-magic-entrance {
-                    animation: magic-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                    animation-delay: 0.3s;
+                .animate-ambient-glow {
+                    animation: ambient-glow 8s ease-in-out infinite;
                 }
-                .animate-pixa-entrance {
-                    animation: pixa-entrance 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-                    animation-delay: 0.8s;
+
+                .animate-aperture-bloom {
+                    animation: aperture-bloom 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 }
-                .animate-sparkle-pop {
-                    animation: sparkle-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-                    animation-delay: 1.6s;
+
+                .animate-kerning-flow {
+                    animation: kerning-flow 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 }
-                .animate-glow-pulse {
-                    animation: glow-pulse 2s ease-in-out infinite;
-                    animation-delay: 1.8s;
+
+                .animate-light-sweep {
+                    animation: light-sweep 3s linear infinite;
+                    animation-delay: 1.2s;
                 }
-                .animate-status-fade {
-                    animation: status-fade 1s ease-out forwards;
-                    animation-delay: 2s;
+
+                .animate-trace-reveal {
+                    animation: trace-reveal 1s ease-out forwards;
+                    animation-delay: 1.5s;
                 }
-                .animate-fade-in-slow {
-                    animation: fade-in-slow 1.5s ease-out forwards;
+
+                .animate-loading-trace {
+                    animation: loading-trace 2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
                 }
             `}</style>
         </div>
