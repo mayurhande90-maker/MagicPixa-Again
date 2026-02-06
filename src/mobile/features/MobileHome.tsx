@@ -9,26 +9,18 @@ import {
     PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
     DashboardIcon, CreditCoinIcon, DownloadIcon, CalendarIcon,
     UploadIcon, PlusIcon, ImageIcon, MagicWandIcon, GlobeIcon,
-    // Added PaletteIcon to imports to fix line 28 error
     PaletteIcon
 } from '../../components/icons';
 import { getCreations, claimDailyAttendance, subscribeToLabCollections } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { downloadImage } from '../../utils/imageUtils';
+import { CreatorRanksModal } from '../../components/CreatorRanksModal';
 
 interface MobileHomeProps {
     auth: AuthProps;
     setActiveTab: (tab: View) => void;
 }
-
-const QUICK_INTENTS = [
-    { label: 'Fix Lighting', view: 'studio', icon: SparklesIcon },
-    { label: 'Remove BG', view: 'studio', icon: MagicWandIcon },
-    { label: 'Add Models', view: 'studio', icon: UserIcon },
-    { label: 'Design Room', view: 'interior', icon: PixaInteriorIcon },
-    { label: 'Colourize', view: 'colour', icon: PaletteIcon },
-];
 
 const TICKER_MESSAGES = [
     "412 Product Shots rendered in the last hour",
@@ -141,6 +133,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
     const [loadingRecent, setLoadingRecent] = useState(true);
     const [isClaiming, setIsClaiming] = useState(false);
     const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
+    const [showRanksModal, setShowRanksModal] = useState(false);
     
     const user = auth.user;
     const firstName = user?.name ? user.name.split(' ')[0] : 'Creator';
@@ -229,7 +222,8 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         if (next === 0) return 100;
         // Logic for steps: Novice(0), Pro(10), Silver(30), Gold(100)
         let prev = 0;
-        if (current >= 30) prev = 30;
+        if (current >= 100) prev = 100;
+        else if (current >= 30) prev = 30;
         else if (current >= 10) prev = 10;
         return Math.min(100, Math.max(0, ((current - prev) / (next - prev)) * 100));
     }, [user?.lifetimeGenerations, badge.nextMilestone]);
@@ -240,8 +234,11 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
             {/* 1. POWER HEADER */}
             <div className="px-6 pt-8 pb-4 bg-white flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
-                    {/* AVATAR WITH STREAK RING */}
-                    <div className="relative w-14 h-14 flex items-center justify-center">
+                    {/* AVATAR WITH STREAK RING - Clickable for Loyalty Ranks */}
+                    <button 
+                        onClick={() => setShowRanksModal(true)}
+                        className="relative w-14 h-14 flex items-center justify-center group active:scale-95 transition-transform"
+                    >
                         <svg className="absolute inset-0 w-full h-full -rotate-90">
                             <circle cx="28" cy="28" r="25" fill="none" stroke="#F1F5F9" strokeWidth="4" />
                             <circle 
@@ -260,7 +257,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                                 </linearGradient>
                             </defs>
                         </svg>
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg relative z-10">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg relative z-10 group-hover:shadow-indigo-500/30 transition-shadow">
                             {user?.avatar || firstName[0]}
                         </div>
                         {user?.lifetimeGenerations && user.lifetimeGenerations > 5 && (
@@ -268,7 +265,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                                 <LightningIcon className="w-3 h-3 text-white" />
                             </div>
                         )}
-                    </div>
+                    </button>
 
                     <div>
                         <h1 className="text-lg font-black text-gray-900 leading-none">Hello, {firstName}</h1>
@@ -289,7 +286,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* 2. INTELLIGENCE TICKER */}
+            {/* 2. INTELLIGENCE TICKER - Faster speed (12s) */}
             <div className="px-6 mb-6">
                 <div className="bg-indigo-600/5 border border-indigo-100/50 rounded-full py-2 overflow-hidden relative">
                     <div className="flex whitespace-nowrap animate-marquee">
@@ -303,23 +300,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 3. QUICK INTENT PILLS */}
-            <div className="px-6 mb-8 overflow-x-auto no-scrollbar">
-                <div className="flex gap-3">
-                    {QUICK_INTENTS.map((intent, i) => (
-                        <button 
-                            key={i}
-                            onClick={() => setActiveTab(intent.view as View)}
-                            className="flex items-center gap-2.5 bg-white px-5 py-2.5 rounded-2xl border border-gray-100 shadow-sm whitespace-nowrap active:scale-95 active:bg-gray-50 transition-all group"
-                        >
-                            <intent.icon className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
-                            <span className="text-[11px] font-black text-gray-700 uppercase tracking-wider">{intent.label}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* 4. LATEST CREATION BANNER */}
+            {/* 3. LATEST CREATION BANNER */}
             <div className="px-6">
                 <div className="relative w-full h-[320px] rounded-[2.5rem] bg-white border border-gray-100 shadow-xl overflow-hidden group active:scale-[0.98] transition-all">
                     {loadingRecent ? (
@@ -365,7 +346,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 5. MISSION CONTROL */}
+            {/* 4. MISSION CONTROL */}
             <div className="px-6 py-8">
                  <div className="bg-gray-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
@@ -410,7 +391,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 6. THE TRANSFORMATION GALLERY */}
+            {/* 5. THE TRANSFORMATION GALLERY */}
             <div className="px-6 py-4">
                 <div className="flex items-center justify-between mb-4 px-1">
                     <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Transformation Gallery</h3>
@@ -429,7 +410,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 7. EXTRA GALLERY TILES */}
+            {/* 6. EXTRA GALLERY TILES */}
             <div className="px-6 py-4 pb-8">
                 <div className="grid grid-cols-2 gap-4">
                     {galleryItems.slice(3, 7).map((item, i) => (
@@ -445,7 +426,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 8. TOOL HUB */}
+            {/* 7. TOOL HUB */}
             <div className="px-6 py-8 pb-16">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 ml-1">Advanced Tool Hub</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -477,18 +458,13 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* ONE-TAP MIRROR FLOATING BUTTON */}
-            <button 
-                onClick={() => setActiveTab('apparel')}
-                className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-white shadow-[0_12px_40px_rgba(79,70,229,0.3)] flex flex-col items-center justify-center gap-0.5 border border-indigo-100 transition-all duration-500 hover:scale-110 active:scale-95 group z-[100] animate-breathe"
-            >
-                <div className="relative">
-                    <CameraIcon className="w-7 h-7 text-indigo-600" />
-                    <div className="absolute -top-1 -right-2 bg-red-500 text-[6px] font-black text-white px-1 py-0.5 rounded shadow-sm animate-pulse">LIVE</div>
-                </div>
-                <span className="text-[7px] font-black text-indigo-900 uppercase tracking-tighter">Mirror</span>
-                <div className="absolute inset-0 rounded-full border-2 border-indigo-400/20 animate-ping pointer-events-none"></div>
-            </button>
+            {/* CREATOR RANKS MODAL */}
+            {showRanksModal && (
+                <CreatorRanksModal 
+                    currentGens={user?.lifetimeGenerations || 0} 
+                    onClose={() => setShowRanksModal(false)} 
+                />
+            )}
 
             <style>{`
                 @keyframes marquee {
@@ -496,14 +472,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     100% { transform: translateX(-50%); }
                 }
                 .animate-marquee {
-                    animation: marquee 30s linear infinite;
-                }
-                @keyframes breathe {
-                    0%, 100% { transform: scale(1); box-shadow: 0 12px 40px rgba(79,70,229,0.3); }
-                    50% { transform: scale(1.05); box-shadow: 0 20px 50px rgba(79,70,229,0.4); }
-                }
-                .animate-breathe {
-                    animation: breathe 3s ease-in-out infinite;
+                    animation: marquee 12s linear infinite;
                 }
             `}</style>
 
