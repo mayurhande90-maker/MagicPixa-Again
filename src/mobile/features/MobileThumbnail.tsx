@@ -69,6 +69,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hostInputRef = useRef<HTMLInputElement>(null);
     const guestInputRef = useRef<HTMLInputElement>(null);
+    // Fixed: Defined scrollRef using useRef to resolve 'Cannot find name scrollRef' error.
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     const isPodcast = category === 'Podcast';
 
@@ -120,13 +122,33 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         return () => clearInterval(interval);
     }, [isGenerating]);
 
+    useEffect(() => { return () => { if (result) URL.revokeObjectURL(result); }; }, [result]);
+    
+    // Auto-advance triggers for Assets step
+    useEffect(() => {
+        if (currentStep === 1) { // Index 1 is the 'Assets' step
+            if (isPodcast) {
+                if (hostImg && guestImg) {
+                    setTimeout(() => setCurrentStep(2), 600);
+                }
+            } else {
+                if (subjectImg) {
+                    setTimeout(() => setCurrentStep(2), 600);
+                }
+            }
+        }
+    }, [currentStep, isPodcast, hostImg, guestImg, subjectImg]);
+
+    const autoScroll = () => { if (scrollRef.current) setTimeout(() => { const container = scrollRef.current; if (container) { const targetScroll = container.scrollTop + 150; const maxScroll = container.scrollHeight - container.clientHeight; container.scrollTo({ top: Math.min(targetScroll, maxScroll), behavior: 'smooth' }); } }, 150); };
+
+    const processFile = async (file: File) => { const base64 = await fileToBase64(file); return { url: URL.createObjectURL(file), base64 }; };
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            setter({ url: URL.createObjectURL(file), base64 });
+            const data = await processFile(e.target.files[0]);
+            setter(data);
+            autoScroll();
+            e.target.value = '';
         }
-        e.target.value = '';
     };
 
     const handleGenerate = async () => {
@@ -605,12 +627,12 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
                             </button>
                         </div>
                     ) : (
-                        // COMMENT: Fixed type mismatch in handleRefine call by passing the refineText state instead of the event object.
                         <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                     )}
                 </div>
             </MobileSheet>
 
+            {/* Full Screen Viewer */}
             {isFullScreenOpen && result && (
                 <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
                     <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10"><XIcon className="w-6 h-6" /></button>
