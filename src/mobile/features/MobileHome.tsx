@@ -8,7 +8,9 @@ import {
     PixaTogetherIcon, ThumbnailIcon, PixaRestoreIcon,
     PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
     DashboardIcon, CreditCoinIcon, DownloadIcon, CalendarIcon,
-    UploadIcon, PlusIcon, ImageIcon
+    UploadIcon, PlusIcon, ImageIcon, MagicWandIcon, GlobeIcon,
+    // Added PaletteIcon to imports to fix line 28 error
+    PaletteIcon
 } from '../../components/icons';
 import { getCreations, claimDailyAttendance, subscribeToLabCollections } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
@@ -19,6 +21,22 @@ interface MobileHomeProps {
     auth: AuthProps;
     setActiveTab: (tab: View) => void;
 }
+
+const QUICK_INTENTS = [
+    { label: 'Fix Lighting', view: 'studio', icon: SparklesIcon },
+    { label: 'Remove BG', view: 'studio', icon: MagicWandIcon },
+    { label: 'Add Models', view: 'studio', icon: UserIcon },
+    { label: 'Design Room', view: 'interior', icon: PixaInteriorIcon },
+    { label: 'Colourize', view: 'colour', icon: PaletteIcon },
+];
+
+const TICKER_MESSAGES = [
+    "412 Product Shots rendered in the last hour",
+    "New 'Cyberpunk' style added to AdMaker",
+    "3,204 creators currently active in the Lab",
+    "Top Trend: 'Minimalist Apple' aesthetic is viral",
+    "New Milestone: 1M images generated on Pixa",
+];
 
 const BENTO_TOOLS = [
     { id: 'studio', label: 'Pixa Studio', sub: 'Pro Products', icon: PixaProductIcon, text: 'text-blue-500' },
@@ -204,15 +222,54 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         return fuzzy ? map[fuzzy] : 'studio';
     };
 
+    // Calculate Streak Ring Progress
+    const progressPercent = useMemo(() => {
+        const current = user?.lifetimeGenerations || 0;
+        const next = badge.nextMilestone;
+        if (next === 0) return 100;
+        // Logic for steps: Novice(0), Pro(10), Silver(30), Gold(100)
+        let prev = 0;
+        if (current >= 30) prev = 30;
+        else if (current >= 10) prev = 10;
+        return Math.min(100, Math.max(0, ((current - prev) / (next - prev)) * 100));
+    }, [user?.lifetimeGenerations, badge.nextMilestone]);
+
     return (
-        <div className="pb-24 bg-[#FAFAFB] min-h-full animate-fadeIn overflow-x-hidden">
+        <div className="pb-32 bg-[#FAFAFB] min-h-full animate-fadeIn overflow-x-hidden relative">
             
             {/* 1. POWER HEADER */}
-            <div className="px-6 pt-8 pb-6 bg-white border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200">
-                        {user?.avatar || firstName[0]}
+            <div className="px-6 pt-8 pb-4 bg-white flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
+                    {/* AVATAR WITH STREAK RING */}
+                    <div className="relative w-14 h-14 flex items-center justify-center">
+                        <svg className="absolute inset-0 w-full h-full -rotate-90">
+                            <circle cx="28" cy="28" r="25" fill="none" stroke="#F1F5F9" strokeWidth="4" />
+                            <circle 
+                                cx="28" cy="28" r="25" fill="none" 
+                                stroke="url(#streakGradient)" 
+                                strokeWidth="4" 
+                                strokeDasharray={157} 
+                                strokeDashoffset={157 - (157 * progressPercent) / 100}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out"
+                            />
+                            <defs>
+                                <linearGradient id="streakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#6366f1" />
+                                    <stop offset="100%" stopColor="#a855f7" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg relative z-10">
+                            {user?.avatar || firstName[0]}
+                        </div>
+                        {user?.lifetimeGenerations && user.lifetimeGenerations > 5 && (
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center shadow-sm animate-bounce-slight">
+                                <LightningIcon className="w-3 h-3 text-white" />
+                            </div>
+                        )}
                     </div>
+
                     <div>
                         <h1 className="text-lg font-black text-gray-900 leading-none">Hello, {firstName}</h1>
                         <div className="flex items-center gap-1.5 mt-1.5">
@@ -232,8 +289,38 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* 2. LATEST CREATION BANNER */}
-            <div className="px-6 pt-6">
+            {/* 2. INTELLIGENCE TICKER */}
+            <div className="px-6 mb-6">
+                <div className="bg-indigo-600/5 border border-indigo-100/50 rounded-full py-2 overflow-hidden relative">
+                    <div className="flex whitespace-nowrap animate-marquee">
+                        {[...TICKER_MESSAGES, ...TICKER_MESSAGES].map((msg, i) => (
+                            <div key={i} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
+                                <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
+                                <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. QUICK INTENT PILLS */}
+            <div className="px-6 mb-8 overflow-x-auto no-scrollbar">
+                <div className="flex gap-3">
+                    {QUICK_INTENTS.map((intent, i) => (
+                        <button 
+                            key={i}
+                            onClick={() => setActiveTab(intent.view as View)}
+                            className="flex items-center gap-2.5 bg-white px-5 py-2.5 rounded-2xl border border-gray-100 shadow-sm whitespace-nowrap active:scale-95 active:bg-gray-50 transition-all group"
+                        >
+                            <intent.icon className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
+                            <span className="text-[11px] font-black text-gray-700 uppercase tracking-wider">{intent.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* 4. LATEST CREATION BANNER */}
+            <div className="px-6">
                 <div className="relative w-full h-[320px] rounded-[2.5rem] bg-white border border-gray-100 shadow-xl overflow-hidden group active:scale-[0.98] transition-all">
                     {loadingRecent ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gray-50">
@@ -278,7 +365,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 3. MISSION CONTROL (Moved up) */}
+            {/* 5. MISSION CONTROL */}
             <div className="px-6 py-8">
                  <div className="bg-gray-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
@@ -323,7 +410,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 4. THE TRANSFORMATION GALLERY */}
+            {/* 6. THE TRANSFORMATION GALLERY */}
             <div className="px-6 py-4">
                 <div className="flex items-center justify-between mb-4 px-1">
                     <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Transformation Gallery</h3>
@@ -342,7 +429,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 5. EXTRA GALLERY TILES */}
+            {/* 7. EXTRA GALLERY TILES */}
             <div className="px-6 py-4 pb-8">
                 <div className="grid grid-cols-2 gap-4">
                     {galleryItems.slice(3, 7).map((item, i) => (
@@ -358,7 +445,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* 6. TOOL HUB (Moved to bottom) */}
+            {/* 8. TOOL HUB */}
             <div className="px-6 py-8 pb-16">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 ml-1">Advanced Tool Hub</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -389,6 +476,36 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     Explore all tools <ArrowRightIcon className="w-4 h-4" />
                 </button>
             </div>
+
+            {/* ONE-TAP MIRROR FLOATING BUTTON */}
+            <button 
+                onClick={() => setActiveTab('apparel')}
+                className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-white shadow-[0_12px_40px_rgba(79,70,229,0.3)] flex flex-col items-center justify-center gap-0.5 border border-indigo-100 transition-all duration-500 hover:scale-110 active:scale-95 group z-[100] animate-breathe"
+            >
+                <div className="relative">
+                    <CameraIcon className="w-7 h-7 text-indigo-600" />
+                    <div className="absolute -top-1 -right-2 bg-red-500 text-[6px] font-black text-white px-1 py-0.5 rounded shadow-sm animate-pulse">LIVE</div>
+                </div>
+                <span className="text-[7px] font-black text-indigo-900 uppercase tracking-tighter">Mirror</span>
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-400/20 animate-ping pointer-events-none"></div>
+            </button>
+
+            <style>{`
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee {
+                    animation: marquee 30s linear infinite;
+                }
+                @keyframes breathe {
+                    0%, 100% { transform: scale(1); box-shadow: 0 12px 40px rgba(79,70,229,0.3); }
+                    50% { transform: scale(1.05); box-shadow: 0 20px 50px rgba(79,70,229,0.4); }
+                }
+                .animate-breathe {
+                    animation: breathe 3s ease-in-out infinite;
+                }
+            `}</style>
 
         </div>
     );
