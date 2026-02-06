@@ -65,32 +65,6 @@ const CustomRefineIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40" }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    return (
-        <div className="relative w-full group">
-            <div className="flex justify-between items-center mb-2 px-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-                {image && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1"><CheckIcon className="w-3 h-3"/> Ready</span>}
-            </div>
-            {image ? (
-                <div className={`relative w-full ${heightClass} bg-gray-50 rounded-2xl border border-indigo-100 flex items-center justify-center overflow-hidden group-hover:border-indigo-300 transition-all shadow-inner`}>
-                    <img src={image.url} className="max-w-full max-h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" alt={label} />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-start justify-end p-2">
-                        <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="bg-white/90 p-2 rounded-xl shadow-lg text-gray-500 hover:text-red-500 hover:scale-110 transition-all backdrop-blur-sm"><XIcon className="w-4 h-4"/></button>
-                    </div>
-                </div>
-            ) : (
-                <div onClick={() => inputRef.current?.click()} className={`w-full ${heightClass} border border-dashed border-gray-300 bg-white hover:bg-indigo-50/30 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group`}>
-                    <div className="p-3 bg-gray-50 group-hover:bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-500 border border-gray-100">{icon}</div>
-                    <p className="text-xs font-bold text-gray-600 group-hover:text-indigo-600 uppercase tracking-wide text-center px-4">{uploadText || "Add Photo"}</p>
-                </div>
-            )}
-            <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={onUpload} />
-        </div>
-    );
-};
-
 interface MobileHeadshotProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
@@ -274,19 +248,6 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         setMode(null);
     };
 
-    const handleBack = () => {
-        if (isGenerating) return;
-        if (result) {
-            setResult(null);
-        } else if (currentStep > 0) {
-            setCurrentStep(prev => prev - 1);
-        } else if (mode) {
-            setMode(null);
-            setImage(null);
-            setPartnerImage(null);
-        }
-    };
-
     const handleSelectOption = (stepId: string, option: string) => {
         if (isGenerating) return;
         if (stepId === 'mode') {
@@ -428,8 +389,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        {/* Standardized Credits Pill - Visible from first opening, Far left placement */}
-                        {!result && !isGenerating && (
+                        {/* Standardized Credits Pill - Visible from first opening, matched style with Interior Design */}
+                        {!isGenerating && (
                             <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
                                 <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
@@ -472,6 +433,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                 onClick={() => !isGenerating && setIsFullScreenOpen(true)}
                                 className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30 scale-95' : 'animate-materialize'}`} 
                             />
+                        ) : isGenerating ? (
+                            null // Canvas disappears during generation
                         ) : !mode ? (
                             <div className="text-center animate-fadeIn px-8">
                                 <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -562,7 +525,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <CustomRefineIcon className="w-5 h-5" /> Refine portrait
+                                <CustomRefineIcon className="w-5 h-5 brightness-0 invert" /> Refine Image
                             </button>
                             <div className="grid grid-cols-2 gap-3">
                                 <button onClick={handleNewProject} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
