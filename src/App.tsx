@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; 
 import HomePage from './HomePage';
@@ -310,7 +309,7 @@ function App() {
   // --- MOBILE FORK ---
   if (isMobile && authProps.isAuthenticated) {
     return (
-        <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white`}>
+        <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white overflow-y-auto`}>
             <MobileApp auth={authProps} appConfig={appConfig} />
             {activeUser?.systemNotification && !activeUser.systemNotification.read && (
                 <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
@@ -320,7 +319,7 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans text-slate-900 ${impersonatedUser ? 'pt-14' : ''}`}>
+    <div className={`min-h-screen flex flex-col font-sans text-slate-900 overflow-y-auto ${impersonatedUser ? 'pt-14' : ''}`}>
       {impersonatedUser && user && <ImpersonationBanner originalUser={user} targetUser={impersonatedUser} onExit={() => setImpersonatedUser(null)} />}
       
       {showBanner && announcement && announcement.isActive && (
