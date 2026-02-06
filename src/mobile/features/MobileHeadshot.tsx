@@ -5,7 +5,7 @@ import {
     DownloadIcon, RegenerateIcon, PlusIcon,
     ArrowLeftIcon, ImageIcon, CameraIcon, UserIcon, UsersIcon,
     ArrowRightIcon, MagicWandIcon, InformationCircleIcon,
-    CreditCoinIcon, LocationIcon, LockIcon
+    CreditCoinIcon, LocationIcon, LockIcon, RefreshIcon
 } from '../../components/icons';
 import { 
     CorporateExecutiveIcon, 
@@ -122,8 +122,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     const [archetype, setArchetype] = useState('');
     const [background, setBackground] = useState('');
     const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState('');
-    const [customDesc, setCustomDesc] = useState('');
     
+    const [customDesc, setCustomDesc] = useState('');
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
 
@@ -236,15 +236,15 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         }
     };
 
-    const handleRefine = async () => {
-        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
+    const handleRefine = async (text: string) => {
+        if (!result || !text.trim() || !auth.user || isGenerating) return;
         if (isLowRefineCredits) return;
 
         setIsGenerating(true);
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Headshot");
+            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "Professional Headshot");
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
@@ -428,15 +428,10 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                 {/* Bottom Row: Commands */}
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <button 
-                            onClick={handleBack} 
-                            className={`p-2 rounded-full transition-all ${mode && !isGenerating ? 'bg-gray-100 text-gray-500 active:bg-gray-200' : 'opacity-0 pointer-events-none'}`}
-                        >
-                            <ArrowLeftIcon className="w-5 h-5" />
-                        </button>
-                        {mode && !result && !isGenerating && (
-                            <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn">
-                                <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                        {/* Standardized Credits Pill - Visible from first opening, Far left placement */}
+                        {!result && !isGenerating && (
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
                             </div>
                         )}
@@ -547,6 +542,17 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                             </div>
                         )}
                     </div>
+                    
+                    {/* Floating Reset Button */}
+                    {mode && !result && !isGenerating && (
+                        <button 
+                            onClick={handleNewProject}
+                            className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                        >
+                            <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -614,7 +620,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                                         (idx === 1 && (mode === 'individual' ? !!image : (!!image && !!partnerImage))) ||
                                                         (idx === 2 && !!archetype) ||
                                                         (idx === 3 && !!background) ||
-                                                        (idx === 4 && !!customDesc);
+                                                        (idx === 4 && customDesc.trim().length > 0);
                                         
                                         return (
                                             <button 
@@ -625,8 +631,18 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                                             >
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? mode : idx === 1 ? 'Ready' : idx === 2 ? archetype : idx === 3 ? background : idx === 4 ? 'Set' : ''}
+                                                <span className={`text-[7px] font-black h-3 transition-all truncate w-full text-center px-1 uppercase tracking-tighter ${
+                                                    isFilled 
+                                                    ? 'opacity-100 text-indigo-500' 
+                                                    : idx === 4 
+                                                        ? 'opacity-100 text-gray-400' 
+                                                        : 'opacity-0'
+                                                }`}>
+                                                    {idx === 0 ? mode : 
+                                                     idx === 1 ? 'Ready' : 
+                                                     idx === 2 ? archetype : 
+                                                     idx === 3 ? background : 
+                                                     idx === 4 ? (customDesc.trim().length > 0 ? 'Note Set' : 'Optional') : ''}
                                                 </span>
                                             </button>
                                         );
@@ -672,7 +688,7 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                        <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
                     )}
                 </div>
             </MobileSheet>
