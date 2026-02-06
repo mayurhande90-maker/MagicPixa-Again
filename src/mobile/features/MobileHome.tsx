@@ -22,12 +22,15 @@ interface MobileHomeProps {
     setActiveTab: (tab: View) => void;
 }
 
-const TICKER_MESSAGES = [
-    "412 Product Shots rendered in the last hour",
-    "New 'Cyberpunk' style added to AdMaker",
-    "3,204 creators currently active in the Lab",
-    "Top Trend: 'Minimalist Apple' aesthetic is viral",
-    "New Milestone: 1M images generated on Pixa",
+const TICKER_TEMPLATES = [
+    (n: number) => `${n} Product Shots rendered in the last hour`,
+    (n: number) => `${n} active creators currently in the Lab`,
+    (n: number) => `New Milestone: ${n}M images generated on Pixa`,
+    (n: number) => `Trending: '${n}% more engagement' with AI AdMaker`,
+    (n: number) => `Live: ${n} brand kits synchronized today`,
+    (n: number) => `${n} Pro Headshots exported in the last 30 mins`,
+    (n: number) => `Hot: ${n} designers switched to Zero-Prompt workflow`,
+    (n: number) => `${n} agencies scaled production using Pixa Studio`,
 ];
 
 const BENTO_TOOLS = [
@@ -70,6 +73,8 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     return shuffled;
 };
 
+const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
 const AutoWipeBox: React.FC<{ item: any; delay: number; onClick: () => void; compact?: boolean }> = ({ item, delay, onClick, compact }) => {
     return (
         <div 
@@ -103,8 +108,8 @@ const AutoWipeBox: React.FC<{ item: any; delay: number; onClick: () => void; com
                 </div>
             </div>
 
-            {/* Label */}
-            <div className="absolute top-3 left-3 z-40">
+            {/* Label - Shifted to bottom left */}
+            <div className="absolute bottom-3 left-3 z-40">
                 <div className={`bg-black/60 backdrop-blur-md ${compact ? 'px-1.5 py-0.5' : 'px-2 py-1'} rounded-lg border border-white/10 shadow-lg`}>
                     <span className={`${compact ? 'text-[6px]' : 'text-[7px]'} font-black text-white uppercase tracking-widest leading-none`}>{item.label}</span>
                 </div>
@@ -160,6 +165,15 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         const unsubCollections = subscribeToLabCollections(setLabCollections);
         return () => unsubCollections();
     }, [user?.uid]);
+
+    // Generate Randomized Ticker Messages with Dynamic Digits
+    const dynamicTickerMessages = useMemo(() => {
+        const shuffled = shuffleArray([...TICKER_TEMPLATES]);
+        return shuffled.slice(0, 5).map(template => {
+            const num = getRandomInt(10, 999);
+            return template(num);
+        });
+    }, []); // Empty deps ensure it randomizes once per mount/refresh
 
     // Shuffle the definitions once per refresh (component mount)
     const shuffledDefinitions = useMemo(() => shuffleArray([...GALLERY_ITEMS_DEFINITION]), []);
@@ -286,11 +300,11 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* 2. INTELLIGENCE TICKER - Faster speed (12s) */}
+            {/* 2. INTELLIGENCE TICKER - Fast speed (8s) with dynamic randomized content */}
             <div className="px-6 mb-6">
                 <div className="bg-indigo-600/5 border border-indigo-100/50 rounded-full py-2 overflow-hidden relative">
                     <div className="flex whitespace-nowrap animate-marquee">
-                        {[...TICKER_MESSAGES, ...TICKER_MESSAGES].map((msg, i) => (
+                        {[...dynamicTickerMessages, ...dynamicTickerMessages].map((msg, i) => (
                             <div key={i} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
                                 <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
                                 <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
@@ -472,7 +486,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     100% { transform: translateX(-50%); }
                 }
                 .animate-marquee {
-                    animation: marquee 12s linear infinite;
+                    animation: marquee 8s linear infinite;
                 }
             `}</style>
 
