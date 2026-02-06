@@ -27,10 +27,12 @@ export const MobileSplashScreen: React.FC<MobileSplashScreenProps> = ({ onComple
             <div className="relative flex flex-col items-center">
                 <div className="flex items-center justify-center animate-aperture-bloom">
                     <h1 className="text-4xl font-logo font-black tracking-tighter flex items-center">
-                        <span className="text-[#1A1A1E] animate-kerning-flow px-0.5">
+                        {/* Removed px-0.5 to ensure text is flush */}
+                        <span className="text-[#1A1A1E] animate-kerning-flow">
                             Magic
                         </span>
-                        <span className="relative ml-1 overflow-hidden rounded-sm px-0.5">
+                        {/* Removed ml-1 and px-0.5 to join the words */}
+                        <span className="relative overflow-hidden rounded-sm">
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-blue-600 bg-[length:200%_auto] animate-light-sweep">
                                 Pixa
                             </span>
