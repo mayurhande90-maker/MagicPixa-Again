@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, AuthProps } from '../../types';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { MagicPixaLogo, CreditCoinIcon, GiftIcon } from '../../components/icons';
-import { ReferralModal } from '../../components/ReferralModal';
+import { MobileReferralModal } from '../components/MobileReferralModal';
 
 interface MobileLayoutProps {
     // Corrected React.Node to React.ReactNode
@@ -49,7 +49,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
             <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
             
             {showReferralModal && auth.user && (
-                <ReferralModal 
+                <MobileReferralModal 
                     user={auth.user} 
                     onClose={() => setShowReferralModal(false)}
                     onClaimSuccess={(updatedUser) => {
