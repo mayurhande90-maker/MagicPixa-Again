@@ -108,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
   };
 
   return (
-    <aside className="hidden lg:flex w-72 bg-[#F4F6F8] border-r border-gray-200/80 p-4 flex-col overflow-y-auto custom-scrollbar sticky top-[73px] h-[calc(100vh-73px)]">
+    <aside className="hidden lg:flex w-72 bg-[#F4F6F8] border-r border-gray-200/80 p-4 flex-col overflow-y-auto custom-scrollbar">
         
         {user && (
             <div className="mb-6 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg flex-shrink-0">
