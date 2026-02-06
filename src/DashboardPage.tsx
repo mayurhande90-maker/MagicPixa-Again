@@ -16,7 +16,7 @@ import {
     saveCreation, 
     deductCredits,
 } from './firebase';
-import { fileToBase64, Base64File } from './utils/imageUtils';
+import { fileToBase64, Base64File, resizeImage } from './utils/imageUtils';
 import { 
     UsersIcon,
     PaletteIcon,
@@ -177,11 +177,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
 
-    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'billing', 'admin'];
-    const isStandardView = standardViews.includes(activeView);
-
     return (
-        <div className="flex flex-col h-screen bg-white">
+        <div className="flex flex-col min-h-screen bg-white">
              <Header 
                 navigateTo={navigateTo} 
                 auth={{
@@ -190,7 +187,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     setActiveView: handleViewChange,
                 }} 
             />
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1">
                 <Sidebar 
                     user={auth.user}
                     setUser={auth.setUser}
@@ -201,23 +198,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     openReferralModal={() => setShowReferralModal(true)}
                 />
                 
-                <main className={`flex-1 bg-white custom-scrollbar relative ${isStandardView ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+                <main className="flex-1 bg-white relative">
                     <Suspense fallback={<PageLoader />}>
-                        {activeSessions.map(viewId => {
-                            const isViewStandard = standardViews.includes(viewId);
-                            return (
-                                <div 
-                                    key={viewId} 
-                                    style={{ 
-                                        display: activeView === viewId ? 'block' : 'none',
-                                        height: isViewStandard ? 'auto' : '100%',
-                                        width: '100%' 
-                                    }}
-                                >
-                                    {renderFeatureComponent(viewId)}
-                                </div>
-                            );
-                        })}
+                        {activeSessions.map(viewId => (
+                            <div 
+                                key={viewId} 
+                                style={{ 
+                                    display: activeView === viewId ? 'block' : 'none',
+                                    width: '100%' 
+                                }}
+                            >
+                                {renderFeatureComponent(viewId)}
+                            </div>
+                        ))}
                     </Suspense>
                 </main>
             </div>
