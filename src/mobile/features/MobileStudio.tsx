@@ -330,7 +330,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse</p>
                             </div>
                         )}
-                        {(isAnalyzing || isGenerating) && (
+                        {isAnalyzing && (
                             <div className="absolute inset-0 z-40 pointer-events-none">
                                 <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_15px_#6366f1] absolute top-0 left-0 animate-neural-scan opacity-80"></div>
                                 <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]"></div>
