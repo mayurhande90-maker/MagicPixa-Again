@@ -60,9 +60,12 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     return shuffled;
 };
 
-const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) => {
+const AutoWipeBox: React.FC<{ item: any; delay: number; onClick: () => void; compact?: boolean }> = ({ item, delay, onClick, compact }) => {
     return (
-        <div className="group relative aspect-[4/3] rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 active:scale-95">
+        <div 
+            onClick={onClick}
+            className="group relative aspect-[4/3] rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 active:scale-95 cursor-pointer"
+        >
             {/* Before Image */}
             <img src={item.before} className="absolute inset-0 w-full h-full object-cover brightness-95" alt="Before" />
             
@@ -92,8 +95,8 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
 
             {/* Label */}
             <div className="absolute top-3 left-3 z-40">
-                <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shadow-lg">
-                    <span className="text-[8px] font-black text-white uppercase tracking-widest leading-none">{item.label}</span>
+                <div className={`bg-black/60 backdrop-blur-md ${compact ? 'px-1.5 py-0.5' : 'px-2 py-1'} rounded-lg border border-white/10 shadow-lg`}>
+                    <span className={`${compact ? 'text-[6px]' : 'text-[7px]'} font-black text-white uppercase tracking-widest leading-none`}>{item.label}</span>
                 </div>
             </div>
 
@@ -329,7 +332,12 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 
                 <div className="grid grid-cols-1 gap-4">
                     {galleryItems.slice(0, 3).map((item, i) => (
-                        <AutoWipeBox key={item.id} item={item} delay={i * 800} />
+                        <AutoWipeBox 
+                            key={item.id} 
+                            item={item} 
+                            delay={i * 800} 
+                            onClick={() => setActiveTab(item.id as View)} 
+                        />
                     ))}
                 </div>
             </div>
@@ -339,7 +347,12 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 <div className="grid grid-cols-2 gap-4">
                     {galleryItems.slice(3, 7).map((item, i) => (
                         <div key={item.id} className="h-44">
-                            <AutoWipeBox item={item} delay={(i + 3) * 800} />
+                            <AutoWipeBox 
+                                item={item} 
+                                delay={(i + 3) * 800} 
+                                compact 
+                                onClick={() => setActiveTab(item.id as View)} 
+                            />
                         </div>
                     ))}
                 </div>
