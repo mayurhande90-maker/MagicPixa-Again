@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, View, Creation } from '../../types';
 import { 
     SparklesIcon, MagicAdsIcon, PixaHeadshotIcon, 
@@ -8,7 +9,7 @@ import {
     PixaTogetherIcon, ThumbnailIcon, PixaRestoreIcon,
     PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
     DashboardIcon, CreditCoinIcon, DownloadIcon, CalendarIcon,
-    UploadIcon, PlusIcon, RefreshIcon
+    UploadIcon, PlusIcon
 } from '../../components/icons';
 import { getCreations, claimDailyAttendance } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
@@ -54,58 +55,10 @@ const AutoWipe: React.FC<{ item: typeof INSPIRATION_SAMPLES[0] }> = ({ item }) =
     </div>
 );
 
-// Animation Component for the flying coin
-const FlyingCoin: React.FC<{ start: { x: number, y: number }, onComplete: () => void }> = ({ start, onComplete }) => {
-    const [target, setTarget] = useState({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const targetEl = document.getElementById('mobile-credit-pill');
-        if (targetEl) {
-            const rect = targetEl.getBoundingClientRect();
-            setTarget({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-        }
-        const timer = setTimeout(onComplete, 1000);
-        return () => clearTimeout(timer);
-    }, [onComplete]);
-
-    const style = {
-        '--start-x': `${start.x}px`,
-        '--start-y': `${start.y}px`,
-        '--end-x': `${target.x}px`,
-        '--end-y': `${target.y}px`,
-    } as React.CSSProperties;
-
-    return (
-        <div className="fixed z-[999] pointer-events-none coin-animation" style={style}>
-            <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-2 border-yellow-500 text-yellow-900 animate-coin-spin">
-                <CreditCoinIcon className="w-5 h-5" />
-            </div>
-            <style>{`
-                .coin-animation {
-                    top: var(--start-y);
-                    left: var(--start-x);
-                    animation: fly-to-header 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-                }
-                @keyframes fly-to-header {
-                    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                    100% { top: var(--end-y); left: var(--end-x); transform: translate(-50%, -50%) scale(0.3); opacity: 0.5; }
-                }
-                @keyframes coin-spin {
-                    from { transform: rotateY(0deg); }
-                    to { transform: rotateY(360deg); }
-                }
-                .animate-coin-spin { animation: coin-spin 0.4s linear infinite; }
-            `}</style>
-        </div>
-    );
-};
-
 export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) => {
     const [recentCreations, setRecentCreations] = useState<Creation[]>([]);
     const [loadingRecent, setLoadingRecent] = useState(true);
     const [isClaiming, setIsClaiming] = useState(false);
-    const [showFlyingCoin, setShowFlyingCoin] = useState(false);
-    const [coinStartPos, setCoinStartPos] = useState({ x: 0, y: 0 });
     
     const user = auth.user;
     const firstName = user?.name ? user.name.split(' ')[0] : 'Creator';
@@ -113,6 +66,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
     const isMissionComplete = isMissionLocked(user);
     const badge = getBadgeInfo(user?.lifetimeGenerations || 0);
 
+    // FIX: Defined canClaimCheckin using useMemo to determine if 24 hours have passed since the last claim.
     const canClaimCheckin = useMemo(() => {
         if (!user?.lastAttendanceClaim) return true;
         const last = (user.lastAttendanceClaim as any).toDate ? (user.lastAttendanceClaim as any).toDate() : new Date(user.lastAttendanceClaim as any);
@@ -131,29 +85,23 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         }
     }, [user?.uid]);
 
-    const handleClaimCheckin = async (e: React.MouseEvent) => {
-        if (!user || isClaiming || !canClaimCheckin) return;
-        
-        // Capture click position for animation
-        setCoinStartPos({ x: e.clientX, y: e.clientY });
-        setShowFlyingCoin(true);
+    const handleClaimCheckin = async () => {
+        if (!user || isClaiming) return;
         setIsClaiming(true);
-
-        // Sync database update with animation
-        setTimeout(async () => {
-            try {
-                const updatedUser = await claimDailyAttendance(user.uid);
-                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            } catch (err) {
-                console.error("Check-in failed.");
-            } finally {
-                setIsClaiming(false);
-            }
-        }, 400);
+        try {
+            const updatedUser = await claimDailyAttendance(user.uid);
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        } catch (e) {
+            alert("Check-in failed.");
+        } finally {
+            setIsClaiming(false);
+        }
     };
 
     const handlePrimeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
+            // Intelligent Gateway: For now, route to Studio
+            // In a more advanced version, we could analyze the image first
             setActiveTab('studio');
         }
     };
@@ -164,8 +112,8 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
             {/* 1. POWER HEADER */}
             <div className="px-6 pt-8 pb-6 bg-white border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200 overflow-hidden">
-                        {user?.avatar && user.avatar.length <= 2 ? user.avatar : <img src={user?.avatar} className="w-full h-full object-cover" />}
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200">
+                        {user?.avatar || firstName[0]}
                     </div>
                     <div>
                         <h1 className="text-lg font-black text-gray-900 leading-none">Hello, {firstName}</h1>
@@ -265,63 +213,35 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Mission Control</h3>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {/* Daily Mission */}
-                        <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-3xl border border-white/5">
+                        <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
                             <div className="flex-1">
                                 <h4 className="text-sm font-black mb-1">{mission.title}</h4>
                                 <p className="text-[10px] text-gray-400 font-medium line-clamp-1">Reward: +5 Credits</p>
                             </div>
                             <button 
                                 onClick={() => setActiveTab('daily_mission' as any)}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMissionComplete ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
+                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMissionComplete ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'}`}
                             >
                                 {isMissionComplete ? 'Finished' : 'Launch'}
                             </button>
                         </div>
 
-                        {/* Premium Daily Check-in Card (Redesigned) */}
-                        <button 
-                            onClick={handleClaimCheckin}
-                            disabled={!canClaimCheckin || isClaiming}
-                            className={`w-full relative group transition-all duration-500 text-left overflow-hidden rounded-3xl border ${
-                                canClaimCheckin 
-                                ? 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 border-indigo-400 shadow-[0_10px_30px_rgba(99,102,241,0.3)] animate-premium-breathe active:scale-[0.98]' 
-                                : 'bg-white/5 border-white/5 grayscale opacity-60'
-                            }`}
-                        >
-                            {/* Card Content */}
-                            <div className="p-5 relative z-10 flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${canClaimCheckin ? 'bg-white/10 shadow-inner group-hover:scale-110' : 'bg-white/5'}`}>
-                                        <LightningIcon className={`w-6 h-6 ${canClaimCheckin ? 'text-yellow-400' : 'text-gray-500'}`} />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h4 className="text-sm font-black text-white">Daily Recharge</h4>
-                                            {canClaimCheckin && (
-                                                <span className="bg-yellow-400 text-black text-[7px] font-black uppercase px-2 py-0.5 rounded-full animate-pulse">Claim Now</span>
-                                            )}
-                                        </div>
-                                        <p className="text-[10px] text-indigo-200/70 font-medium">
-                                            {canClaimCheckin ? 'Tap box to get +1 Credit' : 'Next refill available in 24h'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="shrink-0 flex items-center gap-2">
-                                    <div className={`text-xl font-black ${canClaimCheckin ? 'text-white' : 'text-gray-500'}`}>+1</div>
-                                    <CreditCoinIcon className={`w-5 h-5 ${canClaimCheckin ? 'text-yellow-400' : 'text-gray-500'}`} />
-                                </div>
+                        {/* Daily Check-in */}
+                        <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <div className="flex-1">
+                                <h4 className="text-sm font-black mb-1">Fuel Recharge</h4>
+                                <p className="text-[10px] text-gray-400 font-medium">Claim +1 free daily credit</p>
                             </div>
-
-                            {/* Decorative Sparkles & Shimmer */}
-                            {canClaimCheckin && (
-                                <>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
-                                    <SparklesIcon className="absolute top-2 right-4 w-12 h-12 text-white/5 -rotate-12" />
-                                </>
-                            )}
-                        </button>
+                            <button 
+                                onClick={handleClaimCheckin}
+                                disabled={isClaiming || !canClaimCheckin}
+                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!canClaimCheckin ? 'bg-white/5 text-gray-500 cursor-default' : 'bg-amber-400 text-black shadow-lg shadow-amber-400/20 active:scale-95'}`}
+                            >
+                                {isClaiming ? 'Wait...' : !canClaimCheckin ? '24h Locked' : 'Recharge'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -338,27 +258,6 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </div>
             </div>
 
-            {/* Animation Portal Area */}
-            {showFlyingCoin && (
-                <FlyingCoin 
-                    start={coinStartPos} 
-                    onComplete={() => setShowFlyingCoin(false)} 
-                />
-            )}
-
-            <style>{`
-                @keyframes premium-breathe {
-                    0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2); border-color: rgba(129, 140, 248, 0.4); }
-                    50% { transform: scale(1.01); box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4); border-color: rgba(129, 140, 248, 0.8); }
-                }
-                .animate-premium-breathe { animation: premium-breathe 4s ease-in-out infinite; }
-                
-                @keyframes shimmer {
-                    from { transform: translateX(-100%); }
-                    to { transform: translateX(100%); }
-                }
-                .animate-shimmer { animation: shimmer 2s linear infinite; }
-            `}</style>
         </div>
     );
 };
