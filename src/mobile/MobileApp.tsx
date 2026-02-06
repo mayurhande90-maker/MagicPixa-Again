@@ -1,4 +1,3 @@
-
 import React, { useState, Suspense, lazy } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from '../types';
 import { MobileLayout } from './layouts/MobileLayout';
@@ -18,6 +17,7 @@ const MobileCreations = lazy(() => import('./features/MobileCreations').then(m =
 const MobileProfile = lazy(() => import('./features/MobileProfile').then(m => ({ default: m.MobileProfile })));
 const MobileTryOn = lazy(() => import('./features/MobileTryOn').then(m => ({ default: m.MobileTryOn })));
 const MobileInterior = lazy(() => import('./features/MobileInterior').then(m => ({ default: m.MobileInterior })));
+const MobileDailyMission = lazy(() => import('./features/MobileDailyMission').then(m => ({ default: m.MobileDailyMission })));
 const Billing = lazy(() => import('../components/Billing').then(m => ({ default: m.Billing })));
 
 interface MobileAppProps {
@@ -47,6 +47,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         'profile',
         'apparel',
         'interior',
+        'daily_mission',
         'billing'
     ];
 
@@ -96,6 +97,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
                 return <MobileTryOn {...commonProps} />;
             case 'interior':
                 return <MobileInterior {...commonProps} />;
+            case 'daily_mission':
+                return <MobileDailyMission {...commonProps} />;
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
