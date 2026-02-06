@@ -93,11 +93,11 @@ export const MobileReferralModal: React.FC<MobileReferralModalProps> = ({ user, 
                         <div className="border-t border-gray-100 pt-6">
                             <p className="text-[10px] font-black text-gray-700 mb-3 text-center uppercase tracking-wider">Have a referral code?</p>
                             <form onSubmit={handleClaim} className="space-y-3">
-                                <div className="flex gap-2">
+                                <div className="flex flex-col gap-3">
                                     <input 
                                         type="text" 
                                         placeholder="ENTER CODE"
-                                        className={`flex-1 bg-gray-50 border-2 focus:border-purple-500 rounded-xl px-4 py-3 outline-none font-black text-gray-700 placeholder-gray-300 text-center uppercase tracking-widest transition-colors text-sm ${error ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+                                        className={`w-full bg-gray-50 border-2 focus:border-purple-500 rounded-xl px-4 py-3.5 outline-none font-black text-gray-700 placeholder-gray-300 text-center uppercase tracking-widest transition-colors text-sm ${error ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
                                         value={inputCode}
                                         onChange={(e) => {
                                             setInputCode(e.target.value.toUpperCase());
@@ -108,13 +108,13 @@ export const MobileReferralModal: React.FC<MobileReferralModalProps> = ({ user, 
                                     <button 
                                         type="submit"
                                         disabled={claiming || !inputCode}
-                                        className={`px-6 rounded-xl font-black text-[10px] uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 ${
+                                        className={`w-full py-3.5 rounded-xl font-black text-xs uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
                                             claiming || !inputCode 
-                                            ? 'bg-gray-300 cursor-not-allowed' 
+                                            ? 'bg-gray-300 cursor-not-allowed shadow-none' 
                                             : 'bg-purple-600 shadow-purple-500/20'
                                         }`}
                                     >
-                                        {claiming ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Claim"}
+                                        {claiming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : "Claim Credit"}
                                     </button>
                                 </div>
                                 
