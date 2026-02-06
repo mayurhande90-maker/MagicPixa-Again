@@ -51,6 +51,15 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
 ];
 
+const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+};
+
 const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) => {
     return (
         <div className="group relative aspect-[4/3] rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 transition-all duration-500 active:scale-95">
@@ -138,10 +147,13 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         return () => unsubCollections();
     }, [user?.uid]);
 
-    // Map Slot-based Gallery items for mobile
+    // Shuffle the definitions once per refresh (component mount)
+    const shuffledDefinitions = useMemo(() => shuffleArray([...GALLERY_ITEMS_DEFINITION]), []);
+
+    // Map Slot-based Gallery items for mobile using the shuffled order
     const galleryItems = useMemo(() => {
         const slotData = (labCollections['homepage_gallery'] as Record<string, any>) || {};
-        return GALLERY_ITEMS_DEFINITION.map(def => {
+        return shuffledDefinitions.map(def => {
             const uploaded = slotData[def.id] || {};
             const staticDefault = GALLERY_ITEMS_STATIC.find(s => s.id === def.id) || GALLERY_ITEMS_STATIC[0];
             return {
@@ -151,7 +163,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 after: uploaded.after || staticDefault.after
             };
         });
-    }, [labCollections['homepage_gallery']]);
+    }, [labCollections['homepage_gallery'], shuffledDefinitions]);
 
     const latestCreation = creations.length > 0 ? creations[0] : null;
 
@@ -284,7 +296,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                             </div>
                             <button 
                                 onClick={() => setActiveTab('daily_mission' as any)}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMissionComplete ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
+                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMissionComplete ? 'bg-green-50/20 text-green-400 border border-green-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
                             >
                                 {isMissionComplete ? 'Finished' : 'Launch'}
                             </button>
