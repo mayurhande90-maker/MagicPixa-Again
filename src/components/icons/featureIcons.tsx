@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { IconProps, BaseIcon } from './types';
 
@@ -158,8 +157,6 @@ export const PixaCaptionIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
-export const CaptionIcon = PixaCaptionIcon;
-
 export const PixaInteriorIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">
         <path fill="#CCD6DD" d="M31 29.5a1.5 1.5 0 0 1-3 0v-24a1.5 1.5 0 1 1 3 0v24z"/>
@@ -175,176 +172,12 @@ export const PixaInteriorIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
-// Updated BuildingIcon with new SVG
-export const BuildingIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <g fill="none">
-            <path fill="url(#fluentColorBuildingMultiple240)" fillRule="evenodd" d="M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25" clipRule="evenodd"/>
-            <path fill="url(#fluentColorBuildingMultiple241)" fillOpacity=".2" fillRule="evenodd" d="M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25" clipRule="evenodd"/>
-            <path fill="url(#fluentColorBuildingMultiple242)" fillRule="evenodd" d="M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25" clipRule="evenodd"/>
-            <path fill="url(#fluentColorBuildingMultiple243)" d="M8 6a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple244)" d="M8 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple245)" d="M8 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple246)" d="M8 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple247)" d="M8 18a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple248)" d="M18.75 5A2.25 2.25 0 0 1 21 7.25v14a.75.75 0 0 1-.75.75h-9.247A1 1 0 0 1 10 21V7.25A2.25 2.25 0 0 1 12.25 5z"/>
-            <path fill="url(#fluentColorBuildingMultiple249)" d="M13 19a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v3h-5z"/>
-            <path fill="url(#fluentColorBuildingMultiple24a)" d="M15 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple24b)" d="M15 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple24c)" d="M15 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple24d)" d="M18 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple24e)" d="M18 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <path fill="url(#fluentColorBuildingMultiple24f)" d="M18 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0"/>
-            <defs>
-                <linearGradient id="fluentColorBuildingMultiple240" x1="3.393" x2="15.293" y1="5.75" y2="12.55" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#A3A3FF"/>
-                    <stop offset="1" stopColor="#5750E2"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple241" x1="6.85" x2="10.7" y1="4.5" y2="4.5" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#30116E" stopOpacity="0"/>
-                    <stop offset="1" stopColor="#30116E"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple242" x1="10.838" x2="10.66" y1="8.094" y2="2.001" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#A3A3FF" stopOpacity="0"/>
-                    <stop offset="1" stopColor="#A3A3FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple243" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#D1D1FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple244" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#D1D1FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple245" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#D1D1FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple246" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#D1D1FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple247" x1="5.333" x2="8" y1="4.333" y2="19.667" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#D1D1FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple248" x1="10" x2="25.941" y1="5.531" y2="18.736" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#3BD5FF"/>
-                    <stop offset="1" stopColor="#2764E7"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple249" x1="13.804" x2="16.474" y1="18.75" y2="22.218" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#0067BF"/>
-                    <stop offset="1" stopColor="#003580"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple24a" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#B3E0FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple24b" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#B3E0FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple24c" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#B3E0FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple24d" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#B3E0FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple24e" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#B3E0FF"/>
-                </linearGradient>
-                <linearGradient id="fluentColorBuildingMultiple24f" x1="14.5" x2="18.706" y1="7.111" y2="16.575" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FDFDFD"/>
-                    <stop offset="1" stopColor="#B3E0FF"/>
-                </linearGradient>
-            </defs>
-        </g>
-    </svg>
+// Cube Icon
+export const CubeIcon: React.FC<IconProps> = (props) => (
+    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />} />
 );
 
-export const MockupIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-1.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />} />
-);
-
-export const PixaMockupIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} width="200" height="200" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <g fill="none">
-            <path fill="#fff" d="M22.044 3.391H1.957A.957.957 0 0 0 1 4.348v15.304c0 .528.428.957.957.957h20.087a.956.956 0 0 0 .956-.957V4.348a.956.956 0 0 0-.956-.957"/>
-            <path fill="#c2f3ff" d="M21.087 5.308v7.652h-2.392v5.74H2.913V5.308z"/>
-            <path fill="#66e1ff" d="M6.54 18.7h12.156v-5.74h2.39V5.308H19.93z"/>
-            <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M23 8.652v11a.956.956 0 0 1-.957.957H1.957A.956.956 0 0 1 1 19.652V4.348a.957.957 0 0 1 .957-.957h16.739"/>
-            <path fill="#ff808c" d="M21.087 15.83h-2.392v2.87h2.392z"/>
-            <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M16.782 5.308H2.912V18.7h15.783"/>
-            <path fill="#ffef5e" d="M21.087 12.96h-2.392v2.87h2.392z"/>
-            <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M21.087 12.96v-2.39"/>
-            <path fill="#e3e3e3" d="M8.174 14.87a3.348 3.348 0 1 0 0-6.696a3.348 3.348 0 0 0 0 6.696"/>
-            <path fill="#fff" d="M8.174 12.957a1.434 1.434 0 1 0 0-2.87a1.434 1.434 0 0 0 0 2.87"/>
-            <path fill="gray" d="m22.605 6.656l-4.866 4.866l-2.391.478l.478-2.391l4.866-4.866a1.35 1.35 0 0 1 1.907 0l.006.006a1.35 1.35 0 0 1 0 1.907"/>
-            <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M21.087 15.83h-2.392v2.87h2.392z"/>
-            <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M21.087 12.96h-2.392v2.87h2.392zM8.174 14.87a3.348 3.348 0 1 0 0-6.696a3.348 3.348 0 0 0 0 6.696"/>
-            <path stroke="#191919" strokeLinecap="round" strokeLinejoin="round" d="M8.174 12.957a1.434 1.434 0 1 0 0-2.87a1.434 1.434 0 0 0 0 2.87m14.431-6.301l-4.866 4.866l-2.391.478l.478-2.391l4.866-4.866a1.35 1.35 0 0 1 1.907 0l.006.006a1.35 1.35 0 0 1 0 1.907"/>
-        </g>
-    </svg>
-);
-
-export const ScannerIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5A2.25 2.25 0 016 2.25h12A2.25 2.25 0 0120.25 4.5v15A2.25 2.25 0 0118 21.75H6A2.25 2.25 0 013.75 19.5v-15zM12 18.75a.375.375 0 100-.75.375.375 0 000 .75z" />} />
-);
-
-export const NotesIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />} />
-);
-
-// Custom Thumbnail Studio Icon (Gallery/Grid)
-export const ThumbnailIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 128 128">
-        <path fill="#F77E00" d="M116.46 3.96h-104c-4.42 0-8 3.58-8 8v104c0 4.42 3.58 8 8 8h104c4.42 0 8-3.58 8-8v-104c0-4.42-3.58-8-8-8z"/>
-        <path fill="#FF9800" d="M110.16 3.96h-98.2a7.555 7.555 0 0 0-7.5 7.5v97.9c-.01 4.14 3.34 7.49 7.48 7.5h98.12c4.14.01 7.49-3.34 7.5-7.48V11.46c.09-4.05-3.13-7.41-7.18-7.5h-.22z"/>
-        <path fill="#FFBD52" d="M40.16 12.86c0-2.3-1.6-3-10.8-2.7c-7.7.3-11.5 1.2-13.8 4s-2.9 8.5-3 15.3c0 4.8 0 9.3 2.5 9.3c3.4 0 3.4-7.9 6.2-12.3c5.4-8.7 18.9-10.6 18.9-13.6z" opacity=".75"/>
-        <path fill="#FAFAFA" d="M43.7 62.21v-25.7a2.258 2.258 0 0 1 3.4-2l43.5 25.7c1.13.72 1.47 2.22.75 3.35c-.19.3-.45.55-.75.75l-43.5 25.6c-1.08.63-2.46.27-3.09-.81c-.21-.36-.32-.77-.31-1.19v-25.7z"/>
-    </svg>
-);
-
-export const ReplicaIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <path fill="currentColor" d="M408 480H184a72 72 0 0 1-72-72V184a72 72 0 0 1 72-72h224a72 72 0 0 1 72 72v224a72 72 0 0 1-72 72Z"/>
-        <path fill="currentColor" d="M160 80h235.88A72.12 72.12 0 0 0 328 32H104a72 72 0 0 0-72 72v224a72.12 72.12 0 0 0 48 67.88V160a80 80 0 0 1 80-80Z"/>
-    </svg>
-);
-
-export const ReimagineIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
-            <path d="M0 0h24v24H0z" stroke="none"/>
-            <path fill="currentColor" stroke="none" d="M4 11a1 1 0 0 1 .117 1.993L4 13H3a1 1 0 0 1-.117-1.993L3 11h1zm8-9a1 1 0 0 1 .993.883L13 3v1a1 1 0 0 1-1.993.117L11 4V3a1 1 0 0 1 1-1zm9 9a1 1 0 0 1 .117 1.993L21 13h-1a1 1 0 0 1-.117-1.993L20 11h1zM4.893 4.893a1 1 0 0 1 1.32-.083l.094.083l.7.7a1 1 0 0 1-1.32 1.497l-.094-.083l-.7-.7a1 1 0 0 1 0-1.414zm12.8 0a1 1 0 0 1 1.497 1.32l-.083.094l-.7.7a1 1 0 0 1-1.497-1.32l.083-.094l.7-.7zM14 18a1 1 0 0 1 1 1a3 3 0 0 1-6 0a1 1 0 0 1 .883-.993L10 18h4zM12 6a6 6 0 0 1 3.6 10.8a1 1 0 0 1-.471.192L15 17H9a1 1 0 0 1-.6-.2A6 6 0 0 1 12 6z"/>
-        </g>
-    </svg>
-);
-
-// Custom Pixa Support Icon
-export const PixaSupportIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <g fill="none">
-            <path fill="#8fbffa" d="M12 1C5.925 1 1 5.925 1 12c0 2.392.765 4.608 2.062 6.413L.196 23H12c6.075 0 11-4.925 11-11S18.075 1 12 1"/>
-            <path fill="#2859c5" fillRule="evenodd" d="M9.938 9.5a2 2 0 1 1 4 0v.106l-2.665 2.369l-.335.298V14.5h2v-1.329l2.664-2.368l.335-.298V9.5a4 4 0 0 0-8 0v.556h2V9.5Zm1 6.5v2h2v-2z" clipRule="evenodd"/>
-        </g>
-    </svg>
-);
-
-// Custom Pixa Billing Icon
-export const PixaBillingIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">
-        <path fill="#FFAC33" d="M4 5a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h28a4 4 0 0 0 4 4h-4z"/>
-        <path fill="#292F33" d="M0 10h36v5H0z"/>
-        <path fill="#F4F7F9" d="M4 19h28v6H4z"/>
-        <path fill="#8899A6" d="M19 24c-1.703 0-2.341-1.21-2.469-1.801c-.547.041-1.08.303-1.805.764C13.961 23.449 13.094 24 12 24c-1.197 0-1.924-.675-2-2c-.003-.056.038-.188.021-.188c-1.858 0-3.202 1.761-3.215 1.779a.997.997 0 0 1-1.397.215a1 1 0 0 1-.215-1.398C5.271 22.303 7.11 20 10 20c1.937 0 2.048 1.375 2.078 1.888l.007.109c.486-.034.991-.354 1.57-.723c.961-.61 2.153-1.371 3.75-.962c.871.223 1.007 1.031 1.059 1.336c.013.076.032.19.049.226c.007 0 .146.091.577.13c.82.075 1.721-.279 2.675-.653c.988-.388 2.01-.788 3.111-.788c3.389 0 4.767 1.635 4.913 1.821a1 1 0 1 1-1.575 1.232c-.024-.027-.93-1.054-3.337-1.054c-.723 0-1.528.315-2.381.649c-1.009.396-2.434.789-3.496.789z"/>
-    </svg>
-);
-
-// New CampaignStudioIcon with high-fidelity provided SVG
+// CampaignStudioIcon with high-fidelity provided SVG
 export const CampaignStudioIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
         <g fill="none">
@@ -376,21 +209,6 @@ export const CampaignStudioIcon: React.FC<IconProps> = ({ className }) => (
                     <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_378174_9782"/>
                     <feBlend in="SourceGraphic" in2="effect1_dropShadow_378174_9782" result="shape"/>
                 </filter>
-            </defs>
-        </g>
-    </svg>
-);
-
-// Strategy Algorithm Star Icon
-export const StrategyStarIcon: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} width="200" height="200" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <g fill="none">
-            <path fill="url(#fluentColorStrategyStar)" d="M21.803 6.086c.899-1.821 3.495-1.821 4.394 0l4.852 9.832l10.85 1.576c2.01.293 2.813 2.762 1.358 4.18l-7.85 7.653l1.853 10.806c.343 2.001-1.758 3.528-3.555 2.583L24 37.614l-9.705 5.102c-1.797.945-3.898-.582-3.555-2.583l1.854-10.806l-7.851-7.654c-1.455-1.417-.652-3.886 1.357-4.178l10.85-1.577z"/>
-            <defs>
-                <linearGradient id="fluentColorStrategyStar" x1="43.995" x2="2.879" y1="43.856" y2="5.054" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#FF6F47"/>
-                    <stop offset="1" stopColor="#FFCD0F"/>
-                </linearGradient>
             </defs>
         </g>
     </svg>
