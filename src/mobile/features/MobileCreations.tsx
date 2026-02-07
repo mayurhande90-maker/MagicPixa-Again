@@ -172,6 +172,16 @@ export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             className="group relative aspect-square bg-gray-50 rounded-2xl overflow-hidden shadow-sm border border-gray-100 active:scale-95 transition-transform cursor-pointer"
                         >
                             <img src={c.imageUrl} className="w-full h-full object-cover" loading="lazy" />
+                            
+                            {/* Persistent Download Icon on Grid */}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); downloadImage(c.imageUrl, 'magicpixa-creation.png'); }}
+                                className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-700 shadow-sm z-10 active:scale-90 transition-transform border border-gray-100"
+                                title="Download Image"
+                            >
+                                <DownloadIcon className="w-3.5 h-3.5" />
+                            </button>
+
                             <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
                                 <p className="text-[8px] font-black text-white/80 uppercase truncate">{c.feature}</p>
                             </div>
@@ -193,14 +203,24 @@ export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 <ImageModal 
                     imageUrl={viewCreation.imageUrl}
                     onClose={() => setViewCreation(null)}
-                    onDownload={() => downloadImage(viewCreation.imageUrl, 'pixa-creation.png')}
                     onDelete={() => handleDelete(viewCreation)}
                 >
+                    {/* Top Left Download Button (Within modal children) */}
+                    <div className="absolute top-4 left-4 z-[250] pointer-events-auto" onClick={e => e.stopPropagation()}>
+                        <button 
+                            onClick={() => downloadImage(viewCreation.imageUrl, 'pixa-creation.png')}
+                            className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-xl active:scale-90"
+                            title="Download Creation"
+                        >
+                            <DownloadIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+
                     {/* Action Bar inside modal (Overlays at bottom) */}
                     <div className="flex flex-col items-center gap-4 w-full pointer-events-auto" onClick={e => e.stopPropagation()}>
                         <button 
                             onClick={() => setIsRefineOpen(true)}
-                            className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center gap-3 active:scale-95 transition-all"
+                            className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl flex items-center gap-3 active:scale-95 transition-all animate-materialize"
                         >
                             <MagicWandIcon className="w-5 h-5 text-yellow-300" />
                             Make Changes
