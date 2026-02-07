@@ -219,7 +219,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="relative z-10">
                         <div className="flex justify-between text-[11px] font-black mb-3">
                             <span className="text-indigo-600 uppercase tracking-widest">Progress</span>
-                            <span className="text-gray-500 uppercase tracking-widest">Next: <span className="text-indigo-600">+{nextReward} Credits</span></span>
+                            <span className="text-gray-500 uppercase tracking-widest">Get: <span className="text-indigo-600">+{nextReward} Credits</span></span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner p-0.5 border border-gray-50">
                             <div 
