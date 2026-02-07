@@ -131,24 +131,25 @@ export const GoogleIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"></path><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.223 0-9.641-3.657-11.303-8.625l-6.571 4.819C9.656 39.663 16.318 44 24 44z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C41.099 34.631 44 29.692 44 24c0-1.341-.138-2.65-.389-3.917z"></path></svg>
 );
 
-// Custom MagicPixa Logo - Added continuous light sweep effect
+// Custom MagicPixa Logo - Light sweep effect now occurs on a 10s "heartbeat" interval
 export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div className={`flex items-center ${className}`}>
         <span className="text-2xl inline-flex items-center font-logo font-bold">
             <span className="text-[#1A1A1E]">Magic</span>
             <span className="relative overflow-hidden">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-blue-600 bg-[length:200%_auto] animate-logo-sweep px-0.5">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-blue-600 bg-[length:200%_auto] animate-logo-heartbeat px-0.5">
                     Pixa
                 </span>
             </span>
         </span>
         <style>{`
-            @keyframes logo-sweep {
+            @keyframes logo-heartbeat {
                 0% { background-position: 200% center; }
-                100% { background-position: -200% center; }
+                25% { background-position: -200% center; } /* Sweep happens in first 2.5s */
+                100% { background-position: -200% center; } /* Rest for remaining 7.5s */
             }
-            .animate-logo-sweep {
-                animation: logo-sweep 3s linear infinite;
+            .animate-logo-heartbeat {
+                animation: logo-heartbeat 10s linear infinite;
             }
         `}</style>
     </div>
