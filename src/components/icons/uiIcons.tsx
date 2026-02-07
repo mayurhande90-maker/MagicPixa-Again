@@ -1,5 +1,7 @@
 import React from 'react';
 import { IconProps, BaseIcon } from './types';
+// COMMENT: Added missing import for CubeIcon which is used as an alias below.
+import { CubeIcon } from './featureIcons';
 
 // FIX: Added missing CogIcon with fragment wrapper for multiple paths
 export const CogIcon: React.FC<IconProps> = (props) => (
@@ -91,7 +93,7 @@ export const ArrowRightIcon: React.FC<IconProps> = (props) => (
 );
 
 export const ArrowUpIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />} />
+    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5-7.5M12 3v18" />} />
 );
 
 export const ArrowDownIcon: React.FC<IconProps> = (props) => (
@@ -228,9 +230,15 @@ export const MapPinIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></>} />
 );
 
+// COMMENT: Moved LifebuoyIcon definition up to be defined before its alias PixaSupportIcon to fix 'used before declaration' error.
+// LifebuoyIcon moved from actionIcons to here for structural consistency
+export const LifebuoyIcon: React.FC<IconProps> = (props) => (
+    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zm0-1.5a7.5 7.5 0 110-15 7.5 7.5 0 010 15zM12 15a3 3 0 100-6 3 3 0 000 6z" />} />
+);
+
 // FIX: Added missing UI icon aliases and definitions
 export const CaptionIcon = DocumentTextIcon;
-export const MockupIcon = CubeIcon; // Re-uses CubeIcon SVG if imported correctly via barrel, otherwise define here
+export const MockupIcon = CubeIcon; 
 export const PixaBillingIcon = CreditCardIcon;
 export const PixaSupportIcon = LifebuoyIcon;
 export const EngineIcon = CogIcon;
