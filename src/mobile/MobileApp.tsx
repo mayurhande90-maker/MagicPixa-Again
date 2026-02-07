@@ -104,7 +104,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
-                return <MobileProfile auth={auth} />;
+                // FIX: Pass appConfig to MobileProfile to resolve "Cannot find name 'appConfig'" error.
+                return <MobileProfile auth={auth} appConfig={appConfig} />;
             case 'billing':
                 return <div className="h-full overflow-y-auto no-scrollbar pb-10"><Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} setActiveView={setActiveTab} /></div>;
             default:
