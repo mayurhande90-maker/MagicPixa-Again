@@ -180,10 +180,10 @@ export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                         >
                             <img src={c.imageUrl} className="w-full h-full object-cover" loading="lazy" />
                             
-                            {/* Persistent Download Icon on Grid */}
+                            {/* Persistent Quick Download Icon (UX Refined: Circular & Glassmorphic) */}
                             <button 
                                 onClick={(e) => { e.stopPropagation(); downloadImage(c.imageUrl, 'magicpixa-creation.png'); }}
-                                className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-700 shadow-sm z-10 active:scale-90 transition-transform border border-gray-100"
+                                className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 shadow-sm z-10 active:scale-90 transition-transform border border-gray-100"
                                 title="Download Image"
                             >
                                 <DownloadIcon className="w-3.5 h-3.5" />
