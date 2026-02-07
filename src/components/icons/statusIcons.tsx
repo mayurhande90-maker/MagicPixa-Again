@@ -87,7 +87,7 @@ export const BadgeGoldIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
-// Credit Coin Icon (Filled, Gold)
+// Custom Credit Coin Icon (Filled, Gold) - UPDATED
 export const CreditCoinIcon: React.FC<IconProps> = ({ className }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
         <g id="Dollar_Coin" data-name="Dollar Coin">
@@ -101,19 +101,4 @@ export const CreditCoinIcon: React.FC<IconProps> = ({ className }) => (
             <path fill="#231f20" d="M27 16h-2v-1a1 1 0 0 0-2 0v1h-2a3.003 3.003 0 0 0-3 3v3a3.003 3.003 0 0 0 3 3h6a1.001 1.001 0 0 1 1 1v3a1.001 1.001 0 0 1-1 1h-6a1.001 1.001 0 0 1-1-1v-1a1 1 0 0 0-2 0v1a3.003 3.003 0 0 0 3 3h2v1a1 1 0 0 0 2 0v-1h2a3.003 3.003 0 0 0 3-3v-3a3.003 3.003 0 0 0-3-3h-6a1.001 1.001 0 0 1-1-1v-3a1.001 1.001 0 0 1 1 1h6a1.001 1.001 0 0 1 1 1v1a1 1 0 0 0 2 0v-1a3.003 3.003 0 0 0-3-3z"/>
         </g>
     </svg>
-);
-
-// Sparkles Icon
-export const SparklesIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.712L18 9.75l-.259-1.038a3.375 3.375 0 00-2.453-2.453L14.25 6l1.038-.259a3.375 3.375 0 002.453-2.453L18 2.25l.259 1.038a3.375 3.375 0 002.453 2.453L21.75 6l-1.038.259a3.375 3.375 0 00-2.453 2.453zM16.867 19.125l-.117.469a1.125 1.125 0 01-2.164 0l-.117-.469a1.125 1.125 0 00-.841-.841l-.469-.117a1.125 1.125 0 010-2.164l.469-.117a1.125 1.125 0 00.841-.841l.117-.469a1.125 1.125 0 012.164 0l.117.469a1.125 1.125 0 00.841.841l.469.117a1.125 1.125 0 010 2.164l-.469.117a1.125 1.125 0 00-.841.841z" />} />
-);
-
-// ThumbUp Icon
-export const ThumbUpIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.802 0 1.55.324 2.133.91l.103.102a.75.75 0 001.06 0l5.834-5.833a1.5 1.5 0 012.122 0l1.414 1.415a1.5 1.5 0 010 2.121l-5.833 5.834a.75.75 0 000 1.06l.102.103a3.011 3.011 0 01-.91 2.133l-1.592 1.592a.75.75 0 01-1.06 0l-5.834-5.834a.75.75 0 010-1.06l1.592-1.592zM3.75 12h.008v.008H3.75V12z" />} />
-);
-
-// ThumbDown Icon
-export const ThumbDownIcon: React.FC<IconProps> = (props) => (
-    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M17.367 13.5a3.011 3.011 0 01-2.133-.91l-.103-.102a.75.75 0 00-1.06 0l-5.834 5.833a1.5 1.5 0 01-2.122 0l-1.414-1.415a1.5 1.5 0 010-2.121l5.833-5.834a.75.75 0 000-1.06l-.102-.103a3.011 3.011 0 01.91-2.133l1.592-1.592a.75.75 0 011.06 0l5.834 5.834a.75.75 0 010 1.06l-1.592 1.592zM20.25 12h-.008v-.008h.008V12z" />} />
 );
