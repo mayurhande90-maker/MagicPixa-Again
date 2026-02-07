@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, AuthProps } from '../../types';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { MagicPixaLogo, CreditCoinIcon, GiftIcon } from '../../components/icons';
 import { MobileReferralModal } from '../components/MobileReferralModal';
 
 interface MobileLayoutProps {
-    // Corrected React.Node to React.ReactNode
     children: React.ReactNode;
     activeTab: View;
     setActiveTab: (tab: View) => void;
@@ -14,6 +13,21 @@ interface MobileLayoutProps {
 
 export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab, setActiveTab, auth }) => {
     const [showReferralModal, setShowReferralModal] = useState(false);
+    const [isPulsing, setIsPulsing] = useState(false);
+    const prevCreditsRef = useRef<number>(auth.user?.credits || 0);
+
+    // Monitor credit balance for the deposit animation
+    useEffect(() => {
+        const currentCredits = auth.user?.credits || 0;
+        if (currentCredits > prevCreditsRef.current) {
+            // Trigger Deposit Animation
+            setIsPulsing(true);
+            const timer = setTimeout(() => setIsPulsing(false), 2000);
+            prevCreditsRef.current = currentCredits;
+            return () => clearTimeout(timer);
+        }
+        prevCreditsRef.current = currentCredits;
+    }, [auth.user?.credits]);
 
     return (
         <div className="fixed inset-0 flex flex-col bg-white overflow-hidden safe-area-inset">
@@ -31,10 +45,18 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
                             <GiftIcon className="w-4 h-4" />
                         </button>
 
-                        {/* Credits Pill */}
-                        <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
-                            <CreditCoinIcon className="w-3.5 h-3.5 text-indigo-600" />
-                            <span className="text-[11px] font-black text-indigo-900">{auth.user.credits}</span>
+                        {/* Credits Pill with Deposit Animation */}
+                        <div 
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${
+                                isPulsing 
+                                ? 'bg-indigo-600 border-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-110' 
+                                : 'bg-indigo-50 border-indigo-100'
+                            }`}
+                        >
+                            <CreditCoinIcon className={`w-3.5 h-3.5 transition-colors ${isPulsing ? 'text-yellow-300' : 'text-indigo-600'}`} />
+                            <span className={`text-[11px] font-black transition-colors ${isPulsing ? 'text-white' : 'text-indigo-900'}`}>
+                                {auth.user.credits}
+                            </span>
                         </div>
                     </div>
                 )}
