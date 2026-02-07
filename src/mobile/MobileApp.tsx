@@ -18,7 +18,7 @@ const MobileCreations = lazy(() => import('./features/MobileCreations').then(m =
 const MobileProfile = lazy(() => import('./features/MobileProfile').then(m => ({ default: m.MobileProfile })));
 const MobileTryOn = lazy(() => import('./features/MobileTryOn').then(m => ({ default: m.MobileTryOn })));
 const MobileInterior = lazy(() => import('./features/MobileInterior').then(m => ({ default: m.MobileInterior })));
-const DailyMissionStudio = lazy(() => import('../features/DailyMissionStudio').then(m => ({ default: m.DailyMissionStudio })));
+const MobileDailyMission = lazy(() => import('./features/MobileDailyMission').then(m => ({ default: m.MobileDailyMission })));
 const Billing = lazy(() => import('../components/Billing').then(m => ({ default: m.Billing })));
 
 interface MobileAppProps {
@@ -100,7 +100,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             case 'interior':
                 return <MobileInterior {...commonProps} />;
             case 'daily_mission':
-                return <DailyMissionStudio auth={auth} navigateTo={(page: any, view: any) => view && setActiveTab(view)} />;
+                return <MobileDailyMission auth={auth} onGenerationStart={() => onGenerationStart(tab)} setActiveTab={setActiveTab} />;
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
