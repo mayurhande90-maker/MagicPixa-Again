@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, View } from '../../types';
+import { AuthProps, View, Creation } from '../../types';
 import { 
     FlagIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
     DownloadIcon, CreditCoinIcon, RefreshIcon, ShieldCheckIcon
 } from '../../components/icons';
 import { fileToBase64, base64ToBlobUrl, downloadImage } from '../../utils/imageUtils';
 import { executeDailyMission } from '../../services/missionService';
-import { saveCreation, completeDailyMission } from '../../firebase';
+import { saveCreation, completeDailyMission, getCreations } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
 
 export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: () => void; setActiveTab: (tab: View) => void; }> = ({ auth, onGenerationStart, setActiveTab }) => {
@@ -17,10 +17,38 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
     const [loadingText, setLoadingText] = useState("Analyzing...");
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isFetchingTrophy, setIsFetchingTrophy] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mission = getDailyMission();
     const isLocked = isMissionLocked(auth.user);
+
+    // --- TROPHY STATE LOGIC ---
+    // Fetch the completed image if mission is locked
+    useEffect(() => {
+        const fetchTrophyImage = async () => {
+            if (isLocked && !result && !image && auth.user) {
+                setIsFetchingTrophy(true);
+                try {
+                    const creations = await getCreations(auth.user.uid) as Creation[];
+                    // Search for a creation that matches a Mission label
+                    const missionAsset = creations.find(c => 
+                        c.feature.includes("Mission:") || 
+                        c.feature.includes("Daily Mission")
+                    );
+                    if (missionAsset) {
+                        setResult(missionAsset.imageUrl);
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch trophy image:", e);
+                } finally {
+                    setIsFetchingTrophy(false);
+                }
+            }
+        };
+
+        fetchTrophyImage();
+    }, [isLocked, auth.user?.uid]);
 
     // Progress Animation Sync
     useEffect(() => {
@@ -108,6 +136,12 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Sponsored</span>
                             </div>
                         )}
+                        {isLocked && !isGenerating && !image && (
+                            <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100 animate-fadeIn shadow-sm">
+                                <ShieldCheckIcon className="w-3.5 h-3.5 text-green-600" />
+                                <span className="text-[9px] font-black text-green-900 uppercase tracking-widest">Completed</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -135,17 +169,20 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                 </div>
             </div>
 
-            {/* 2. Stage: Large Center Canvas */}
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-10">
-                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
+            {/* 2. Stage: Large Center Canvas (Expanded) */}
+            <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-4">
+                <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image || result ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
                         {result ? (
                             <img 
                                 src={result} 
                                 className="max-w-full max-h-full object-contain animate-materialize" 
                             />
-                        ) : isGenerating ? (
-                            null // Canvas clears for neural visual focus
+                        ) : isGenerating || isFetchingTrophy ? (
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                {isFetchingTrophy && <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Retrieving Asset...</span>}
+                            </div>
                         ) : image ? (
                             <img src={image.url} className="max-w-[85%] max-h-[85%] object-contain animate-fadeIn" />
                         ) : (
@@ -200,11 +237,11 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                 </div>
             </div>
 
-            {/* 3. Controller: Dark Mission Briefing Tray */}
+            {/* 3. Controller: Compact Briefing Tray */}
             <div className="flex-none flex flex-col bg-[#1A1A1E] text-white rounded-t-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
                 
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-white/10 rounded-xl">
                             <FlagIcon className="w-5 h-5 text-yellow-400" />
@@ -219,29 +256,14 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                     )}
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-2">
                     <h2 className="text-2xl font-black mb-3 tracking-tight">{mission.title}</h2>
                     <p className="text-sm text-gray-400 font-medium leading-relaxed">
                         {mission.description}
                     </p>
-                </div>
-
-                {/* Bounty Card */}
-                <div className="bg-white/5 rounded-2xl p-5 border border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-yellow-500/10 rounded-2xl flex items-center justify-center border border-yellow-500/20">
-                            <SparklesIcon className="w-6 h-6 text-yellow-400" />
-                        </div>
-                        <div>
-                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Bounty Reward</p>
-                            <p className="text-white font-black text-sm uppercase">Verification Bonus</p>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <div className="flex items-baseline justify-end gap-1">
-                            <span className="text-3xl font-black text-white">+{mission.reward}</span>
-                            <span className="text-[9px] font-bold text-yellow-400 uppercase">CR</span>
-                        </div>
+                    <div className="mt-4 flex items-center gap-2 text-yellow-400/80">
+                        <SparklesIcon className="w-4 h-4" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">Bounty: +{mission.reward} Credits</span>
                     </div>
                 </div>
             </div>
