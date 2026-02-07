@@ -54,7 +54,7 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
-    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
+    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
 ];
 
@@ -360,16 +360,17 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
             {/* 4. MISSION CONTROL */}
             <div className="px-6 py-8">
                  <div className="bg-gray-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
+                    {/* Background blob with pointer-events-none to prevent theft of touch events */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
                     
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center gap-3 mb-6 relative z-10">
                         <div className="p-2 bg-white/10 rounded-xl">
                             <FlagIcon className="w-5 h-5 text-yellow-400" />
                         </div>
                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Mission Control</h3>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-6 relative z-10">
                         {/* Daily Mission */}
                         <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
                             <div className="flex-1">
@@ -378,7 +379,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                             </div>
                             <button 
                                 onClick={() => setActiveTab('daily_mission' as any)}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMissionComplete ? 'bg-green-50/20 text-green-400 border border-green-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
+                                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMissionComplete ? 'bg-green-50/20 text-green-400 border border-green-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
                             >
                                 {isMissionComplete ? 'Finished' : 'Launch'}
                             </button>
@@ -393,9 +394,9 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                             <button 
                                 onClick={handleClaimCheckin}
                                 disabled={isClaiming || !canClaimCheckin}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!canClaimCheckin ? 'bg-white/5 text-gray-500 cursor-default' : 'bg-amber-400 text-black shadow-lg shadow-amber-400/20 active:scale-95'}`}
+                                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!canClaimCheckin ? 'bg-white/5 text-gray-500 cursor-default' : 'bg-amber-400 text-black shadow-lg shadow-amber-400/20 active:scale-95'}`}
                             >
-                                {isClaiming ? 'Wait...' : !canClaimCheckin ? '24h Locked' : 'Recharge'}
+                                {isClaiming ? 'Wait...' : !canClaimCheckin ? '24h Locked' : 'Claim Credit'}
                             </button>
                         </div>
                     </div>
