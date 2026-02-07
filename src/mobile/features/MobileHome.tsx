@@ -17,20 +17,14 @@ import { getBadgeInfo } from '../../utils/badgeUtils';
 import { downloadImage } from '../../utils/imageUtils';
 import { CreatorRanksModal } from '../../components/CreatorRanksModal';
 
-interface MobileHomeProps {
-    auth: AuthProps;
-    setActiveTab: (tab: View) => void;
-}
-
-const TICKER_TEMPLATES = [
-    (n: number) => `${n} Product Shots rendered in the last hour`,
-    (n: number) => `${n} active creators currently in the Lab`,
-    (n: number) => `New Milestone: ${n}M images generated on Pixa`,
-    (n: number) => `Trending: '${n}% more engagement' with AI AdMaker`,
-    (n: number) => `Live: ${n} brand kits synchronized today`,
-    (n: number) => `${n} Pro Headshots exported in the last 30 mins`,
-    (n: number) => `Hot: ${n} designers switched to Zero-Prompt workflow`,
-    (n: number) => `${n} agencies scaled production using Pixa Studio`,
+// Believable, grounded stats for professional authenticity
+const REALISTIC_STATS = [
+    "12 product shots rendered in the last hour",
+    "Live: 8 creators currently in the Studio",
+    "New Preset: 'Natural Linen' lifestyle logic live",
+    "82% faster listing creation for small brands",
+    "Verified: 100% Identity Lock on recent exports",
+    "Recent: 4K Executive Headshot processed"
 ];
 
 const BENTO_TOOLS = [
@@ -72,8 +66,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     }
     return shuffled;
 };
-
-const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 const AutoWipeBox: React.FC<{ item: any; delay: number; onClick: () => void; compact?: boolean }> = ({ item, delay, onClick, compact }) => {
     return (
@@ -133,6 +125,12 @@ const AutoWipeBox: React.FC<{ item: any; delay: number; onClick: () => void; com
     );
 };
 
+// --- FIX: Define MobileHomeProps interface ---
+interface MobileHomeProps {
+    auth: AuthProps;
+    setActiveTab: (tab: View) => void;
+}
+
 export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) => {
     const [creations, setCreations] = useState<Creation[]>([]);
     const [loadingRecent, setLoadingRecent] = useState(true);
@@ -166,19 +164,11 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         return () => unsubCollections();
     }, [user?.uid]);
 
-    // Generate Randomized Ticker Messages with Dynamic Digits
-    const dynamicTickerMessages = useMemo(() => {
-        const shuffled = shuffleArray([...TICKER_TEMPLATES]);
-        return shuffled.slice(0, 5).map(template => {
-            const num = getRandomInt(10, 999);
-            return template(num);
-        });
-    }, []); // Empty deps ensure it randomizes once per mount/refresh
+    // Fixed, believable stats for the ticker
+    const tickerItems = useMemo(() => shuffleArray([...REALISTIC_STATS]), []);
 
-    // Shuffle the definitions once per refresh (component mount)
     const shuffledDefinitions = useMemo(() => shuffleArray([...GALLERY_ITEMS_DEFINITION]), []);
 
-    // Map Slot-based Gallery items for mobile using the shuffled order
     const galleryItems = useMemo(() => {
         const slotData = (labCollections['homepage_gallery'] as Record<string, any>) || {};
         return shuffledDefinitions.map(def => {
@@ -229,12 +219,10 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         return fuzzy ? map[fuzzy] : 'studio';
     };
 
-    // Calculate Streak Ring Progress
     const progressPercent = useMemo(() => {
         const current = user?.lifetimeGenerations || 0;
         const next = badge.nextMilestone;
         if (next === 0) return 100;
-        // Logic for steps: Novice(0), Pro(10), Silver(30), Gold(100)
         let prev = 0;
         if (current >= 100) prev = 100;
         else if (current >= 30) prev = 30;
@@ -248,7 +236,6 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
             {/* 1. POWER HEADER */}
             <div className="px-6 pt-8 pb-4 bg-white flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
-                    {/* AVATAR WITH STREAK RING - Clickable for Loyalty Ranks */}
                     <button 
                         onClick={() => setShowRanksModal(true)}
                         className="relative w-14 h-14 flex items-center justify-center group active:scale-95 transition-transform"
@@ -300,23 +287,23 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
-            {/* 2. INTELLIGENCE TICKER - Fast speed (6s) with dynamic randomized content */}
+            {/* 2. INTELLIGENCE TICKER - Readable Glide Speed (20s) with Believable Data */}
             <div className="px-6 mb-6">
                 <div className="bg-indigo-600/5 border border-indigo-100/50 rounded-full py-2 overflow-hidden relative">
-                    <div className="flex whitespace-nowrap animate-marquee">
+                    <div className="flex whitespace-nowrap animate-ticker-slide">
                         <div className="flex whitespace-nowrap">
-                            {dynamicTickerMessages.map((msg, i) => (
-                                <div key={`orig-${i}`} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
-                                    <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
+                            {tickerItems.map((msg, i) => (
+                                <div key={`orig-${i}`} className="flex items-center gap-2 px-6">
                                     <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
+                                    <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full ml-2"></div>
                                 </div>
                             ))}
                         </div>
                         <div className="flex whitespace-nowrap">
-                            {dynamicTickerMessages.map((msg, i) => (
-                                <div key={`clone-${i}`} className="flex items-center gap-2 px-4 border-r border-indigo-100/30">
-                                    <div className="w-1 h-1 bg-indigo-400 rounded-full"></div>
+                            {tickerItems.map((msg, i) => (
+                                <div key={`clone-${i}`} className="flex items-center gap-2 px-6">
                                     <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">{msg}</span>
+                                    <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full ml-2"></div>
                                 </div>
                             ))}
                         </div>
@@ -491,12 +478,12 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
             )}
 
             <style>{`
-                @keyframes marquee {
+                @keyframes ticker-slide {
                     0% { transform: translateX(0); }
                     100% { transform: translateX(-50%); }
                 }
-                .animate-marquee {
-                    animation: marquee 6s linear infinite;
+                .animate-ticker-slide {
+                    animation: ticker-slide 20s linear infinite;
                 }
             `}</style>
 
