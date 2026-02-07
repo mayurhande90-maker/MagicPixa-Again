@@ -210,16 +210,27 @@ export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                 <ImageModal 
                     imageUrl={viewCreation.imageUrl}
                     onClose={() => setViewCreation(null)}
-                    onDelete={() => handleDelete(viewCreation)}
+                    onDelete={undefined} // Removed from bottom bar
+                    onDownload={undefined} // Removed from bottom bar
                 >
-                    {/* Top Left Download Button (Within modal children) */}
-                    <div className="absolute top-4 left-4 z-[250] pointer-events-auto" onClick={e => e.stopPropagation()}>
+                    {/* Top Left Utility Toolbar (Download + Delete as Icons) */}
+                    <div className="absolute top-4 left-4 z-[250] pointer-events-auto flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        {/* Download Button */}
                         <button 
                             onClick={() => downloadImage(viewCreation.imageUrl, 'pixa-creation.png')}
                             className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-xl active:scale-90"
                             title="Download Creation"
                         >
                             <DownloadIcon className="w-6 h-6" />
+                        </button>
+                        
+                        {/* Delete Button */}
+                        <button 
+                            onClick={() => handleDelete(viewCreation)}
+                            className="p-3 bg-white/10 hover:bg-red-500/20 text-red-400 rounded-full backdrop-blur-md transition-all border border-white/10 shadow-xl active:scale-90"
+                            title="Delete Creation"
+                        >
+                            <TrashIcon className="w-6 h-6" />
                         </button>
                     </div>
 
