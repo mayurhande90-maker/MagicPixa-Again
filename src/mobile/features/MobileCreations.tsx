@@ -19,6 +19,13 @@ import { refineStudioImage } from '../../services/photoStudioService';
 import ToastNotification from '../../components/ToastNotification';
 import { createPortal } from 'react-dom';
 
+// Custom White Refine Icon for professional consistency
+const CustomRefineIcon = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+    </svg>
+);
+
 export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [creations, setCreations] = useState<Creation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -222,7 +229,7 @@ export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                             onClick={() => setIsRefineOpen(true)}
                             className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl flex items-center gap-3 active:scale-95 transition-all animate-materialize"
                         >
-                            <MagicWandIcon className="w-5 h-5 text-yellow-300" />
+                            <CustomRefineIcon className="w-5 h-5" />
                             Make Changes
                         </button>
                     </div>
