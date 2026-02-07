@@ -24,14 +24,12 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
     const isLocked = isMissionLocked(auth.user);
 
     // --- TROPHY STATE LOGIC ---
-    // Fetch the completed image if mission is locked
     useEffect(() => {
         const fetchTrophyImage = async () => {
             if (isLocked && !result && !image && auth.user) {
                 setIsFetchingTrophy(true);
                 try {
                     const creations = await getCreations(auth.user.uid) as Creation[];
-                    // Search for a creation that matches a Mission label
                     const missionAsset = creations.find(c => 
                         c.feature.includes("Mission:") || 
                         c.feature.includes("Daily Mission")
@@ -95,7 +93,6 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             
-            // Deduct Credits (0 cost) and save
             const updatedUser = await completeDailyMission(auth.user.uid, mission.reward, mission.id);
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             
@@ -173,15 +170,18 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
             <div className="relative flex-grow w-full flex items-center justify-center p-6 select-none overflow-hidden pb-4">
                 <div className={`w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative ${image || result ? 'bg-white shadow-2xl border border-gray-100' : 'bg-gray-50'}`}>
                     <div className="relative w-full h-full flex flex-col items-center justify-center rounded-[2.5rem] overflow-hidden z-10">
-                        {result ? (
+                        {result && !isGenerating ? (
                             <img 
                                 src={result} 
                                 className="max-w-full max-h-full object-contain animate-materialize" 
                             />
-                        ) : isGenerating || isFetchingTrophy ? (
+                        ) : isGenerating ? (
+                             // Canvas disappears during generation as requested
+                             null
+                        ) : isFetchingTrophy ? (
                             <div className="flex flex-col items-center gap-3">
                                 <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                {isFetchingTrophy && <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Retrieving Asset...</span>}
+                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Retrieving Asset...</span>
                             </div>
                         ) : image ? (
                             <img src={image.url} className="max-w-[85%] max-h-[85%] object-contain animate-fadeIn" />
@@ -281,7 +281,7 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                                 <p className="text-sm text-gray-500 mt-1">Your reward of <span className="font-bold text-indigo-600">+{mission.reward} Credits</span> has been deposited.</p>
                             </div>
                             <button 
-                                onClick={() => setActiveTab('home_dashboard')}
+                                onClick={() => setShowSuccess(false)}
                                 className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
                             >
                                 Continue
