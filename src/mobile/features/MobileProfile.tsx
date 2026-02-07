@@ -1,279 +1,203 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProps, BrandKit, BRAND_LIMITS } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { AuthProps, View } from '../../types';
 import { 
-    UserIcon, LogoutIcon, ShieldCheckIcon, PixaBillingIcon, 
-    CreditCoinIcon, LightningIcon, GiftIcon, FlagIcon,
-    PlusIcon, ChevronRightIcon, BrandKitIcon, CalendarIcon,
-    InformationCircleIcon, CheckIcon, SparklesIcon, XIcon
+    LogoutIcon, ShieldCheckIcon, 
+    CreditCoinIcon, LightningIcon, FlagIcon,
+    ChevronRightIcon, SparklesIcon, XIcon,
+    InformationCircleIcon,
+    // Import missing CheckIcon
+    CheckIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
-import { subscribeToUserBrands, activateBrand } from '../../firebase';
+import { deductCredits, claimMilestoneBonus } from '../../firebase';
 
 export const MobileProfile: React.FC<{ auth: AuthProps }> = ({ auth }) => {
-    const { user, setUser, activeBrandKit, setActiveBrandKit } = auth;
-    const [brands, setBrands] = useState<BrandKit[]>([]);
-    const [isSwitching, setIsSwitching] = useState<string | null>(null);
+    const { user } = auth;
     const badge = getBadgeInfo(user?.lifetimeGenerations || 0);
 
-    // Limits Logic
-    const userPlan = user?.plan || 'Free';
-    const matchedPlanKey = Object.keys(BRAND_LIMITS).find(k => userPlan.includes(k)) || 'Free';
-    const brandLimit = BRAND_LIMITS[matchedPlanKey] || 1;
-
-    useEffect(() => {
-        if (!user?.uid) return;
-        const unsubscribe = subscribeToUserBrands(user.uid, (list) => {
-            setBrands(list);
-        });
-        return () => unsubscribe();
-    }, [user?.uid]);
-
-    const handleSwitchBrand = async (brand: BrandKit) => {
-        if (!brand.id || brand.id === activeBrandKit?.id || !user) return;
-        setIsSwitching(brand.id);
-        try {
-            const brandData = await activateBrand(user.uid, brand.id);
-            setActiveBrandKit(brandData || null);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsSwitching(null);
+    // --- LOYALTY ENGINE (Desktop Logic Sync) ---
+    const lifetimeGens = user?.lifetimeGenerations || 0;
+    const { nextMilestone, prevMilestone, nextReward } = useMemo(() => {
+        let next = 10, prev = 0, reward = 5;
+        if (lifetimeGens < 10) { next = 10; prev = 0; reward = 5; } 
+        else if (lifetimeGens < 25) { next = 25; prev = 10; reward = 10; } 
+        else if (lifetimeGens < 50) { next = 50; prev = 25; reward = 15; } 
+        else if (lifetimeGens < 75) { next = 75; prev = 50; reward = 20; } 
+        else if (lifetimeGens < 100) { next = 100; prev = 75; reward = 30; } 
+        else { 
+            const hundreds = Math.floor(lifetimeGens / 100); 
+            prev = hundreds * 100; 
+            next = (hundreds + 1) * 100; 
+            reward = 30; 
         }
-    };
+        return { nextMilestone: next, prevMilestone: prev, nextReward: reward };
+    }, [lifetimeGens]);
+    
+    const progressPercent = Math.min(100, Math.max(0, nextMilestone > prevMilestone ? ((lifetimeGens - prevMilestone) / (nextMilestone - prevMilestone)) * 100 : 0));
 
     const handleLogout = () => {
-        if (window.confirm("Are you sure you want to sign out?")) {
+        if (window.confirm("Sign out of your creative console?")) {
             auth.handleLogout();
         }
     };
 
+    const handleRecharge = () => {
+        (window as any).setActiveTab('billing');
+    };
+
     return (
-        <div className="flex flex-col h-full bg-[#F9FAFB] overflow-y-auto no-scrollbar pb-32 animate-fadeIn">
+        <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto no-scrollbar pb-32 animate-fadeIn">
             
-            {/* 1. IDENTITY HEADER */}
-            <div className="relative pt-12 pb-8 px-6 bg-white border-b border-gray-100 overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                
-                <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="relative mb-4">
-                        <div className={`w-24 h-24 rounded-full p-1 border-4 ${badge.borderColor} shadow-2xl overflow-hidden bg-white`}>
-                            <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center text-2xl font-black text-indigo-600">
-                                {user?.avatar || user?.name?.[0]}
-                            </div>
-                        </div>
-                        <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full border shadow-sm flex items-center gap-1.5 ${badge.bgColor} ${badge.borderColor}`}>
-                            <badge.Icon className={`w-3 h-3 ${badge.iconColor}`} />
-                            <span className={`text-[8px] font-black uppercase tracking-widest ${badge.color}`}>{badge.rank}</span>
+            {/* 1. IDENTITY SPOTLIGHT */}
+            <div className="pt-12 pb-10 px-6 bg-white border-b border-gray-50 flex flex-col items-center text-center">
+                <div className="relative mb-6">
+                    {/* Large 96px Avatar with Rank Glow */}
+                    <div className={`w-24 h-24 rounded-full p-1 border-4 ${badge.borderColor} shadow-2xl shadow-indigo-500/10 overflow-hidden bg-white`}>
+                        <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center text-3xl font-black text-indigo-600">
+                            {user?.avatar || user?.name?.[0]}
                         </div>
                     </div>
-
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">{user?.name}</h2>
-                    <p className="text-sm text-gray-400 font-medium mb-6">{user?.email}</p>
-
-                    {/* Membership Card (Glassmorphism) */}
-                    <div className="w-full max-w-sm bg-gray-900 rounded-3xl p-5 text-left relative overflow-hidden shadow-2xl">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                        <div className="flex justify-between items-start mb-6 relative z-10">
-                            <div>
-                                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Current Plan</p>
-                                <h3 className="text-white font-black text-lg">{user?.plan || 'Free Member'}</h3>
-                            </div>
-                            <div className="px-3 py-1 bg-white/10 rounded-full border border-white/10 backdrop-blur-md">
-                                <span className="text-[8px] font-black text-white uppercase tracking-widest">Verified</span>
-                            </div>
-                        </div>
-                        <div className="flex justify-between items-end relative z-10">
-                            <div>
-                                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Lifetime Productivity</p>
-                                <p className="text-white font-black text-xl">{user?.lifetimeGenerations || 0} Assets</p>
-                            </div>
-                            <div className="w-12 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg"></div>
-                        </div>
+                    {/* Rank Badge Indicator */}
+                    <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full border shadow-xl flex items-center gap-2 whitespace-nowrap z-10 ${badge.bgColor} ${badge.borderColor} animate-bounce-slight`}>
+                        <badge.Icon className={`w-3.5 h-3.5 ${badge.iconColor}`} />
+                        <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${badge.color}`}>{badge.rank}</span>
                     </div>
+                    {/* Subtle Rank Aura */}
+                    <div className={`absolute inset-0 rounded-full blur-xl opacity-20 -z-10 ${badge.bgColor}`}></div>
                 </div>
+
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-none">{user?.name}</h2>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-2.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">{user?.email}</p>
             </div>
 
-            {/* 2. CREATIVE WALLET (Bento Grid) */}
-            <div className="px-6 -mt-4 mb-8">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-40">
-                        <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Available</p>
-                            <h4 className="text-3xl font-black text-gray-900">{user?.credits}</h4>
-                            <p className="text-[10px] font-bold text-indigo-500 mt-1">Credits</p>
-                        </div>
-                        {/* Mini Sparkline Visualization */}
-                        <div className="flex items-end gap-1 h-8 opacity-40">
-                            {[40, 70, 45, 90, 65, 80, 55].map((h, i) => (
-                                <div key={i} className="flex-1 bg-indigo-500 rounded-t-sm" style={{ height: `${h}%` }}></div>
-                            ))}
-                        </div>
-                    </div>
-                    
-                    <button 
-                        onClick={() => (window as any).setActiveTab('billing')}
-                        className="bg-indigo-600 p-5 rounded-[2rem] shadow-xl shadow-indigo-500/20 flex flex-col justify-between items-center text-center group active:scale-95 transition-all"
-                    >
-                        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white mb-2">
-                            <LightningIcon className="w-6 h-6 animate-pulse" />
-                        </div>
-                        <span className="text-xs font-black text-white uppercase tracking-widest">Recharge<br/>Power</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* 3. INTEGRATED BRAND HUB */}
-            <div className="px-6 mb-8">
-                <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-6">
-                    <div className="flex justify-between items-center mb-6">
+            {/* 2. LOYALTY BONUS (Desktop Style) */}
+            <div className="px-6 mt-8">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-[0_4px_25px_-10px_rgba(0,0,0,0.05)] relative overflow-hidden group">
+                    <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                                <BrandKitIcon className="w-5 h-5" />
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shadow-inner">
+                                <SparklesIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Active Identity</h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Context Switcher</p>
+                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Account Status</h3>
+                                <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5">Generative Loyalty</p>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">Slots Used</p>
-                            <p className="text-xs font-black text-gray-900">{brands.length} / {brandLimit}</p>
+                             <p className="text-2xl font-black text-indigo-600 leading-none">{lifetimeGens}</p>
+                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Total Assets</p>
                         </div>
                     </div>
 
-                    {/* Active Brand Card */}
-                    {activeBrandKit ? (
-                        <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4 mb-6 border border-gray-100">
-                            <div className="w-12 h-12 bg-white rounded-xl border border-gray-100 p-2 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                                {activeBrandKit.logos.primary ? (
-                                    <img src={activeBrandKit.logos.primary} className="max-w-full max-h-full object-contain" />
-                                ) : (
-                                    <span className="text-xs font-black text-gray-300">{(activeBrandKit.companyName || 'B').substring(0, 1)}</span>
-                                )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-gray-900 truncate">{activeBrandKit.companyName}</h4>
-                                <p className="text-[10px] text-gray-500 truncate">{activeBrandKit.website}</p>
-                            </div>
-                            <div className="flex gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: activeBrandKit.colors.primary }}></div>
-                                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: activeBrandKit.colors.secondary }}></div>
-                            </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                            <span className="text-indigo-600">Tier Progress</span>
+                            <span className="text-gray-400">{nextMilestone - lifetimeGens} more for reward</span>
                         </div>
-                    ) : (
-                        <div className="bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center mb-6">
-                            <p className="text-xs font-bold text-gray-400">No brand active</p>
-                        </div>
-                    )}
-
-                    {/* Quick Switch Scroll */}
-                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                        {brands.filter(b => b.id !== activeBrandKit?.id).map(brand => (
-                            <button 
-                                key={brand.id}
-                                onClick={() => handleSwitchBrand(brand)}
-                                disabled={!!isSwitching}
-                                className="shrink-0 w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center p-2 relative shadow-sm active:scale-90 transition-all"
+                        <div className="h-3 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 shadow-inner">
+                            <div 
+                                className="h-full bg-gradient-to-r from-indigo-500 to-indigo-700 transition-all duration-1000 ease-out rounded-full relative"
+                                style={{ width: `${progressPercent}%` }}
                             >
-                                {isSwitching === brand.id ? (
-                                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                ) : brand.logos.primary ? (
-                                    <img src={brand.logos.primary} className="max-w-full max-h-full object-contain" />
-                                ) : (
-                                    <span className="text-[10px] font-black text-gray-300">{brand.companyName?.substring(0, 1)}</span>
-                                )}
-                            </button>
-                        ))}
+                                <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 text-emerald-500 font-black text-[9px] uppercase tracking-widest bg-emerald-50 py-1.5 rounded-xl border border-emerald-100">
+                            <CheckIcon className="w-3 h-3" />
+                            Next Milestone: +{nextReward} Credits
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. POWER RECHARGE COLUMN */}
+            <div className="px-6 mt-6">
+                <div className="bg-gray-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full blur-[60px] -ml-10 -mb-10 pointer-events-none"></div>
+                    
+                    <div className="flex flex-col items-center text-center relative z-10">
+                        <div className="mb-6">
+                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-3">Power Reserves</p>
+                            <div className="flex items-center justify-center gap-4">
+                                <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 shadow-lg">
+                                    <CreditCoinIcon className="w-8 h-8 text-yellow-400" />
+                                </div>
+                                <span className="text-5xl font-black tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{user?.credits || 0}</span>
+                            </div>
+                            <p className="text-[10px] font-black text-indigo-400 mt-3 uppercase tracking-widest">Available Credits</p>
+                        </div>
+
                         <button 
-                            onClick={() => (window as any).setActiveTab('brand_manager')}
-                            className="shrink-0 w-12 h-12 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 active:bg-gray-50"
+                            onClick={handleRecharge}
+                            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.4rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-950/50 flex items-center justify-center gap-3 active:scale-95 transition-all group border border-white/10"
                         >
-                            <PlusIcon className="w-5 h-5" />
+                            <LightningIcon className="w-5 h-5 text-yellow-300 group-hover:animate-pulse" />
+                            Instant Recharge
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* 4. ENGAGEMENT & UTILITY LIST */}
-            <div className="px-6 space-y-3 mb-10">
+            {/* 4. SETTINGS LIST */}
+            <div className="px-6 mt-10 space-y-3">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-2">Creator Console</p>
+                
                 <button 
                     onClick={() => (window as any).setActiveTab('daily_mission')}
-                    className="w-full flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[1.8rem] shadow-sm active:bg-gray-50 transition-all text-left"
+                    className="w-full flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[1.8rem] active:bg-gray-50 transition-all text-left group shadow-sm"
                 >
                     <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl"><FlagIcon className="w-5 h-5"/></div>
-                        <div>
-                            <span className="text-sm font-bold text-gray-800 block">Daily Bounty Tracker</span>
-                            <p className="text-[10px] font-medium text-gray-400">Earn up to 5 credits today</p>
+                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-amber-100">
+                            <FlagIcon className="w-5 h-5"/>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black uppercase text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full">New</span>
-                        <ChevronRightIcon className="w-4 h-4 text-gray-300" />
-                    </div>
-                </button>
-
-                <button 
-                    onClick={() => (window as any).setActiveTab('home_dashboard')}
-                    className="w-full flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[1.8rem] shadow-sm active:bg-gray-50 transition-all text-left"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl"><GiftIcon className="w-5 h-5"/></div>
                         <div>
-                            <span className="text-sm font-bold text-gray-800 block">Referral Milestones</span>
-                            <p className="text-[10px] font-medium text-gray-400">Unlock shared rewards</p>
+                            <span className="text-sm font-black text-gray-800 block">Daily Mission</span>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Claim +5 Bonus</p>
                         </div>
                     </div>
                     <ChevronRightIcon className="w-4 h-4 text-gray-300" />
                 </button>
 
-                <div className="pt-4 pb-2 px-2">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Preferences</p>
-                </div>
-
-                <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
-                    <div className="divide-y divide-gray-50">
-                        <div className="flex items-center justify-between p-5">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2.5 bg-gray-50 text-gray-400 rounded-xl"><InformationCircleIcon className="w-5 h-5"/></div>
-                                <span className="text-sm font-bold text-gray-700">Output Quality</span>
-                            </div>
-                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Ultra HD</span>
+                <button 
+                    onClick={() => (window as any).setActiveTab('support_center')}
+                    className="w-full flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[1.8rem] active:bg-gray-50 transition-all text-left group shadow-sm"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-blue-100">
+                            <ShieldCheckIcon className="w-5 h-5"/>
                         </div>
-                        
-                        <div onClick={() => (window as any).setActiveTab('support_center')} className="flex items-center justify-between p-5 active:bg-gray-50">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2.5 bg-gray-50 text-gray-400 rounded-xl"><ShieldCheckIcon className="w-5 h-5"/></div>
-                                <span className="text-sm font-bold text-gray-700">Support & Feedback</span>
-                            </div>
-                            <ChevronRightIcon className="w-4 h-4 text-gray-300" />
+                        <div>
+                            <span className="text-sm font-black text-gray-800 block">Support Desk</span>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Technical Help</p>
                         </div>
                     </div>
-                </div>
+                    <ChevronRightIcon className="w-4 h-4 text-gray-300" />
+                </button>
 
                 <button 
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-between p-5 bg-red-50 border border-red-100 rounded-[1.8rem] shadow-sm active:bg-red-100 transition-all mt-8"
+                    className="w-full flex items-center justify-between p-5 bg-red-50/30 border border-red-100 rounded-[1.8rem] active:bg-red-50 transition-all text-left group mt-6"
                 >
                     <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-white text-red-600 rounded-xl shadow-sm"><LogoutIcon className="w-5 h-5"/></div>
-                        <span className="text-sm font-bold text-red-700">Sign Out Console</span>
+                        <div className="p-2.5 bg-white text-red-600 rounded-2xl shadow-sm group-active:scale-90 transition-transform border border-red-50">
+                            <LogoutIcon className="w-5 h-5"/>
+                        </div>
+                        <span className="text-xs font-black text-red-700 uppercase tracking-[0.2em]">Sign Out Console</span>
                     </div>
-                    {/* Fixed XIcon error by ensuring it is imported */}
-                    <XIcon className="w-4 h-4 text-red-300" />
                 </button>
             </div>
-            
-            <div className="flex flex-col items-center gap-2 mb-10 px-6 text-center">
-                <div className="flex items-center gap-2 text-gray-300">
-                    <SparklesIcon className="w-4 h-4" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">MagicPixa v1.0.3</p>
-                </div>
-                <p className="text-[9px] text-gray-400 font-medium leading-relaxed">
-                    Designed for Creators. Powered by Pixa Vision Engine.<br/>
-                    All rights reserved &copy; 2025
-                </p>
+
+            <div className="mt-16 mb-10 flex flex-col items-center gap-2 px-6 text-center opacity-30">
+                <SparklesIcon className="w-4 h-4 text-gray-400" />
+                <p className="text-[10px] font-black uppercase tracking-[0.5em]">MagicPixa Studio</p>
+                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Designed for Professional Creators</p>
             </div>
+            
+            <style>{`
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
         </div>
     );
 };
