@@ -5,7 +5,8 @@ import {
     CreditCoinIcon, LightningIcon, FlagIcon,
     ChevronRightIcon, SparklesIcon, XIcon,
     InformationCircleIcon, CheckIcon, PencilIcon,
-    PixaSupportIcon, TicketIcon, StarIcon, LockIcon
+    PixaSupportIcon, TicketIcon, StarIcon, LockIcon,
+    ChevronDownIcon, ArrowRightIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { updateUserProfile, claimMilestoneBonus } from '../../firebase';
@@ -20,6 +21,13 @@ const PLAN_WEIGHTS: Record<string, number> = {
     'Creator Pack': 2,
     'Studio Pack': 3,
     'Agency Pack': 4
+};
+
+const PLAN_BENEFITS: Record<string, string[]> = {
+    'Starter Pack': ['50 AI Credits', '1 Brand Kit included', '720p Resolution Output', 'Community Support', 'Credits Never Expire'],
+    'Creator Pack': ['165 AI Credits (15 Bonus)', '3 Brand Kits included', '4K High-Res Output', 'Standard Support', 'Commercial Usage Rights'],
+    'Studio Pack': ['575 AI Credits (75 Bonus)', '10 Brand Kits included', '8K Ultra-Res Output', 'Priority Rendering', 'Elite Retoucher Access'],
+    'Agency Pack': ['1200 AI Credits (200 Bonus)', '50 Brand Kits included', 'Unlimited 8K Exports', 'Dedicated Account Manager', 'White-label Support']
 };
 
 export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
@@ -39,6 +47,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const [loadingPack, setLoadingPack] = useState<string | null>(null);
     const [showRanksModal, setShowRanksModal] = useState(false);
+    const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
 
     // --- DATA ---
     const membershipPacks: CreditPack[] = useMemo(() => {
@@ -65,7 +74,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const benefits = [
         { label: 'Unlimited\nAssets', icon: SparklesIcon, color: 'blue', bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-900', iconBg: 'bg-blue-500' },
         { label: 'No\nWatermarks', icon: CheckIcon, color: 'green', bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-900', iconBg: 'bg-green-500' },
-        { label: 'Credits Never\nExpire', icon: LightningIcon, color: 'purple', bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-900', iconBg: 'bg-purple-500' },
+        { label: 'Credits Never\nExpire', icon: LightningIcon, color: 'purple', bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-900', iconBg: 'bg-green-500' },
         { label: 'Priority\nSupport', icon: PixaSupportIcon, color: 'indigo', bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-900', iconBg: 'bg-indigo-500' },
         { label: 'High Resolution\nOutput', icon: ShieldCheckIcon, color: 'amber', bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', iconBg: 'bg-amber-500' },
     ];
@@ -297,65 +306,104 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <p className="text-sm text-gray-500 font-medium">Professional creative logic for every pack</p>
                     </div>
 
-                    <div className="space-y-3">
+                    {/* Vertical Accordion Plan List */}
+                    <div className="space-y-4">
                         {membershipPacks.map((pack, idx) => {
                             const packWeight = PLAN_WEIGHTS[pack.name] || 0;
                             const isCurrent = currentPlanWeight === packWeight;
                             const isUpgrade = packWeight > currentPlanWeight;
+                            const isDowngrade = packWeight < currentPlanWeight;
+                            const isOpen = expandedPlan === pack.name;
                             const isLoading = loadingPack === pack.name;
-                            const isAgency = pack.name === 'Agency Pack';
+                            const isCreator = pack.name === 'Creator Pack';
 
                             return (
-                                <button 
+                                <div 
                                     key={idx}
-                                    onClick={() => isUpgrade && handleCheckout(pack, true)}
-                                    disabled={!!loadingPack || isCurrent || (!isUpgrade && !isCurrent)}
-                                    className={`w-full p-5 rounded-3xl border-2 transition-all flex items-center gap-4 text-left relative overflow-hidden ${
+                                    className={`w-full rounded-[2rem] border-2 transition-all overflow-hidden ${
                                         isCurrent 
-                                        ? 'bg-green-50 border-green-500 shadow-lg shadow-green-100 ring-2 ring-green-100' 
+                                        ? 'bg-green-50 border-green-500 shadow-xl shadow-green-100 ring-2 ring-green-100' 
                                         : isUpgrade 
-                                            ? 'bg-white border-gray-100 active:bg-gray-50 active:scale-[0.98]' 
-                                            : 'bg-gray-50 border-transparent opacity-50'
+                                            ? 'bg-white border-gray-100 shadow-sm' 
+                                            : 'bg-gray-100 border-transparent grayscale opacity-70'
                                     }`}
                                 >
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                                        isCurrent 
-                                        ? 'border-green-500' 
-                                        : 'border-gray-200'
-                                    }`}>
-                                        {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
-                                    </div>
+                                    {/* Main Card Trigger */}
+                                    <button 
+                                        onClick={() => setExpandedPlan(isOpen ? null : pack.name)}
+                                        className="w-full p-5 flex items-center gap-4 text-left relative"
+                                    >
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                                            isCurrent 
+                                            ? 'border-green-500' 
+                                            : 'border-gray-200'
+                                        }`}>
+                                            {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+                                        </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <span className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{pack.name}</span>
-                                            {isCurrent && (
-                                                <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Current Plan</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                                                <span className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{pack.name}</span>
+                                                {isCurrent && (
+                                                    <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Active</span>
+                                                )}
+                                                {isCreator && (
+                                                    <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
+                                                )}
+                                                {pack.bonus > 0 && (
+                                                    <span className="bg-green-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">+{pack.bonus} Bonus</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
+                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">One-time</span>
+                                            </div>
+                                        </div>
+
+                                        <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-600' : 'text-gray-400'}`}>
+                                            <ChevronDownIcon className="w-5 h-5" />
+                                        </div>
+                                    </button>
+
+                                    {/* Dropdown Content */}
+                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-height-none opacity-100' : 'max-h-0 opacity-0'}`}>
+                                        <div className="px-5 pb-6 pt-2 border-t border-gray-100/50">
+                                            <div className="space-y-2 mb-6">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Included Benefits</p>
+                                                {(PLAN_BENEFITS[pack.name] || []).map((benefit, i) => (
+                                                    <div key={i} className="flex items-center gap-3">
+                                                        <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shrink-0">
+                                                            <CheckIcon className="w-3 h-3" />
+                                                        </div>
+                                                        <span className="text-xs font-medium text-gray-600">{benefit}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {isUpgrade ? (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleCheckout(pack, true); }}
+                                                    disabled={!!loadingPack}
+                                                    className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 active:bg-black transition-all"
+                                                >
+                                                    {isLoading ? (
+                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    ) : (
+                                                        <>Upgrade Now <ArrowRightIcon className="w-4 h-4" /></>
+                                                    )}
+                                                </button>
+                                            ) : isCurrent ? (
+                                                <div className="w-full py-4 bg-green-100 text-green-800 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center flex items-center justify-center gap-2 border border-green-200">
+                                                    <CheckIcon className="w-4 h-4" /> Current Selection
+                                                </div>
+                                            ) : (
+                                                <div className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center border border-gray-100">
+                                                    Already Included
+                                                </div>
                                             )}
-                                            {isAgency && (
-                                                <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
-                                        </div>
-                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
-                                            {pack.totalCredits} Credits included
                                         </div>
                                     </div>
-
-                                    {isLoading && (
-                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-20">
-                                            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                        </div>
-                                    )}
-
-                                    {!isUpgrade && !isCurrent && (
-                                        <div className="absolute inset-0 bg-gray-900/5 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
-                                            <LockIcon className="w-4 h-4 text-gray-400" />
-                                        </div>
-                                    )}
-                                </button>
+                                </div>
                             );
                         })}
                     </div>
