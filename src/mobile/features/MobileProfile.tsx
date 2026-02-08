@@ -135,8 +135,8 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto overflow-x-hidden no-scrollbar pb-32 animate-fadeIn w-full">
             
-            {/* 1. IDENTITY HUB (Layered Isolation & Spacing Fix) */}
-            <div className="relative z-20 flex-none bg-white border-b border-gray-50 pt-10 pb-16 px-6 flex flex-col items-center text-center overflow-visible">
+            {/* 1. IDENTITY HUB (Reduced bottom padding from pb-16 to pb-8) */}
+            <div className="relative z-20 flex-none bg-white border-b border-gray-50 pt-10 pb-8 px-6 flex flex-col items-center text-center overflow-visible">
                 {/* Background Decoration (Lower Layer) */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 -z-10"></div>
                 
@@ -190,8 +190,8 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </div>
 
-            {/* 2. INTERACTION AREA (z-10, No negative margin to prevent clipping) */}
-            <div className="relative z-10 mt-10 px-6 space-y-8">
+            {/* 2. INTERACTION AREA (Reduced top margin from mt-10 to mt-4) */}
+            <div className="relative z-10 mt-4 px-6 space-y-8">
                 
                 {/* LOYALTY BONUS (EXACT Desktop Sync) */}
                 <div className="bg-white p-7 rounded-[2.5rem] border border-gray-200 shadow-xl shadow-indigo-500/5 flex flex-col justify-between relative overflow-hidden group">
