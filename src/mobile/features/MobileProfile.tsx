@@ -289,7 +289,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     });
 
     return (
-        <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto overflow-x-hidden no-scrollbar pb-32 animate-fadeIn w-full">
+        <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto overflow-x-hidden no-scrollbar pb-10 animate-fadeIn w-full">
             
             {/* 1. IDENTITY HUB */}
             <div className="relative z-20 flex-none bg-white border-b border-gray-50 pt-10 pb-8 px-6 flex flex-col items-center text-center overflow-visible">
@@ -609,7 +609,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         onClick={handleLogout}
                         className="w-full flex items-center justify-between p-6 bg-white border border-red-50 rounded-[2.2rem] active:bg-red-50 transition-all text-left group mt-4 shadow-sm"
                     >
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-3">
                             <div className="p-3 bg-red-50 text-red-600 rounded-2xl shadow-sm group-active:scale-90 transition-transform border border-red-100">
                                 <LogoutIcon className="w-6 h-6"/>
                             </div>
@@ -619,20 +619,19 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     
                     {/* Legal Links */}
                     <div className="flex items-center justify-center gap-8 py-2">
-                        <a href="/Terms" target="_blank" className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-indigo-600 transition-colors">Terms of Service</a>
-                        <a href="/Privacy" target="_blank" className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-indigo-600 transition-colors">Privacy Policy</a>
+                        <a href="/Terms" className="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-indigo-600 transition-colors">Terms of Service</a>
+                        <a href="/Privacy" className="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-indigo-600 transition-colors">Privacy Policy</a>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-20 mb-6 flex flex-col items-center gap-2 px-6 text-center opacity-40">
-                <span className="text-indigo-400"><SparklesIcon className="w-5 h-5" /></span>
-                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-500">MagicPixa Studio</p>
+            <div className="mt-12 mb-10 flex flex-col items-center gap-2 px-6 text-center">
+                <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-900">MagicPixa</p>
                 <div className="flex flex-col items-center gap-1 mt-2">
                     <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Version 1.0.3 • Production Build</p>
                     <button 
                         onClick={handleDeleteAccount}
-                        className="text-[9px] font-black text-red-400 uppercase tracking-[0.1em] mt-4 hover:text-red-600 transition-colors border-b border-red-200"
+                        className="text-[10px] font-black text-red-600 uppercase tracking-widest mt-4 hover:text-red-700 transition-colors border-b border-red-200 pb-0.5"
                     >
                         Delete account
                     </button>
