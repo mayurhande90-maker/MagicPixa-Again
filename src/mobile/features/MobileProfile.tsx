@@ -24,10 +24,34 @@ const PLAN_WEIGHTS: Record<string, number> = {
 };
 
 const PLAN_BENEFITS: Record<string, string[]> = {
-    'Starter Pack': ['50 AI Credits', '1 Brand Kit included', '720p Resolution Output', 'Community Support', 'Credits Never Expire'],
-    'Creator Pack': ['165 AI Credits (15 Bonus)', '3 Brand Kits included', '4K High-Res Output', 'Standard Support', 'Commercial Usage Rights'],
-    'Studio Pack': ['575 AI Credits (75 Bonus)', '10 Brand Kits included', '8K Ultra-Res Output', 'Priority Rendering', 'Elite Retoucher Access'],
-    'Agency Pack': ['1200 AI Credits (200 Bonus)', '50 Brand Kits included', 'Unlimited 8K Exports', 'Dedicated Account Manager', 'White-label Support']
+    'Starter Pack': [
+        '50 AI Credits (Try every tool)',
+        '1 Brand Kit Slot',
+        'Standard Definition (HD) Output',
+        'Standard Support (AI Bot)',
+        'Personal Usage License'
+    ],
+    'Creator Pack': [
+        '165 AI Credits (Better Value)',
+        '3 Brand Kit Slots',
+        'High-Resolution (4K) Output',
+        'Full Commercial Usage Rights',
+        'Verified Identity Lock 6.0'
+    ],
+    'Studio Pack': [
+        '575 AI Credits (Bulk Savings)',
+        '10 Brand Kit Slots',
+        'Ultra-Resolution (8K) Output',
+        'Priority Processing (2x Faster)',
+        'Priority Support (Human Agent)'
+    ],
+    'Agency Pack': [
+        '1200 AI Credits (Best Rate)',
+        '50 Brand Kit Slots',
+        'Unlimited 8K High-Res Exports',
+        'Dedicated Account Manager',
+        'White-Label Content (No Metadata)'
+    ]
 };
 
 export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
@@ -335,7 +359,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     >
                                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                                             isCurrent 
-                                            ? 'border-green-500' 
+                                            ? 'border-green-50' 
                                             : 'border-gray-200'
                                         }`}>
                                             {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
