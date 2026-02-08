@@ -341,15 +341,22 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             const isLoading = loadingPack === pack.name;
                             const isCreator = pack.name === 'Creator Pack';
 
+                            // Determine active visual theme (Green for current, Indigo for upgrade selection)
+                            const themeColor = isCurrent ? 'green' : 'indigo';
+
                             return (
                                 <div 
                                     key={idx}
-                                    className={`w-full rounded-[2rem] border-2 transition-all overflow-hidden ${
-                                        isCurrent 
-                                        ? 'bg-green-50 border-green-500 shadow-xl shadow-green-100 ring-2 ring-green-100' 
-                                        : isUpgrade 
-                                            ? 'bg-white border-gray-100 shadow-sm' 
-                                            : 'bg-gray-100 border-transparent grayscale opacity-70'
+                                    className={`w-full rounded-[2rem] border-2 transition-all duration-300 overflow-hidden ${
+                                        isOpen
+                                        ? isCurrent
+                                            ? 'bg-green-50 border-green-500 ring-4 ring-green-500/10 scale-[1.02] shadow-2xl'
+                                            : 'bg-indigo-50/30 border-indigo-500 ring-4 ring-indigo-500/10 scale-[1.02] shadow-2xl'
+                                        : isCurrent 
+                                            ? 'bg-green-50 border-green-500 shadow-xl shadow-green-100' 
+                                            : isUpgrade 
+                                                ? 'bg-white border-gray-100 shadow-sm' 
+                                                : 'bg-gray-100 border-transparent grayscale opacity-70'
                                     }`}
                                 >
                                     {/* Main Card Trigger */}
@@ -357,12 +364,15 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         onClick={() => setExpandedPlan(isOpen ? null : pack.name)}
                                         className="w-full p-5 flex items-center gap-4 text-left relative"
                                     >
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                                            isCurrent 
-                                            ? 'border-green-50' 
+                                        {/* Radio-Style Selection Icon */}
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${
+                                            isOpen || isCurrent 
+                                            ? `border-${themeColor}-500` 
                                             : 'border-gray-200'
                                         }`}>
-                                            {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+                                            {(isOpen || isCurrent) && (
+                                                <div className={`w-3 h-3 bg-${themeColor}-500 rounded-full animate-scaleIn`}></div>
+                                            )}
                                         </div>
 
                                         <div className="flex-1 min-w-0">
@@ -379,7 +389,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
                                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">One-time</span>
                                             </div>
-                                            {/* Updated Credit Breakdown (Total in Black, Breakdown in Indigo) */}
                                             <div className="text-[11px] uppercase tracking-tight mt-0.5">
                                                 <span className="font-black text-gray-900">{pack.totalCredits} Credits</span>
                                                 {pack.bonus > 0 && (
@@ -590,7 +599,14 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 .animate-marquee-scroll {
                     animation: marquee-scroll 15s linear infinite;
                 }
-                .animate-materialize { animation: materialize 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+                @keyframes scaleIn {
+                    0% { transform: scale(0); opacity: 0; }
+                    60% { transform: scale(1.1); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-scaleIn {
+                    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                }
             `}</style>
         </div>
     );
