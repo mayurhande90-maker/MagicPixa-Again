@@ -350,13 +350,14 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 {isCreator && (
                                                     <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
                                                 )}
-                                                {pack.bonus > 0 && (
-                                                    <span className="bg-green-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">+{pack.bonus} Bonus</span>
-                                                )}
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
                                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">One-time</span>
+                                            </div>
+                                            {/* Credit Breakdown Row (Added per request) */}
+                                            <div className="text-[11px] font-black text-indigo-600 uppercase tracking-tight mt-0.5">
+                                                {pack.bonus > 0 ? `${pack.credits} + ${pack.bonus} Bonus!` : `${pack.credits} Credits`}
                                             </div>
                                         </div>
 
