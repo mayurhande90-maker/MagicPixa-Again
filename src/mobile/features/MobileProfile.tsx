@@ -62,6 +62,14 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         'Gold Creator': 'from-amber-500 via-yellow-200 to-amber-800',
     };
 
+    const benefits = [
+        { label: 'Unlimited\nAssets', icon: SparklesIcon, color: 'blue', bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-900', iconBg: 'bg-blue-500' },
+        { label: 'No\nWatermarks', icon: CheckIcon, color: 'green', bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-900', iconBg: 'bg-green-500' },
+        { label: 'Credits Never\nExpire', icon: LightningIcon, color: 'purple', bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-900', iconBg: 'bg-purple-500' },
+        { label: 'Priority\nSupport', icon: PixaSupportIcon, color: 'indigo', bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-900', iconBg: 'bg-indigo-500' },
+        { label: 'High Resolution\nOutput', icon: ShieldCheckIcon, color: 'amber', bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', iconBg: 'bg-amber-500' },
+    ];
+
     // --- LOYALTY ENGINE ---
     const lifetimeGens = user?.lifetimeGenerations || 0;
     const { nextMilestone, prevMilestone, nextReward } = useMemo(() => {
@@ -167,19 +175,12 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             
             {/* 1. IDENTITY HUB */}
             <div className="relative z-20 flex-none bg-white border-b border-gray-50 pt-10 pb-8 px-6 flex flex-col items-center text-center overflow-visible">
-                {/* Background Decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 -z-10"></div>
                 
-                {/* Profile Circle Area */}
                 <div className="relative mb-8 overflow-visible">
                     <div className="w-24 h-24 rounded-full p-[3px] shadow-2xl shadow-indigo-500/10 bg-white relative overflow-hidden">
-                        {/* Animated Gradient Ring Layer */}
                         <div className={`absolute inset-0 bg-gradient-to-tr ${rankGradients[badge.rank] || rankGradients['Rising Creator']} animate-gradient-slow`}></div>
-                        
-                        {/* Sweep Shine Layer */}
                         <div className="absolute inset-0 opacity-0 animate-ring-sweep pointer-events-none bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[-25deg]" style={{ width: '200%', marginLeft: '-50%' }}></div>
-
-                        {/* Avatar Surface */}
                         <div className="relative w-full h-full rounded-full bg-white p-1 flex items-center justify-center z-10">
                             <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center text-3xl font-black text-indigo-600">
                                 {user?.avatar || user?.name?.[0]}
@@ -187,7 +188,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         </div>
                     </div>
 
-                    {/* Rank Badge */}
                     <div 
                         onClick={() => setShowRanksModal(true)}
                         className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full border shadow-xl flex items-center gap-2 whitespace-nowrap z-10 cursor-pointer active:scale-95 transition-transform ${badge.bgColor} ${badge.borderColor} animate-bounce-slight`}
@@ -230,7 +230,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </div>
 
-            {/* 2. INTERACTION AREA */}
             <div className="relative z-10 mt-4 px-6 space-y-8">
                 
                 {/* LOYALTY BONUS */}
@@ -271,57 +270,46 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     </div>
                 </div>
 
-                {/* 3. MEMBERSHIP HUB - Updated Visuals as per reference */}
+                {/* 3. MEMBERSHIP HUB */}
                 <div className="pt-2">
-                    {/* Benefits Strip */}
-                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-6 px-1">
-                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-blue-50 border border-blue-100 min-w-[100px]">
-                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-sm">
-                                <SparklesIcon className="w-4 h-4" />
-                            </div>
-                            <span className="text-[10px] font-black text-blue-900 text-center uppercase tracking-tight">Unlimited<br/>Assets</span>
+                    {/* Continuous Marquee Benefits Strip */}
+                    <div className="overflow-hidden relative pb-6 px-1">
+                        <div className="flex gap-3 animate-marquee-scroll whitespace-nowrap">
+                            {[...benefits, ...benefits].map((benefit, i) => (
+                                <div key={i} className={`shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl ${benefit.bg} border ${benefit.border} min-w-[100px]`}>
+                                    <div className={`w-8 h-8 rounded-full ${benefit.iconBg} flex items-center justify-center text-white shadow-sm`}>
+                                        <benefit.icon className="w-4 h-4" />
+                                    </div>
+                                    <span className={`text-[10px] font-black ${benefit.text} text-center uppercase tracking-tight whitespace-pre-line`}>
+                                        {benefit.label}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
-                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-green-50 border border-green-100 min-w-[100px]">
-                            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white shadow-sm">
-                                <CheckIcon className="w-4 h-4" />
-                            </div>
-                            <span className="text-[10px] font-black text-green-900 text-center uppercase tracking-tight">No<br/>Watermarks</span>
-                        </div>
-                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-purple-50 border border-purple-100 min-w-[100px]">
-                            <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-sm">
-                                <LightningIcon className="w-4 h-4" />
-                            </div>
-                            <span className="text-[10px] font-black text-purple-900 text-center uppercase tracking-tight">Credits Never<br/>Expire</span>
-                        </div>
-                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-indigo-50 border border-indigo-100 min-w-[100px]">
-                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-sm">
-                                <PixaSupportIcon className="w-4 h-4" />
-                            </div>
-                            <span className="text-[10px] font-black text-indigo-900 text-center uppercase tracking-tight">Priority<br/>Support</span>
-                        </div>
+                        <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#FAFBFF] to-transparent z-10 pointer-events-none"></div>
+                        <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#FAFBFF] to-transparent z-10 pointer-events-none"></div>
                     </div>
 
-                    {/* Section Title Group */}
                     <div className="mb-6 px-1">
                         <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                             Unlock Premium Features ✨
                         </h2>
-                        <p className="text-sm text-gray-500 font-medium">Get full access to all AI tools and features</p>
+                        <p className="text-sm text-gray-500 font-medium">Professional creative logic for every pack</p>
                     </div>
 
-                    {/* Vertical Plan List */}
                     <div className="space-y-3">
                         {membershipPacks.map((pack, idx) => {
                             const packWeight = PLAN_WEIGHTS[pack.name] || 0;
                             const isCurrent = currentPlanWeight === packWeight;
                             const isUpgrade = packWeight > currentPlanWeight;
                             const isLoading = loadingPack === pack.name;
+                            const isAgency = pack.name === 'Agency Pack';
 
                             return (
                                 <button 
                                     key={idx}
                                     onClick={() => isUpgrade && handleCheckout(pack, true)}
-                                    disabled={!!loadingPack || isCurrent || !isUpgrade}
+                                    disabled={!!loadingPack || isCurrent || (!isUpgrade && !isCurrent)}
                                     className={`w-full p-5 rounded-3xl border-2 transition-all flex items-center gap-4 text-left relative overflow-hidden ${
                                         isCurrent 
                                         ? 'bg-green-50 border-green-500 shadow-lg shadow-green-100 ring-2 ring-green-100' 
@@ -330,7 +318,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             : 'bg-gray-50 border-transparent opacity-50'
                                     }`}
                                 >
-                                    {/* Radio Indicator */}
                                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                                         isCurrent 
                                         ? 'border-green-500' 
@@ -339,33 +326,30 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
                                     </div>
 
-                                    {/* Plan Details */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <span className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{pack.name}</span>
-                                            {pack.popular && (
-                                                <span className="bg-gray-900 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Popular</span>
+                                            {isCurrent && (
+                                                <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Current Plan</span>
                                             )}
-                                            {pack.name === 'Agency Pack' && (
-                                                <span className="bg-green-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
+                                            {isAgency && (
+                                                <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-xl font-black text-gray-900">₹ {pack.price}/month</span>
+                                            <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
                                         </div>
                                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
                                             {pack.totalCredits} Credits included
                                         </div>
                                     </div>
 
-                                    {/* Loading State Overlay */}
                                     {isLoading && (
                                         <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-20">
                                             <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                                         </div>
                                     )}
 
-                                    {/* Locked State for Downgrades */}
                                     {!isUpgrade && !isCurrent && (
                                         <div className="absolute inset-0 bg-gray-900/5 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
                                             <LockIcon className="w-4 h-4 text-gray-400" />
@@ -448,13 +432,11 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </div>
 
-            {/* 6. FOOTER */}
             <div className="mt-20 mb-10 flex flex-col items-center gap-3 px-6 text-center opacity-30">
                 <SparklesIcon className="w-5 h-5 text-gray-400" />
                 <p className="text-[10px] font-black uppercase tracking-[0.6em]">MagicPixa Studio</p>
             </div>
 
-            {/* SUPPORT CONCIERGE TRAY */}
             {isSupportOpen && createPortal(
                 <div className="fixed inset-0 z-[1000] flex items-end justify-center">
                     <div 
@@ -522,6 +504,13 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 .animate-gradient-slow {
                     background-size: 200% 200%;
                     animation: gradient-slow 6s ease infinite;
+                }
+                @keyframes marquee-scroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee-scroll {
+                    animation: marquee-scroll 15s linear infinite;
                 }
                 .animate-materialize { animation: materialize 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
             `}</style>
