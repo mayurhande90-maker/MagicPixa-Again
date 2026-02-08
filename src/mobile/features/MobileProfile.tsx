@@ -271,83 +271,106 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     </div>
                 </div>
 
-                {/* 3. MEMBERSHIP HUB */}
+                {/* 3. MEMBERSHIP HUB - Updated Visuals as per reference */}
                 <div className="pt-2">
-                    <div className="flex items-center gap-2 mb-5 ml-2">
-                        <StarIcon className="w-4 h-4 text-amber-500" />
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">Membership Hub</h3>
-                    </div>
-
-                    {/* Current Plan Card - Prestigious Look */}
-                    <div className="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden mb-6 border border-white/5">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
-                        <div className="relative z-10 flex flex-col gap-4">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em] mb-1.5">Current Status</p>
-                                    <h4 className="text-2xl font-black text-white tracking-tight">{userPlan === 'Free' ? 'Starter Access' : userPlan}</h4>
-                                </div>
-                                <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                                    <ShieldCheckIcon className="w-5 h-5 text-amber-500" />
-                                </div>
+                    {/* Benefits Strip */}
+                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-6 px-1">
+                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-blue-50 border border-blue-100 min-w-[100px]">
+                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-sm">
+                                <SparklesIcon className="w-4 h-4" />
                             </div>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                <span className="bg-white/5 text-white/70 text-[8px] font-bold px-2 py-1 rounded-lg border border-white/5 uppercase tracking-wider">8K Output Ready</span>
-                                <span className="bg-white/5 text-white/70 text-[8px] font-bold px-2 py-1 rounded-lg border border-white/5 uppercase tracking-wider">Commercial License</span>
-                                <span className="bg-white/5 text-white/70 text-[8px] font-bold px-2 py-1 rounded-lg border border-white/5 uppercase tracking-wider">Cloud Gallery</span>
+                            <span className="text-[10px] font-black text-blue-900 text-center uppercase tracking-tight">Unlimited<br/>Assets</span>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-green-50 border border-green-100 min-w-[100px]">
+                            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white shadow-sm">
+                                <CheckIcon className="w-4 h-4" />
                             </div>
+                            <span className="text-[10px] font-black text-green-900 text-center uppercase tracking-tight">No<br/>Watermarks</span>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-purple-50 border border-purple-100 min-w-[100px]">
+                            <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-sm">
+                                <LightningIcon className="w-4 h-4" />
+                            </div>
+                            <span className="text-[10px] font-black text-purple-900 text-center uppercase tracking-tight">Credits Never<br/>Expire</span>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl bg-indigo-50 border border-indigo-100 min-w-[100px]">
+                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-sm">
+                                <PixaSupportIcon className="w-4 h-4" />
+                            </div>
+                            <span className="text-[10px] font-black text-indigo-900 text-center uppercase tracking-tight">Priority<br/>Support</span>
                         </div>
                     </div>
 
-                    {/* Plan Carousel */}
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-6 -mx-1 px-1">
+                    {/* Section Title Group */}
+                    <div className="mb-6 px-1">
+                        <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                            Unlock Premium Features ✨
+                        </h2>
+                        <p className="text-sm text-gray-500 font-medium">Get full access to all AI tools and features</p>
+                    </div>
+
+                    {/* Vertical Plan List */}
+                    <div className="space-y-3">
                         {membershipPacks.map((pack, idx) => {
                             const packWeight = PLAN_WEIGHTS[pack.name] || 0;
                             const isCurrent = currentPlanWeight === packWeight;
                             const isUpgrade = packWeight > currentPlanWeight;
-                            const isDowngrade = packWeight < currentPlanWeight;
                             const isLoading = loadingPack === pack.name;
 
                             return (
                                 <button 
                                     key={idx}
                                     onClick={() => isUpgrade && handleCheckout(pack, true)}
-                                    disabled={!!loadingPack || !isUpgrade}
-                                    className={`shrink-0 w-40 h-56 rounded-[2.2rem] p-1 shadow-lg transition-all relative overflow-hidden flex flex-col group ${
+                                    disabled={!!loadingPack || isCurrent || !isUpgrade}
+                                    className={`w-full p-5 rounded-3xl border-2 transition-all flex items-center gap-4 text-left relative overflow-hidden ${
                                         isCurrent 
-                                        ? 'bg-amber-500 shadow-amber-500/20 ring-4 ring-amber-500/10 scale-105 z-10' 
+                                        ? 'bg-green-50 border-green-500 shadow-lg shadow-green-100 ring-2 ring-green-100' 
                                         : isUpgrade 
-                                            ? 'bg-white border border-gray-100 active:scale-95' 
-                                            : 'bg-gray-50 border-transparent opacity-60'
+                                            ? 'bg-white border-gray-100 active:bg-gray-50 active:scale-[0.98]' 
+                                            : 'bg-gray-50 border-transparent opacity-50'
                                     }`}
                                 >
-                                    {isCurrent && <div className="absolute top-0 right-0 bg-white text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-bl-xl z-20 shadow-sm uppercase">Active</div>}
-                                    {!isUpgrade && !isCurrent && <div className="absolute inset-0 bg-gray-900/5 z-20 flex items-center justify-center backdrop-blur-[1px]"><LockIcon className="w-5 h-5 text-gray-400" /></div>}
-                                    
-                                    <div className={`w-full h-full rounded-[2rem] p-5 flex flex-col justify-between items-center text-center ${isCurrent ? 'bg-amber-500' : 'bg-transparent'}`}>
-                                        {isLoading ? (
-                                            <div className="flex-1 flex items-center justify-center">
-                                                <div className={`w-8 h-8 border-3 rounded-full animate-spin ${isCurrent ? 'border-white/30 border-t-white' : 'border-indigo-100 border-t-indigo-600'}`} />
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isCurrent ? 'text-white' : 'text-gray-400'}`}>{pack.name.split(' ')[0]}</span>
-                                                <div className="my-2">
-                                                    <span className={`text-4xl font-black block leading-none tracking-tighter ${isCurrent ? 'text-white' : 'text-gray-900'}`}>{pack.totalCredits}</span>
-                                                    <span className={`text-[8px] font-black uppercase tracking-widest mt-1 block ${isCurrent ? 'text-white/70' : 'text-gray-400'}`}>Credits</span>
-                                                </div>
-                                                <div className={`w-full py-2.5 rounded-xl text-xs font-black shadow-sm transition-all border ${
-                                                    isCurrent 
-                                                    ? 'bg-white text-amber-600 border-transparent' 
-                                                    : isUpgrade 
-                                                        ? 'bg-gray-900 text-white border-transparent' 
-                                                        : 'bg-gray-200 text-gray-400 border-transparent'
-                                                }`}>
-                                                    {isCurrent ? 'Current' : isDowngrade ? 'Included' : `₹${pack.price}`}
-                                                </div>
-                                            </>
-                                        )}
+                                    {/* Radio Indicator */}
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                                        isCurrent 
+                                        ? 'border-green-500' 
+                                        : 'border-gray-200'
+                                    }`}>
+                                        {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
                                     </div>
+
+                                    {/* Plan Details */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{pack.name}</span>
+                                            {pack.popular && (
+                                                <span className="bg-gray-900 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Popular</span>
+                                            )}
+                                            {pack.name === 'Agency Pack' && (
+                                                <span className="bg-green-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-xl font-black text-gray-900">₹ {pack.price}/month</span>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                                            {pack.totalCredits} Credits included
+                                        </div>
+                                    </div>
+
+                                    {/* Loading State Overlay */}
+                                    {isLoading && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-20">
+                                            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
+
+                                    {/* Locked State for Downgrades */}
+                                    {!isUpgrade && !isCurrent && (
+                                        <div className="absolute inset-0 bg-gray-900/5 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
+                                            <LockIcon className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                    )}
                                 </button>
                             );
                         })}
