@@ -39,7 +39,7 @@ const PLAN_BENEFITS: Record<string, string[]> = {
         'Verified Identity Lock 6.0'
     ],
     'Studio Pack': [
-        '575 AI Credits (Bulk Savings)',
+        '300 AI Credits (Bulk Savings)',
         '10 Brand Kit Slots',
         'Ultra-Resolution (8K) Output',
         'Priority Processing (2x Faster)',
@@ -79,7 +79,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         return [
             { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: '1 Brand Kit included.', popular: false, value: 1.98 },
             { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: '3 Brand Kits.', popular: true, value: 1.51 },
-            { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: '10 Brand Kits.', popular: false, value: 1.21 },
+            { name: 'Studio Pack', price: 699, credits: 250, totalCredits: 300, bonus: 50, tagline: '10 Brand Kits.', popular: false, value: 2.33 },
             { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: '50 Brand Kits.', popular: false, value: 0.99 },
         ];
     }, [appConfig]);
@@ -520,8 +520,8 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             </div>
 
             <div className="mt-20 mb-10 flex flex-col items-center gap-3 px-6 text-center opacity-30">
-                <SparklesIcon className="w-5 h-5 text-gray-400" />
-                <p className="text-[10px] font-black uppercase tracking-[0.6em]">MagicPixa Studio</p>
+                <span className="text-indigo-400"><SparklesIcon className="w-5 h-5" /></span>
+                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-400">MagicPixa Studio</p>
             </div>
 
             {isSupportOpen && createPortal(
