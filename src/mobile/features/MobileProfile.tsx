@@ -32,7 +32,15 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [loadingPack, setLoadingPack] = useState<string | null>(null);
     const [showRanksModal, setShowRanksModal] = useState(false);
 
-    // --- LOYALTY ENGINE (Exact Desktop Dashboard Logic) ---
+    // --- RANK GRADIENTS ---
+    const rankGradients: Record<string, string> = {
+        'Rising Creator': 'from-slate-300 via-gray-100 to-slate-400',
+        'Professional Creator': 'from-orange-400 via-orange-100 to-orange-600',
+        'Silver Creator': 'from-slate-400 via-gray-50 to-slate-600',
+        'Gold Creator': 'from-amber-400 via-yellow-200 to-amber-600',
+    };
+
+    // --- LOYALTY ENGINE ---
     const lifetimeGens = user?.lifetimeGenerations || 0;
     const { nextMilestone, prevMilestone, nextReward } = useMemo(() => {
         let next = 10, prev = 0, reward = 5;
@@ -135,19 +143,29 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     return (
         <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto overflow-x-hidden no-scrollbar pb-32 animate-fadeIn w-full">
             
-            {/* 1. IDENTITY HUB (Reduced bottom padding from pb-16 to pb-8) */}
+            {/* 1. IDENTITY HUB */}
             <div className="relative z-20 flex-none bg-white border-b border-gray-50 pt-10 pb-8 px-6 flex flex-col items-center text-center overflow-visible">
-                {/* Background Decoration (Lower Layer) */}
+                {/* Background Decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 -z-10"></div>
                 
                 {/* Profile Circle Area */}
                 <div className="relative mb-8 overflow-visible">
-                    <div className={`w-24 h-24 rounded-full p-1 border-4 ${badge.borderColor} shadow-2xl shadow-indigo-500/10 bg-white`}>
-                        <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center text-3xl font-black text-indigo-600">
-                            {user?.avatar || user?.name?.[0]}
+                    <div className="w-24 h-24 rounded-full p-[3px] shadow-2xl shadow-indigo-500/10 bg-white relative overflow-hidden">
+                        {/* Animated Gradient Ring Layer */}
+                        <div className={`absolute inset-0 bg-gradient-to-tr ${rankGradients[badge.rank] || rankGradients['Rising Creator']} animate-gradient-slow`}></div>
+                        
+                        {/* Sweep Shine Layer - Synchronized with Logo Heartbeat */}
+                        <div className="absolute inset-0 opacity-0 animate-ring-sweep pointer-events-none bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[-25deg]" style={{ width: '200%', marginLeft: '-50%' }}></div>
+
+                        {/* Avatar Surface */}
+                        <div className="relative w-full h-full rounded-full bg-white p-1 flex items-center justify-center z-10">
+                            <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center text-3xl font-black text-indigo-600">
+                                {user?.avatar || user?.name?.[0]}
+                            </div>
                         </div>
                     </div>
-                    {/* Rank Badge - Fully visible in the Safe Zone */}
+
+                    {/* Rank Badge */}
                     <div 
                         onClick={() => setShowRanksModal(true)}
                         className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full border shadow-xl flex items-center gap-2 whitespace-nowrap z-10 cursor-pointer active:scale-95 transition-transform ${badge.bgColor} ${badge.borderColor} animate-bounce-slight`}
@@ -190,12 +208,11 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </div>
 
-            {/* 2. INTERACTION AREA (Reduced top margin from mt-10 to mt-4) */}
+            {/* 2. INTERACTION AREA */}
             <div className="relative z-10 mt-4 px-6 space-y-8">
                 
-                {/* LOYALTY BONUS (EXACT Desktop Sync) */}
+                {/* LOYALTY BONUS */}
                 <div className="bg-white p-7 rounded-[2.5rem] border border-gray-200 shadow-xl shadow-indigo-500/5 flex flex-col justify-between relative overflow-hidden group">
-                    {/* Desktop Decoration Orb */}
                     <div className="absolute top-0 right-0 w-36 h-36 bg-indigo-50 rounded-full -mr-12 -mt-12 transition-colors group-hover:bg-indigo-100"></div>
                     
                     <div className="relative z-10 flex items-center justify-between mb-8">
@@ -312,13 +329,11 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             {/* SUPPORT CONCIERGE TRAY */}
             {isSupportOpen && createPortal(
                 <div className="fixed inset-0 z-[1000] flex items-end justify-center">
-                    {/* Backdrop */}
                     <div 
                         className={`absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} 
                         onClick={handleCloseSupport}
                     ></div>
                     
-                    {/* Floating Close Button - Outside & Blurry */}
                     <button 
                         onClick={handleCloseSupport}
                         className={`absolute top-10 right-6 p-3 bg-white/20 backdrop-blur-xl border border-white/20 rounded-full text-white shadow-2xl transition-all z-[1010] active:scale-90 ${isClosing ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
@@ -326,7 +341,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <XIcon className="w-6 h-6" />
                     </button>
 
-                    {/* Tray Surface */}
                     <div 
                         onTouchStart={handleTouchStart}
                         onTouchMove={handleTouchMove}
@@ -334,7 +348,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         style={{ transform: `translateY(${translateY}px)` }}
                         className={`relative w-full max-w-lg bg-white rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden h-[85vh] transition-transform duration-300 ${isClosing ? 'translate-y-full' : 'translate-y-0'} ${touchStart === null ? 'ease-[cubic-bezier(0.32,0.72,0,1)]' : ''}`}
                     >
-                        {/* Drag handle */}
                         <div className="h-1.5 w-16 bg-gray-200 rounded-full mx-auto mt-3 mb-2 shrink-0 shadow-inner"></div>
                         
                         <div className="flex-1 overflow-hidden flex flex-col pt-2">
@@ -363,6 +376,24 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 @keyframes progress { 
                     0% { background-position: 0% 0%; } 
                     100% { background-position: 200% 0%; } 
+                }
+                @keyframes ring-sweep {
+                    0% { transform: translateX(-150%) skewX(-25deg); opacity: 0; }
+                    5% { opacity: 1; }
+                    20% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
+                    100% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
+                }
+                .animate-ring-sweep {
+                    animation: ring-sweep 10s linear infinite;
+                }
+                @keyframes gradient-slow {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                .animate-gradient-slow {
+                    background-size: 200% 200%;
+                    animation: gradient-slow 6s ease infinite;
                 }
                 .animate-materialize { animation: materialize 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
             `}</style>
