@@ -607,14 +607,15 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
                     <button 
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[2rem] active:bg-gray-50 transition-all text-left group mt-4 shadow-sm"
+                        className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group mt-4 shadow-xl shadow-gray-200/20"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gray-50 text-gray-400 rounded-xl shadow-sm group-active:scale-90 transition-transform border border-gray-100">
-                                <LogoutIcon className="w-5 h-5"/>
+                        <div className="flex items-center gap-5">
+                            <div className="p-3 bg-red-50 text-red-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-red-100">
+                                <LogoutIcon className="w-6 h-6"/>
                             </div>
-                            <span className="text-sm font-medium text-gray-600">Sign out</span>
+                            <span className="text-base font-black text-red-600">Sign out</span>
                         </div>
+                        <ChevronRightIcon className="w-5 h-5 text-gray-300 group-active:translate-x-1 transition-transform" />
                     </button>
                     
                     {/* Legal Links */}
