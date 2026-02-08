@@ -1,19 +1,25 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { AuthProps, User, View, AppConfig, CreditPack } from '../../types';
+import { AuthProps, User, View, AppConfig, CreditPack, Transaction } from '../../types';
 import { 
     LogoutIcon, ShieldCheckIcon, 
     CreditCoinIcon, LightningIcon, FlagIcon,
     ChevronRightIcon, SparklesIcon, XIcon,
     InformationCircleIcon, CheckIcon, PencilIcon,
     PixaSupportIcon, TicketIcon, StarIcon, LockIcon,
-    ChevronDownIcon, ArrowRightIcon
+    ChevronDownIcon, ArrowRightIcon,
+    PixaProductIcon, ThumbnailIcon, 
+    PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
+    PixaHeadshotIcon, MagicWandIcon, CampaignStudioIcon,
+    // Added BuildingIcon to resolve 'Cannot find name' error on line 252
+    BuildingIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
-import { updateUserProfile, claimMilestoneBonus } from '../../firebase';
+import { updateUserProfile, claimMilestoneBonus, getCreditHistory } from '../../firebase';
 import { triggerCheckout } from '../../services/paymentService';
 import { SupportChatWindow } from '../../features/support/SupportChatWindow';
 import { createPortal } from 'react-dom';
 import { CreatorRanksModal } from '../../components/CreatorRanksModal';
+import { MobileSheet } from '../components/MobileSheet';
 
 const PLAN_WEIGHTS: Record<string, number> = {
     'Free': 0,
@@ -72,6 +78,11 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [loadingPack, setLoadingPack] = useState<string | null>(null);
     const [showRanksModal, setShowRanksModal] = useState(false);
     const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+
+    // History States
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     // --- DATA ---
     const membershipPacks: CreditPack[] = useMemo(() => {
@@ -179,7 +190,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             user,
             pkg: isPlan ? pack : { name: pack.label, price: pack.price, totalCredits: pack.credits },
             type: isPlan ? 'plan' : 'refill',
-            onSuccess: (updatedUser) => {
+            onSuccess: (updatedUser, totalCredits, packName) => {
                 setUser(updatedUser);
                 setLoadingPack(null);
             },
@@ -197,11 +208,78 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
     };
 
+    const fetchHistory = async () => {
+        if (!user) return;
+        setIsLoadingHistory(true);
+        setIsHistoryOpen(true);
+        try {
+            const data = await getCreditHistory(user.uid);
+            setTransactions(data as Transaction[]);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
+    const groupTransactionsByDate = (txs: Transaction[]) => {
+        const groups: { [key: string]: Transaction[] } = {};
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        txs.forEach(tx => {
+            if (!tx.date) return;
+            const date = (tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000 || tx.date);
+            let key;
+            if (date.toDateString() === today.toDateString()) key = 'Today';
+            else if (date.toDateString() === yesterday.toDateString()) key = 'Yesterday';
+            else key = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(tx);
+        });
+        return groups;
+    };
+
+    const getIconForFeature = (feature: string): React.ReactNode => {
+        const iconClass = "w-8 h-8";
+        const bgIconClass = "w-4 h-4";
+        
+        if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
+            return <div className="p-2 bg-yellow-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-yellow-600`} /></div>;
+        }
+        
+        if (feature.includes('Product Shots') || feature.includes('Model Shots')) return <div className="p-2 bg-blue-50 rounded-xl"><PixaProductIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        if (feature.includes('Thumbnail Pro')) return <div className="p-2 bg-red-50 rounded-xl"><ThumbnailIcon className={`${bgIconClass} text-red-600`} /></div>;
+        if (feature.includes('Realty Ads')) return <div className="p-2 bg-purple-50 rounded-xl"><BuildingIcon className={`${bgIconClass} text-purple-600`} /></div>; 
+        if (feature.includes('Ecommerce Kit')) return <div className="p-2 bg-green-50 rounded-xl"><PixaEcommerceIcon className={`${bgIconClass} text-green-600`} /></div>;
+        if (feature.includes('AdMaker')) return <div className="p-2 bg-orange-50 rounded-xl"><MagicAdsIcon className={`${bgIconClass} text-orange-600`} /></div>;
+        if (feature.includes('Together')) return <div className="p-2 bg-pink-50 rounded-xl"><PixaTogetherIcon className={`${bgIconClass} text-pink-600`} /></div>;
+        if (feature.includes('Photo Restore')) return <div className="p-2 bg-slate-100 rounded-xl"><PixaRestoreIcon className={`${bgIconClass} text-slate-600`} /></div>;
+        if (feature.includes('Caption Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaCaptionIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (feature.includes('Interior Design')) return <div className="p-2 bg-amber-50 rounded-xl"><PixaInteriorIcon className={`${bgIconClass} text-amber-600`} /></div>;
+        if (feature.includes('TryOn')) return <div className="p-2 bg-rose-50 rounded-xl"><PixaTryOnIcon className={`${bgIconClass} text-rose-600`} /></div>;
+        if (feature.includes('Headshot Pro')) return <div className="p-2 bg-yellow-50 rounded-xl"><PixaHeadshotIcon className={`${bgIconClass} text-yellow-600`} /></div>;
+        if (feature.includes('Magic Eraser') || feature.includes('Magic Editor') || feature.includes('Refinement')) return <div className="p-2 bg-indigo-50 rounded-xl"><MagicWandIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (feature.includes('Campaign Studio')) return <div className="p-2 bg-blue-50 rounded-xl"><CampaignStudioIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        
+        return <div className="p-2 bg-gray-50 rounded-xl"><TicketIcon className={`${bgIconClass} text-gray-500`} /></div>;
+    };
+
     const refillPacks = [
         { credits: 20, price: 49, label: 'Mini Boost', color: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-200' },
         { credits: 150, price: 299, label: 'Power Pack', color: 'from-purple-500 to-indigo-700', iconColor: 'text-purple-200' },
         { credits: 500, price: 899, label: 'Mega Tank', color: 'from-amber-500 to-orange-600', iconColor: 'text-amber-200' }
     ];
+
+    const groupedTransactions = groupTransactionsByDate(transactions);
+    const sortedGroupKeys = Object.keys(groupedTransactions).sort((a, b) => {
+        if (a === 'Today') return -1;
+        if (b === 'Today') return 1;
+        if (a === 'Yesterday') return -1;
+        if (b === 'Yesterday') return 1;
+        return new Date(b).getTime() - new Date(a).getTime();
+    });
 
     return (
         <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto overflow-x-hidden no-scrollbar pb-32 animate-fadeIn w-full">
@@ -226,7 +304,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full border shadow-xl flex items-center gap-2 whitespace-nowrap z-10 cursor-pointer active:scale-95 transition-transform ${badge.bgColor} ${badge.borderColor} animate-bounce-slight`}
                     >
                         <badge.Icon className={`w-3.5 h-3.5 ${badge.iconColor}`} />
-                        <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${badge.color}`}>{badge.rank}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${badge.rank === 'Rising Creator' ? 'text-gray-500' : badge.rank === 'Professional Creator' ? 'text-orange-700' : badge.rank === 'Silver Creator' ? 'text-slate-600' : 'text-yellow-700'}`}>{badge.rank}</span>
                     </div>
                 </div>
 
@@ -336,7 +414,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             const packWeight = PLAN_WEIGHTS[pack.name] || 0;
                             const isCurrent = currentPlanWeight === packWeight;
                             const isUpgrade = packWeight > currentPlanWeight;
-                            const isDowngrade = packWeight < currentPlanWeight;
                             const isOpen = expandedPlan === pack.name;
                             const isLoading = loadingPack === pack.name;
                             const isCreator = pack.name === 'Creator Pack';
@@ -425,7 +502,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                     disabled={!!loadingPack}
                                                     className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 active:bg-black transition-all"
                                                 >
-                                                    {isLoading ? (
+                                                    {isLoadingHistory ? (
                                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                                     ) : (
                                                         <>Upgrade Now <ArrowRightIcon className="w-4 h-4" /></>
@@ -490,6 +567,22 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 {/* 5. SETTINGS LIST */}
                 <div className="space-y-4 pt-2">
                     <button 
+                        onClick={fetchHistory}
+                        className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-indigo-100">
+                                <TicketIcon className="w-6 h-6"/>
+                            </div>
+                            <div>
+                                <span className="text-base font-black text-gray-800 block leading-tight">Billing & History</span>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Transactions & Usage</p>
+                            </div>
+                        </div>
+                        <ChevronRightIcon className="w-5 h-5 text-gray-300 group-active:translate-x-1 transition-transform" />
+                    </button>
+
+                    <button 
                         onClick={() => setIsSupportOpen(true)}
                         className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"
                     >
@@ -524,6 +617,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 <p className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-400">MagicPixa Studio</p>
             </div>
 
+            {/* Support Sheet */}
             {isSupportOpen && createPortal(
                 <div className="fixed inset-0 z-[1000] flex items-end justify-center">
                     <div 
@@ -559,6 +653,68 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>,
                 document.body
             )}
+
+            {/* Credit History Sheet */}
+            <MobileSheet 
+                isOpen={isHistoryOpen} 
+                onClose={() => setIsHistoryOpen(false)} 
+                title="Billing & History"
+            >
+                <div className="space-y-6 pb-6">
+                    <div className="bg-indigo-600 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Current Balance</p>
+                        <div className="flex items-end gap-2 mt-1">
+                            <span className="text-4xl font-black">{user?.credits || 0}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wide mb-1.5 opacity-80">Credits</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {isLoadingHistory ? (
+                            <div className="py-12 flex flex-col items-center gap-4">
+                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Syncing Records...</p>
+                            </div>
+                        ) : sortedGroupKeys.length > 0 ? (
+                            sortedGroupKeys.map(date => (
+                                <div key={date}>
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">{date}</h4>
+                                    <div className="space-y-3">
+                                        {groupedTransactions[date].map(tx => (
+                                            <div key={tx.id} className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between border border-gray-100 transition-all active:scale-[0.98]">
+                                                <div className="flex items-center gap-4">
+                                                    {getIconForFeature(tx.feature)}
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-black text-gray-800 truncate pr-2">{tx.feature.replace('Admin Grant', 'MagicPixa Grant')}</p>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                                                            {((tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    {tx.creditChange ? (
+                                                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-[11px] font-black border border-green-200">{tx.creditChange}</span>
+                                                    ) : (
+                                                        <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-[11px] font-black border border-gray-200">-{tx.cost}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-20 text-center opacity-40">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <TicketIcon className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest leading-relaxed">No transactions <br/> logged yet</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </MobileSheet>
 
             {showRanksModal && (
                 <CreatorRanksModal 
@@ -611,3 +767,5 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         </div>
     );
 };
+
+export default MobileProfile;
