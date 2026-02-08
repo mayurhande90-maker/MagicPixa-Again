@@ -10,8 +10,8 @@ import {
     PixaProductIcon, ThumbnailIcon, 
     PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
     PixaHeadshotIcon, MagicWandIcon, CampaignStudioIcon,
-    // Added BuildingIcon to resolve 'Cannot find name' error on line 252
-    BuildingIcon
+    BuildingIcon,
+    PixaBillingIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { updateUserProfile, claimMilestoneBonus, getCreditHistory } from '../../firebase';
@@ -190,7 +190,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             user,
             pkg: isPlan ? pack : { name: pack.label, price: pack.price, totalCredits: pack.credits },
             type: isPlan ? 'plan' : 'refill',
-            onSuccess: (updatedUser, totalCredits, packName) => {
+            onSuccess: (updatedUser) => {
                 setUser(updatedUser);
                 setLoadingPack(null);
             },
@@ -242,11 +242,10 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const getIconForFeature = (feature: string): React.ReactNode => {
-        const iconClass = "w-8 h-8";
         const bgIconClass = "w-4 h-4";
         
         if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
-            return <div className="p-2 bg-yellow-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-yellow-600`} /></div>;
+            return <div className="p-2 bg-amber-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-amber-600`} /></div>;
         }
         
         if (feature.includes('Product Shots') || feature.includes('Model Shots')) return <div className="p-2 bg-blue-50 rounded-xl"><PixaProductIcon className={`${bgIconClass} text-blue-600`} /></div>;
@@ -259,7 +258,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (feature.includes('Caption Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaCaptionIcon className={`${bgIconClass} text-indigo-600`} /></div>;
         if (feature.includes('Interior Design')) return <div className="p-2 bg-amber-50 rounded-xl"><PixaInteriorIcon className={`${bgIconClass} text-amber-600`} /></div>;
         if (feature.includes('TryOn')) return <div className="p-2 bg-rose-50 rounded-xl"><PixaTryOnIcon className={`${bgIconClass} text-rose-600`} /></div>;
-        if (feature.includes('Headshot Pro')) return <div className="p-2 bg-yellow-50 rounded-xl"><PixaHeadshotIcon className={`${bgIconClass} text-yellow-600`} /></div>;
+        if (feature.includes('Headshot Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaHeadshotIcon className={`${bgIconClass} text-indigo-600`} /></div>;
         if (feature.includes('Magic Eraser') || feature.includes('Magic Editor') || feature.includes('Refinement')) return <div className="p-2 bg-indigo-50 rounded-xl"><MagicWandIcon className={`${bgIconClass} text-indigo-600`} /></div>;
         if (feature.includes('Campaign Studio')) return <div className="p-2 bg-blue-50 rounded-xl"><CampaignStudioIcon className={`${bgIconClass} text-blue-600`} /></div>;
         
@@ -571,8 +570,8 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"
                     >
                         <div className="flex items-center gap-5">
-                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-indigo-100">
-                                <TicketIcon className="w-6 h-6"/>
+                            <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-orange-100">
+                                <PixaBillingIcon className="w-6 h-6"/>
                             </div>
                             <div>
                                 <span className="text-base font-black text-gray-800 block leading-tight">Billing & History</span>
@@ -767,5 +766,3 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         </div>
     );
 };
-
-export default MobileProfile;
