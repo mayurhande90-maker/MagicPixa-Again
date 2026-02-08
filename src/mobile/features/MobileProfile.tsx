@@ -327,7 +327,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                             Unlock the Pro Studio ✨
                         </h2>
-                        <p className="text-sm text-gray-500 font-medium">Get priority access to our most advanced AI models for hyper-realistic commercial rendering.</p>
+                        <p className="text-sm text-gray-500 font-medium">Priority access to our most advanced AI models.</p>
                     </div>
 
                     {/* Vertical Accordion Plan List */}
