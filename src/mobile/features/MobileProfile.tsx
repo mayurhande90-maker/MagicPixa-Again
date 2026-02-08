@@ -448,11 +448,11 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     </div>
                 </div>
 
-                {/* 4. POWER REFILL STATION */}
+                {/* 4. POWER TOPUP STATION */}
                 <div className="pt-2">
                     <div className="flex items-center gap-2 mb-5 ml-2">
                         <LightningIcon className="w-4 h-4 text-indigo-500" />
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">Power Refill Station</h3>
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">INSTANT TOPUP STATION</h3>
                     </div>
                     
                     <div className="flex gap-4 overflow-x-auto no-scrollbar pb-6 -mx-1 px-1">
