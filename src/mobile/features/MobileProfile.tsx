@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { AuthProps, User, View, AppConfig } from '../../types';
+import { AuthProps, User, View, AppConfig, CreditPack } from '../../types';
 import { 
     LogoutIcon, ShieldCheckIcon, 
     CreditCoinIcon, LightningIcon, FlagIcon,
     ChevronRightIcon, SparklesIcon, XIcon,
     InformationCircleIcon, CheckIcon, PencilIcon,
-    PixaSupportIcon, TicketIcon
+    PixaSupportIcon, TicketIcon, StarIcon, LockIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { updateUserProfile, claimMilestoneBonus } from '../../firebase';
@@ -13,6 +13,14 @@ import { triggerCheckout } from '../../services/paymentService';
 import { SupportChatWindow } from '../../features/support/SupportChatWindow';
 import { createPortal } from 'react-dom';
 import { CreatorRanksModal } from '../../components/CreatorRanksModal';
+
+const PLAN_WEIGHTS: Record<string, number> = {
+    'Free': 0,
+    'Starter Pack': 1,
+    'Creator Pack': 2,
+    'Studio Pack': 3,
+    'Agency Pack': 4
+};
 
 export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | null }> = ({ auth, appConfig }) => {
     const { user, setUser } = auth;
@@ -32,7 +40,21 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [loadingPack, setLoadingPack] = useState<string | null>(null);
     const [showRanksModal, setShowRanksModal] = useState(false);
 
-    // --- RANK GRADIENTS (Updated to match User Specs) ---
+    // --- DATA ---
+    const membershipPacks: CreditPack[] = useMemo(() => {
+        if (appConfig?.creditPacks && appConfig.creditPacks.length > 0) return appConfig.creditPacks;
+        return [
+            { name: 'Starter Pack', price: 99, credits: 50, totalCredits: 50, bonus: 0, tagline: '1 Brand Kit included.', popular: false, value: 1.98 },
+            { name: 'Creator Pack', price: 249, credits: 150, totalCredits: 165, bonus: 15, tagline: '3 Brand Kits.', popular: true, value: 1.51 },
+            { name: 'Studio Pack', price: 699, credits: 500, totalCredits: 575, bonus: 75, tagline: '10 Brand Kits.', popular: false, value: 1.21 },
+            { name: 'Agency Pack', price: 1199, credits: 1000, totalCredits: 1200, bonus: 200, tagline: '50 Brand Kits.', popular: false, value: 0.99 },
+        ];
+    }, [appConfig]);
+
+    const userPlan = user?.plan || 'Free';
+    const currentPlanWeight = PLAN_WEIGHTS[userPlan] || 0;
+
+    // --- RANK GRADIENTS ---
     const rankGradients: Record<string, string> = {
         'Rising Creator': 'from-blue-600 via-indigo-500 to-purple-600',
         'Professional Creator': 'from-blue-900 via-blue-700 to-sky-400',
@@ -109,13 +131,13 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
     };
 
-    const handleCheckout = (pack: any) => {
+    const handleCheckout = (pack: any, isPlan: boolean = false) => {
         if (!user) return;
-        setLoadingPack(pack.label);
+        setLoadingPack(pack.name || pack.label);
         triggerCheckout({
             user,
-            pkg: { name: pack.label, price: pack.price, totalCredits: pack.credits },
-            type: 'refill',
+            pkg: isPlan ? pack : { name: pack.label, price: pack.price, totalCredits: pack.credits },
+            type: isPlan ? 'plan' : 'refill',
             onSuccess: (updatedUser) => {
                 setUser(updatedUser);
                 setLoadingPack(null);
@@ -154,7 +176,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         {/* Animated Gradient Ring Layer */}
                         <div className={`absolute inset-0 bg-gradient-to-tr ${rankGradients[badge.rank] || rankGradients['Rising Creator']} animate-gradient-slow`}></div>
                         
-                        {/* Sweep Shine Layer - Synchronized with Logo Heartbeat */}
+                        {/* Sweep Shine Layer */}
                         <div className="absolute inset-0 opacity-0 animate-ring-sweep pointer-events-none bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[-25deg]" style={{ width: '200%', marginLeft: '-50%' }}></div>
 
                         {/* Avatar Surface */}
@@ -249,7 +271,90 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     </div>
                 </div>
 
-                {/* 3. POWER REFILL STATION */}
+                {/* 3. MEMBERSHIP HUB */}
+                <div className="pt-2">
+                    <div className="flex items-center gap-2 mb-5 ml-2">
+                        <StarIcon className="w-4 h-4 text-amber-500" />
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">Membership Hub</h3>
+                    </div>
+
+                    {/* Current Plan Card - Prestigious Look */}
+                    <div className="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden mb-6 border border-white/5">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
+                        <div className="relative z-10 flex flex-col gap-4">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em] mb-1.5">Current Status</p>
+                                    <h4 className="text-2xl font-black text-white tracking-tight">{userPlan === 'Free' ? 'Starter Access' : userPlan}</h4>
+                                </div>
+                                <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                                    <ShieldCheckIcon className="w-5 h-5 text-amber-500" />
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                <span className="bg-white/5 text-white/70 text-[8px] font-bold px-2 py-1 rounded-lg border border-white/5 uppercase tracking-wider">8K Output Ready</span>
+                                <span className="bg-white/5 text-white/70 text-[8px] font-bold px-2 py-1 rounded-lg border border-white/5 uppercase tracking-wider">Commercial License</span>
+                                <span className="bg-white/5 text-white/70 text-[8px] font-bold px-2 py-1 rounded-lg border border-white/5 uppercase tracking-wider">Cloud Gallery</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Plan Carousel */}
+                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-6 -mx-1 px-1">
+                        {membershipPacks.map((pack, idx) => {
+                            const packWeight = PLAN_WEIGHTS[pack.name] || 0;
+                            const isCurrent = currentPlanWeight === packWeight;
+                            const isUpgrade = packWeight > currentPlanWeight;
+                            const isDowngrade = packWeight < currentPlanWeight;
+                            const isLoading = loadingPack === pack.name;
+
+                            return (
+                                <button 
+                                    key={idx}
+                                    onClick={() => isUpgrade && handleCheckout(pack, true)}
+                                    disabled={!!loadingPack || !isUpgrade}
+                                    className={`shrink-0 w-40 h-56 rounded-[2.2rem] p-1 shadow-lg transition-all relative overflow-hidden flex flex-col group ${
+                                        isCurrent 
+                                        ? 'bg-amber-500 shadow-amber-500/20 ring-4 ring-amber-500/10 scale-105 z-10' 
+                                        : isUpgrade 
+                                            ? 'bg-white border border-gray-100 active:scale-95' 
+                                            : 'bg-gray-50 border-transparent opacity-60'
+                                    }`}
+                                >
+                                    {isCurrent && <div className="absolute top-0 right-0 bg-white text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-bl-xl z-20 shadow-sm uppercase">Active</div>}
+                                    {!isUpgrade && !isCurrent && <div className="absolute inset-0 bg-gray-900/5 z-20 flex items-center justify-center backdrop-blur-[1px]"><LockIcon className="w-5 h-5 text-gray-400" /></div>}
+                                    
+                                    <div className={`w-full h-full rounded-[2rem] p-5 flex flex-col justify-between items-center text-center ${isCurrent ? 'bg-amber-500' : 'bg-transparent'}`}>
+                                        {isLoading ? (
+                                            <div className="flex-1 flex items-center justify-center">
+                                                <div className={`w-8 h-8 border-3 rounded-full animate-spin ${isCurrent ? 'border-white/30 border-t-white' : 'border-indigo-100 border-t-indigo-600'}`} />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isCurrent ? 'text-white' : 'text-gray-400'}`}>{pack.name.split(' ')[0]}</span>
+                                                <div className="my-2">
+                                                    <span className={`text-4xl font-black block leading-none tracking-tighter ${isCurrent ? 'text-white' : 'text-gray-900'}`}>{pack.totalCredits}</span>
+                                                    <span className={`text-[8px] font-black uppercase tracking-widest mt-1 block ${isCurrent ? 'text-white/70' : 'text-gray-400'}`}>Credits</span>
+                                                </div>
+                                                <div className={`w-full py-2.5 rounded-xl text-xs font-black shadow-sm transition-all border ${
+                                                    isCurrent 
+                                                    ? 'bg-white text-amber-600 border-transparent' 
+                                                    : isUpgrade 
+                                                        ? 'bg-gray-900 text-white border-transparent' 
+                                                        : 'bg-gray-200 text-gray-400 border-transparent'
+                                                }`}>
+                                                    {isCurrent ? 'Current' : isDowngrade ? 'Included' : `₹${pack.price}`}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* 4. POWER REFILL STATION */}
                 <div className="pt-2">
                     <div className="flex items-center gap-2 mb-5 ml-2">
                         <LightningIcon className="w-4 h-4 text-indigo-500" />
@@ -288,7 +393,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     </div>
                 </div>
 
-                {/* 4. SETTINGS LIST */}
+                {/* 5. SETTINGS LIST */}
                 <div className="space-y-4 pt-2">
                     <button 
                         onClick={() => setIsSupportOpen(true)}
@@ -320,7 +425,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </div>
 
-            {/* 5. FOOTER */}
+            {/* 6. FOOTER */}
             <div className="mt-20 mb-10 flex flex-col items-center gap-3 px-6 text-center opacity-30">
                 <SparklesIcon className="w-5 h-5 text-gray-400" />
                 <p className="text-[10px] font-black uppercase tracking-[0.6em]">MagicPixa Studio</p>
