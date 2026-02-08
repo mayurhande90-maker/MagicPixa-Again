@@ -11,7 +11,8 @@ import {
     PixaEcommerceIcon, MagicAdsIcon, PixaTogetherIcon, PixaRestoreIcon, PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
     PixaHeadshotIcon, MagicWandIcon, CampaignStudioIcon,
     BuildingIcon,
-    PixaBillingIcon
+    PixaBillingIcon,
+    TrashIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { updateUserProfile, claimMilestoneBonus, getCreditHistory } from '../../firebase';
@@ -205,6 +206,13 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const handleLogout = () => {
         if (window.confirm("Sign out of your creative console?")) {
             auth.handleLogout();
+        }
+    };
+
+    const handleDeleteAccount = () => {
+        if (window.confirm("CRITICAL: Are you sure you want to delete your account? This will permanently remove all your creations and remaining credits. This action cannot be undone.")) {
+            // In a real app, we would trigger a delete function here
+            alert("For security, please contact support@magicpixa.com to finalize account deletion.");
         }
     };
 
@@ -605,15 +613,30 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             <div className="p-3 bg-red-50 text-red-600 rounded-2xl shadow-sm group-active:scale-90 transition-transform border border-red-100">
                                 <LogoutIcon className="w-6 h-6"/>
                             </div>
-                            <span className="text-xs font-black text-red-700 uppercase tracking-[0.25em]">Sign Out Console</span>
+                            <span className="text-xs font-black text-red-700 uppercase tracking-[0.25em]">Sign out</span>
                         </div>
                     </button>
+                    
+                    {/* Legal Links */}
+                    <div className="flex items-center justify-center gap-8 py-2">
+                        <a href="/Terms" target="_blank" className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-indigo-600 transition-colors">Terms of Service</a>
+                        <a href="/Privacy" target="_blank" className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-indigo-600 transition-colors">Privacy Policy</a>
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-20 mb-10 flex flex-col items-center gap-3 px-6 text-center opacity-30">
+            <div className="mt-20 mb-6 flex flex-col items-center gap-2 px-6 text-center opacity-40">
                 <span className="text-indigo-400"><SparklesIcon className="w-5 h-5" /></span>
-                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-400">MagicPixa Studio</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-500">MagicPixa Studio</p>
+                <div className="flex flex-col items-center gap-1 mt-2">
+                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Version 1.0.3 • Production Build</p>
+                    <button 
+                        onClick={handleDeleteAccount}
+                        className="text-[9px] font-black text-red-400 uppercase tracking-[0.1em] mt-4 hover:text-red-600 transition-colors border-b border-red-200"
+                    >
+                        Delete account
+                    </button>
+                </div>
             </div>
 
             {/* Support Sheet */}
@@ -766,3 +789,5 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         </div>
     );
 };
+
+export default MobileProfile;
