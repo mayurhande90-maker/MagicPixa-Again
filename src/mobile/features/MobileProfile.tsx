@@ -126,9 +126,9 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (translateY > 120) {
             handleCloseSupport();
         } else {
+            setTouchStart(null);
             setTranslateY(0);
         }
-        setTouchStart(null);
     };
 
     const handleSaveName = async () => {
@@ -355,9 +355,14 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
                                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">One-time</span>
                                             </div>
-                                            {/* Credit Breakdown Row (Added per request) */}
-                                            <div className="text-[11px] font-black text-indigo-600 uppercase tracking-tight mt-0.5">
-                                                {pack.bonus > 0 ? `${pack.credits} + ${pack.bonus} Bonus!` : `${pack.credits} Credits`}
+                                            {/* Updated Credit Breakdown (Total in Black, Breakdown in Indigo) */}
+                                            <div className="text-[11px] uppercase tracking-tight mt-0.5">
+                                                <span className="font-black text-gray-900">{pack.totalCredits} Credits</span>
+                                                {pack.bonus > 0 && (
+                                                    <span className="font-black text-indigo-600 ml-1">
+                                                        ({pack.credits} + {pack.bonus} Bonus!)
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
