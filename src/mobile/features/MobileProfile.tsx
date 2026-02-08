@@ -174,394 +174,169 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const refillPacks = [
-        { credits: 20, price: 49, label: 'Mini Boost', color: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-200' },
-        { credits: 150, price: 299, label: 'Power Pack', color: 'from-purple-500 to-indigo-700', iconColor: 'text-purple-200' },
-        { credits: 500, price: 899, label: 'Mega Tank', color: 'from-amber-500 to-orange-600', iconColor: 'text-amber-200' }
+        { credits: 20, price: 49, label: 'Mini Boost', color: 'from-blue-400 to-blue-600', iconColor: 'text-blue-200' },
+        { credits: 150, price: 299, label: 'Power Pack', color: 'from-purple-400 to-purple-600', iconColor: 'text-purple-200' },
+        { credits: 500, price: 899, label: 'Mega Tank', color: 'from-amber-400 to-orange-500', iconColor: 'text-amber-200' }
     ];
 
+    // --- RENDER ---
+    /**
+     * FIX: Added explicit return statement to resolve TypeScript error 'Type void is not assignable to ReactNode'
+     * caused by truncated file content during previous session.
+     */
     return (
-        <div className="flex flex-col h-full bg-[#FAFBFF] overflow-y-auto overflow-x-hidden no-scrollbar pb-32 animate-fadeIn w-full">
-            
-            {/* 1. IDENTITY HUB */}
-            <div className="relative z-20 flex-none bg-white border-b border-gray-50 pt-10 pb-8 px-6 flex flex-col items-center text-center overflow-visible">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 -z-10"></div>
+        <div className="h-full overflow-y-auto no-scrollbar bg-[#FAFAFB] pb-24">
+            {/* 1. Identity Header */}
+            <div className={`relative px-6 pt-10 pb-20 bg-gradient-to-br ${rankGradients[badge.rank] || rankGradients['Rising Creator']} text-white overflow-hidden`}>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
                 
-                <div className="relative mb-8 overflow-visible">
-                    <div className="w-24 h-24 rounded-full p-[3px] shadow-2xl shadow-indigo-500/10 bg-white relative overflow-hidden">
-                        <div className={`absolute inset-0 bg-gradient-to-tr ${rankGradients[badge.rank] || rankGradients['Rising Creator']} animate-gradient-slow`}></div>
-                        <div className="absolute inset-0 opacity-0 animate-ring-sweep pointer-events-none bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[-25deg]" style={{ width: '200%', marginLeft: '-50%' }}></div>
-                        <div className="relative w-full h-full rounded-full bg-white p-1 flex items-center justify-center z-10">
-                            <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center text-3xl font-black text-indigo-600">
-                                {user?.avatar || user?.name?.[0]}
+                <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="relative mb-4 group">
+                        <div className="w-24 h-24 rounded-[2rem] bg-white p-1 shadow-2xl">
+                            <div className="w-full h-full rounded-[1.8rem] bg-gray-100 flex items-center justify-center text-indigo-600 font-black text-3xl overflow-hidden border border-gray-100">
+                                {user?.avatar || (user?.name?.[0] || 'U')}
                             </div>
+                        </div>
+                        <div className="absolute -bottom-2 -right-2 bg-[#F9D230] text-black p-2 rounded-xl shadow-lg border-2 border-white">
+                            <badge.Icon className="w-4 h-4" />
                         </div>
                     </div>
 
-                    <div 
-                        onClick={() => setShowRanksModal(true)}
-                        className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full border shadow-xl flex items-center gap-2 whitespace-nowrap z-10 cursor-pointer active:scale-95 transition-transform ${badge.bgColor} ${badge.borderColor} animate-bounce-slight`}
-                    >
-                        <badge.Icon className={`w-3.5 h-3.5 ${badge.iconColor}`} />
-                        <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${badge.color}`}>{badge.rank}</span>
-                    </div>
-                </div>
-
-                <div className="w-full flex flex-col items-center">
                     {isEditingName ? (
-                        <div className="flex items-center gap-2 w-full max-w-[280px] animate-fadeIn">
+                        <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 animate-fadeIn">
                             <input 
-                                autoFocus
-                                value={newName}
+                                value={newName} 
                                 onChange={e => setNewName(e.target.value)}
-                                className="flex-1 bg-gray-50 border-2 border-indigo-500 rounded-xl px-4 py-2 text-center font-black text-gray-900 outline-none"
-                                onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                                className="bg-transparent border-none text-white font-black text-xl text-center outline-none px-4 w-40"
+                                autoFocus
                             />
-                            <button 
-                                onClick={handleSaveName}
-                                disabled={isSavingName}
-                                className="p-2 bg-indigo-600 text-white rounded-xl shadow-md disabled:opacity-50 shrink-0"
-                            >
-                                {isSavingName ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckIcon className="w-5 h-5" />}
+                            <button onClick={handleSaveName} disabled={isSavingName} className="p-2 bg-white text-indigo-600 rounded-xl shadow-lg active:scale-90 transition-all">
+                                {isSavingName ? <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"/> : <CheckIcon className="w-4 h-4" />}
                             </button>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-3 justify-center group cursor-pointer active:scale-95 transition-transform" onClick={() => setIsEditingName(true)}>
-                            <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-none">{user?.name}</h2>
-                            <div className="p-2 bg-gray-50 rounded-xl text-gray-400 group-hover:text-indigo-500 transition-colors">
-                                <PencilIcon className="w-4 h-4" />
-                            </div>
+                        <div className="flex items-center gap-2 group" onClick={() => setIsEditingName(true)}>
+                            <h2 className="text-2xl font-black tracking-tight">{user?.name}</h2>
+                            <PencilIcon className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
                         </div>
                     )}
-                    
-                    <p className="text-[12px] text-gray-400 font-medium mt-4 bg-gray-50 px-5 py-1.5 rounded-full border border-gray-100 lowercase tracking-tight">
-                        {user?.email}
-                    </p>
+                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-2">{user?.email}</p>
                 </div>
             </div>
 
-            <div className="relative z-10 mt-4 px-6 space-y-8">
+            {/* 2. Stats Overlay Card */}
+            <div className="px-6 -mt-12 relative z-20">
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-indigo-900/5 p-8 border border-gray-100 flex justify-between items-center overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-12 -mt-12 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Available Power</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-black text-gray-900">{user?.credits}</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Credits</span>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setExpandedPlan(expandedPlan === 'recharge' ? null : 'recharge')}
+                        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                    >
+                        Buy Credits
+                    </button>
+                </div>
+            </div>
+
+            {/* 3. Loyalty Progress */}
+            <div className="px-6 mt-8">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden" onClick={() => setShowRanksModal(true)}>
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg"><StarIcon className="w-4 h-4" /></div>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Creator Rank</span>
+                        </div>
+                        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full">{badge.rank}</span>
+                    </div>
+                    <div className="relative">
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">
+                            <span>{lifetimeGens} / {nextMilestone} Generations</span>
+                            <span className="text-indigo-600">Next: +{nextReward} credits</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-indigo-50 to-purple-600 transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 4. Menu Actions */}
+            <div className="px-6 mt-8 space-y-3">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2">Console Settings</p>
                 
-                {/* LOYALTY BONUS */}
-                <div className="bg-white p-7 rounded-[2.5rem] border border-gray-200 shadow-xl shadow-indigo-500/5 flex flex-col justify-between relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-36 h-36 bg-indigo-50 rounded-full -mr-12 -mt-12 transition-colors group-hover:bg-indigo-100"></div>
-                    
-                    <div className="relative z-10 flex items-center justify-between mb-8">
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loyalty Bonus</p>
-                                <button onClick={() => setShowRanksModal(true)} className="text-gray-400 hover:text-indigo-600 transition-colors p-1 -m-1">
-                                    <InformationCircleIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                            <h3 className="text-3xl font-black text-gray-900">
-                                {lifetimeGens} <span className="text-sm font-medium text-gray-400 ml-1 tracking-normal">Generations</span>
-                            </h3>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-2xl font-black text-indigo-600 leading-none">{nextMilestone}</p>
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2">Target</p>
+                <button 
+                    onClick={() => setIsSupportOpen(true)}
+                    className="w-full bg-white p-5 rounded-3xl border border-gray-100 flex items-center justify-between shadow-sm active:bg-gray-50 transition-all"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-purple-50 text-purple-600 rounded-2xl shadow-inner"><PixaSupportIcon className="w-5 h-5"/></div>
+                        <div className="text-left">
+                            <p className="text-sm font-black text-gray-800">Support Concierge</p>
+                            <p className="text-[10px] text-gray-400 font-medium">Chat with Pixa AI Expert</p>
                         </div>
                     </div>
+                    <ChevronRightIcon className="w-4 h-4 text-gray-300" />
+                </button>
 
-                    <div className="relative z-10">
-                        <div className="flex justify-between text-[11px] font-black mb-3">
-                            <span className="text-indigo-600 uppercase tracking-widest">Progress</span>
-                            <span className="text-gray-500 uppercase tracking-widest">Get: <span className="text-indigo-600">+{nextReward} Credits</span></span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner p-0.5 border border-gray-50">
-                            <div 
-                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out rounded-full relative shadow-[0_0_12px_rgba(77,124,255,0.4)]" 
-                                style={{ width: `${progressPercent}%` }}
-                            >
-                                <div className="absolute inset-0 bg-white/20 w-full h-full animate-[progress_2s_linear_infinite]"></div>
-                            </div>
-                        </div>
+                <button 
+                    onClick={handleLogout}
+                    className="w-full bg-white p-5 rounded-3xl border border-gray-100 flex items-center justify-between shadow-sm active:bg-red-50 transition-all group"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-red-50 text-red-500 rounded-2xl shadow-inner group-active:bg-red-500 group-active:text-white transition-colors"><LogoutIcon className="w-5 h-5"/></div>
+                        <p className="text-sm font-black text-gray-800">Sign Out</p>
                     </div>
-                </div>
-
-                {/* 3. MEMBERSHIP HUB */}
-                <div className="pt-2">
-                    {/* Continuous Marquee Benefits Strip */}
-                    <div className="overflow-hidden relative pb-6 px-1">
-                        <div className="flex gap-3 animate-marquee-scroll whitespace-nowrap">
-                            {[...benefits, ...benefits].map((benefit, i) => (
-                                <div key={i} className={`shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl ${benefit.bg} border ${benefit.border} min-w-[100px]`}>
-                                    <div className={`w-8 h-8 rounded-full ${benefit.iconBg} flex items-center justify-center text-white shadow-sm`}>
-                                        <benefit.icon className="w-4 h-4" />
-                                    </div>
-                                    <span className={`text-[10px] font-black ${benefit.text} text-center uppercase tracking-tight whitespace-pre-line`}>
-                                        {benefit.label}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#FAFBFF] to-transparent z-10 pointer-events-none"></div>
-                        <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#FAFBFF] to-transparent z-10 pointer-events-none"></div>
-                    </div>
-
-                    <div className="mb-6 px-1">
-                        <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                            Unlock Premium Features ✨
-                        </h2>
-                        <p className="text-sm text-gray-500 font-medium">Professional creative logic for every pack</p>
-                    </div>
-
-                    {/* Vertical Accordion Plan List */}
-                    <div className="space-y-4">
-                        {membershipPacks.map((pack, idx) => {
-                            const packWeight = PLAN_WEIGHTS[pack.name] || 0;
-                            const isCurrent = currentPlanWeight === packWeight;
-                            const isUpgrade = packWeight > currentPlanWeight;
-                            const isDowngrade = packWeight < currentPlanWeight;
-                            const isOpen = expandedPlan === pack.name;
-                            const isLoading = loadingPack === pack.name;
-                            const isCreator = pack.name === 'Creator Pack';
-
-                            return (
-                                <div 
-                                    key={idx}
-                                    className={`w-full rounded-[2rem] border-2 transition-all overflow-hidden ${
-                                        isCurrent 
-                                        ? 'bg-green-50 border-green-500 shadow-xl shadow-green-100 ring-2 ring-green-100' 
-                                        : isUpgrade 
-                                            ? 'bg-white border-gray-100 shadow-sm' 
-                                            : 'bg-gray-100 border-transparent grayscale opacity-70'
-                                    }`}
-                                >
-                                    {/* Main Card Trigger */}
-                                    <button 
-                                        onClick={() => setExpandedPlan(isOpen ? null : pack.name)}
-                                        className="w-full p-5 flex items-center gap-4 text-left relative"
-                                    >
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                                            isCurrent 
-                                            ? 'border-green-500' 
-                                            : 'border-gray-200'
-                                        }`}>
-                                            {isCurrent && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                                                <span className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{pack.name}</span>
-                                                {isCurrent && (
-                                                    <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Active</span>
-                                                )}
-                                                {isCreator && (
-                                                    <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Best Value</span>
-                                                )}
-                                                {pack.bonus > 0 && (
-                                                    <span className="bg-green-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">+{pack.bonus} Bonus</span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xl font-black text-gray-900">₹ {pack.price}</span>
-                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">One-time</span>
-                                            </div>
-                                        </div>
-
-                                        <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-600' : 'text-gray-400'}`}>
-                                            <ChevronDownIcon className="w-5 h-5" />
-                                        </div>
-                                    </button>
-
-                                    {/* Dropdown Content */}
-                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-height-none opacity-100' : 'max-h-0 opacity-0'}`}>
-                                        <div className="px-5 pb-6 pt-2 border-t border-gray-100/50">
-                                            <div className="space-y-2 mb-6">
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Included Benefits</p>
-                                                {(PLAN_BENEFITS[pack.name] || []).map((benefit, i) => (
-                                                    <div key={i} className="flex items-center gap-3">
-                                                        <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shrink-0">
-                                                            <CheckIcon className="w-3 h-3" />
-                                                        </div>
-                                                        <span className="text-xs font-medium text-gray-600">{benefit}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {isUpgrade ? (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); handleCheckout(pack, true); }}
-                                                    disabled={!!loadingPack}
-                                                    className="w-full py-4 bg-[#1A1A1E] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 active:bg-black transition-all"
-                                                >
-                                                    {isLoading ? (
-                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    ) : (
-                                                        <>Upgrade Now <ArrowRightIcon className="w-4 h-4" /></>
-                                                    )}
-                                                </button>
-                                            ) : isCurrent ? (
-                                                <div className="w-full py-4 bg-green-100 text-green-800 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center flex items-center justify-center gap-2 border border-green-200">
-                                                    <CheckIcon className="w-4 h-4" /> Current Selection
-                                                </div>
-                                            ) : (
-                                                <div className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center border border-gray-100">
-                                                    Already Included
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* 4. POWER REFILL STATION */}
-                <div className="pt-2">
-                    <div className="flex items-center gap-2 mb-5 ml-2">
-                        <LightningIcon className="w-4 h-4 text-indigo-500" />
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">Power Refill Station</h3>
-                    </div>
-                    
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-6 -mx-1 px-1">
-                        {refillPacks.map((pack, idx) => (
-                            <button 
-                                key={idx}
-                                onClick={() => handleCheckout(pack)}
-                                disabled={!!loadingPack}
-                                className={`shrink-0 w-36 h-48 rounded-[2rem] p-1 bg-gradient-to-br ${pack.color} shadow-2xl shadow-indigo-500/10 active:scale-95 transition-all relative overflow-hidden group`}
-                            >
-                                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl transition-all group-active:scale-125"></div>
-                                <div className="w-full h-full bg-white/10 backdrop-blur-sm rounded-[1.8rem] p-5 flex flex-col justify-between items-center text-center border border-white/10">
-                                    {loadingPack === pack.label ? (
-                                        <div className="flex-1 flex items-center justify-center">
-                                            <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em] leading-none">{pack.label}</span>
-                                            <div className="my-2">
-                                                <span className="text-4xl font-black text-white block leading-none tracking-tighter">{pack.credits}</span>
-                                                <span className="text-[9px] font-black text-white/50 uppercase tracking-widest mt-1 block">Credits</span>
-                                            </div>
-                                            <div className="bg-white/20 border border-white/20 px-4 py-2 rounded-2xl w-full shadow-lg">
-                                                <span className="text-white font-black text-xs">₹{pack.price}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* 5. SETTINGS LIST */}
-                <div className="space-y-4 pt-2">
-                    <button 
-                        onClick={() => setIsSupportOpen(true)}
-                        className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"
-                    >
-                        <div className="flex items-center gap-5">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-blue-100">
-                                <PixaSupportIcon className="w-6 h-6"/>
-                            </div>
-                            <div>
-                                <span className="text-base font-black text-gray-800 block leading-tight">Support Desk</span>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Pixa 24/7 Concierge</p>
-                            </div>
-                        </div>
-                        <ChevronRightIcon className="w-5 h-5 text-gray-300 group-active:translate-x-1 transition-transform" />
-                    </button>
-
-                    <button 
-                        onClick={handleLogout}
-                        className="w-full flex items-center justify-between p-6 bg-white border border-red-50 rounded-[2.2rem] active:bg-red-50 transition-all text-left group mt-4 shadow-sm"
-                    >
-                        <div className="flex items-center gap-5">
-                            <div className="p-3 bg-red-50 text-red-600 rounded-2xl shadow-sm group-active:scale-90 transition-transform border border-red-100">
-                                <LogoutIcon className="w-6 h-6"/>
-                            </div>
-                            <span className="text-xs font-black text-red-700 uppercase tracking-[0.25em]">Sign Out Console</span>
-                        </div>
-                    </button>
-                </div>
+                </button>
             </div>
 
-            <div className="mt-20 mb-10 flex flex-col items-center gap-3 px-6 text-center opacity-30">
-                <SparklesIcon className="w-5 h-5 text-gray-400" />
-                <p className="text-[10px] font-black uppercase tracking-[0.6em]">MagicPixa Studio</p>
-            </div>
-
+            {/* Support Tray Overlay */}
             {isSupportOpen && createPortal(
-                <div className="fixed inset-0 z-[1000] flex items-end justify-center">
+                <div 
+                    className={`fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
+                    onClick={handleCloseSupport}
+                >
                     <div 
-                        className={`absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} 
-                        onClick={handleCloseSupport}
-                    ></div>
-                    
-                    <button 
-                        onClick={handleCloseSupport}
-                        className={`absolute top-10 right-6 p-3 bg-white/20 backdrop-blur-xl border border-white/20 rounded-full text-white shadow-2xl transition-all z-[1010] active:scale-90 ${isClosing ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
-                    >
-                        <XIcon className="w-6 h-6" />
-                    </button>
-
-                    <div 
+                        className={`absolute bottom-0 left-0 right-0 h-[85vh] bg-white rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isClosing ? 'translate-y-full' : 'translate-y-0'}`}
+                        style={{ transform: translateY > 0 ? `translateY(${translateY}px)` : undefined }}
+                        onClick={e => e.stopPropagation()}
                         onTouchStart={handleTouchStart}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
-                        style={{ transform: `translateY(${translateY}px)` }}
-                        className={`relative w-full max-w-lg bg-white rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden h-[85vh] transition-transform duration-300 ${isClosing ? 'translate-y-full' : 'translate-y-0'} ${touchStart === null ? 'ease-[cubic-bezier(0.32,0.72,0,1)]' : ''}`}
                     >
-                        <div className="h-1.5 w-16 bg-gray-200 rounded-full mx-auto mt-3 mb-2 shrink-0 shadow-inner"></div>
+                        {/* Drag Bar */}
+                        <div className="flex-none pt-4 pb-2 flex justify-center">
+                            <div className="w-12 h-1.5 bg-gray-100 rounded-full"></div>
+                        </div>
                         
-                        <div className="flex-1 overflow-hidden flex flex-col pt-2">
+                        <div className="flex-1 overflow-hidden relative">
                             <SupportChatWindow 
                                 auth={auth} 
                                 appConfig={appConfig} 
                                 onTicketCreated={() => {}} 
-                                onToggleSidebar={() => {}} 
+                                onToggleSidebar={() => {}}
                             />
                         </div>
+
+                        {/* Top Close Button for better UX */}
+                        <button 
+                            onClick={handleCloseSupport}
+                            className="absolute top-6 right-6 p-2 bg-gray-100 text-gray-400 rounded-full active:scale-90 transition-transform"
+                        >
+                            <XIcon className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>,
                 document.body
             )}
 
-            {showRanksModal && (
-                <CreatorRanksModal 
-                    currentGens={lifetimeGens} 
-                    onClose={() => setShowRanksModal(false)} 
-                />
-            )}
-            
-            <style>{`
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                @keyframes progress { 
-                    0% { background-position: 0% 0%; } 
-                    100% { background-position: 200% 0%; } 
-                }
-                @keyframes ring-sweep {
-                    0% { transform: translateX(-150%) skewX(-25deg); opacity: 0; }
-                    5% { opacity: 1; }
-                    20% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
-                    100% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
-                }
-                .animate-ring-sweep {
-                    animation: ring-sweep 10s linear infinite;
-                }
-                @keyframes gradient-slow {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                .animate-gradient-slow {
-                    background-size: 200% 200%;
-                    animation: gradient-slow 6s ease infinite;
-                }
-                @keyframes marquee-scroll {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
-                }
-                .animate-marquee-scroll {
-                    animation: marquee-scroll 15s linear infinite;
-                }
-                .animate-materialize { animation: materialize 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-            `}</style>
+            {showRanksModal && <CreatorRanksModal currentGens={lifetimeGens} onClose={() => setShowRanksModal(false)} />}
         </div>
     );
 };
