@@ -32,12 +32,12 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [loadingPack, setLoadingPack] = useState<string | null>(null);
     const [showRanksModal, setShowRanksModal] = useState(false);
 
-    // --- RANK GRADIENTS ---
+    // --- RANK GRADIENTS (Updated to match User Specs) ---
     const rankGradients: Record<string, string> = {
-        'Rising Creator': 'from-slate-300 via-gray-100 to-slate-400',
-        'Professional Creator': 'from-orange-400 via-orange-100 to-orange-600',
-        'Silver Creator': 'from-slate-400 via-gray-50 to-slate-600',
-        'Gold Creator': 'from-amber-400 via-yellow-200 to-amber-600',
+        'Rising Creator': 'from-blue-600 via-indigo-500 to-purple-600',
+        'Professional Creator': 'from-blue-900 via-blue-700 to-sky-400',
+        'Silver Creator': 'from-cyan-400 via-emerald-400 to-yellow-300',
+        'Gold Creator': 'from-amber-500 via-yellow-200 to-amber-800',
     };
 
     // --- LOYALTY ENGINE ---
