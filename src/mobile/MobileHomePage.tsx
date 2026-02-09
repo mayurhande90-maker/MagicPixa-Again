@@ -7,7 +7,7 @@ import {
   SparklesIcon, ArrowRightIcon, XIcon, ClockIcon, CreditCoinIcon, CheckIcon, 
   UploadTrayIcon, CursorClickIcon, StarIcon, PixaProductIcon, PixaHeadshotIcon, 
   PixaTryOnIcon, ThumbnailIcon, MagicAdsIcon, ChevronDownIcon, ShieldCheckIcon,
-  GlobeIcon, LightningIcon, CubeIcon
+  GlobeIcon, LightningIcon, CubeIcon, CameraIcon
 } from '../components/icons';
 import { subscribeToLabCollections } from '../firebase';
 import { MobileSplashScreen } from './components/MobileSplashScreen';
@@ -38,7 +38,7 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
-    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
+    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
 ];
 
@@ -48,6 +48,15 @@ const FAQ_ITEMS = [
     { q: "How do credits work?", a: "MagicPixa uses a pay-as-you-go system. Buy credits once, use them whenever. They never expire." },
     { q: "Do I need design skills?", a: "Zero skills required. Our Pixa Vision AI handles the art direction and physics automatically." }
 ];
+
+const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+};
 
 const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) => {
     return (
@@ -100,9 +109,12 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
         };
     }, []);
 
+    // Randomize order on memo initialization
+    const shuffledDefinitions = useMemo(() => shuffleArray([...GALLERY_ITEMS_DEFINITION]), []);
+
     const galleryItems = useMemo(() => {
         const slotData = (labCollections['homepage_gallery'] as Record<string, any>) || {};
-        return GALLERY_ITEMS_DEFINITION.map(def => {
+        return shuffledDefinitions.map(def => {
             const uploaded = slotData[def.id] || {};
             const staticDefault = GALLERY_ITEMS_STATIC.find(s => s.id === def.id) || GALLERY_ITEMS_STATIC[0];
             return {
@@ -112,7 +124,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 after: uploaded.after || staticDefault.after
             };
         });
-    }, [labCollections['homepage_gallery']]);
+    }, [labCollections['homepage_gallery'], shuffledDefinitions]);
 
     return (
         <div className="pb-32 animate-fadeIn overflow-x-hidden">
@@ -129,74 +141,77 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     89% { opacity: 1; }
                     90%, 100% { left: 0%; opacity: 0; }
                 }
-                @keyframes magic-sweep {
-                    0% { background-position: -200% center; }
-                    100% { background-position: 200% center; }
+                @keyframes blob {
+                    0% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0px, 0px) scale(1); }
                 }
-                @keyframes neural-trace {
-                    0% { transform: translateY(-100%); opacity: 0; }
-                    20% { opacity: 0.5; }
-                    80% { opacity: 0.5; }
-                    100% { transform: translateY(500%); opacity: 0; }
-                }
-                @keyframes story-scan {
-                    0% { top: 0; }
-                    100% { top: 100%; }
-                }
-                .magic-sweep-text {
-                    background: linear-gradient(90deg, #4D7CFF, #6EFACC, #4D7CFF);
-                    background-size: 200% auto;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    animation: magic-sweep 3s linear infinite;
-                }
-                .neural-trace-line {
-                    position: absolute;
-                    width: 100%;
-                    height: 1px;
-                    background: linear-gradient(90deg, transparent, rgba(77, 124, 255, 0.4), transparent);
-                    animation: neural-trace 6s linear infinite;
-                }
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                .animate-blob { animation: blob 7s infinite; }
+                .animation-delay-2000 { animation-delay: 2s; }
+                .bg-grid-slate-200 { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0 40L40 40M40 0L40 40' fill='none' stroke='%23e2e8f0' stroke-width='1'/%3E%3C/svg%3E"); }
             `}</style>
 
             {showSplash && <MobileSplashScreen onComplete={() => setShowSplash(false)} />}
 
             <Header navigateTo={navigateTo} auth={auth} />
 
-            {/* Enhanced Hero Section */}
-            <section className="px-6 py-16 text-center bg-white overflow-hidden relative">
-                <div className="neural-trace-line" style={{ top: '20%' }}></div>
-                <div className="neural-trace-line" style={{ top: '50%', animationDelay: '2s' }}></div>
-                <div className="neural-trace-line" style={{ top: '80%', animationDelay: '4s' }}></div>
-                
-                <div className="absolute top-0 right-0 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                <div className="absolute bottom-0 left-0 w-72 h-72 bg-purple-100/40 rounded-full blur-3xl -ml-32 -mb-32"></div>
-                
-                <div className="relative z-10">
-                    <h1 className="text-[2.8rem] font-black text-[#1A1A1E] leading-[1.05] mb-6 tracking-tight">
-                        Professional <span className="magic-sweep-text">Magic</span>,<br/>
-                        <span className="text-[#4D7CFF]">No Prompt</span> Required
+            {/* Sync with Desktop Hero Style */}
+            <section className="px-6 py-12 bg-white relative overflow-hidden">
+                <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(to_bottom,white_90%,transparent)]"></div>
+                <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+
+                <div className="relative z-10 text-center">
+                    <h1 className="text-[2.8rem] font-black text-[#1A1A1E] leading-[1.05] mb-4 tracking-tight">
+                        Create Stunning Visuals, <span className="text-[#4D7CFF]">No Prompt Required</span>
                     </h1>
-                    <p className="text-base text-gray-500 font-medium mb-10 leading-relaxed px-2">
-                        Pixa Vision AI understands your product's physics. From raw photo to studio asset in one tap.
+                    <p className="text-base text-gray-500 font-medium mb-8 leading-relaxed px-2">
+                        MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
                     </p>
                     
                     <button 
                       onClick={() => auth.openAuthModal()} 
-                      className="w-full bg-[#F9D230] text-[#1A1A1E] py-5 rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-yellow-500/20 active:scale-95 transition-all text-sm"
+                      className="w-full bg-[#F9D230] text-[#1A1A1E] py-5 rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-yellow-500/20 active:scale-95 transition-all text-sm mb-4"
                     >
-                        Start Creating Free
+                        Start Creating for Free
                     </button>
-                    <div className="mt-5 flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        <CheckIcon className="w-3.5 h-3.5 text-green-500" />
-                        <span>50 FREE CREDITS ON SIGN UP</span>
-                    </div>
+                    <p className="text-sm text-gray-500">Get 50 free credits on sign up!</p>
                 </div>
             </section>
 
-            {/* Vertical Storyboard Comparison */}
+            {/* 2. THE TRANSFORMATION GALLERY (3 + GRID) */}
+            <section className="py-20 px-6 bg-white">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-black text-[#1A1A1E] tracking-tight">The Transformation Gallery</h2>
+                    <p className="text-sm text-gray-500 font-medium mt-2">From raw asset to professional masterpiece in one click.</p>
+                </div>
+                
+                {/* Top 3 High-Impact Cards */}
+                <div className="flex flex-col gap-6 mb-6">
+                    {galleryItems.slice(0, 3).map((item, i) => (
+                        <AutoWipeBox key={item.id} item={item} delay={i * 800} />
+                    ))}
+                </div>
+
+                {/* Discovery Grid (Remaining Cards) */}
+                <div className="grid grid-cols-2 gap-4">
+                    {galleryItems.slice(3).map((item, i) => (
+                        <AutoWipeBox key={item.id} item={item} delay={(i + 3) * 800} />
+                    ))}
+                </div>
+
+                <div className="mt-12 flex justify-center">
+                    <button 
+                        onClick={() => auth.openAuthModal()} 
+                        className="bg-[#1A1A1E] text-white font-bold py-4 px-8 rounded-2xl active:scale-95 transition-all text-sm flex items-center gap-3 shadow-xl"
+                    >
+                        Try MagicPixa <ArrowRightIcon className="w-5 h-5" />
+                    </button>
+                </div>
+            </section>
+
+            {/* Vertical Storyboard Comparison (Moved below Gallery) */}
             <section className="px-6 py-20 bg-gray-50">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl font-black text-[#1A1A1E] tracking-tight">The Storyboard</h2>
