@@ -211,47 +211,6 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 </div>
             </section>
 
-            {/* Vertical Storyboard Comparison (Moved below Gallery) */}
-            <section className="px-6 py-20 bg-gray-50">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl font-black text-[#1A1A1E] tracking-tight">The Storyboard</h2>
-                    <p className="text-sm text-gray-500 font-medium mt-2">How we transform your business.</p>
-                </div>
-
-                <div className="space-y-12 relative">
-                    {/* Step 1: Raw */}
-                    <div className="relative">
-                        <div className="bg-white p-4 rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden group">
-                            <div className="absolute top-4 left-4 z-20 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg text-white text-[9px] font-black uppercase">Phase 1: Raw Capture</div>
-                            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" className="w-full aspect-square object-cover rounded-2xl grayscale opacity-40" />
-                            <div className="absolute inset-x-4 top-0 h-1 bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.8)] z-30 animate-[story-scan_4s_infinite] pointer-events-none"></div>
-                        </div>
-                        <div className="absolute left-1/2 -bottom-8 -translate-x-1/2 w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg z-10 border-4 border-gray-50">
-                            <ArrowRightIcon className="w-4 h-4 rotate-90" />
-                        </div>
-                    </div>
-
-                    {/* Step 2: Analysis */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-sm text-center">
-                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-indigo-600">
-                            <ShieldCheckIcon className="w-7 h-7" />
-                        </div>
-                        <h4 className="text-lg font-black text-gray-900">Pixa Vision Audit</h4>
-                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                            We don't just "guess." Our AI identifies labels, geometry, and material physics to anchor your identity.
-                        </p>
-                    </div>
-
-                    {/* Step 3: Result */}
-                    <div className="relative">
-                        <div className="bg-white p-4 rounded-[2rem] shadow-2xl border-2 border-indigo-100 overflow-hidden">
-                            <div className="absolute top-4 left-4 z-20 bg-indigo-600 px-3 py-1 rounded-lg text-white text-[9px] font-black uppercase shadow-lg">Phase 2: Pro Result</div>
-                            <img src="https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?q=80&w=1000" className="w-full aspect-square object-cover rounded-2xl animate-fadeIn" />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             {/* Bento Hub: The Feature Grid */}
             <section className="px-6 py-20 bg-white">
                 <div className="mb-10 px-2">
