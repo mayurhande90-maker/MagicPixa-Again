@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; 
 import HomePage from './HomePage';
@@ -26,7 +27,8 @@ import {
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from './types';
 import { ShieldCheckIcon } from './components/icons';
 import { useDevice } from './hooks/useDevice'; // NEW: Device detection
-import { MobileApp } from './mobile/MobileApp'; // NEW: Mobile entry point
+import { MobileApp } from './mobile/MobileApp'; // Post-login mobile experience
+import { MobileHomePage } from './mobile/MobileHomePage'; // NEW: Pre-login mobile experience
 
 // --- Routing Configuration ---
 
@@ -307,15 +309,24 @@ function App() {
   };
 
   // --- MOBILE FORK ---
-  if (isMobile && authProps.isAuthenticated) {
-    return (
-        <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white overflow-y-auto`}>
-            <MobileApp auth={authProps} appConfig={appConfig} />
-            {activeUser?.systemNotification && !activeUser.systemNotification.read && (
-                <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
-            )}
-        </div>
-    );
+  if (isMobile) {
+    if (authProps.isAuthenticated) {
+        return (
+            <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white overflow-y-auto`}>
+                <MobileApp auth={authProps} appConfig={appConfig} />
+                {activeUser?.systemNotification && !activeUser.systemNotification.read && (
+                    <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
+                )}
+            </div>
+        );
+    } else if (currentPage === 'home') {
+        return (
+            <div className="min-h-screen bg-white font-sans text-slate-900">
+                <MobileHomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />
+                {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
+            </div>
+        );
+    }
   }
 
   return (
