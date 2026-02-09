@@ -38,7 +38,7 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
-    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
+    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
 ];
 
@@ -193,25 +193,6 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                         <CheckIcon className="w-3.5 h-3.5 text-green-500" />
                         <span>50 FREE CREDITS ON SIGN UP</span>
                     </div>
-                </div>
-            </section>
-
-            {/* Horizontal Snap Gallery */}
-            <section className="py-12 bg-white">
-                <div className="px-6 mb-6 flex justify-between items-end">
-                    <div>
-                        <h2 className="text-xl font-black text-[#1A1A1E] tracking-tight uppercase">Visual Proof</h2>
-                        <div className="h-1 w-8 bg-[#4D7CFF] rounded-full mt-1"></div>
-                    </div>
-                    <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest animate-pulse">Swipe to see magic</span>
-                </div>
-                
-                <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x px-6 pb-6">
-                    {galleryItems.map((item, i) => (
-                        <div key={item.id} className="min-w-[85vw] snap-center transform transition-transform active:scale-[0.98]">
-                            <AutoWipeBox item={item} delay={i * 800} />
-                        </div>
-                    ))}
                 </div>
             </section>
 
