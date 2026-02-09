@@ -10,6 +10,7 @@ import {
   GlobeIcon, LightningIcon, CubeIcon
 } from '../components/icons';
 import { subscribeToLabCollections } from '../firebase';
+import { MobileSplashScreen } from './components/MobileSplashScreen';
 
 interface MobileHomePageProps {
   navigateTo: (page: Page, view?: View, sectionId?: string) => void;
@@ -85,6 +86,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
     const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
     const [showSticky, setShowSticky] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [showSplash, setShowSplash] = useState(true);
 
     useEffect(() => {
         const unsubCollections = subscribeToLabCollections(setLabCollections);
@@ -158,6 +160,8 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
+
+            {showSplash && <MobileSplashScreen onComplete={() => setShowSplash(false)} />}
 
             <Header navigateTo={navigateTo} auth={auth} />
 
