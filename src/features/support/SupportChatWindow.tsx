@@ -160,7 +160,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             const newTicket = await createTicket(auth.user.uid, auth.user.email, draft);
             setMessages(prev => prev.map(m => {
                 if (m.id === msgId) {
-                    const updated = { ...m, isSubmitted: true, ticketDraft: { ...draft, id: newTicket.id } };
+                    const updated = { ...m, isSubmitted: true, ticketDraft: draft };
                     saveSupportMessage(auth.user!.uid, updated).catch(e => console.warn("Update save failed", e));
                     return updated;
                 }
