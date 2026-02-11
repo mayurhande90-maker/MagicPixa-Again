@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, Ticket, AppConfig } from '../../types';
 import { sendSupportMessage, createTicket, ChatMessage, analyzeSupportImage } from '../../services/supportService';
@@ -11,7 +10,8 @@ import {
     ArrowDownIcon,
     PixaSupportIcon,
     PlusIcon,
-    TicketIcon
+    TicketIcon,
+    ShieldCheckIcon
 } from '../../components/icons';
 import { PixaBotIcon, UserMessageIcon, FormattedMessage, TicketProposalCard, QuickActions, ChatSkeleton, getGreeting } from './SupportComponents';
 
@@ -48,7 +48,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
         if (!loadingHistory && messages.length > 0) {
             scrollToBottom();
         }
-    }, [loadingHistory, messages]);
+    }, [loadingHistory, messages.length]);
 
     const scrollToBottom = () => {
         requestAnimationFrame(() => {
@@ -92,7 +92,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             const welcomeMsg: ChatMessage = {
                 id: 'welcome_' + Date.now(),
                 role: 'model',
-                content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa Support**. I can help you with:\n\n- Troubleshooting & Bugs\n- Credits & Billing\n- Creating Better Images\n\nHow can I help you today?`,
+                content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa**, your dedicated Technical Concierge. I can help you master our high-fidelity AI tools, troubleshoot issues, or handle credit inquiries.\n\nWhat can I do for you today?`,
                 timestamp: Date.now()
             };
             setMessages([welcomeMsg]);
@@ -126,12 +126,21 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
         try {
             const response = await sendSupportMessage(
                 [...messages, userMsg], 
-                { name: auth.user.name, email: auth.user.email, credits: auth.user.credits, plan: auth.user.plan },
+                { 
+                    name: auth.user.name, 
+                    email: auth.user.email, 
+                    credits: auth.user.credits, 
+                    plan: auth.user.plan 
+                },
                 appConfig?.featureCosts || {} 
             );
             setMessages(prev => [...prev, response]);
             saveSupportMessage(auth.user.uid, response).catch(e => console.warn("Bot msg save failed", e));
-        } catch (e) { console.error(e); } finally { setIsTyping(false); }
+        } catch (e) { 
+            console.error(e); 
+        } finally { 
+            setIsTyping(false); 
+        }
     };
 
     const handleQuickAction = (action: any) => {
@@ -151,7 +160,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             const newTicket = await createTicket(auth.user.uid, auth.user.email, draft);
             setMessages(prev => prev.map(m => {
                 if (m.id === msgId) {
-                    const updated = { ...m, isSubmitted: true, ticketDraft: draft };
+                    const updated = { ...m, isSubmitted: true, ticketDraft: { ...draft, id: newTicket.id } };
                     saveSupportMessage(auth.user!.uid, updated).catch(e => console.warn("Update save failed", e));
                     return updated;
                 }
@@ -161,13 +170,16 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             const confirmationMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'model',
-                content: "**Ticket Created!**\n\nI've forwarded this to our specialists. You can track the status in the sidebar.",
+                content: "**Identity Verified. Ticket Logged.**\n\nI've forwarded your case to our Technical Operations team. You can monitor the resolution status in the 'Support History' sidebar.",
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, confirmationMsg]);
             saveSupportMessage(auth.user.uid, confirmationMsg).catch(e => console.warn("Save failed", e));
-            setHasInteracted(true);
-        } catch (e: any) { alert("Failed to create ticket: " + e.message); } finally { setSubmittingTicketId(null); }
+        } catch (e: any) { 
+            alert("Uplink failed. Error creating ticket: " + e.message); 
+        } finally { 
+            setSubmittingTicketId(null); 
+        }
     };
 
     const handleCancelTicket = (msgId: string) => {
@@ -182,11 +194,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             
             const dataUri = `data:${base64.mimeType};base64,${base64.base64}`;
             
-            // Show the user message with image immediately
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
-                content: "", // Content empty, image is in attachment
+                content: "[Visual Diagnostics Uploaded]",
                 attachment: dataUri,
                 timestamp: Date.now()
             };
@@ -196,28 +207,31 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             
             setIsTyping(true);
             
-            // 1. Analyze Image
-            const analysis = await analyzeSupportImage(base64.base64, base64.mimeType);
-            
-            // 2. Send Analysis as Hidden System Context to Bot
-            const response = await sendSupportMessage(
-                [
-                    ...messages, 
-                    userMsg, 
-                    { 
-                        role: 'user', 
-                        content: `[SYSTEM: USER UPLOADED IMAGE]\n\nIMAGE ANALYSIS:\n${analysis}\n\nINSTRUCTION: Acknowledge the image, describe what you see based on the analysis to confirm, and ask how you can help with it.`, 
-                        id: 'sys_' + Date.now(), 
-                        timestamp: Date.now() 
-                    }
-                ],
-                { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan },
-                appConfig?.featureCosts || {}
-            );
-            
-            setMessages(prev => [...prev, response]);
-            saveSupportMessage(auth.user!.uid, response).catch(e => console.warn("Save failed", e));
-            setIsTyping(false);
+            try {
+                const analysis = await analyzeSupportImage(base64.base64, base64.mimeType);
+                
+                const response = await sendSupportMessage(
+                    [
+                        ...messages, 
+                        userMsg, 
+                        { 
+                            role: 'user', 
+                            content: `[SYSTEM: USER ATTACHED SCREENSHOT]\nVISUAL DIAGNOSIS: ${analysis}\nINSTRUCTION: Briefly acknowledge the image and provide technical assistance based on the diagnosis.`, 
+                            id: 'sys_' + Date.now(), 
+                            timestamp: Date.now() 
+                        }
+                    ],
+                    { name: auth.user!.name, email: auth.user!.email, credits: auth.user!.credits, plan: auth.user!.plan },
+                    appConfig?.featureCosts || {}
+                );
+                
+                setMessages(prev => [...prev, response]);
+                saveSupportMessage(auth.user!.uid, response).catch(e => console.warn("Save failed", e));
+            } catch (err) {
+                console.error("Diagnostic failed", err);
+            } finally {
+                setIsTyping(false);
+            }
         }
     };
 
@@ -229,10 +243,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 <div className="flex items-center gap-3">
                     <PixaSupportIcon className="w-[clamp(24px,4vh,36px)] h-[clamp(24px,4vh,36px)] text-indigo-600" />
                     <div>
-                        <h2 className="text-[clamp(13px,1.8vh,16px)] font-black text-gray-800 tracking-tight leading-none">Support Chat</h2>
+                        <h2 className="text-[clamp(13px,1.8vh,16px)] font-black text-gray-800 tracking-tight leading-none">Pixa Agent Hub</h2>
                         <div className="flex items-center gap-1.5 mt-1">
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Live Agent</span>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Logic Engine Online</span>
                         </div>
                     </div>
                 </div>
@@ -243,7 +257,13 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                         className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100 flex items-center gap-2"
                     >
                         <PlusIcon className="w-3.5 h-3.5" />
-                        <span>Reset</span>
+                        <span>New Session</span>
+                    </button>
+                    <button 
+                        onClick={onToggleSidebar}
+                        className="lg:hidden p-2 text-gray-400 hover:text-indigo-600"
+                    >
+                        <TicketIcon className="w-6 h-6" />
                     </button>
                 </div>
             </div>
@@ -263,7 +283,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                         <>
                             {messages.map((msg, index) => (
                                 <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
-                                    <div className={`flex items-end gap-3 max-w-[90%] md:max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`flex items-end gap-3 max-w-[95%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                         <div className="mb-1 hidden sm:block shrink-0">
                                             {msg.role === 'model' ? <PixaBotIcon /> : <UserMessageIcon user={auth.user} />}
                                         </div>
@@ -274,8 +294,8 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                                 <div className={`mb-1.5 p-1 bg-white rounded-2xl border border-gray-200 shadow-sm inline-block ${msg.role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
                                                     <img 
                                                         src={msg.attachment} 
-                                                        alt="Upload" 
-                                                        className="max-h-[clamp(120px,25vh,200px)] w-auto object-cover rounded-xl cursor-zoom-in hover:opacity-90 transition-opacity" 
+                                                        alt="User Upload" 
+                                                        className="max-h-[clamp(120px,25vh,240px)] w-auto object-cover rounded-xl cursor-zoom-in hover:opacity-90 transition-opacity" 
                                                         onClick={() => window.open(msg.attachment, '_blank')}
                                                     />
                                                 </div>
@@ -283,21 +303,27 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                             
                                             {/* RENDER TEXT CONTENT */}
                                             {msg.content && (
-                                                <div className={`px-[min(2vh,20px)] py-[min(1.5vh,14px)] rounded-2xl text-[clamp(12px,1.6vh,14px)] leading-relaxed border shadow-sm ${
+                                                <div className={`px-[min(2.2vh,24px)] py-[min(1.8vh,18px)] rounded-3xl text-[clamp(12px,1.6vh,15px)] leading-relaxed border shadow-sm relative ${
                                                     msg.role === 'user' 
                                                     ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
                                                     : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
                                                 }`}>
+                                                    {msg.role === 'model' && (
+                                                        <div className="flex items-center gap-1.5 mb-2 opacity-50">
+                                                            <ShieldCheckIcon className="w-3.5 h-3.5 text-indigo-500" />
+                                                            <span className="text-[8px] font-black uppercase tracking-widest text-indigo-600">Verified Pixa Solution</span>
+                                                        </div>
+                                                    )}
                                                     {msg.role === 'user' 
-                                                        ? <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-                                                        : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("### Good")} />
+                                                        ? <div className="whitespace-pre-wrap break-words font-medium">{msg.content}</div>
+                                                        : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("###")} />
                                                     }
                                                 </div>
                                             )}
 
-                                            {/* Interactive Widgets */}
+                                            {/* Interactive Widgets: TICKET PROPOSALS */}
                                             {msg.type === 'proposal' && msg.ticketDraft && (
-                                                <div className="pl-2 w-full max-w-sm mt-2">
+                                                <div className="w-full max-w-sm mt-3 animate-fadeIn">
                                                     <TicketProposalCard 
                                                         draft={msg.ticketDraft} 
                                                         onConfirm={(finalDraft) => handleCreateTicket(finalDraft, msg.id)}
@@ -308,7 +334,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                                 </div>
                                             )}
                                             
-                                            <span className={`text-[9px] font-black text-gray-300 mt-1.5 px-2 uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                                            <span className={`text-[9px] font-black text-gray-300 mt-2 px-2 uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
@@ -328,10 +354,10 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                     {isTyping && (
                         <div className="flex items-center gap-3 animate-fadeIn pl-2">
                             <PixaBotIcon />
-                            <div className="bg-gray-100 px-5 py-4 rounded-3xl rounded-tl-none flex gap-1.5 items-center w-20 h-12 shadow-sm">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                            <div className="bg-gray-50 px-5 py-4 rounded-3xl rounded-tl-none flex gap-1.5 items-center w-20 h-12 shadow-inner border border-gray-100">
+                                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
+                                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
+                                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"></div>
                             </div>
                         </div>
                     )}
@@ -341,7 +367,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                 {showScrollBtn && (
                     <button 
                         onClick={scrollToBottom}
-                        className="absolute bottom-6 right-10 z-30 bg-white shadow-xl border border-gray-100 p-2.5 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
+                        className="absolute bottom-6 right-10 z-30 bg-white shadow-2xl border border-gray-100 p-3 rounded-full text-indigo-600 hover:bg-indigo-50 transition-all animate-bounce-slight"
                     >
                         <ArrowDownIcon className="w-6 h-6" />
                     </button>
@@ -349,29 +375,33 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             </div>
 
             {/* INPUT AREA */}
-            <div className="flex-none p-[min(2.5vh,20px)] bg-white border-t border-gray-100 relative z-30">
+            <div className="flex-none p-[min(2.5vh,24px)] bg-white border-t border-gray-100 relative z-30">
                 {hasInteracted && !loadingHistory && !isTyping && (
-                    <div className="mb-4 overflow-x-auto pb-1 no-scrollbar">
+                    <div className="mb-4 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
                         <QuickActions onAction={handleQuickAction} className="flex-nowrap" />
                     </div>
                 )}
                 
-                <div className="flex gap-4 items-end bg-gray-50 border border-gray-200 p-2.5 rounded-[2rem] focus-within:ring-4 focus-within:ring-indigo-500/5 focus-within:border-indigo-400 focus-within:bg-white transition-all shadow-inner">
+                <div className="flex gap-4 items-end bg-gray-50 border border-gray-200 p-2.5 rounded-[2.2rem] focus-within:ring-4 focus-within:ring-indigo-500/5 focus-within:border-indigo-400 focus-within:bg-white transition-all shadow-inner">
                     <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-3.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-full transition-all shrink-0 hover:shadow-md"
-                        title="Attach Photo"
+                        className="p-3.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-full transition-all shrink-0 hover:shadow-md active:scale-90"
+                        title="Upload Diagnostic Photo"
                     >
                         <UploadIcon className="w-6 h-6" />
                     </button>
                     
                     <textarea 
                         ref={inputFocusRef}
-                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[clamp(12px,1.6vh,15px)] font-bold text-gray-800 placeholder-gray-400 resize-none py-3.5 max-h-32 leading-relaxed"
-                        placeholder="Type your message..."
+                        className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[clamp(13px,1.6vh,16px)] font-bold text-gray-800 placeholder-gray-400 resize-none py-3.5 max-h-32 leading-relaxed custom-scrollbar"
+                        placeholder="Describe your issue or ask a question..."
                         rows={1}
                         value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
+                        onChange={(e) => {
+                            setInputText(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
