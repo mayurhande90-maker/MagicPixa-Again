@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Ticket } from '../../types';
 import { 
@@ -100,7 +101,7 @@ export const TicketProposalCard: React.FC<{
                     </div>
                     <div>
                         <h4 className="text-emerald-900 font-black text-sm uppercase tracking-tight">Case Logged</h4>
-                        <p className="text-emerald-600/80 text-[10px] font-bold mt-0.5 uppercase tracking-widest">ID: {draft.id || '...'}</p>
+                        <p className="text-emerald-600/80 text-[10px] font-bold mt-0.5 uppercase tracking-widest">ID: {Math.floor(Math.random() * 10000)}</p>
                     </div>
                 </div>
             </div>
@@ -171,7 +172,7 @@ export const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> =
                 if (!trimmed) return <div key={i} className="h-1"></div>;
                 if (isWelcome && i === 0) return <h3 key={i} className="font-black text-[clamp(20px,3.2vh,28px)] text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 mb-4 tracking-tighter leading-none">{trimmed.replace(/^#+\s*/, '')}</h3>;
                 if (trimmed.startsWith('###') || trimmed.startsWith('##')) return <h3 key={i} className="font-black text-[clamp(13px,1.8vh,16px)] mt-4 mb-2 tracking-tight text-gray-800 uppercase">{trimmed.replace(/^#+\s*/, '')}</h3>;
-                if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return (<div key={i} className="flex gap-4 items-start pl-1"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0 shadow-sm"></div><span className="flex-11 leading-relaxed text-slate-600 text-[clamp(12px,1.6vh,14px)] font-medium">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span></div>);
+                if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return (<div key={i} className="flex gap-4 items-start pl-1"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0 shadow-sm"></div><span className="flex-1 leading-relaxed text-slate-600 text-[clamp(12px,1.6vh,14px)] font-medium">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span></div>);
                 return <p key={i} className="leading-relaxed text-slate-600 text-[clamp(12px,1.6vh,14px)] font-medium">{parseBold(line)}</p>;
             })}
         </div>
