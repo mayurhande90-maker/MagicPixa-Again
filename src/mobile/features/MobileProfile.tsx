@@ -73,8 +73,6 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     // Support Tray States
     const [isSupportOpen, setIsSupportOpen] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-    const [translateY, setTranslateY] = useState(0);
 
     const [loadingPack, setLoadingPack] = useState<string | null>(null);
     const [showRanksModal, setShowRanksModal] = useState(false);
@@ -141,30 +139,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setTimeout(() => {
             setIsSupportOpen(false);
             setIsClosing(false);
-            setTranslateY(0);
         }, 300); 
-    };
-
-    const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchStart(e.touches[0].clientY);
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (touchStart === null) return;
-        const currentY = e.touches[0].clientY;
-        const diff = currentY - touchStart;
-        if (diff > 0) {
-            setTranslateY(diff);
-        }
-    };
-
-    const handleTouchEnd = () => {
-        if (translateY > 120) {
-            handleCloseSupport();
-        } else {
-            setTouchStart(null);
-            setTranslateY(0);
-        }
     };
 
     const handleSaveName = async () => {
@@ -655,11 +630,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     </button>
 
                     <div 
-                        onTouchStart={handleTouchStart}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
-                        style={{ transform: `translateY(${translateY}px)` }}
-                        className={`relative w-full max-w-lg bg-white rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden h-[85vh] transition-transform duration-300 ${isClosing ? 'translate-y-full' : 'translate-y-0'} ${touchStart === null ? 'ease-[cubic-bezier(0.32,0.72,0,1)]' : ''}`}
+                        className={`relative w-full max-w-lg bg-white rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden h-[85vh] transition-transform duration-300 ${isClosing ? 'translate-y-full' : 'translate-y-0'} ease-[cubic-bezier(0.32,0.72,0,1)]`}
                     >
                         <div className="h-1.5 w-16 bg-gray-200 rounded-full mx-auto mt-3 mb-2 shrink-0 shadow-inner"></div>
                         
