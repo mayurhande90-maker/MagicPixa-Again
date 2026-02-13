@@ -259,12 +259,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                         <PlusIcon className="w-3.5 h-3.5" />
                         <span>New Session</span>
                     </button>
-                    <button 
-                        onClick={onToggleSidebar}
-                        className="lg:hidden p-2 text-gray-400 hover:text-indigo-600"
-                    >
-                        <TicketIcon className="w-6 h-6" />
-                    </button>
                 </div>
             </div>
 
