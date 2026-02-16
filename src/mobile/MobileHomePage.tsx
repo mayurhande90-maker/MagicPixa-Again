@@ -81,9 +81,10 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
                     <SparklesIcon className="w-4 h-4 text-indigo-600" />
                 </div>
             </div>
-            <div className="absolute top-4 left-4 z-40">
-                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
-                    <span className="text-[9px] font-black text-white uppercase tracking-widest leading-none">{item.label}</span>
+            {/* Reduced title size and moved to bottom-left */}
+            <div className="absolute bottom-3 left-3 z-40">
+                <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shadow-lg">
+                    <span className="text-[7.5px] font-black text-white uppercase tracking-widest leading-none">{item.label}</span>
                 </div>
             </div>
         </div>
