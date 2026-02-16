@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AuthProps, Creation } from '../types';
 // Add saveCreation to the imports from firebase
@@ -34,6 +33,13 @@ const FILTER_CATEGORIES = [
     { label: 'Campaign Studio', key: 'Campaign' },
     { label: 'Daily Missions', key: 'Mission' },
 ];
+
+// Custom White Refine Icon for high-end feel (Matching mobile)
+const CustomRefineIcon = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
+    </svg>
+);
 
 export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth, navigateTo }) => {
     const [creations, setCreations] = useState<Creation[]>([]);
@@ -518,9 +524,29 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                 <ImageModal 
                     imageUrl={viewCreation.imageUrl} 
                     onClose={() => { setViewCreation(null); setIsRefineActive(false); }}
-                    onDownload={() => handleDownload(viewCreation.imageUrl)}
-                    onDelete={() => handleDelete(viewCreation)}
+                    onDownload={undefined}
+                    onDelete={undefined}
+                    hideDefaultActions={true}
                 >
+                    {/* Top Left Utility Toolbar */}
+                    <div className="absolute top-4 left-4 z-[250] pointer-events-auto flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                        <button 
+                            onClick={() => handleDownload(viewCreation.imageUrl)}
+                            className="p-3.5 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-2xl active:scale-95"
+                            title="Download"
+                        >
+                            <DownloadIcon className="w-6 h-6" />
+                        </button>
+                        
+                        <button 
+                            onClick={() => handleDelete(viewCreation)}
+                            className="p-3.5 bg-white/10 hover:bg-red-500/20 text-red-400 rounded-full backdrop-blur-md transition-all border border-white/10 shadow-2xl active:scale-95"
+                            title="Delete"
+                        >
+                            <TrashIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+
                     <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
                         {isRefining ? (
                             <div className="bg-gray-900/90 backdrop-blur-xl px-10 py-6 rounded-[2rem] border border-white/20 shadow-2xl flex flex-col items-center gap-4 animate-fadeIn">
@@ -540,9 +566,9 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
                                 {!isRefineActive && (
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setIsRefineActive(true); }}
-                                        className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-8 py-3.5 rounded-2xl transition-all border border-white/20 shadow-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 hover:scale-105 active:scale-95 pointer-events-auto"
+                                        className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl flex items-center gap-3 hover:scale-105 active:scale-95 pointer-events-auto transition-all animate-materialize"
                                     >
-                                        <MagicWandIcon className="w-5 h-5 text-yellow-300" />
+                                        <CustomRefineIcon className="w-5 h-5" />
                                         Make Changes
                                     </button>
                                 )}
