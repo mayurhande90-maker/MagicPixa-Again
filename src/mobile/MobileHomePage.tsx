@@ -34,7 +34,7 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'headshot', label: 'Headshot Pro', before: "https://i.pravatar.cc/600?u=1", after: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000" },
     { id: 'interior', label: 'Interior Design', before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1000", after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1000" },
     { id: 'brand_stylist', label: 'AdMaker', before: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1000", after: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=1000" },
-    { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
+    { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
     { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000" },
@@ -105,6 +105,34 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
         return () => {
             unsubCollections();
             window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
+
+    // Deterministic Randomness Logic for Daily Stats and Avatars
+    const dailyStats = useMemo(() => {
+        const today = new Date().toDateString(); // e.g. "Mon May 20 2025"
+        
+        // Simple hash function for seeding
+        let hash = 0;
+        for (let i = 0; i < today.length; i++) {
+            hash = ((hash << 5) - hash) + today.charCodeAt(i);
+            hash |= 0; 
+        }
+        const absHash = Math.abs(hash);
+
+        // Calculate User Count (850 to 1850)
+        const userCount = (absHash % 1001) + 850;
+        
+        // Calculate Avatar IDs
+        const avatarIds = [
+            (absHash % 50) + 10,
+            ((absHash * 2) % 50) + 10,
+            ((absHash * 3) % 50) + 10
+        ];
+
+        return { 
+            countFormatted: userCount.toLocaleString(),
+            avatarIds 
         };
     }, []);
 
@@ -302,11 +330,11 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 <div className="bg-white/90 backdrop-blur-2xl border border-white/20 p-2.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-2">
                     {/* Left: Social Proof & Reward Context */}
                     <div className="flex items-center gap-2 pl-1 overflow-hidden">
-                        {/* Overlapping Avatars */}
+                        {/* Deterministic Daily Avatars */}
                         <div className="flex -space-x-2 shrink-0">
-                            {[1, 2, 3].map(i => (
+                            {dailyStats.avatarIds.map((id, i) => (
                                 <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 overflow-hidden shadow-sm">
-                                    <img src={`https://i.pravatar.cc/100?u=user${i + 10}`} className="w-full h-full object-cover" alt="User" />
+                                    <img src={`https://i.pravatar.cc/100?u=user${id}`} className="w-full h-full object-cover" alt="User" />
                                 </div>
                             ))}
                         </div>
@@ -314,7 +342,10 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                             <div className="flex items-center gap-1">
                                 <span className="text-[10px] font-black text-indigo-900 whitespace-nowrap tracking-tight">50 Credits Ready</span>
                             </div>
-                            <p className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wide truncate">Used by 1.2k+ today</p>
+                            {/* Deterministic Daily User Count */}
+                            <p className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wide truncate">
+                                Used by {dailyStats.countFormatted} creators today
+                            </p>
                         </div>
                     </div>
 
@@ -326,7 +357,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 animate-capsule-shimmer pointer-events-none"></div>
                         
-                        {/* Google Icon Anchor - Added white circle for better visibility */}
+                        {/* Google Icon Anchor */}
                         <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm z-10">
                             <GoogleIcon className="w-3 h-3" />
                         </div>
