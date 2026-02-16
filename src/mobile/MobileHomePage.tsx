@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Page, AuthProps, View, AppConfig } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -6,7 +6,7 @@ import {
   SparklesIcon, ArrowRightIcon, XIcon, ClockIcon, CreditCoinIcon, CheckIcon, 
   UploadTrayIcon, CursorClickIcon, StarIcon, PixaProductIcon, PixaHeadshotIcon, 
   PixaTryOnIcon, ThumbnailIcon, MagicAdsIcon, ChevronDownIcon, ShieldCheckIcon,
-  GlobeIcon, LightningIcon, CubeIcon, CameraIcon, GoogleIcon
+  GlobeIcon, LightningIcon, CubeIcon, CameraIcon, GoogleIcon, UserIcon
 } from '../components/icons';
 import { subscribeToLabCollections } from '../firebase';
 import { MobileSplashScreen } from './components/MobileSplashScreen';
@@ -39,6 +39,13 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
     { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000" },
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=2000" }
+];
+
+const EFFICIENCY_DATA = [
+    { title: "Viral Thumbnails", traditional: "5 Hours", magic: "45 Seconds", traditionalLabel: "Researching Trends...", magicLabel: "CTR Optmizing...", traditionalRate: 0.15, magicRate: 0.95 },
+    { title: "Product Studio", traditional: "3 Days", magic: "10 Seconds", traditionalLabel: "Studio Setup...", magicLabel: "Neural Lighting...", traditionalRate: 0.05, magicRate: 0.98 },
+    { title: "Ad Campaigns", traditional: "48 Hours", magic: "60 Seconds", traditionalLabel: "Creative Brief...", magicLabel: "AIDA Strategy...", traditionalRate: 0.08, magicRate: 0.96 },
+    { title: "Executive Headshots", traditional: "1 Day", magic: "15 Seconds", traditionalLabel: "Post-Processing...", magicLabel: "Biometric Sync...", traditionalRate: 0.12, magicRate: 0.97 },
 ];
 
 const FAQ_ITEMS = [
@@ -81,11 +88,69 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
                     <SparklesIcon className="w-4 h-4 text-indigo-600" />
                 </div>
             </div>
-            {/* Reduced title size and moved to bottom-left */}
             <div className="absolute bottom-3 left-3 z-40">
                 <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shadow-lg">
                     <span className="text-[7.5px] font-black text-white uppercase tracking-widest leading-none">{item.label}</span>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const EfficiencyCard: React.FC<{ item: typeof EFFICIENCY_DATA[0]; isVisible: boolean }> = ({ item, isVisible }) => {
+    return (
+        <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm space-y-5 relative overflow-hidden">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">{item.title}</h4>
+            
+            <div className="space-y-4">
+                {/* Traditional Side */}
+                <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-gray-50 text-gray-400 rounded-lg"><UserIcon className="w-3.5 h-3.5" /></div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Traditional</span>
+                        </div>
+                        <span className="text-xs font-black text-gray-800">{item.traditional}</span>
+                    </div>
+                    <div className="h-6 w-full bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
+                        <div 
+                            className={`h-full bg-gray-200 transition-all duration-[6000ms] ease-linear flex items-center px-3`}
+                            style={{ width: isVisible ? '100%' : '0%' }}
+                        >
+                            <span className="text-[7px] font-black text-gray-400 uppercase whitespace-nowrap animate-pulse">{item.traditionalLabel}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* MagicPixa Side */}
+                <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><SparklesIcon className="w-3.5 h-3.5" /></div>
+                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">MagicPixa</span>
+                        </div>
+                        <span className="text-xs font-black text-indigo-600 animate-pulse">{item.magic}</span>
+                    </div>
+                    <div className="h-8 w-full bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden relative shadow-inner">
+                        <div 
+                            className={`h-full bg-indigo-600 transition-all duration-[800ms] cubic-bezier(0.34, 1.56, 0.64, 1) flex items-center px-4 relative`}
+                            style={{ width: isVisible ? '100%' : '0%' }}
+                        >
+                            <div className="absolute inset-0 animate-capsule-shimmer opacity-30"></div>
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap drop-shadow-sm">{item.magicLabel}</span>
+                            {isVisible && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md rounded-full p-1 animate-fadeIn">
+                                    <CheckIcon className="w-3 h-3 text-white" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Efficiency Stamp */}
+            <div className={`absolute top-4 right-4 bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all duration-500 delay-1000 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
+                99x Faster
             </div>
         </div>
     );
@@ -96,6 +161,8 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
     const [showSticky, setShowSticky] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [showSplash, setShowSplash] = useState(true);
+    const [efficiencyVisible, setEfficiencyVisible] = useState(false);
+    const efficiencyRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const unsubCollections = subscribeToLabCollections(setLabCollections);
@@ -103,9 +170,22 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             setShowSticky(window.scrollY > 400);
         };
         window.addEventListener('scroll', handleScroll);
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setEfficiencyVisible(true);
+                }
+            },
+            { threshold: 0.2 }
+        );
+
+        if (efficiencyRef.current) observer.observe(efficiencyRef.current);
+
         return () => {
             unsubCollections();
             window.removeEventListener('scroll', handleScroll);
+            observer.disconnect();
         };
     }, []);
 
@@ -253,6 +333,31 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     >
                         Try MagicPixa <ArrowRightIcon className="w-5 h-5" />
                     </button>
+                </div>
+            </section>
+
+            {/* 3. EFFICIENCY MATRIX: Human Speed vs Pixa Logic */}
+            <section ref={efficiencyRef} className="py-20 px-6 bg-gray-50 rounded-[3rem]">
+                <div className="mb-10 px-2">
+                    <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-2">The Efficiency Matrix</h2>
+                    <h3 className="text-3xl font-black text-[#1A1A1E] leading-tight tracking-tight">Human Speed vs. <br/><span className="text-indigo-600">Pixa Logic.</span></h3>
+                    <p className="text-sm text-gray-500 font-medium mt-3 leading-relaxed">Scaling your content output from hours to seconds with agency-grade precision.</p>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                    {EFFICIENCY_DATA.map((item, i) => (
+                        <EfficiencyCard key={i} item={item} isVisible={efficiencyVisible} />
+                    ))}
+                </div>
+
+                <div className="mt-12 p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                            <ClockIcon className="w-6 h-6" />
+                        </div>
+                    </div>
+                    <h4 className="text-xl font-black text-[#1A1A1E] mb-2">Save 120+ Hours</h4>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed uppercase tracking-wider">Focus on Growth, not Grids.</p>
                 </div>
             </section>
 
