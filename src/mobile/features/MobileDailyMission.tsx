@@ -18,6 +18,7 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isFetchingTrophy, setIsFetchingTrophy] = useState(false);
+    const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mission = getDailyMission();
@@ -116,7 +117,7 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            {/* 1. Header: Stacked Identity + Commands */}
+            {/* 1. Header: Identity + Commands */}
             <div className="flex-none flex flex-col bg-white z-50">
                 <div className="pt-4 pb-1 flex justify-center items-center gap-2">
                     <FlagIcon className="w-5 h-5 text-black shrink-0" />
@@ -173,7 +174,8 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                         {result && !isGenerating ? (
                             <img 
                                 src={result} 
-                                className="max-w-full max-h-full object-contain animate-materialize" 
+                                onClick={() => !isGenerating && setIsFullScreenOpen(true)}
+                                className="max-w-full max-h-full object-contain animate-materialize cursor-zoom-in" 
                             />
                         ) : isGenerating ? (
                              // Canvas disappears during generation as requested
@@ -287,6 +289,19 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
                                 Continue
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Full Screen Viewer */}
+            {isFullScreenOpen && result && (
+                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
+                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
+                        <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
+                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
+                    </div>
+                    <div className="w-full h-full flex items-center justify-center p-2">
+                        <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
                     </div>
                 </div>
             )}
