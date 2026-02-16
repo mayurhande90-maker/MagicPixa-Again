@@ -42,10 +42,58 @@ const GALLERY_ITEMS_STATIC = [
 ];
 
 const EFFICIENCY_DATA = [
-    { title: "Viral Thumbnails", traditional: "5 Hours", magic: "45 Seconds", traditionalLabel: "Researching Trends...", magicLabel: "CTR Optmizing...", traditionalRate: 0.15, magicRate: 0.95 },
-    { title: "Product Studio", traditional: "3 Days", magic: "10 Seconds", traditionalLabel: "Studio Setup...", magicLabel: "Neural Lighting...", traditionalRate: 0.05, magicRate: 0.98 },
-    { title: "Ad Campaigns", traditional: "48 Hours", magic: "60 Seconds", traditionalLabel: "Creative Brief...", magicLabel: "AIDA Strategy...", traditionalRate: 0.08, magicRate: 0.96 },
-    { title: "Executive Headshots", traditional: "1 Day", magic: "15 Seconds", traditionalLabel: "Post-Processing...", magicLabel: "Biometric Sync...", traditionalRate: 0.12, magicRate: 0.97 },
+    { 
+        title: "Viral Thumbnails", 
+        icon: ThumbnailIcon,
+        traditional: "5 Hours", 
+        magic: "45 Seconds", 
+        traditionalLabel: "Manual Masking...", 
+        magicLabel: "Trend Syncing...", 
+        multiplier: "400x Faster",
+        traditionalCost: "₹2,500",
+        magicCost: "₹25",
+        pain: "Waiting for export...",
+        relief: "Ready instantly"
+    },
+    { 
+        title: "Product Studio", 
+        icon: PixaProductIcon,
+        traditional: "3 Days", 
+        magic: "10 Seconds", 
+        traditionalLabel: "Studio Setup...", 
+        magicLabel: "Neural Lighting...", 
+        multiplier: "25,000x Faster",
+        traditionalCost: "₹15,000",
+        magicCost: "₹30",
+        pain: "Shipping products...",
+        relief: "Infinite variations"
+    },
+    { 
+        title: "Ad Campaigns", 
+        icon: MagicAdsIcon,
+        traditional: "48 Hours", 
+        magic: "60 Seconds", 
+        traditionalLabel: "Revision Loop...", 
+        magicLabel: "AIDA Strategy...", 
+        multiplier: "2,800x Faster",
+        traditionalCost: "₹12,000",
+        magicCost: "₹30",
+        pain: "Back & forth emails...",
+        relief: "Market-ready logic"
+    },
+    { 
+        title: "Executive Headshots", 
+        icon: PixaHeadshotIcon,
+        traditional: "1 Day", 
+        magic: "15 Seconds", 
+        traditionalLabel: "Travel & Booking...", 
+        magicLabel: "Biometric Sync...", 
+        multiplier: "5,000x Faster",
+        traditionalCost: "₹8,000",
+        magicCost: "₹15",
+        pain: "Cleanup & makeup...",
+        relief: "Elite HD quality"
+    },
 ];
 
 const FAQ_ITEMS = [
@@ -99,18 +147,26 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
 
 const EfficiencyCard: React.FC<{ item: typeof EFFICIENCY_DATA[0]; isVisible: boolean }> = ({ item, isVisible }) => {
     return (
-        <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm space-y-5 relative overflow-hidden">
-            <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">{item.title}</h4>
+        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6 relative overflow-hidden">
+            <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <item.icon className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.15em]">{item.title}</h4>
+            </div>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
                 {/* Traditional Side */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-end">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 bg-gray-50 text-gray-400 rounded-lg"><UserIcon className="w-3.5 h-3.5" /></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Traditional</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Traditional Designer</span>
                         </div>
-                        <span className="text-xs font-black text-gray-800">{item.traditional}</span>
+                        <div className="text-right">
+                            <span className="text-xs font-black text-gray-800 block leading-none">{item.traditional}</span>
+                            <span className="text-[9px] font-bold text-red-400 uppercase tracking-tight">{item.traditionalCost}</span>
+                        </div>
                     </div>
                     <div className="h-6 w-full bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
                         <div 
@@ -118,6 +174,9 @@ const EfficiencyCard: React.FC<{ item: typeof EFFICIENCY_DATA[0]; isVisible: boo
                             style={{ width: isVisible ? '100%' : '0%' }}
                         >
                             <span className="text-[7px] font-black text-gray-400 uppercase whitespace-nowrap animate-pulse">{item.traditionalLabel}</span>
+                        </div>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <span className="text-[8px] font-medium text-gray-400 italic">{item.pain}</span>
                         </div>
                     </div>
                 </div>
@@ -127,30 +186,36 @@ const EfficiencyCard: React.FC<{ item: typeof EFFICIENCY_DATA[0]; isVisible: boo
                     <div className="flex justify-between items-end">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><SparklesIcon className="w-3.5 h-3.5" /></div>
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">MagicPixa</span>
+                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">MagicPixa AI</span>
                         </div>
-                        <span className="text-xs font-black text-indigo-600 animate-pulse">{item.magic}</span>
+                        <div className="text-right">
+                            <span className="text-xs font-black text-indigo-600 block leading-none animate-pulse">{item.magic}</span>
+                            <span className="text-[9px] font-black text-green-500 uppercase tracking-tight">{item.magicCost}</span>
+                        </div>
                     </div>
-                    <div className="h-8 w-full bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden relative shadow-inner">
+                    <div className="h-10 w-full bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden relative shadow-inner">
                         <div 
-                            className={`h-full bg-indigo-600 transition-all duration-[800ms] cubic-bezier(0.34, 1.56, 0.64, 1) flex items-center px-4 relative`}
+                            className={`h-full bg-indigo-600 transition-all duration-[1000ms] cubic-bezier(0.34, 1.56, 0.64, 1) flex items-center px-4 relative`}
                             style={{ width: isVisible ? '100%' : '0%' }}
                         >
                             <div className="absolute inset-0 animate-capsule-shimmer opacity-30"></div>
                             <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap drop-shadow-sm">{item.magicLabel}</span>
                             {isVisible && (
                                 <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md rounded-full p-1 animate-fadeIn">
-                                    <CheckIcon className="w-3 h-3 text-white" />
+                                    <CheckIcon className="w-3.5 h-3.5 text-white" />
                                 </div>
                             )}
+                        </div>
+                        <div className={`absolute left-0 right-0 bottom-0 text-center transition-opacity duration-1000 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+                             <span className="text-[7px] font-black text-indigo-400 uppercase tracking-tighter bg-white/80 px-2 rounded-t-lg mx-auto block w-fit">{item.relief}</span>
                         </div>
                     </div>
                 </div>
             </div>
             
             {/* Efficiency Stamp */}
-            <div className={`absolute top-4 right-4 bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all duration-500 delay-1000 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
-                99x Faster
+            <div className={`absolute top-4 right-4 bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm transition-all duration-700 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] delay-1000 ${isVisible ? 'opacity-100 scale-100 rotate-3' : 'opacity-0 scale-50 rotate-0'}`}>
+                {item.multiplier}
             </div>
         </div>
     );
@@ -177,7 +242,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     setEfficiencyVisible(true);
                 }
             },
-            { threshold: 0.2 }
+            { threshold: 0.1 }
         );
 
         if (efficiencyRef.current) observer.observe(efficiencyRef.current);
@@ -337,11 +402,11 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             </section>
 
             {/* 3. EFFICIENCY MATRIX: Human Speed vs Pixa Logic */}
-            <section ref={efficiencyRef} className="py-20 px-6 bg-gray-50 rounded-[3rem]">
-                <div className="mb-10 px-2">
-                    <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-2">The Efficiency Matrix</h2>
-                    <h3 className="text-3xl font-black text-[#1A1A1E] leading-tight tracking-tight">Human Speed vs. <br/><span className="text-indigo-600">Pixa Logic.</span></h3>
-                    <p className="text-sm text-gray-500 font-medium mt-3 leading-relaxed">Scaling your content output from hours to seconds with agency-grade precision.</p>
+            <section ref={efficiencyRef} className="py-20 px-6 bg-gray-50 rounded-[3.5rem]">
+                <div className="mb-12 px-2 text-center">
+                    <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-3">Scale Your Brand</h2>
+                    <h3 className="text-3xl font-black text-[#1A1A1E] leading-tight tracking-tight">Delete the <span className="text-indigo-600">Bottleneck.</span></h3>
+                    <p className="text-sm text-gray-500 font-medium mt-4 leading-relaxed max-w-xs mx-auto">Scaling your production from painful days to frictionless seconds with agency-grade precision.</p>
                 </div>
 
                 <div className="flex flex-col gap-6">
@@ -350,14 +415,15 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     ))}
                 </div>
 
-                <div className="mt-12 p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
-                            <ClockIcon className="w-6 h-6" />
+                <div className="mt-12 p-8 bg-white rounded-[3rem] border border-gray-100 shadow-sm text-center relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-1000"></div>
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
+                            <ClockIcon className="w-8 h-8" />
                         </div>
+                        <h4 className="text-2xl font-black text-[#1A1A1E] mb-2 tracking-tight">Save 120+ Hours</h4>
+                        <p className="text-[10px] text-gray-400 font-black leading-relaxed uppercase tracking-[0.25em]">Focus on Growth, Not Grids.</p>
                     </div>
-                    <h4 className="text-xl font-black text-[#1A1A1E] mb-2">Save 120+ Hours</h4>
-                    <p className="text-xs text-gray-500 font-medium leading-relaxed uppercase tracking-wider">Focus on Growth, not Grids.</p>
                 </div>
             </section>
 
