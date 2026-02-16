@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AuthProps, View, Creation, Page } from '../../types';
+import { AuthProps, View, Creation, Page, Transaction } from '../../types';
 import { 
     SparklesIcon, MagicAdsIcon, PixaHeadshotIcon, 
     ArrowRightIcon, LightningIcon, 
@@ -9,13 +9,16 @@ import {
     PixaCaptionIcon, PixaInteriorIcon, PixaTryOnIcon,
     DashboardIcon, CreditCoinIcon, DownloadIcon, CalendarIcon,
     UploadIcon, PlusIcon, ImageIcon, MagicWandIcon, GlobeIcon,
-    PaletteIcon
+    PaletteIcon, TicketIcon, PixaBillingIcon, LockIcon, BuildingIcon,
+    CampaignStudioIcon,
+    PixaEcommerceIcon
 } from '../../components/icons';
-import { getCreations, claimDailyAttendance, subscribeToLabCollections } from '../../firebase';
+import { getCreations, claimDailyAttendance, subscribeToLabCollections, getCreditHistory } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { downloadImage } from '../../utils/imageUtils';
 import { CreatorRanksModal } from '../../components/CreatorRanksModal';
+import { MobileSheet } from '../components/MobileSheet';
 
 // Believable, grounded stats for professional authenticity
 const REALISTIC_STATS = [
@@ -51,11 +54,11 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'headshot', label: 'Headshot Pro', before: "https://i.pravatar.cc/600?u=1", after: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000" },
     { id: 'interior', label: 'Interior Design', before: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1000", after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1000" },
     { id: 'brand_stylist', label: 'AdMaker', before: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1000", after: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=1000" },
-    { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
+    { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
-    { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
-    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
-    { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
+    { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
+    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000" },
+    { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=2000" }
 ];
 
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -125,7 +128,6 @@ const AutoWipeBox: React.FC<{ item: any; delay: number; onClick: () => void; com
     );
 };
 
-// --- FIX: Define MobileHomeProps interface ---
 interface MobileHomeProps {
     auth: AuthProps;
     setActiveTab: (tab: View) => void;
@@ -138,6 +140,11 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
     const [labCollections, setLabCollections] = useState<Record<string, any[] | Record<string, any>>>({});
     const [showRanksModal, setShowRanksModal] = useState(false);
     
+    // History Tray States
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
     const user = auth.user;
     const firstName = user?.name ? user.name.split(' ')[0] : 'Creator';
     const mission = getDailyMission();
@@ -198,6 +205,60 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         }
     };
 
+    const fetchHistory = async () => {
+        if (!user) return;
+        setIsLoadingHistory(true);
+        setIsHistoryOpen(true);
+        try {
+            const data = await getCreditHistory(user.uid);
+            setTransactions(data as Transaction[]);
+        } catch (e) {
+            console.error("Failed to fetch history:", e);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
+    const groupTransactionsByDate = (txs: Transaction[]) => {
+        const groups: { [key: string]: Transaction[] } = {};
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        txs.forEach(tx => {
+            if (!tx.date) return;
+            const date = (tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000 || tx.date);
+            let key;
+            if (date.toDateString() === today.toDateString()) key = 'Today';
+            else if (date.toDateString() === yesterday.toDateString()) key = 'Yesterday';
+            else key = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(tx);
+        });
+        return groups;
+    };
+
+    const getIconForFeature = (feature: string): React.ReactNode => {
+        const bgIconClass = "w-4 h-4";
+        if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
+            return <div className="p-2 bg-amber-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-amber-600`} /></div>;
+        }
+        if (feature.includes('Product Shots') || feature.includes('Model Shots')) return <div className="p-2 bg-blue-50 rounded-xl"><PixaProductIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        if (feature.includes('Thumbnail Pro')) return <div className="p-2 bg-red-50 rounded-xl"><ThumbnailIcon className={`${bgIconClass} text-red-600`} /></div>;
+        if (feature.includes('Realty Ads')) return <div className="p-2 bg-purple-50 rounded-xl"><BuildingIcon className={`${bgIconClass} text-purple-600`} /></div>; 
+        if (feature.includes('Ecommerce Kit')) return <div className="p-2 bg-green-50 rounded-xl"><PixaEcommerceIcon className={`${bgIconClass} text-green-600`} /></div>;
+        if (feature.includes('AdMaker')) return <div className="p-2 bg-orange-50 rounded-xl"><MagicAdsIcon className={`${bgIconClass} text-orange-600`} /></div>;
+        if (feature.includes('Together')) return <div className="p-2 bg-pink-50 rounded-xl"><PixaTogetherIcon className={`${bgIconClass} text-pink-600`} /></div>;
+        if (feature.includes('Photo Restore')) return <div className="p-2 bg-slate-100 rounded-xl"><PixaRestoreIcon className={`${bgIconClass} text-slate-600`} /></div>;
+        if (feature.includes('Caption Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaCaptionIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (feature.includes('Interior Design')) return <div className="p-2 bg-amber-50 rounded-xl"><PixaInteriorIcon className={`${bgIconClass} text-amber-600`} /></div>;
+        if (feature.includes('TryOn')) return <div className="p-2 bg-rose-50 rounded-xl"><PixaTryOnIcon className={`${bgIconClass} text-rose-600`} /></div>;
+        if (feature.includes('Headshot Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaHeadshotIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (feature.includes('Magic Eraser') || feature.includes('Magic Editor') || feature.includes('Refinement')) return <div className="p-2 bg-indigo-50 rounded-xl"><MagicWandIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (feature.includes('Campaign Studio')) return <div className="p-2 bg-blue-50 rounded-xl"><CampaignStudioIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        return <div className="p-2 bg-gray-50 rounded-xl"><TicketIcon className={`${bgIconClass} text-gray-500`} /></div>;
+    };
+
     const getFeatureViewId = (featureName: string): View => {
         const map: Record<string, View> = {
             'Pixa Product Shots': 'studio',
@@ -229,6 +290,15 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         else if (current >= 10) prev = 10;
         return Math.min(100, Math.max(0, ((current - prev) / (next - prev)) * 100));
     }, [user?.lifetimeGenerations, badge.nextMilestone]);
+
+    const groupedTransactions = groupTransactionsByDate(transactions);
+    const sortedGroupKeys = Object.keys(groupedTransactions).sort((a, b) => {
+        if (a === 'Today') return -1;
+        if (b === 'Today') return 1;
+        if (a === 'Yesterday') return -1;
+        if (b === 'Yesterday') return 1;
+        return new Date(b).getTime() - new Date(a).getTime();
+    });
 
     return (
         <div className="pb-32 bg-[#FAFAFB] min-h-full animate-fadeIn overflow-x-hidden relative">
@@ -279,7 +349,8 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                     </div>
                 </div>
                 
-                <button onClick={() => setActiveTab('billing' as any)} className="group active:scale-95 transition-all">
+                {/* UPDATED: Clicking credits now opens History Tray instead of navigating to billing tab */}
+                <button onClick={fetchHistory} className="group active:scale-95 transition-all">
                     <div className="flex items-center gap-2 bg-gray-900 px-4 py-2.5 rounded-2xl shadow-xl shadow-gray-200 border border-gray-800">
                         <CreditCoinIcon className="w-4 h-4 text-yellow-400" />
                         <span className="text-sm font-black text-white">{user?.credits || 0}</span>
@@ -470,6 +541,74 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                 </button>
             </div>
 
+            {/* HISTORY TRAY - Mobile Sheet for transactions */}
+            <MobileSheet 
+                isOpen={isHistoryOpen} 
+                onClose={() => setIsHistoryOpen(false)} 
+                title="Billing & History"
+            >
+                <div className="space-y-6 pb-6">
+                    <div className="bg-indigo-600 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Current Balance</p>
+                        <div className="flex items-end gap-2 mt-1">
+                            <span className="text-4xl font-black">{user?.credits || 0}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wide mb-1.5 opacity-80">Credits</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {isLoadingHistory ? (
+                            <div className="py-12 flex flex-col items-center gap-4">
+                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Syncing Records...</p>
+                            </div>
+                        ) : sortedGroupKeys.length > 0 ? (
+                            sortedGroupKeys.map(date => (
+                                <div key={date}>
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">{date}</h4>
+                                    <div className="space-y-3">
+                                        {groupedTransactions[date].map(tx => (
+                                            <div key={tx.id} className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between border border-gray-100 transition-all active:scale-[0.98]">
+                                                <div className="flex items-center gap-4">
+                                                    {getIconForFeature(tx.feature)}
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-black text-gray-800 truncate pr-2">{tx.feature.replace('Admin Grant', 'MagicPixa Grant')}</p>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                                                            {((tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    {tx.creditChange ? (
+                                                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-[11px] font-black border border-green-200">{tx.creditChange}</span>
+                                                    ) : (
+                                                        <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-[11px] font-black border border-gray-200">-{tx.cost}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-20 text-center opacity-40">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <TicketIcon className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest leading-relaxed">No transactions <br/> logged yet</p>
+                            </div>
+                        )}
+                        <button 
+                            onClick={() => { setIsHistoryOpen(false); setActiveTab('billing'); }}
+                            className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest active:bg-indigo-100 transition-all border border-indigo-100"
+                        >
+                            Visit Billing Station
+                        </button>
+                    </div>
+                </div>
+            </MobileSheet>
+
             {/* CREATOR RANKS MODAL */}
             {showRanksModal && (
                 <CreatorRanksModal 
@@ -491,3 +630,5 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         </div>
     );
 };
+
+export default MobileHome;
