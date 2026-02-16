@@ -245,14 +245,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
 
                                         {/* Pricing Footer */}
                                         <div className="mt-auto space-y-4">
-                                            <div className="flex items-center justify-between px-2">
+                                            <div className="flex items-center justify-center px-2 text-center">
                                                 <div>
                                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">One-Time Fee</p>
                                                     <p className="text-2xl font-black text-gray-900">₹{pack.price}</p>
-                                                </div>
-                                                <div className="text-right hidden md:block">
-                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Net Rate</p>
-                                                    <p className="text-xs font-black text-indigo-600">₹{pack.value}/Cr</p>
                                                 </div>
                                             </div>
 
