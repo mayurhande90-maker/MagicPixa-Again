@@ -45,54 +45,26 @@ const EFFICIENCY_DATA = [
     { 
         title: "Viral Thumbnails", 
         icon: ThumbnailIcon,
-        traditional: "5 Hours", 
-        magic: "45 Seconds", 
-        traditionalLabel: "Manual Masking...", 
-        magicLabel: "Trend Syncing...", 
-        multiplier: "400x Faster",
-        traditionalCost: "₹2,500",
-        magicCost: "₹25",
-        pain: "Waiting for export...",
-        relief: "Ready instantly"
+        multiplier: "10x Faster",
+        traditionalStop: 25,
     },
     { 
         title: "Product Studio", 
         icon: PixaProductIcon,
-        traditional: "3 Days", 
-        magic: "10 Seconds", 
-        traditionalLabel: "Studio Setup...", 
-        magicLabel: "Neural Lighting...", 
-        multiplier: "25,000x Faster",
-        traditionalCost: "₹15,000",
-        magicCost: "₹30",
-        pain: "Shipping products...",
-        relief: "Infinite variations"
+        multiplier: "12x Faster",
+        traditionalStop: 15,
     },
     { 
         title: "Ad Campaigns", 
         icon: MagicAdsIcon,
-        traditional: "48 Hours", 
-        magic: "60 Seconds", 
-        traditionalLabel: "Revision Loop...", 
-        magicLabel: "AIDA Strategy...", 
-        multiplier: "2,800x Faster",
-        traditionalCost: "₹12,000",
-        magicCost: "₹30",
-        pain: "Back & forth emails...",
-        relief: "Market-ready logic"
+        multiplier: "8x Faster",
+        traditionalStop: 32,
     },
     { 
         title: "Executive Headshots", 
         icon: PixaHeadshotIcon,
-        traditional: "1 Day", 
-        magic: "15 Seconds", 
-        traditionalLabel: "Travel & Booking...", 
-        magicLabel: "Biometric Sync...", 
-        multiplier: "5,000x Faster",
-        traditionalCost: "₹8,000",
-        magicCost: "₹15",
-        pain: "Cleanup & makeup...",
-        relief: "Elite HD quality"
+        multiplier: "5x Faster",
+        traditionalStop: 20,
     },
 ];
 
@@ -147,75 +119,45 @@ const AutoWipeBox: React.FC<{ item: any; delay: number }> = ({ item, delay }) =>
 
 const EfficiencyCard: React.FC<{ item: typeof EFFICIENCY_DATA[0]; isVisible: boolean }> = ({ item, isVisible }) => {
     return (
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6 relative overflow-hidden">
-            <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm space-y-5 relative overflow-hidden">
+            <div className="flex items-center gap-2.5">
+                <div className="text-indigo-600">
                     <item.icon className="w-5 h-5" />
                 </div>
-                <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.15em]">{item.title}</h4>
+                <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em]">{item.title}</h4>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {/* Traditional Side */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex justify-between items-end">
-                        <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-gray-50 text-gray-400 rounded-lg"><UserIcon className="w-3.5 h-3.5" /></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Traditional Designer</span>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-xs font-black text-gray-800 block leading-none">{item.traditional}</span>
-                            <span className="text-[9px] font-bold text-red-400 uppercase tracking-tight">{item.traditionalCost}</span>
-                        </div>
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Traditional Designer</span>
                     </div>
-                    <div className="h-6 w-full bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
+                    <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                         <div 
-                            className={`h-full bg-gray-200 transition-all duration-[6000ms] ease-linear flex items-center px-3`}
-                            style={{ width: isVisible ? '100%' : '0%' }}
-                        >
-                            <span className="text-[7px] font-black text-gray-400 uppercase whitespace-nowrap animate-pulse">{item.traditionalLabel}</span>
-                        </div>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <span className="text-[8px] font-medium text-gray-400 italic">{item.pain}</span>
-                        </div>
+                            className={`h-full bg-gray-200 transition-all duration-[4000ms] ease-out rounded-full`}
+                            style={{ width: isVisible ? `${item.traditionalStop}%` : '0%' }}
+                        ></div>
                     </div>
                 </div>
 
                 {/* MagicPixa Side */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex justify-between items-end">
-                        <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><SparklesIcon className="w-3.5 h-3.5" /></div>
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">MagicPixa AI</span>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-xs font-black text-indigo-600 block leading-none animate-pulse">{item.magic}</span>
-                            <span className="text-[9px] font-black text-green-500 uppercase tracking-tight">{item.magicCost}</span>
-                        </div>
+                        <span className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em]">MagicPixa AI</span>
+                        <span className={`text-[10px] font-black text-indigo-900 uppercase tracking-widest transition-all duration-700 delay-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+                            {item.multiplier}
+                        </span>
                     </div>
-                    <div className="h-10 w-full bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden relative shadow-inner">
+                    <div className="h-2 w-full bg-indigo-50 rounded-full overflow-hidden">
                         <div 
-                            className={`h-full bg-indigo-600 transition-all duration-[1000ms] cubic-bezier(0.34, 1.56, 0.64, 1) flex items-center px-4 relative`}
+                            className={`h-full bg-indigo-600 transition-all duration-[800ms] cubic-bezier(0.34, 1.56, 0.64, 1) rounded-full relative`}
                             style={{ width: isVisible ? '100%' : '0%' }}
                         >
                             <div className="absolute inset-0 animate-capsule-shimmer opacity-30"></div>
-                            <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap drop-shadow-sm">{item.magicLabel}</span>
-                            {isVisible && (
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md rounded-full p-1 animate-fadeIn">
-                                    <CheckIcon className="w-3.5 h-3.5 text-white" />
-                                </div>
-                            )}
-                        </div>
-                        <div className={`absolute left-0 right-0 bottom-0 text-center transition-opacity duration-1000 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-                             <span className="text-[7px] font-black text-indigo-400 uppercase tracking-tighter bg-white/80 px-2 rounded-t-lg mx-auto block w-fit">{item.relief}</span>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            {/* Efficiency Stamp */}
-            <div className={`absolute top-4 right-4 bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm transition-all duration-700 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] delay-1000 ${isVisible ? 'opacity-100 scale-100 rotate-3' : 'opacity-0 scale-50 rotate-0'}`}>
-                {item.multiplier}
             </div>
         </div>
     );
@@ -401,12 +343,11 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 </div>
             </section>
 
-            {/* 3. EFFICIENCY MATRIX: Human Speed vs Pixa Logic */}
+            {/* 3. THE SPEED OF PIXA: Human Speed vs Pixa Logic */}
             <section ref={efficiencyRef} className="py-20 px-6 bg-gray-50 rounded-[3.5rem]">
                 <div className="mb-12 px-2 text-center">
-                    <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-3">Scale Your Brand</h2>
-                    <h3 className="text-3xl font-black text-[#1A1A1E] leading-tight tracking-tight">Delete the <span className="text-indigo-600">Bottleneck.</span></h3>
-                    <p className="text-sm text-gray-500 font-medium mt-4 leading-relaxed max-w-xs mx-auto">Scaling your production from painful days to frictionless seconds with agency-grade precision.</p>
+                    <h2 className="text-3xl font-black text-[#1A1A1E] leading-tight tracking-tight">The Speed of <span className="text-indigo-600">Pixa.</span></h2>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-[0.1em] mt-3">Stop waiting. Start creating.</p>
                 </div>
 
                 <div className="flex flex-col gap-6">
