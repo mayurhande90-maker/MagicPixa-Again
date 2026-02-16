@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Page, AuthProps, View, AppConfig } from '../types';
 import Header from '../components/Header';
@@ -7,7 +6,7 @@ import {
   SparklesIcon, ArrowRightIcon, XIcon, ClockIcon, CreditCoinIcon, CheckIcon, 
   UploadTrayIcon, CursorClickIcon, StarIcon, PixaProductIcon, PixaHeadshotIcon, 
   PixaTryOnIcon, ThumbnailIcon, MagicAdsIcon, ChevronDownIcon, ShieldCheckIcon,
-  GlobeIcon, LightningIcon, CubeIcon, CameraIcon
+  GlobeIcon, LightningIcon, CubeIcon, CameraIcon, GoogleIcon
 } from '../components/icons';
 import { subscribeToLabCollections } from '../firebase';
 import { MobileSplashScreen } from './components/MobileSplashScreen';
@@ -37,7 +36,7 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'brand_stylist', label: 'AdMaker', before: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1000", after: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=1000" },
     { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
-    { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
+    { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
     { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
 ];
@@ -148,8 +147,25 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     100% { transform: translate(0px, 0px) scale(1); }
                 }
                 .animate-blob { animation: blob 7s infinite; }
-                .animation-delay-2000 { animation-delay: 2s; }
+                .animation-delay-2000 { animation: delay 2s; }
                 .bg-grid-slate-200 { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0 40L40 40M40 0L40 40' fill='none' stroke='%23e2e8f0' stroke-width='1'/%3E%3C/svg%3E"); }
+                
+                @keyframes capsule-shimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+                .animate-capsule-shimmer {
+                    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+                    background-size: 200% 100%;
+                    animation: capsule-shimmer 3s infinite linear;
+                }
+                @keyframes button-glow-pulse {
+                    0%, 100% { box-shadow: 0 0 10px rgba(79, 70, 229, 0.4); }
+                    50% { box-shadow: 0 0 25px rgba(79, 70, 229, 0.8); }
+                }
+                .animate-button-glow {
+                    animation: button-glow-pulse 2s infinite ease-in-out;
+                }
             `}</style>
 
             {showSplash && <MobileSplashScreen onComplete={() => setShowSplash(false)} />}
@@ -222,7 +238,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     {[
                         { label: 'Product', id: 'studio', icon: PixaProductIcon, bg: 'bg-blue-50', text: 'text-blue-500' },
                         { label: 'AdMaker', id: 'brand_stylist', icon: MagicAdsIcon, bg: 'bg-orange-50', text: 'text-orange-500' },
-                        { label: 'Headshot', id: 'headshot', icon: PixaHeadshotIcon, bg: 'bg-amber-50', text: 'text-amber-500' },
+                        { label: 'Headshot', id: 'headshot', icon: PixaHeadshotIcon, bg: 'bg-amber-50', text: 'text-amber-600' },
                         { label: 'Try On', id: 'apparel', icon: PixaTryOnIcon, bg: 'bg-rose-50', text: 'text-rose-500' },
                         { label: 'Thumbnail', id: 'thumbnail_studio', icon: ThumbnailIcon, bg: 'bg-red-50', text: 'text-red-500' },
                         { label: 'All Tools', id: 'dashboard', icon: SparklesIcon, bg: 'bg-indigo-50', text: 'text-indigo-500' }
@@ -281,21 +297,37 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 </div>
             </section>
 
-            {/* Sticky Bottom Footer CTA */}
-            <div className={`fixed bottom-0 left-0 right-0 z-[100] transition-all duration-500 transform ${showSticky ? 'translate-y-0' : 'translate-y-full'}`}>
-                <div className="bg-white/80 backdrop-blur-xl border-t border-indigo-100 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex items-center gap-3">
-                    <div className="flex flex-col flex-1">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-black text-gray-900">Start Creating</span>
-                            <div className="bg-indigo-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase">50 Free</div>
+            {/* Premium Floating Conversion Capsule */}
+            <div className={`fixed bottom-4 left-4 right-4 z-[100] transition-all duration-700 transform ease-[cubic-bezier(0.34,1.56,0.64,1)] ${showSticky ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0'}`}>
+                <div className="bg-white/90 backdrop-blur-2xl border border-white/20 p-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-4">
+                    {/* Left: Social Proof & Reward Context */}
+                    <div className="flex items-center gap-3 pl-2 overflow-hidden">
+                        {/* Overlapping Avatars */}
+                        <div className="flex -space-x-2 shrink-0">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
+                                    <img src={`https://i.pravatar.cc/100?u=user${i + 10}`} className="w-full h-full object-cover" alt="User" />
+                                </div>
+                            ))}
                         </div>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">No credit card required</p>
+                        <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1">
+                                <span className="text-[11px] font-black text-indigo-900 whitespace-nowrap">50 Credits Waiting</span>
+                            </div>
+                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate">Used by 1.2k+ today</p>
+                        </div>
                     </div>
+
+                    {/* Right: Premium Value Button */}
                     <button 
                         onClick={() => auth.openAuthModal()}
-                        className="bg-indigo-600 text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 active:scale-95"
+                        className="relative bg-indigo-600 text-white px-5 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 overflow-hidden active:scale-95 transition-all animate-button-glow"
                     >
-                        Sign In with Google
+                        {/* Shimmer Effect */}
+                        <div className="absolute inset-0 animate-capsule-shimmer pointer-events-none"></div>
+                        
+                        <GoogleIcon className="w-3.5 h-3.5" />
+                        <span className="relative z-10">Claim Now</span>
                     </button>
                 </div>
             </div>
