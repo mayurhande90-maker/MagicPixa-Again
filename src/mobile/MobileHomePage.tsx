@@ -43,11 +43,11 @@ const GALLERY_ITEMS_STATIC = [
 ];
 
 const BRAND_BENEFITS = [
-    { label: 'Unlimited Assets', icon: SparklesIcon },
-    { label: 'No Watermarks', icon: CheckIcon },
-    { label: 'Credits Never Expire', icon: LightningIcon },
-    { label: 'Priority Support', icon: PixaSupportIcon },
-    { label: 'High-Res Output', icon: ShieldCheckIcon }
+    { label: 'Unlimited\nAssets', icon: SparklesIcon, bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-900', iconBg: 'bg-blue-600' },
+    { label: 'No\nWatermarks', icon: CheckIcon, bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-900', iconBg: 'bg-green-600' },
+    { label: 'Credits Never\nExpire', icon: LightningIcon, bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-900', iconBg: 'bg-purple-600' },
+    { label: 'Priority\nSupport', icon: PixaSupportIcon, bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-900', iconBg: 'bg-indigo-600' },
+    { label: 'High-Res\nOutput', icon: ShieldCheckIcon, bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', iconBg: 'bg-amber-600' }
 ];
 
 const EFFICIENCY_DATA = [
@@ -360,14 +360,14 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             </section>
 
             {/* 2.5 BENEFITS MARQUEE */}
-            <div className="bg-white overflow-hidden relative py-4 border-y border-gray-50">
+            <div className="bg-white overflow-hidden relative py-6 border-y border-gray-50">
                 <div className="flex gap-4 animate-marquee-scroll whitespace-nowrap">
                     {[...BRAND_BENEFITS, ...BRAND_BENEFITS].map((benefit, i) => (
-                        <div key={i} className="shrink-0 flex items-center gap-3 px-6 py-3.5 rounded-full bg-indigo-50/50 border border-indigo-100/50">
-                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-sm">
-                                <benefit.icon className="w-3 h-3" />
+                        <div key={i} className={`shrink-0 flex flex-col items-center gap-2 p-4 rounded-3xl ${benefit.bg} border ${benefit.border} min-w-[100px]`}>
+                            <div className={`w-8 h-8 rounded-full ${benefit.iconBg} flex items-center justify-center text-white shadow-sm`}>
+                                <benefit.icon className="w-4 h-4" />
                             </div>
-                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">
+                            <span className={`text-[10px] font-black ${benefit.text} text-center uppercase tracking-tight whitespace-pre-line leading-tight`}>
                                 {benefit.label}
                             </span>
                         </div>
