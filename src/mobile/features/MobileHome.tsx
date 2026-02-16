@@ -605,12 +605,6 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                                 <p className="text-sm font-bold text-gray-500 uppercase tracking-widest leading-relaxed">No transactions <br/> logged yet</p>
                             </div>
                         )}
-                        <button 
-                            onClick={() => { setIsHistoryOpen(false); setActiveTab('billing'); }}
-                            className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest active:bg-indigo-100 transition-all border border-indigo-100"
-                        >
-                            Visit Billing Station
-                        </button>
                     </div>
                 </div>
             </MobileSheet>
