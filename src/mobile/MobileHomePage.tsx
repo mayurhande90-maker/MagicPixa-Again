@@ -37,8 +37,8 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'apparel', label: 'Pixa TryOn', before: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000", after: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1000" },
     { id: 'soul', label: 'Pixa Together', before: "https://images.unsplash.com/photo-1516575394826-d312a4c8c24e?q=80&w=1000", after: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000" },
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
-    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000" },
-    { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1000" }
+    { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000" },
+    { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=2000" }
 ];
 
 const FAQ_ITEMS = [
@@ -299,34 +299,37 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
 
             {/* Premium Floating Conversion Capsule */}
             <div className={`fixed bottom-4 left-4 right-4 z-[100] transition-all duration-700 transform ease-[cubic-bezier(0.34,1.56,0.64,1)] ${showSticky ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0'}`}>
-                <div className="bg-white/90 backdrop-blur-2xl border border-white/20 p-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-4">
+                <div className="bg-white/90 backdrop-blur-2xl border border-white/20 p-2.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-2">
                     {/* Left: Social Proof & Reward Context */}
-                    <div className="flex items-center gap-3 pl-2 overflow-hidden">
+                    <div className="flex items-center gap-2 pl-1 overflow-hidden">
                         {/* Overlapping Avatars */}
                         <div className="flex -space-x-2 shrink-0">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
+                                <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 overflow-hidden shadow-sm">
                                     <img src={`https://i.pravatar.cc/100?u=user${i + 10}`} className="w-full h-full object-cover" alt="User" />
                                 </div>
                             ))}
                         </div>
                         <div className="flex flex-col min-w-0">
                             <div className="flex items-center gap-1">
-                                <span className="text-[11px] font-black text-indigo-900 whitespace-nowrap">50 Credits Waiting</span>
+                                <span className="text-[10px] font-black text-indigo-900 whitespace-nowrap tracking-tight">50 Credits Ready</span>
                             </div>
-                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate">Used by 1.2k+ today</p>
+                            <p className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wide truncate">Used by 1.2k+ today</p>
                         </div>
                     </div>
 
-                    {/* Right: Premium Value Button */}
+                    {/* Right: Premium Value Button with Circular Google Anchor */}
                     <button 
                         onClick={() => auth.openAuthModal()}
-                        className="relative bg-indigo-600 text-white px-5 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 overflow-hidden active:scale-95 transition-all animate-button-glow"
+                        className="relative bg-indigo-600 text-white pl-2.5 pr-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 overflow-hidden active:scale-95 transition-all animate-button-glow shrink-0"
                     >
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 animate-capsule-shimmer pointer-events-none"></div>
                         
-                        <GoogleIcon className="w-3.5 h-3.5" />
+                        {/* Google Icon Anchor - Added white circle for better visibility */}
+                        <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm z-10">
+                            <GoogleIcon className="w-3 h-3" />
+                        </div>
                         <span className="relative z-10">Claim Now</span>
                     </button>
                 </div>
