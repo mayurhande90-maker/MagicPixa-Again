@@ -6,7 +6,8 @@ import {
   SparklesIcon, ArrowRightIcon, XIcon, ClockIcon, CreditCoinIcon, CheckIcon, 
   UploadTrayIcon, CursorClickIcon, StarIcon, PixaProductIcon, PixaHeadshotIcon, 
   PixaTryOnIcon, ThumbnailIcon, MagicAdsIcon, ChevronDownIcon, ShieldCheckIcon,
-  GlobeIcon, LightningIcon, CubeIcon, CameraIcon, GoogleIcon, UserIcon
+  GlobeIcon, LightningIcon, CubeIcon, CameraIcon, GoogleIcon, UserIcon,
+  PixaSupportIcon
 } from '../components/icons';
 import { subscribeToLabCollections } from '../firebase';
 import { MobileSplashScreen } from './components/MobileSplashScreen';
@@ -39,6 +40,14 @@ const GALLERY_ITEMS_STATIC = [
     { id: 'thumbnail_studio', label: 'Thumbnail Pro', before: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072", after: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000" },
     { id: 'brand_kit', label: 'Ecommerce Kit', before: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2000", after: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000" },
     { id: 'colour', label: 'Photo Restore', before: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2000", after: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=2000" }
+];
+
+const BRAND_BENEFITS = [
+    { label: 'Unlimited Assets', icon: SparklesIcon },
+    { label: 'No Watermarks', icon: CheckIcon },
+    { label: 'Credits Never Expire', icon: LightningIcon },
+    { label: 'Priority Support', icon: PixaSupportIcon },
+    { label: 'High-Res Output', icon: ShieldCheckIcon }
 ];
 
 const EFFICIENCY_DATA = [
@@ -282,14 +291,21 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 .animate-button-glow {
                     animation: button-glow-pulse 2s infinite ease-in-out;
                 }
+                @keyframes marquee-scroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee-scroll {
+                    animation: marquee-scroll 25s linear infinite;
+                }
             `}</style>
 
             {showSplash && <MobileSplashScreen onComplete={() => setShowSplash(false)} />}
 
             <Header navigateTo={navigateTo} auth={auth} />
 
-            {/* Sync with Desktop Hero Style */}
-            <section className="px-6 py-12 bg-white relative overflow-hidden">
+            {/* Hero Section */}
+            <section className="px-6 py-10 bg-white relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(to_bottom,white_90%,transparent)]"></div>
                 <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-blob"></div>
                 <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-200/50 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
@@ -313,7 +329,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             </section>
 
             {/* 2. THE TRANSFORMATION GALLERY (3 + GRID) */}
-            <section className="py-20 px-6 bg-white">
+            <section className="py-10 px-6 bg-white">
                 <div className="text-center mb-10">
                     <h2 className="text-3xl font-black text-[#1A1A1E] tracking-tight">The Transformation Gallery</h2>
                     <p className="text-sm text-gray-500 font-medium mt-2">From raw asset to professional masterpiece in one click.</p>
@@ -333,7 +349,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     ))}
                 </div>
 
-                <div className="mt-12 flex justify-center">
+                <div className="mt-10 flex justify-center">
                     <button 
                         onClick={() => auth.openAuthModal()} 
                         className="bg-[#1A1A1E] text-white font-bold py-4 px-8 rounded-2xl active:scale-95 transition-all text-sm flex items-center gap-3 shadow-xl"
@@ -343,9 +359,27 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                 </div>
             </section>
 
+            {/* 2.5 BENEFITS MARQUEE */}
+            <div className="bg-white overflow-hidden relative py-4 border-y border-gray-50">
+                <div className="flex gap-4 animate-marquee-scroll whitespace-nowrap">
+                    {[...BRAND_BENEFITS, ...BRAND_BENEFITS].map((benefit, i) => (
+                        <div key={i} className="shrink-0 flex items-center gap-3 px-6 py-3.5 rounded-full bg-indigo-50/50 border border-indigo-100/50">
+                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                                <benefit.icon className="w-3 h-3" />
+                            </div>
+                            <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">
+                                {benefit.label}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+                <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+            </div>
+
             {/* 3. THE SPEED OF PIXA: Human Speed vs Pixa Logic */}
-            <section ref={efficiencyRef} className="py-20 px-6 bg-gray-50 rounded-[3.5rem]">
-                <div className="mb-12 px-2 text-center">
+            <section ref={efficiencyRef} className="py-10 px-6 bg-gray-50 rounded-[3.5rem]">
+                <div className="mb-10 px-2 text-center">
                     <h2 className="text-3xl font-black text-[#1A1A1E] leading-tight tracking-tight">The Speed of <span className="text-indigo-600">Pixa.</span></h2>
                     <p className="text-sm text-gray-500 font-bold uppercase tracking-[0.1em] mt-3">Stop waiting. Start creating.</p>
                 </div>
@@ -356,7 +390,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     ))}
                 </div>
 
-                <div className="mt-12 p-8 bg-white rounded-[3rem] border border-gray-100 shadow-sm text-center relative overflow-hidden group">
+                <div className="mt-10 p-8 bg-white rounded-[3rem] border border-gray-100 shadow-sm text-center relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-1000"></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-16 h-16 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
@@ -369,8 +403,8 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             </section>
 
             {/* Bento Hub: The Feature Grid */}
-            <section className="px-6 py-20 bg-white">
-                <div className="mb-10 px-2">
+            <section className="px-6 py-10 bg-white">
+                <div className="mb-8 px-2">
                     <h2 className="text-2xl font-black text-[#1A1A1E] tracking-tight">The Bento Toolkit</h2>
                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">One Tap, Total Production</p>
                 </div>
@@ -399,7 +433,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             </section>
 
             {/* Minimalist FAQ Accordion */}
-            <section className="px-6 py-20 bg-gray-50">
+            <section className="px-6 py-10 bg-gray-50">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-8 text-center">Frequently Asked</h3>
                 <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
                     {FAQ_ITEMS.map((item, i) => (
@@ -420,7 +454,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
             </section>
 
             {/* Impact Footer */}
-            <section className="px-6 py-24 bg-gray-900 text-center relative overflow-hidden rounded-t-[3rem]">
+            <section className="px-6 py-12 bg-gray-900 text-center relative overflow-hidden rounded-t-[3rem]">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
                 <div className="relative z-10">
                     <h2 className="text-4xl font-black text-white leading-[1.1] mb-8 tracking-tight">
