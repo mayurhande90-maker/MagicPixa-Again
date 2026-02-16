@@ -396,7 +396,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                         <div className="w-16 h-16 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
                             <ClockIcon className="w-8 h-8" />
                         </div>
-                        <h4 className="text-2xl font-black text-[#1A1A1E] mb-2 tracking-tight">Save 120+ Hours</h4>
+                        <h4 className="text-2xl font-black text-[#1A1A1E] mb-2 tracking-tight">Save 120+ Hours/month</h4>
                         <p className="text-[10px] text-gray-400 font-black leading-relaxed uppercase tracking-[0.25em]">Focus on Growth, Not Grids.</p>
                     </div>
                 </div>
