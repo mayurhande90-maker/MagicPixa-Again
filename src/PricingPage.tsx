@@ -149,7 +149,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
             
             <main className="flex-grow">
                 {/* HERO SECTION - Matching HomePage Hero Style */}
-                <section className="bg-white py-16 px-4">
+                <section className="bg-white pt-12 pb-6 px-4">
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 border border-transparent px-3 py-1 rounded-full mb-6 shadow-sm">
                             <LightningIcon className="w-3.5 h-3.5 text-white" />
@@ -165,9 +165,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 </section>
 
                 {/* PRICING GRID */}
-                <section className={`${HomeStyles.pricingSection} px-6`}>
+                <section className="py-10 px-6 bg-[#F6F7FA]">
                     <div className="max-w-7xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mt-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mt-4">
                             {creditPacks.map((pack, index) => {
                                 const packWeight = PLAN_WEIGHTS[pack.name] || 0;
                                 
@@ -250,7 +250,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">One-Time Fee</p>
                                                     <p className="text-2xl font-black text-gray-900">₹{pack.price}</p>
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="text-right hidden md:block">
                                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Net Rate</p>
                                                     <p className="text-xs font-black text-indigo-600">₹{pack.value}/Cr</p>
                                                 </div>
@@ -293,7 +293,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 </section>
 
                 {/* TRUST BAR - Classic Design */}
-                <section className="py-12 bg-white px-4 border-b border-gray-100">
+                <section className="py-8 bg-white px-4 border-b border-gray-100">
                     <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#4D7CFF] shrink-0 shadow-sm border border-blue-100">
@@ -317,9 +317,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 </section>
 
                 {/* FAQ SECTION - Classic Clean Accordion */}
-                <section className="py-24 bg-[#F6F7FA] px-4">
+                <section className="py-12 bg-[#F6F7FA] px-4">
                     <div className="max-w-3xl mx-auto">
-                        <div className="text-center mb-12">
+                        <div className="text-center mb-10">
                             <h2 className="text-3xl font-bold text-[#1A1A1E] mb-2 tracking-tight">Got Questions?</h2>
                             <p className="text-[#5F6368] font-medium">Everything you need to know about credits and billing.</p>
                         </div>
@@ -332,7 +332,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                             </div>
                         </div>
 
-                        <div className="mt-12 text-center">
+                        <div className="mt-10 text-center">
                             <button 
                                 onClick={() => navigateTo('dashboard', 'support_center')}
                                 className="inline-flex items-center gap-2 text-sm font-bold text-[#4D7CFF] hover:text-blue-700 transition-colors"
@@ -344,7 +344,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 </section>
 
                 {/* CTA SECTION */}
-                <section className="py-24 px-4 bg-white text-center">
+                <section className="py-16 px-4 bg-white text-center">
                     <div className="max-w-3xl mx-auto">
                         <h2 className="text-3xl md:text-4xl font-bold text-[#1A1A1E] mb-8 leading-tight">Ready to transform your ideas <br/> into stunning visuals?</h2>
                         <button 
