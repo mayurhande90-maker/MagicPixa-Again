@@ -228,8 +228,8 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         const bgIconClass = "w-4 h-4";
         const f = feature.toLowerCase();
 
-        // Grants & Purchases
-        if (f.includes('grant') || f.includes('purchase') || f.includes('refill') || f.includes('check-in')) {
+        // Grants & Purchases - Added 'mission' to include Daily Mission rewards in the Lightning category
+        if (f.includes('grant') || f.includes('purchase') || f.includes('refill') || f.includes('check-in') || f.includes('mission')) {
             return <div className="p-2 bg-amber-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-amber-600`} /></div>;
         }
         
