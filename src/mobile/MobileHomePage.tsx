@@ -327,9 +327,9 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
 
             {/* Premium Floating Conversion Capsule */}
             <div className={`fixed bottom-4 left-4 right-4 z-[100] transition-all duration-700 transform ease-[cubic-bezier(0.34,1.56,0.64,1)] ${showSticky ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0'}`}>
-                <div className="bg-white/90 backdrop-blur-2xl border border-white/20 p-2.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-2">
+                <div className="bg-white/90 backdrop-blur-2xl border border-white/20 p-2.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-1.5">
                     {/* Left: Social Proof & Reward Context */}
-                    <div className="flex items-center gap-2 pl-1 overflow-hidden">
+                    <div className="flex items-center gap-1.5 pl-1 overflow-hidden">
                         {/* Deterministic Daily Avatars */}
                         <div className="flex -space-x-2 shrink-0">
                             {dailyStats.avatarIds.map((id, i) => (
@@ -342,9 +342,9 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                             <div className="flex items-center gap-1">
                                 <span className="text-[10px] font-black text-indigo-900 whitespace-nowrap tracking-tight">50 Credits Ready</span>
                             </div>
-                            {/* Deterministic Daily User Count */}
-                            <p className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wide truncate">
-                                Used by {dailyStats.countFormatted} creators today
+                            {/* Deterministic Daily User Count - Simplified for fit */}
+                            <p className="text-[7.5px] font-bold text-gray-400 uppercase truncate">
+                                Used by {dailyStats.countFormatted} today
                             </p>
                         </div>
                     </div>
@@ -352,7 +352,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
                     {/* Right: Premium Value Button with Circular Google Anchor */}
                     <button 
                         onClick={() => auth.openAuthModal()}
-                        className="relative bg-indigo-600 text-white pl-2.5 pr-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 overflow-hidden active:scale-95 transition-all animate-button-glow shrink-0"
+                        className="relative bg-indigo-600 text-white pl-2 pr-3 py-2 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 overflow-hidden active:scale-95 transition-all animate-button-glow shrink-0"
                     >
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 animate-capsule-shimmer pointer-events-none"></div>
