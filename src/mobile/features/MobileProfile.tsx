@@ -106,9 +106,9 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const benefits = [
-        { label: 'Unlimited\nAssets', icon: SparklesIcon, color: 'blue', bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-900', iconBg: 'bg-blue-500' },
-        { label: 'No\nWatermarks', icon: CheckIcon, color: 'green', bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-900', iconBg: 'bg-green-500' },
-        { label: 'Credits Never\nExpire', icon: LightningIcon, color: 'purple', bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-900', iconBg: 'bg-green-500' },
+        { label: 'Unlimited\nAssets', icon: SparklesIcon, bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-900', iconBg: 'bg-blue-600' },
+        { label: 'No\nWatermarks', icon: CheckIcon, bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-900', iconBg: 'bg-green-600' },
+        { label: 'Credits Never\nExpire', icon: LightningIcon, bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-900', iconBg: 'bg-green-500' },
         { label: 'Priority\nSupport', icon: PixaSupportIcon, color: 'indigo', bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-900', iconBg: 'bg-indigo-500' },
         { label: 'High Resolution\nOutput', icon: ShieldCheckIcon, color: 'amber', bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', iconBg: 'bg-amber-500' },
     ];
@@ -226,24 +226,27 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const getIconForFeature = (feature: string): React.ReactNode => {
         const bgIconClass = "w-4 h-4";
-        
-        if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
+        const f = feature.toLowerCase();
+
+        // Grants & Purchases
+        if (f.includes('grant') || f.includes('purchase') || f.includes('refill') || f.includes('check-in')) {
             return <div className="p-2 bg-amber-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-amber-600`} /></div>;
         }
         
-        if (feature.includes('Product Shots') || feature.includes('Model Shots')) return <div className="p-2 bg-blue-50 rounded-xl"><PixaProductIcon className={`${bgIconClass} text-blue-600`} /></div>;
-        if (feature.includes('Thumbnail Pro')) return <div className="p-2 bg-red-50 rounded-xl"><ThumbnailIcon className={`${bgIconClass} text-red-600`} /></div>;
-        if (feature.includes('Realty Ads')) return <div className="p-2 bg-purple-50 rounded-xl"><BuildingIcon className={`${bgIconClass} text-purple-600`} /></div>; 
-        if (feature.includes('Ecommerce Kit')) return <div className="p-2 bg-green-50 rounded-xl"><PixaEcommerceIcon className={`${bgIconClass} text-green-600`} /></div>;
-        if (feature.includes('AdMaker')) return <div className="p-2 bg-orange-50 rounded-xl"><MagicAdsIcon className={`${bgIconClass} text-orange-600`} /></div>;
-        if (feature.includes('Together')) return <div className="p-2 bg-pink-50 rounded-xl"><PixaTogetherIcon className={`${bgIconClass} text-pink-600`} /></div>;
-        if (feature.includes('Photo Restore')) return <div className="p-2 bg-slate-100 rounded-xl"><PixaRestoreIcon className={`${bgIconClass} text-slate-600`} /></div>;
-        if (feature.includes('Caption Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaCaptionIcon className={`${bgIconClass} text-indigo-600`} /></div>;
-        if (feature.includes('Interior Design')) return <div className="p-2 bg-amber-50 rounded-xl"><PixaInteriorIcon className={`${bgIconClass} text-amber-600`} /></div>;
-        if (feature.includes('TryOn')) return <div className="p-2 bg-rose-50 rounded-xl"><PixaTryOnIcon className={`${bgIconClass} text-rose-600`} /></div>;
-        if (feature.includes('Headshot Pro')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaHeadshotIcon className={`${bgIconClass} text-indigo-600`} /></div>;
-        if (feature.includes('Magic Eraser') || feature.includes('Magic Editor') || feature.includes('Refinement')) return <div className="p-2 bg-indigo-50 rounded-xl"><MagicWandIcon className={`${bgIconClass} text-indigo-600`} /></div>;
-        if (feature.includes('Campaign Studio')) return <div className="p-2 bg-blue-50 rounded-xl"><CampaignStudioIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        // Feature Keywords (Broader matching for Mobile/Desktop variants)
+        if (f.includes('campaign')) return <div className="p-2 bg-blue-50 rounded-xl"><CampaignStudioIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        if (f.includes('product') || (f.includes('studio') && !f.includes('thumbnail') && !f.includes('campaign') && !f.includes('merchant'))) return <div className="p-2 bg-blue-50 rounded-xl"><PixaProductIcon className={`${bgIconClass} text-blue-600`} /></div>;
+        if (f.includes('thumbnail')) return <div className="p-2 bg-red-50 rounded-xl"><ThumbnailIcon className={`${bgIconClass} text-red-600`} /></div>;
+        if (f.includes('realty')) return <div className="p-2 bg-purple-50 rounded-xl"><BuildingIcon className={`${bgIconClass} text-purple-600`} /></div>; 
+        if (f.includes('ecommerce') || f.includes('merchant')) return <div className="p-2 bg-green-50 rounded-xl"><PixaEcommerceIcon className={`${bgIconClass} text-green-600`} /></div>;
+        if (f.includes('admaker')) return <div className="p-2 bg-orange-50 rounded-xl"><MagicAdsIcon className={`${bgIconClass} text-orange-600`} /></div>;
+        if (f.includes('together')) return <div className="p-2 bg-pink-50 rounded-xl"><PixaTogetherIcon className={`${bgIconClass} text-pink-600`} /></div>;
+        if (f.includes('restore')) return <div className="p-2 bg-slate-100 rounded-xl"><PixaRestoreIcon className={`${bgIconClass} text-slate-600`} /></div>;
+        if (f.includes('caption')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaCaptionIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (f.includes('interior')) return <div className="p-2 bg-amber-50 rounded-xl"><PixaInteriorIcon className={`${bgIconClass} text-amber-600`} /></div>;
+        if (f.includes('tryon')) return <div className="p-2 bg-rose-50 rounded-xl"><PixaTryOnIcon className={`${bgIconClass} text-rose-600`} /></div>;
+        if (f.includes('headshot')) return <div className="p-2 bg-indigo-50 rounded-xl"><PixaHeadshotIcon className={`${bgIconClass} text-indigo-600`} /></div>;
+        if (f.includes('eraser') || f.includes('editor') || f.includes('refinement')) return <div className="p-2 bg-indigo-50 rounded-xl"><MagicWandIcon className={`${bgIconClass} text-indigo-600`} /></div>;
         
         return <div className="p-2 bg-gray-50 rounded-xl"><TicketIcon className={`${bgIconClass} text-gray-500`} /></div>;
     };
@@ -373,7 +376,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     <div className={`w-8 h-8 rounded-full ${benefit.iconBg} flex items-center justify-center text-white shadow-sm`}>
                                         <benefit.icon className="w-4 h-4" />
                                     </div>
-                                    <span className={`text-[10px] font-black ${benefit.text} text-center uppercase tracking-tight whitespace-pre-line`}>
+                                    <span className={`text-[10px] font-black ${benefit.text} text-center uppercase tracking-tight whitespace-pre-line leading-tight`}>
                                         {benefit.label}
                                     </span>
                                 </div>
