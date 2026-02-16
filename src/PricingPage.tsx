@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Page, AuthProps, View, AppConfig } from './types';
 import Header from './components/Header';
@@ -25,6 +24,37 @@ const PLAN_WEIGHTS: Record<string, number> = {
     'Creator Pack': 2,
     'Studio Pack': 3,
     'Agency Pack': 4
+};
+
+const PLAN_BENEFITS: Record<string, string[]> = {
+    'Starter Pack': [
+        '50 AI Credits (Try every tool)',
+        '1 Brand Kit Slot',
+        'Standard Definition (HD) Output',
+        'Standard Support (AI Bot)',
+        'Personal Usage License'
+    ],
+    'Creator Pack': [
+        '165 AI Credits (Better Value)',
+        '3 Brand Kit Slots',
+        'High-Resolution (4K) Output',
+        'Full Commercial Usage Rights',
+        'Verified Identity Lock 6.0'
+    ],
+    'Studio Pack': [
+        '300 AI Credits (Bulk Savings)',
+        '10 Brand Kit Slots',
+        'Ultra-Resolution (8K) Output',
+        'Priority Processing (2x Faster)',
+        'Priority Support (Human Agent)'
+    ],
+    'Agency Pack': [
+        '1200 AI Credits (Best Rate)',
+        '50 Brand Kit Slots',
+        'Unlimited 8K High-Res Exports',
+        'Dedicated Account Manager',
+        'White-Label Content (No Metadata)'
+    ]
 };
 
 const FAQ_ITEMS = [
@@ -134,10 +164,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                     </div>
                 </section>
 
-                {/* PRICING GRID - Strictly using HomeStyles variables */}
-                <section className={HomeStyles.pricingSection}>
+                {/* PRICING GRID */}
+                <section className={`${HomeStyles.pricingSection} px-6`}>
                     <div className="max-w-7xl mx-auto">
-                        <div className={HomeStyles.pricingGrid}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mt-8">
                             {creditPacks.map((pack, index) => {
                                 const packWeight = PLAN_WEIGHTS[pack.name] || 0;
                                 
@@ -152,81 +182,109 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                 }
 
                                 const isLoading = loadingPackId === pack.name;
+                                const benefitsList = PLAN_BENEFITS[pack.name] || [];
 
                                 return (
                                     <div 
                                         key={index} 
                                         className={`
-                                            ${HomeStyles.pricingCard} 
+                                            w-full rounded-[2.2rem] border-2 transition-all duration-300 p-8 flex flex-col relative overflow-hidden
                                             ${isCurrent 
-                                                ? HomeStyles.pricingCardActive 
-                                                : (pack.popular && !isDowngrade ? HomeStyles.pricingCardPopular : HomeStyles.pricingCardStandard)
+                                                ? 'bg-green-50/30 border-green-500 shadow-2xl ring-4 ring-green-500/10 scale-[1.02] z-10' 
+                                                : (pack.popular && !isDowngrade ? 'bg-white border-indigo-600 shadow-xl shadow-indigo-500/5' : 'bg-white border-gray-100 shadow-sm')
                                             } 
-                                            ${!isUpgrade && !isCurrent && auth.isAuthenticated ? 'opacity-70 bg-gray-50' : ''}
+                                            ${!isUpgrade && !isCurrent && auth.isAuthenticated ? 'opacity-70 grayscale-[0.2]' : ''}
                                         `}
                                     >
                                         {/* ACTIVE PLAN BADGE */}
-                                        {isCurrent && <div className={HomeStyles.activeBadge}>Current Plan</div>}
+                                        {isCurrent && (
+                                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 bg-green-600 text-white text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg border-2 border-white">
+                                                Active Plan
+                                            </div>
+                                        )}
 
                                         {/* POPULAR BADGE */}
                                         {pack.popular && !isCurrent && !isDowngrade && (
-                                            <p className="text-center bg-black text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase -mt-9 mb-6 mx-auto w-fit shadow-sm">
+                                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg border-2 border-white">
                                                 Best Value
-                                            </p>
+                                            </div>
                                         )}
                                         
-                                        {/* Spacer for badge overlap */}
-                                        {isCurrent && <div className="h-4"></div>}
-
-                                        <h3 className="text-xl font-bold text-[#1A1A1E] mb-2">{pack.name}</h3>
-                                        <p className="text-[#5F6368] text-sm mb-6 h-10 leading-snug">{pack.tagline}</p>
-                                        
+                                        {/* Header */}
                                         <div className="mb-6">
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl font-bold text-[#1A1A1E] tracking-tight">{pack.totalCredits}</span>
-                                                <span className="text-[#5F6368] text-sm font-semibold uppercase tracking-wider">Credits</span>
+                                            <h3 className="text-xl font-black text-[#1A1A1E] mb-1 uppercase tracking-tight">{pack.name}</h3>
+                                            <p className="text-[#5F6368] text-xs font-medium leading-relaxed h-8 line-clamp-2">{pack.tagline}</p>
+                                        </div>
+
+                                        {/* Credits Display */}
+                                        <div className="mb-8 p-6 bg-gray-50/50 rounded-3xl border border-gray-100/50 shadow-inner">
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-5xl font-black text-[#1A1A1E] tracking-tighter">{pack.totalCredits}</span>
+                                                <span className="text-gray-400 text-xs font-black uppercase tracking-widest">Credits</span>
                                             </div>
                                             {pack.bonus > 0 && (
-                                                <div className="mt-2 flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                                                    <SparklesIcon className="w-3.5 h-3.5" />
-                                                    <span>Includes {pack.bonus} Bonus!</span>
+                                                <div className="mt-2 inline-flex items-center gap-1.5 text-indigo-600 font-black text-[10px] uppercase tracking-widest">
+                                                    <SparklesIcon className="w-3 h-3" />
+                                                    <span>+{pack.bonus} Bonus Included</span>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="bg-[#F6F7FA] border border-gray-200/80 rounded-xl p-4 text-center mb-8">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">One-Time Payment</p>
-                                            <span className="text-2xl font-bold text-[#1A1A1E]">₹{pack.price}</span>
+                                        {/* Benefits Table - Always Open Style */}
+                                        <div className="flex-1 mb-8 space-y-3">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Plan Features</p>
+                                            {benefitsList.map((benefit, i) => (
+                                                <div key={i} className="flex items-center gap-3 animate-fadeInUp" style={{ animationDelay: `${i * 100}ms` }}>
+                                                    <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shrink-0 shadow-sm">
+                                                        <CheckIcon className="w-3 h-3" />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-700">{benefit}</span>
+                                                </div>
+                                            ))}
                                         </div>
 
-                                        <button 
-                                            onClick={() => {
-                                                if (!auth.isAuthenticated) {
-                                                    auth.openAuthModal();
-                                                } else if (isUpgrade) {
-                                                    handleCheckout(pack);
+                                        {/* Pricing Footer */}
+                                        <div className="mt-auto space-y-4">
+                                            <div className="flex items-center justify-between px-2">
+                                                <div>
+                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">One-Time Fee</p>
+                                                    <p className="text-2xl font-black text-gray-900">₹{pack.price}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Net Rate</p>
+                                                    <p className="text-xs font-black text-indigo-600">₹{pack.value}/Cr</p>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={() => {
+                                                    if (!auth.isAuthenticated) {
+                                                        auth.openAuthModal();
+                                                    } else if (isUpgrade) {
+                                                        handleCheckout(pack);
+                                                    }
+                                                }}
+                                                disabled={(auth.isAuthenticated && !isUpgrade) || isLoading}
+                                                className={`
+                                                    w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3
+                                                    ${auth.isAuthenticated 
+                                                        ? (isCurrent 
+                                                            ? 'bg-green-600 text-white cursor-default'
+                                                            : (isUpgrade 
+                                                                ? 'bg-[#1A1A1E] text-white hover:bg-black shadow-indigo-500/10'
+                                                                : 'bg-gray-100 text-gray-500 cursor-default grayscale'))
+                                                        : 'bg-[#1A1A1E] text-white hover:bg-black'
+                                                    }
+                                                `}
+                                            >
+                                                {isLoading ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                ) : auth.isAuthenticated 
+                                                    ? (isCurrent ? <><CheckIcon className="w-4 h-4"/> Active</> : isDowngrade ? "Included" : <><LightningIcon className="w-4 h-4"/> Upgrade Now</>)
+                                                    : <><SparklesIcon className="w-4 h-4"/> Get Started</>
                                                 }
-                                            }}
-                                            disabled={(auth.isAuthenticated && !isUpgrade) || isLoading}
-                                            className={`
-                                                ${HomeStyles.pricingButton} 
-                                                ${auth.isAuthenticated 
-                                                    ? (isCurrent 
-                                                        ? HomeStyles.pricingButtonActive
-                                                        : (isUpgrade 
-                                                            ? HomeStyles.pricingButtonPopular
-                                                            : 'bg-gray-100 text-gray-500 cursor-default hover:bg-gray-100'))
-                                                    : HomeStyles.pricingButtonPopular
-                                                }
-                                            `}
-                                        >
-                                            {isLoading ? (
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                            ) : auth.isAuthenticated 
-                                                ? (isCurrent ? <><CheckIcon className="w-4 h-4"/> Active</> : isDowngrade ? "Included" : "Upgrade Now")
-                                                : "Get Started"
-                                            }
-                                        </button>
+                                            </button>
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -238,7 +296,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                 <section className="py-12 bg-white px-4 border-b border-gray-100">
                     <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#4D7CFF] shrink-0">
+                            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#4D7CFF] shrink-0 shadow-sm border border-blue-100">
                                 <ShieldCheckIcon className="w-6 h-6"/>
                             </div>
                             <div>
@@ -247,7 +305,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-[#1A1A1E] shrink-0">
+                            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-[#1A1A1E] shrink-0 shadow-sm border border-gray-100">
                                 <StarIcon className="w-6 h-6"/>
                             </div>
                             <div>
@@ -266,7 +324,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                             <p className="text-[#5F6368] font-medium">Everything you need to know about credits and billing.</p>
                         </div>
                         
-                        <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-200 shadow-sm">
+                        <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-gray-200 shadow-sm">
                             <div className="divide-y divide-gray-100">
                                 {FAQ_ITEMS.map((item, i) => (
                                     <FAQItem key={i} item={item} />
@@ -291,9 +349,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                         <h2 className="text-3xl md:text-4xl font-bold text-[#1A1A1E] mb-8 leading-tight">Ready to transform your ideas <br/> into stunning visuals?</h2>
                         <button 
                             onClick={() => auth.isAuthenticated ? navigateTo('dashboard') : auth.openAuthModal()}
-                            className={`${HomeStyles.heroButton} mx-auto`}
+                            className="bg-[#1A1A1E] text-white py-5 px-12 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all inline-flex items-center justify-center gap-3"
                         >
-                            Start Creating Now
+                            Start Creating Now <ArrowRightIcon className="w-6 h-6" />
                         </button>
                     </div>
                 </section>
