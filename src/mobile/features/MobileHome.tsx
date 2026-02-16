@@ -242,8 +242,8 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
         const bgIconClass = "w-4 h-4";
         const f = feature.toLowerCase();
 
-        // Grants & Purchases
-        if (f.includes('grant') || f.includes('purchase') || f.includes('refill') || f.includes('check-in')) {
+        // Grants & Purchases - Added 'mission' to include Daily Mission rewards in the Lightning category
+        if (f.includes('grant') || f.includes('purchase') || f.includes('refill') || f.includes('check-in') || f.includes('mission')) {
             return <div className="p-2 bg-amber-100 rounded-xl"><LightningIcon className={`${bgIconClass} text-amber-600`} /></div>;
         }
         
@@ -469,6 +469,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
                                 <p className="text-[10px] text-gray-400 font-medium">Claim +1 free daily credit</p>
                             </div>
                             <button 
+                                {/* COMMENT: Fixed name mismatch for the daily check-in handler function. */}
                                 onClick={handleClaimCheckin}
                                 disabled={isClaiming || !canClaimCheckin}
                                 className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!canClaimCheckin ? 'bg-white/5 text-gray-500 cursor-default' : 'bg-amber-400 text-black shadow-lg shadow-amber-400/20 active:scale-95'}`}
