@@ -56,24 +56,26 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
   const getIconForFeature = (feature: string): React.ReactNode => {
     const iconClass = "w-10 h-10";
     const bgIconClass = "w-5 h-5";
+    const f = feature.toLowerCase();
     
-    if (feature === 'MagicPixa Credit Grant' || feature.toLowerCase().includes('purchase') || feature.toLowerCase().includes('grant') || feature.includes('Refill')) {
+    // Updated to include check-in and mission rewards
+    if (f.includes('grant') || f.includes('purchase') || f.includes('refill') || f.includes('check-in') || f.includes('mission')) {
         return <div className="p-2 bg-yellow-100 rounded-full"><LightningIcon className={`${bgIconClass} text-yellow-600`} /></div>;
     }
     
-    if (feature.includes('Product Shots') || feature.includes('Model Shots')) return <PixaProductIcon className={iconClass} />;
-    if (feature.includes('Thumbnail Pro')) return <ThumbnailIcon className={iconClass} />;
-    if (feature.includes('Realty Ads')) return <BuildingIcon className={iconClass} />; 
-    if (feature.includes('Ecommerce Kit')) return <PixaEcommerceIcon className={iconClass} />;
-    if (feature.includes('AdMaker')) return <MagicAdsIcon className={iconClass} />;
-    if (feature.includes('Together')) return <PixaTogetherIcon className={iconClass} />;
-    if (feature.includes('Photo Restore')) return <PixaRestoreIcon className={iconClass} />;
-    if (feature.includes('Caption Pro')) return <PixaCaptionIcon className={iconClass} />;
-    if (feature.includes('Interior Design')) return <PixaInteriorIcon className={iconClass} />;
-    if (feature.includes('TryOn')) return <PixaTryOnIcon className={iconClass} />;
-    if (feature.includes('Headshot Pro')) return <PixaHeadshotIcon className={iconClass} />;
-    if (feature.includes('Magic Eraser') || feature.includes('Magic Editor') || feature.includes('Pixa Refinement')) return <MagicWandIcon className={iconClass} />;
-    if (feature.includes('Campaign Studio')) return <CampaignStudioIcon className={iconClass} />;
+    if (f.includes('product shots') || f.includes('model shots')) return <PixaProductIcon className={iconClass} />;
+    if (f.includes('thumbnail pro')) return <ThumbnailIcon className={iconClass} />;
+    if (f.includes('realty ads')) return <BuildingIcon className={iconClass} />; 
+    if (f.includes('ecommerce kit')) return <PixaEcommerceIcon className={iconClass} />;
+    if (f.includes('admaker')) return <MagicAdsIcon className={iconClass} />;
+    if (f.includes('together')) return <PixaTogetherIcon className={iconClass} />;
+    if (f.includes('photo restore')) return <PixaRestoreIcon className={iconClass} />;
+    if (f.includes('caption pro')) return <PixaCaptionIcon className={iconClass} />;
+    if (f.includes('interior design')) return <PixaInteriorIcon className={iconClass} />;
+    if (f.includes('tryon')) return <PixaTryOnIcon className={iconClass} />;
+    if (f.includes('headshot pro')) return <PixaHeadshotIcon className={iconClass} />;
+    if (f.includes('magic eraser') || f.includes('magic editor') || f.includes('pixa refinement')) return <MagicWandIcon className={iconClass} />;
+    if (f.includes('campaign studio')) return <CampaignStudioIcon className={iconClass} />;
     
     return <div className="p-2 bg-gray-100 rounded-full"><TicketIcon className={`${bgIconClass} text-gray-500`} /></div>;
   };
@@ -86,7 +88,6 @@ export const Billing: React.FC<BillingProps> = ({ user, setUser, appConfig, setA
       yesterday.setDate(yesterday.getDate() - 1);
       transactions.forEach(tx => {
           if (!tx.date) return;
-          // COMMENT: Fixed type conversion issue. Explicitly handle Timestamp objects, numbers, or fallback to any for legacy data to satisfy Date constructor.
           const date = (tx.date as any).toDate 
             ? (tx.date as any).toDate() 
             : new Date(typeof tx.date === 'number' ? tx.date : ((tx.date as any).seconds * 1000 || tx.date as any));
