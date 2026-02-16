@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     SparklesIcon, 
@@ -80,7 +79,8 @@ export const ImageModal: React.FC<{
     hasNext?: boolean;
     hasPrev?: boolean;
     children?: React.ReactNode;
-}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev, children }) => {
+    hideDefaultActions?: boolean;
+}> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev, children, hideDefaultActions }) => {
     
     // Keyboard navigation support
     useEffect(() => {
@@ -135,7 +135,7 @@ export const ImageModal: React.FC<{
                 )}
 
                 {/* Bottom Action Bar */}
-                {(onDownload || onDelete) && (
+                {(!hideDefaultActions && (onDownload || onDelete)) && (
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-[70] flex-wrap justify-center" onClick={(e) => e.stopPropagation()}>
                         {onDownload && (
                             <button onClick={onDownload} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform">
