@@ -148,10 +148,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             setter({ url: URL.createObjectURL(file), base64 });
             
             if (setter === setImage) {
-                // If Industry is already set, auto-advance
+                // Advance if industry is already set
                 if (industry) setTimeout(() => setCurrentStep(1), 600);
             } else if (setter === setLogo) {
-                // Auto-advance after logo upload
+                // Deliberate delay after logo upload
                 setTimeout(() => setCurrentStep(3), 600);
             }
         }
@@ -226,17 +226,14 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="w-full flex flex-col gap-4 py-2">
                         <div className="flex gap-3 overflow-x-auto no-scrollbar px-6">
                             {INDUSTRIES.map(ind => (
-                                <button key={ind.id} onClick={() => { setIndustry(ind); if(image) setCurrentStep(1); }} className={`shrink-0 w-24 h-24 rounded-3xl border flex flex-col items-center justify-center gap-1.5 transition-all ${industry?.id === ind.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
+                                <button key={ind.id} onClick={() => { 
+                                    setIndustry(ind); 
+                                    if(image) setTimeout(() => setCurrentStep(1), 600); 
+                                }} className={`shrink-0 w-24 h-24 rounded-3xl border flex flex-col items-center justify-center gap-1.5 transition-all ${industry?.id === ind.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
                                     <ind.icon className="w-6 h-6" />
                                     <span className="text-[9px] font-black uppercase tracking-tight">{ind.label}</span>
                                 </button>
                             ))}
-                        </div>
-                        <div className="px-6">
-                            <div onClick={() => fileInputRef.current?.click()} className={`h-20 rounded-2xl border-2 border-dashed flex items-center justify-center gap-3 transition-all ${image ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                                {image ? <CheckIcon className="w-5 h-5"/> : <UploadIcon className="w-5 h-5"/>}
-                                <span className="text-[10px] font-black uppercase tracking-widest">{image ? 'Product Set' : 'Upload Product Photo'}</span>
-                            </div>
                         </div>
                     </div>
                 );
@@ -253,8 +250,12 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 {activeParam.options.map(opt => (
                                     <button key={opt} onClick={() => {
                                         setModelParams(prev => ({ ...prev, [activeParam.id]: opt }));
-                                        if (modelStepIdx < MODEL_PARAMS_STEPS.length - 1) setModelStepIdx(prev => prev + 1);
-                                        else setTimeout(() => setCurrentStep(2), 300);
+                                        if (modelStepIdx < MODEL_PARAMS_STEPS.length - 1) {
+                                            setTimeout(() => setModelStepIdx(prev => prev + 1), 600);
+                                        }
+                                        else {
+                                            setTimeout(() => setCurrentStep(2), 600);
+                                        }
                                     }} className={`shrink-0 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${modelParams[activeParam.id] === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{opt}</button>
                                 ))}
                             </div>
@@ -263,7 +264,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 }
                 return (
                     <div className="w-full flex gap-4 px-6 py-2">
-                        <button onClick={() => { setEngineMode('product'); setCurrentStep(2); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'product' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                        <button onClick={() => { setEngineMode('product'); setTimeout(() => setCurrentStep(2), 600); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'product' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
                             <div className="p-3 bg-white rounded-2xl shadow-sm"><CubeIcon className="w-6 h-6 text-blue-500"/></div>
                             <span className="text-[10px] font-black uppercase tracking-widest">Product Ad</span>
                         </button>
@@ -287,7 +288,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="w-full flex flex-col gap-4 px-6 py-2">
                         <div className="flex gap-2 overflow-x-auto no-scrollbar">
                             {MOODS.map(m => (
-                                <button key={m} onClick={() => { setVibe(m); setCurrentStep(4); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
+                                <button key={m} onClick={() => { setVibe(m); setTimeout(() => setCurrentStep(4), 600); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
                             ))}
                         </div>
                     </div>
@@ -296,7 +297,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 return (
                     <div className="w-full flex gap-4 justify-center px-6 py-2">
                         {(['1:1', '4:5', '9:16'] as const).map(ratio => (
-                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setCurrentStep(5); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setTimeout(() => setCurrentStep(5), 600); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
                                 <div className={`border-2 border-current rounded-sm ${ratio === '1:1' ? 'w-4 h-4' : ratio === '4:5' ? 'w-4 h-5' : 'w-3 h-6'}`}></div>
                                 <span className="text-[10px] font-black">{ratio}</span>
                             </button>
@@ -372,7 +373,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 ) : (
                                     <div onClick={() => fileInputRef.current?.click()} className="text-center group">
                                         <div className="w-20 h-20 bg-white rounded-[1.8rem] flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
-                                            <MagicAdsIcon className="w-8 h-8 text-indigo-200" />
+                                            <MagicAdsIcon className="w-8 h-8 text-indigo-400" />
                                         </div>
                                         <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Product</h3>
                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">Pixa Vision will audit lighting</p>
@@ -440,9 +441,8 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         if (idx === 0) displayLabel = industry?.label || "";
                                         else if (idx === 1) displayLabel = engineMode === 'product' ? 'Product' : engineMode === 'subject' ? 'Model' : "";
                                         else if (idx === 2) {
-                                            if (currentStep >= 2) {
-                                                displayLabel = logo ? 'SET' : 'NOT SET';
-                                            }
+                                            if (logo) displayLabel = "SET";
+                                            else if (currentStep > 2) displayLabel = "NOT SET";
                                         }
                                         else if (idx === 3) {
                                             if (currentStep === 2 && isStepAccessible(2)) {
@@ -466,7 +466,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${displayLabel ? 'opacity-100' : 'opacity-0'} ${isNextCue ? 'animate-next-pulse text-indigo-500' : logo && idx === 2 ? 'text-green-500' : 'text-indigo-500'}`}>
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${displayLabel ? 'opacity-100' : 'opacity-0'} ${isNextCue ? 'animate-next-pulse text-indigo-500' : (logo && idx === 2) ? 'text-green-500' : (idx === 2 && currentStep > 2) ? 'text-red-400' : 'text-indigo-500'}`}>
                                                     {displayLabel}
                                                 </span>
                                             </button>
