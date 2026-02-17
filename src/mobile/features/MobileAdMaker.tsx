@@ -6,9 +6,17 @@ import {
     PaletteIcon, ChevronRightIcon, CreditCoinIcon, ArrowLeftIcon, 
     LockIcon, CubeIcon, UsersIcon, CameraIcon, ImageIcon,
     DownloadIcon, RegenerateIcon, PlusIcon, RefreshIcon,
-    BuildingIcon
+    BuildingIcon, ApparelIcon
 } from '../../components/icons';
-import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon } from '../../components/icons/adMakerIcons';
+import { 
+    FoodIcon, 
+    SaaSRequestIcon, 
+    EcommerceAdIcon, 
+    FMCGIcon, 
+    RealtyAdIcon, 
+    EducationAdIcon, 
+    ServicesAdIcon 
+} from '../../components/icons/adMakerIcons';
 import { fileToBase64, base64ToBlobUrl, downloadImage, urlToBase64 } from '../../utils/imageUtils';
 import { generateAdCreative } from '../../services/adMakerService';
 import { refineStudioImage } from '../../services/photoStudioService';
@@ -16,8 +24,6 @@ import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 import { SelectionGrid } from '../../components/FeatureLayout';
 import { AdMakerStyles as styles } from '../../styles/features/PixaAdMaker.styles';
-
-// --- CONFIGURATION ---
 
 const AD_STEPS = [
     { id: 'niche', label: 'Niche' },
@@ -28,22 +34,24 @@ const AD_STEPS = [
 ];
 
 const INDUSTRIES = [
-    { id: 'ecommerce', label: 'Ecommerce', icon: EcommerceAdIcon, color: 'bg-blue-500' },
-    { id: 'realty', label: 'Real Estate', icon: BuildingIcon, color: 'bg-purple-500' },
+    { id: 'ecommerce', label: 'E-Commerce', icon: EcommerceAdIcon, color: 'bg-blue-500' },
+    { id: 'fmcg', label: 'FMCG / CPG', icon: FMCGIcon, color: 'bg-green-600' },
+    { id: 'fashion', label: 'Fashion', icon: ApparelIcon, color: 'bg-pink-500' },
+    { id: 'realty', label: 'Real Estate', icon: RealtyAdIcon, color: 'bg-purple-500' },
     { id: 'food', label: 'Food & Dining', icon: FoodIcon, color: 'bg-orange-500' },
-    { id: 'saas', label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'bg-teal-500' }
+    { id: 'saas', label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'bg-teal-500' },
+    { id: 'education', label: 'Education', icon: EducationAdIcon, color: 'bg-amber-500' },
+    { id: 'services', label: 'Services', icon: ServicesAdIcon, color: 'bg-indigo-600' },
 ];
 
 const MOODS = ['Luxury', 'Cinematic', 'Minimalist', 'Vibrant', 'Organic', 'Cyberpunk'];
 
-// ADDED: Missing CustomRefineIcon component for the refinement sheet
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
         <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
     </svg>
 );
 
-// FIXED: Semicolon in setActiveTab type replaced with comma and return type defined to fix component signature.
 export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; setActiveTab: (tab: View) => void }> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
     // --- STATE ---
     const [currentStep, setCurrentStep] = useState(0);
@@ -103,8 +111,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-                setProgressPercent(prev => (prev >= 98 ? 98 : prev + Math.random() * 5));
-            }, 2200);
+                setProgressPercent(prev => {
+                    if (prev >= 98) return prev;
+                    return Math.min(prev + (Math.random() * 5), 98);
+                });
+            }, 1800);
         }
         return () => clearInterval(interval);
     }, [isGenerating]);
@@ -125,7 +136,6 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         onGenerationStart();
         setIsGenerating(true);
         try {
-            // FIXED: integrationMode does not exist in AdMakerInputs. Mapped engineMode to modelSource.
             const resB64 = await generateAdCreative({
                 industry: industry.id,
                 mainImages: [image.base64],
@@ -268,7 +278,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'ad-creative.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : !result && (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
                                 {isGenerating ? 'Drafting...' : 'Generate'}
                             </button>
                         )}
@@ -314,6 +324,16 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             </div>
                         )}
 
+                        {image && !result && !isGenerating && (
+                            <button 
+                                onClick={handleReset}
+                                className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                            >
+                                <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                            </button>
+                        )}
+
                         {isGenerating && (
                             <div className="absolute inset-0 z-50 flex items-center justify-center animate-fadeIn px-10">
                                 <div className="bg-black/60 backdrop-blur-xl px-8 py-12 rounded-[3.5rem] border border-white/20 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-10 animate-breathe">
@@ -357,12 +377,19 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
                                         const isFilled = (idx === 0 && !!industry) || (idx === 1 && !!engineMode) || (idx === 2 && !!image) || (idx === 3 && !!vibe) || (idx === 4 && !!productName);
+                                        
+                                        const showNextCue = idx === 2 && !!image && !logo;
+
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? industry?.label : idx === 1 ? (engineMode === 'product' ? 'Product' : 'Model') : idx === 3 ? vibe : isFilled ? 'Ready' : ''}
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled || showNextCue ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
+                                                    {idx === 0 ? industry?.label : 
+                                                     idx === 1 ? (engineMode === 'product' ? 'Product' : 'Model') : 
+                                                     idx === 2 ? (showNextCue ? 'NEXT' : 'Ready') :
+                                                     idx === 3 ? vibe : 
+                                                     isFilled ? 'Ready' : ''}
                                                 </span>
                                             </button>
                                         );
