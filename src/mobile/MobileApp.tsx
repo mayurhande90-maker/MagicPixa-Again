@@ -1,3 +1,4 @@
+
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { User, Page, View, AuthProps, AppConfig, Announcement, BrandKit } from '../types';
 import { MobileLayout } from './layouts/MobileLayout';
@@ -9,6 +10,7 @@ const MobileHome = lazy(() => import('./features/MobileHome').then(m => ({ defau
 const MobileFeatures = lazy(() => import('./features/MobileFeatures').then(m => ({ default: m.MobileFeatures })));
 const MobileStudio = lazy(() => import('./features/MobileStudio').then(m => ({ default: m.MobileStudio })));
 const MobileAdMaker = lazy(() => import('./features/MobileAdMaker').then(m => ({ default: m.MobileAdMaker })));
+const MobileEcommerceKit = lazy(() => import('./features/MobileEcommerceKit').then(m => ({ default: m.MobileEcommerceKit })));
 const MobileHeadshot = lazy(() => import('./features/MobileHeadshot').then(m => ({ default: m.MobileHeadshot })));
 const MobileThumbnail = lazy(() => import('./features/MobileThumbnail').then(m => ({ default: m.MobileThumbnail })));
 const MobileTogether = lazy(() => import('./features/MobileTogether').then(m => ({ default: m.MobileTogether })));
@@ -40,6 +42,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         'dashboard',
         'studio',
         'brand_stylist',
+        'brand_kit',
         'headshot',
         'thumbnail_studio',
         'soul',
@@ -85,6 +88,8 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
                 return <MobileStudio {...commonProps} />;
             case 'brand_stylist':
                 return <MobileAdMaker {...commonProps} />;
+            case 'brand_kit':
+                return <MobileEcommerceKit {...commonProps} />;
             case 'headshot':
                 return <MobileHeadshot {...commonProps} />;
             case 'thumbnail_studio':
@@ -104,7 +109,6 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
             case 'creations':
                 return <MobileCreations auth={auth} />;
             case 'profile':
-                // FIX: Pass appConfig to MobileProfile to resolve "Cannot find name 'appConfig'" error.
                 return <MobileProfile auth={auth} appConfig={appConfig} />;
             case 'billing':
                 return <div className="h-full overflow-y-auto no-scrollbar pb-10"><Billing user={auth.user!} setUser={auth.setUser} appConfig={appConfig} setActiveView={setActiveTab} /></div>;
