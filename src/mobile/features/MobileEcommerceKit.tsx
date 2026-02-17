@@ -91,9 +91,19 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = useMemo(() => {
-        if (packSize === null) return 0;
-        const key = PACK_SIZES.find(p => p.size === packSize)?.costKey || 'Pixa Ecommerce Kit';
-        return appConfig?.featureCosts[key] || 25;
+        const baseCost = appConfig?.featureCosts['Pixa Ecommerce Kit'] || 25;
+        if (packSize === null) return baseCost;
+        
+        if (packSize === 5) {
+            return appConfig?.featureCosts['Pixa Ecommerce Kit (5 Assets)'] || baseCost;
+        }
+        if (packSize === 7) {
+            return appConfig?.featureCosts['Pixa Ecommerce Kit (7 Assets)'] || Math.ceil(baseCost * 1.4);
+        }
+        if (packSize === 10) {
+            return appConfig?.featureCosts['Pixa Ecommerce Kit (10 Assets)'] || Math.ceil(baseCost * 2.0);
+        }
+        return baseCost;
     }, [packSize, appConfig]);
 
     const isLowCredits = (auth.user?.credits || 0) < cost;
@@ -570,7 +580,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setMainImage)} />
 
             <style>{`
-                @keyframes materialize { 0% { filter: grayscale(1) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) blur(0px); opacity: 1; transform: scale(1); } }
+                @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
                 .animate-materialize { animation: materialize 1s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
