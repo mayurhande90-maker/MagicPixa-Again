@@ -26,10 +26,11 @@ import { SelectionGrid } from '../../components/FeatureLayout';
 import { AdMakerStyles as styles } from '../../styles/features/PixaAdMaker.styles';
 
 const AD_STEPS = [
-    { id: 'niche', label: 'Niche' },
+    { id: 'niche', label: 'Industry' },
     { id: 'engine', label: 'Engine' },
-    { id: 'assets', label: 'Assets' },
-    { id: 'direction', label: 'Creative' },
+    { id: 'logo', label: 'Logo' },
+    { id: 'creative', label: 'Creative' },
+    { id: 'format', label: 'Format' },
     { id: 'copy', label: 'Copy' }
 ];
 
@@ -42,6 +43,15 @@ const INDUSTRIES = [
     { id: 'saas', label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'bg-teal-500' },
     { id: 'education', label: 'Education', icon: EducationAdIcon, color: 'bg-amber-500' },
     { id: 'services', label: 'Services', icon: ServicesAdIcon, color: 'bg-indigo-600' },
+];
+
+const MODEL_PARAMS_STEPS = [
+    { id: 'modelType', label: 'Persona', options: ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior', 'Kid Model'] },
+    { id: 'region', label: 'Region', options: ['Indian', 'South Asian', 'East Asian', 'Middle Eastern', 'African', 'European', 'American'] },
+    { id: 'skinTone', label: 'Skin', options: ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'] },
+    { id: 'bodyType', label: 'Build', options: ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size'] },
+    { id: 'composition', label: 'Layout', options: ['Single Model', 'Group Shot'] },
+    { id: 'framing', label: 'Shot', options: ['Tight Close', 'Close-Up', 'Mid Shot', 'Wide Shot'] }
 ];
 
 const MOODS = ['Luxury', 'Cinematic', 'Minimalist', 'Vibrant', 'Organic', 'Cyberpunk'];
@@ -57,10 +67,13 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [currentStep, setCurrentStep] = useState(0);
     const [industry, setIndustry] = useState<any>(null);
     const [engineMode, setEngineMode] = useState<'product' | 'subject' | null>(null);
+    const [modelStepIdx, setModelStepIdx] = useState(0);
+    const [modelParams, setModelParams] = useState<Record<string, string>>({});
+    
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
     const [vibe, setVibe] = useState('');
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16'>('1:1');
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>('');
     const [productName, setProductName] = useState('');
     const [description, setDescription] = useState('');
 
@@ -84,16 +97,24 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const isStepAccessible = (idx: number) => {
         if (idx === 0) return true;
-        if (idx === 1) return !!industry;
-        if (idx === 2) return !!engineMode;
-        if (idx === 3) return !!image;
-        if (idx === 4) return !!vibe && !!aspectRatio;
+        if (idx === 1) return !!industry && !!image;
+        if (idx === 2) {
+            if (engineMode === 'product') return true;
+            return Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
+        }
+        if (idx === 3) return isStepAccessible(2) && !!engineMode;
+        if (idx === 4) return !!vibe;
+        if (idx === 5) return !!aspectRatio;
         return false;
     };
 
     const isStrategyComplete = useMemo(() => {
-        return !!industry && !!engineMode && !!image && !!vibe && !!productName && description.length > 5;
-    }, [industry, engineMode, image, vibe, productName, description]);
+        const base = !!industry && !!engineMode && !!image && !!vibe && !!aspectRatio && !!productName && description.length > 5;
+        if (engineMode === 'subject') {
+            return base && Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
+        }
+        return base;
+    }, [industry, engineMode, modelParams, image, vibe, aspectRatio, productName, description]);
 
     useEffect(() => {
         let interval: any;
@@ -126,8 +147,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
             
-            // Auto-advance if logo (optional) is uploaded
-            if (setter === setLogo) {
+            if (setter === setImage) {
+                if (industry) setTimeout(() => setCurrentStep(1), 600);
+            } else if (setter === setLogo) {
                 setTimeout(() => setCurrentStep(3), 600);
             }
         }
@@ -148,9 +170,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 vibe: vibe,
                 productName: productName,
                 description: description,
-                aspectRatio: aspectRatio,
+                aspectRatio: aspectRatio as any,
                 layoutTemplate: 'Hero Focus',
-                modelSource: engineMode === 'subject' ? 'ai' : null
+                modelSource: engineMode === 'subject' ? 'ai' : null,
+                modelParams: engineMode === 'subject' ? (modelParams as any) : undefined
             }, auth.activeBrandKit);
             
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
@@ -190,7 +213,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const handleReset = () => {
         setResult(null); setImage(null); setLogo(null); setIndustry(null); setEngineMode(null);
-        setVibe(''); setProductName(''); setDescription(''); setCurrentStep(0);
+        setVibe(''); setProductName(''); setDescription(''); setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
     };
 
     const renderStepContent = () => {
@@ -198,57 +221,84 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         switch (step) {
             case 'niche':
                 return (
-                    <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2">
-                        {INDUSTRIES.map(ind => (
-                            <button key={ind.id} onClick={() => { setIndustry(ind); setCurrentStep(1); }} className={`shrink-0 w-28 h-28 rounded-3xl border flex flex-col items-center justify-center gap-2 transition-all ${industry?.id === ind.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl scale-105' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
-                                <ind.icon className="w-7 h-7" />
-                                <span className="text-[10px] font-black uppercase tracking-tight">{ind.label}</span>
-                            </button>
-                        ))}
+                    <div className="w-full flex flex-col gap-4 py-2">
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar px-6">
+                            {INDUSTRIES.map(ind => (
+                                <button key={ind.id} onClick={() => { setIndustry(ind); if(image) setCurrentStep(1); }} className={`shrink-0 w-24 h-24 rounded-3xl border flex flex-col items-center justify-center gap-1.5 transition-all ${industry?.id === ind.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
+                                    <ind.icon className="w-6 h-6" />
+                                    <span className="text-[9px] font-black uppercase tracking-tight">{ind.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="px-6">
+                            <div onClick={() => fileInputRef.current?.click()} className={`h-20 rounded-2xl border-2 border-dashed flex items-center justify-center gap-3 transition-all ${image ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+                                {image ? <CheckIcon className="w-5 h-5"/> : <UploadIcon className="w-5 h-5"/>}
+                                <span className="text-[10px] font-black uppercase tracking-widest">{image ? 'Product Set' : 'Upload Product Photo'}</span>
+                            </div>
+                        </div>
                     </div>
                 );
             case 'engine':
+                if (engineMode === 'subject' && modelStepIdx < MODEL_PARAMS_STEPS.length) {
+                    const activeParam = MODEL_PARAMS_STEPS[modelStepIdx];
+                    return (
+                        <div className="w-full animate-fadeIn">
+                            <div className="px-6 flex items-center justify-between mb-2">
+                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{activeParam.label}</span>
+                                <button onClick={() => setEngineMode(null)} className="text-[8px] font-bold text-gray-400 uppercase">Back to Type</button>
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-2">
+                                {activeParam.options.map(opt => (
+                                    <button key={opt} onClick={() => {
+                                        setModelParams(prev => ({ ...prev, [activeParam.id]: opt }));
+                                        if (modelStepIdx < MODEL_PARAMS_STEPS.length - 1) setModelStepIdx(prev => prev + 1);
+                                        else setTimeout(() => setCurrentStep(2), 300);
+                                    }} className={`shrink-0 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${modelParams[activeParam.id] === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{opt}</button>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
                 return (
                     <div className="w-full flex gap-4 px-6 py-2">
                         <button onClick={() => { setEngineMode('product'); setCurrentStep(2); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'product' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
                             <div className="p-3 bg-white rounded-2xl shadow-sm"><CubeIcon className="w-6 h-6 text-blue-500"/></div>
                             <span className="text-[10px] font-black uppercase tracking-widest">Product Ad</span>
                         </button>
-                        <button onClick={() => { setEngineMode('subject'); setCurrentStep(2); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'subject' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                        <button onClick={() => { setEngineMode('subject'); setModelStepIdx(0); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'subject' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
                             <div className="p-3 bg-white rounded-2xl shadow-sm"><UsersIcon className="w-6 h-6 text-purple-500"/></div>
                             <span className="text-[10px] font-black uppercase tracking-widest">Model Ad</span>
                         </button>
                     </div>
                 );
-            case 'assets':
+            case 'logo':
                 return (
-                    <div className="w-full px-6 flex gap-4 py-2">
-                        <div onClick={() => fileInputRef.current?.click()} className={`flex-1 h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${image ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                            {image ? <CheckIcon className="w-6 h-6"/> : <UploadIcon className="w-6 h-6"/>}
-                            <span className="text-[9px] font-black uppercase">{image ? 'Product Set' : 'Product Photo'}</span>
-                        </div>
-                        <div onClick={() => logoInputRef.current?.click()} className={`flex-1 h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${logo ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                            {logo ? <CheckIcon className="w-6 h-6"/> : <CheckIcon className="w-6 h-6 opacity-30"/>}
-                            <span className="text-[9px] font-black uppercase">{logo ? 'Logo Set' : 'Logo (Optional)'}</span>
+                    <div className="w-full px-6 py-2">
+                        <div onClick={() => logoInputRef.current?.click()} className={`w-full h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${logo ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+                            {logo ? <CheckIcon className="w-6 h-6"/> : <UploadIcon className="w-6 h-6"/>}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{logo ? 'Logo Set' : 'Brand Logo (Optional)'}</span>
                         </div>
                     </div>
                 );
-            case 'direction':
+            case 'creative':
                 return (
                     <div className="w-full flex flex-col gap-4 px-6 py-2">
                         <div className="flex gap-2 overflow-x-auto no-scrollbar">
                             {MOODS.map(m => (
-                                <button key={m} onClick={() => setVibe(m)} className={`shrink-0 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
+                                <button key={m} onClick={() => { setVibe(m); setCurrentStep(4); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
                             ))}
                         </div>
-                        <div className="flex gap-4 justify-center">
-                            {(['1:1', '4:5', '9:16'] as const).map(ratio => (
-                                <button key={ratio} onClick={() => { setAspectRatio(ratio); if(vibe) setCurrentStep(4); }} className={`p-3 rounded-xl border-2 transition-all ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900' : 'bg-white border-gray-100 text-gray-400'}`}>
-                                    <div className={`border-2 border-current rounded-sm mx-auto mb-1 ${ratio === '1:1' ? 'w-4 h-4' : ratio === '4:5' ? 'w-4 h-5' : 'w-3 h-6'}`}></div>
-                                    <span className="text-[8px] font-black">{ratio}</span>
-                                </button>
-                            ))}
-                        </div>
+                    </div>
+                );
+            case 'format':
+                return (
+                    <div className="w-full flex gap-4 justify-center px-6 py-2">
+                        {(['1:1', '4:5', '9:16'] as const).map(ratio => (
+                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setCurrentStep(5); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                                <div className={`border-2 border-current rounded-sm ${ratio === '1:1' ? 'w-4 h-4' : ratio === '4:5' ? 'w-4 h-5' : 'w-3 h-6'}`}></div>
+                                <span className="text-[10px] font-black">{ratio}</span>
+                            </button>
+                        ))}
                     </div>
                 );
             case 'copy':
@@ -354,7 +404,6 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 </div>
                             </div>
                         )}
-                        {isGenerating && <div className="absolute inset-0 z-40 pointer-events-none"><div className="w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_20px_#6366f1] absolute top-0 left-0 animate-neural-scan opacity-70"></div></div>}
                     </div>
                 </div>
             </div>
@@ -381,23 +430,31 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (idx === 0 && !!industry) || (idx === 1 && !!engineMode) || (idx === 2 && !!image) || (idx === 3 && !!vibe) || (idx === 4 && !!productName);
+                                        const isFilled = (idx === 0 && !!industry && !!image) || (idx === 1 && !!engineMode) || (idx === 2 && !!logo) || (idx === 3 && !!vibe) || (idx === 4 && !!aspectRatio);
                                         
                                         let displayLabel = "";
                                         let isNextCue = false;
 
                                         if (idx === 0) displayLabel = industry?.label || "";
                                         else if (idx === 1) displayLabel = engineMode === 'product' ? 'Product' : engineMode === 'subject' ? 'Model' : "";
-                                        else if (idx === 2) displayLabel = image ? 'Ready' : "";
+                                        else if (idx === 2) displayLabel = logo ? 'Ready' : "";
                                         else if (idx === 3) {
-                                            if (currentStep === 2 && !!image) {
+                                            if (currentStep === 2 && isStepAccessible(2)) {
                                                 displayLabel = "NEXT";
                                                 isNextCue = true;
                                             } else {
                                                 displayLabel = vibe || "";
                                             }
                                         }
-                                        else if (idx === 4) displayLabel = productName ? 'Ready' : "";
+                                        else if (idx === 4) {
+                                            if (currentStep === 3 && !!vibe) {
+                                                displayLabel = "NEXT";
+                                                isNextCue = true;
+                                            } else {
+                                                displayLabel = aspectRatio || "";
+                                            }
+                                        }
+                                        else if (idx === 5) displayLabel = productName ? 'Ready' : "";
 
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
@@ -429,8 +486,6 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <style>{`
                 @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
                 .animate-materialize { animation: materialize 1s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-                @keyframes neural-scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-                .animate-neural-scan { animation: neural-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
                 @keyframes breathe { 0%, 100% { transform: scale(1); border-color: rgba(255, 255, 255, 0.2); } 50% { transform: scale(1.02); border-color: rgba(255, 255, 255, 0.5); } }
                 .animate-breathe { animation: breathe 4s ease-in-out infinite; }
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
