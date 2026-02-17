@@ -26,7 +26,7 @@ import { SelectionGrid } from '../../components/FeatureLayout';
 import { AdMakerStyles as styles } from '../../styles/features/PixaAdMaker.styles';
 
 const AD_STEPS = [
-    { id: 'niche', label: 'Industry' },
+    { id: 'niche', label: 'Identity' },
     { id: 'engine', label: 'Engine' },
     { id: 'logo', label: 'Logo' },
     { id: 'creative', label: 'Creative' },
@@ -148,8 +148,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             setter({ url: URL.createObjectURL(file), base64 });
             
             if (setter === setImage) {
+                // If Industry is already set, auto-advance
                 if (industry) setTimeout(() => setCurrentStep(1), 600);
             } else if (setter === setLogo) {
+                // Auto-advance after logo upload
                 setTimeout(() => setCurrentStep(3), 600);
             }
         }
@@ -242,7 +244,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 if (engineMode === 'subject' && modelStepIdx < MODEL_PARAMS_STEPS.length) {
                     const activeParam = MODEL_PARAMS_STEPS[modelStepIdx];
                     return (
-                        <div className="w-full animate-fadeIn">
+                        <div key={activeParam.id} className="w-full animate-swipe-in">
                             <div className="px-6 flex items-center justify-between mb-2">
                                 <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{activeParam.label}</span>
                                 <button onClick={() => setEngineMode(null)} className="text-[8px] font-bold text-gray-400 uppercase">Back to Type</button>
@@ -333,7 +335,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         {result && !isGenerating ? (
                             <button onClick={() => downloadImage(result, 'ad-creative.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
                         ) : !result && (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
+                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
                                 {isGenerating ? 'Drafting...' : 'Generate'}
                             </button>
                         )}
@@ -345,9 +347,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             <div className="relative flex-grow w-full flex items-center justify-center p-6 overflow-hidden pb-10">
                 <div className="w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative bg-gray-50 shadow-inner">
                     <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
-                        {result ? (
+                        {isGenerating ? null : result ? (
                             <img src={result} onClick={() => setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
-                        ) : isGenerating ? null : (
+                        ) : (
                             <div className="relative w-full h-full p-4 flex flex-col items-center justify-center animate-fadeIn">
                                 {image ? (
                                     <div className="relative w-72 h-72 animate-fadeIn flex flex-col items-center justify-center">
@@ -437,7 +439,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
                                         if (idx === 0) displayLabel = industry?.label || "";
                                         else if (idx === 1) displayLabel = engineMode === 'product' ? 'Product' : engineMode === 'subject' ? 'Model' : "";
-                                        else if (idx === 2) displayLabel = logo ? 'Ready' : "";
+                                        else if (idx === 2) {
+                                            if (currentStep >= 2) {
+                                                displayLabel = logo ? 'SET' : 'NOT SET';
+                                            }
+                                        }
                                         else if (idx === 3) {
                                             if (currentStep === 2 && isStepAccessible(2)) {
                                                 displayLabel = "NEXT";
@@ -460,7 +466,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${displayLabel ? 'opacity-100 text-indigo-500' : 'opacity-0'} ${isNextCue ? 'animate-next-pulse' : ''}`}>
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${displayLabel ? 'opacity-100' : 'opacity-0'} ${isNextCue ? 'animate-next-pulse text-indigo-500' : logo && idx === 2 ? 'text-green-500' : 'text-indigo-500'}`}>
                                                     {displayLabel}
                                                 </span>
                                             </button>
@@ -485,13 +491,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
             <style>{`
                 @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
-                .animate-materialize { animation: materialize 1s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+                .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 @keyframes breathe { 0%, 100% { transform: scale(1); border-color: rgba(255, 255, 255, 0.2); } 50% { transform: scale(1.02); border-color: rgba(255, 255, 255, 0.5); } }
                 .animate-breathe { animation: breathe 4s ease-in-out infinite; }
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
                 @keyframes next-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.1); } }
                 .animate-next-pulse { animation: next-pulse 1.5s ease-in-out infinite; }
+                @keyframes swipe-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+                .animate-swipe-in { animation: swipe-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
