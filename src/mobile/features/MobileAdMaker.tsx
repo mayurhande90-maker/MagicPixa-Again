@@ -125,6 +125,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
             setter({ url: URL.createObjectURL(file), base64 });
+            
+            // Auto-advance if logo (optional) is uploaded
+            if (setter === setLogo) {
+                setTimeout(() => setCurrentStep(3), 600);
+            }
         }
         e.target.value = '';
     };
@@ -315,7 +320,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 ) : (
                                     <div onClick={() => fileInputRef.current?.click()} className="text-center group">
                                         <div className="w-20 h-20 bg-white rounded-[1.8rem] flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
-                                            <UploadIcon className="w-8 h-8 text-indigo-200" />
+                                            <MagicAdsIcon className="w-8 h-8 text-indigo-200" />
                                         </div>
                                         <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Product</h3>
                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">Pixa Vision will audit lighting</p>
@@ -378,18 +383,28 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         const isAccessible = isStepAccessible(idx);
                                         const isFilled = (idx === 0 && !!industry) || (idx === 1 && !!engineMode) || (idx === 2 && !!image) || (idx === 3 && !!vibe) || (idx === 4 && !!productName);
                                         
-                                        const showNextCue = idx === 2 && !!image && !logo;
+                                        let displayLabel = "";
+                                        let isNextCue = false;
+
+                                        if (idx === 0) displayLabel = industry?.label || "";
+                                        else if (idx === 1) displayLabel = engineMode === 'product' ? 'Product' : engineMode === 'subject' ? 'Model' : "";
+                                        else if (idx === 2) displayLabel = image ? 'Ready' : "";
+                                        else if (idx === 3) {
+                                            if (currentStep === 2 && !!image) {
+                                                displayLabel = "NEXT";
+                                                isNextCue = true;
+                                            } else {
+                                                displayLabel = vibe || "";
+                                            }
+                                        }
+                                        else if (idx === 4) displayLabel = productName ? 'Ready' : "";
 
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
                                                 <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${isFilled || showNextCue ? 'opacity-100 text-indigo-500' : 'opacity-0'}`}>
-                                                    {idx === 0 ? industry?.label : 
-                                                     idx === 1 ? (engineMode === 'product' ? 'Product' : 'Model') : 
-                                                     idx === 2 ? (showNextCue ? 'NEXT' : 'Ready') :
-                                                     idx === 3 ? vibe : 
-                                                     isFilled ? 'Ready' : ''}
+                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${displayLabel ? 'opacity-100 text-indigo-500' : 'opacity-0'} ${isNextCue ? 'animate-next-pulse' : ''}`}>
+                                                    {displayLabel}
                                                 </span>
                                             </button>
                                         );
@@ -420,6 +435,8 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 .animate-breathe { animation: breathe 4s ease-in-out infinite; }
                 @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
                 .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
+                @keyframes next-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.1); } }
+                .animate-next-pulse { animation: next-pulse 1.5s ease-in-out infinite; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
