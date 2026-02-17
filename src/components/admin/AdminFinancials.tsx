@@ -1,31 +1,23 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProps, UsageLog, Purchase } from '../../types';
-import { getUsageLogs, getRecentPurchases, getDashboardStats, scanStorageUsage, getTotalRevenue } from '../../firebase';
+import { getUsageLogs, getRecentPurchases, getTotalRevenue } from '../../firebase';
 import { 
-    CreditCardIcon, LightningIcon, CubeIcon, ShieldCheckIcon, 
-    ArrowUpCircleIcon, InformationCircleIcon, RefreshIcon, 
-    ChartBarIcon, CurrencyDollarIcon, CubeIcon as BoxIcon,
-    CheckIcon, SparklesIcon, FilterIcon, CalendarIcon, XIcon
+    CreditCardIcon, LightningIcon, RefreshIcon, 
+    ChartBarIcon, CheckIcon, SparklesIcon, 
+    FilterIcon, CalendarIcon, XIcon, ArrowUpCircleIcon,
+    InformationCircleIcon
 } from '../icons';
 
-// GOOGLE AI ESTIMATES (USD)
-const RATES = {
-    'gemini-3-pro-image-preview': 0.02, // approx per image
-    'gemini-2.5-flash-image': 0.002, 
-    'gemini-3-pro-preview': 0.0005, // per 1k tokens avg
-    'gemini-3-flash-preview': 0.0001,
-    'storage_per_gb': 0.026 // Monthly
-};
+const INR_RATE = 90;
 
-type FilterType = '7d' | '30d' | 'lifetime' | 'custom';
+type FilterType = '7d' | '15d' | '30d' | 'lifetime' | 'custom';
 
 export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
     const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [revenue, setRevenue] = useState(0);
-    const [storage, setStorage] = useState({ totalBytes: 0, fileCount: 0 });
     const [isLoading, setIsLoading] = useState(true);
-    const [isScanningStorage, setIsScanningStorage] = useState(false);
     
     // Filter State
     const [filter, setFilter] = useState<FilterType>('30d');
@@ -44,6 +36,7 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             let days = 30;
 
             if (filter === '7d') days = 7;
+            else if (filter === '15d') days = 15;
             else if (filter === '30d') days = 30;
             else if (filter === 'lifetime') days = -1;
             else if (filter === 'custom' && customRange.start && customRange.end) {
@@ -60,7 +53,7 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
 
             const [logs, buyHistory, filteredRev] = await Promise.all([
                 getUsageLogs(days, start, end),
-                getRecentPurchases(100, start, end),
+                getRecentPurchases(1000, start, end),
                 getTotalRevenue(start, end)
             ]);
 
@@ -68,69 +61,97 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             setPurchases(buyHistory);
             setRevenue(filteredRev);
         } catch (e) {
-            console.error(e);
+            console.error("Failed to load financial data:", e);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleScanStorage = async () => {
-        setIsScanningStorage(true);
-        try {
-            const res = await scanStorageUsage();
-            setStorage(res);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsScanningStorage(false);
-        }
-    };
+    const analytics = useMemo(() => {
+        const totalGens = usageLogs.length;
+        const totalBurnUsd = usageLogs.reduce((acc, log) => acc + (log.estimatedCost || 0), 0);
+        const totalBurnInr = totalBurnUsd * INR_RATE;
+        const netProfit = revenue - totalBurnInr;
+        const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-    const financialData = useMemo(() => {
-        const burnUsd = usageLogs.reduce((acc, log) => acc + (log.estimatedCost || 0), 0);
-        const burnInr = burnUsd * 84;
-
-        const storageGb = storage.totalBytes / (1024 * 1024 * 1024);
-        const storageCostUsd = storageGb * RATES.storage_per_gb;
-        const storageCostInr = storageCostUsd * 84;
-
-        const totalBurnInr = burnInr + storageCostInr;
-        const profit = revenue - totalBurnInr;
-        const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-        const featureBurn: Record<string, number> = {};
+        // Feature Breakdown
+        const featureStats: Record<string, { count: number; burn: number }> = {};
         usageLogs.forEach(log => {
-            featureBurn[log.feature] = (featureBurn[log.feature] || 0) + (log.estimatedCost * 84);
+            const f = log.feature || 'Unknown';
+            if (!featureStats[f]) featureStats[f] = { count: 0, burn: 0 };
+            featureStats[f].count++;
+            featureStats[f].burn += (log.estimatedCost || 0) * INR_RATE;
         });
 
-        return { burnInr, storageGb, storageCostInr, profit, margin, featureBurn };
-    }, [usageLogs, revenue, storage]);
+        // Grouping for Trends (Daily or Monthly)
+        const timeGroups: Record<string, { burn: number; revenue: number; gens: number }> = {};
+        
+        const isLifetime = filter === 'lifetime';
+        
+        // Group Burn
+        usageLogs.forEach(log => {
+            const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date((log.timestamp as any).seconds * 1000);
+            const key = isLifetime 
+                ? date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            
+            if (!timeGroups[key]) timeGroups[key] = { burn: 0, revenue: 0, gens: 0 };
+            timeGroups[key].burn += (log.estimatedCost || 0) * INR_RATE;
+            timeGroups[key].gens++;
+        });
 
-    if (isLoading && usageLogs.length === 0) return <div className="p-20 text-center animate-pulse text-gray-400">Aggregating Ledgers...</div>;
+        // Group Revenue
+        purchases.forEach(p => {
+            const date = p.purchaseDate?.toDate ? p.purchaseDate.toDate() : new Date((p.purchaseDate as any).seconds * 1000);
+            const key = isLifetime 
+                ? date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            
+            if (!timeGroups[key]) timeGroups[key] = { burn: 0, revenue: 0, gens: 0 };
+            timeGroups[key].revenue += (p.amountPaid || 0);
+        });
+
+        // Convert to sorted array for charts
+        const trendData = Object.entries(timeGroups).map(([date, data]) => ({ date, ...data }));
+        // If daily, sort by date logic would be better but simple reverse often works for desc logs
+        // For monthly, sort by date object
+        trendData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        return { totalGens, totalBurnInr, netProfit, profitMargin, featureStats, trendData };
+    }, [usageLogs, purchases, revenue, filter]);
+
+    if (isLoading && usageLogs.length === 0) {
+        return (
+            <div className="p-20 flex flex-col items-center justify-center animate-pulse text-gray-400">
+                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                <p className="font-bold uppercase tracking-widest text-xs">Reconciling Ledgers...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8 animate-fadeIn">
+            {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Financial Health</h2>
-                    <p className="text-sm text-gray-500 font-medium">Profit vs. Burn Analysis</p>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Production & Burn Command</h2>
+                    <p className="text-sm text-gray-500 font-medium">Monitoring GCP Infrastructure vs. Creator Revenue</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Date Filters */}
                     <div className="flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
-                        {(['7d', '30d', 'lifetime'] as FilterType[]).map((f) => (
+                        {(['7d', '15d', '30d', 'lifetime'] as FilterType[]).map((f) => (
                             <button 
                                 key={f}
                                 onClick={() => { setFilter(f); setShowCustomRange(false); }}
-                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${filter === f && !showCustomRange ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${filter === f && !showCustomRange ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-900'}`}
                             >
                                 {f}
                             </button>
                         ))}
                         <button 
                             onClick={() => setShowCustomRange(!showCustomRange)}
-                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${showCustomRange ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}
+                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${showCustomRange ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-900'}`}
                         >
                             <CalendarIcon className="w-3 h-3" />
                             Custom
@@ -144,196 +165,200 @@ export const AdminFinancials: React.FC<{ auth: AuthProps }> = ({ auth }) => {
             </div>
 
             {showCustomRange && (
-                <div className="bg-white p-6 rounded-[2rem] border border-indigo-100 shadow-xl shadow-indigo-500/5 flex flex-wrap items-center gap-6 animate-fadeIn">
+                <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-500/5 flex flex-wrap items-center gap-6 animate-fadeIn">
                     <div className="flex items-center gap-3">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">From</label>
-                        <input 
-                            type="date" 
-                            className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500"
-                            value={customRange.start}
-                            onChange={(e) => setCustomRange({ ...customRange, start: e.target.value })}
-                        />
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Start Date</label>
+                        <input type="date" className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500" value={customRange.start} onChange={(e) => setCustomRange({ ...customRange, start: e.target.value })} />
                     </div>
                     <div className="flex items-center gap-3">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">To</label>
-                        <input 
-                            type="date" 
-                            className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500"
-                            value={customRange.end}
-                            onChange={(e) => setCustomRange({ ...customRange, end: e.target.value })}
-                        />
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">End Date</label>
+                        <input type="date" className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500" value={customRange.end} onChange={(e) => setCustomRange({ ...customRange, end: e.target.value })} />
                     </div>
-                    <button 
-                        onClick={() => { setFilter('custom'); loadData(); }}
-                        disabled={!customRange.start || !customRange.end}
-                        className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
-                    >
-                        Apply Range
-                    </button>
-                    <button onClick={() => setShowCustomRange(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                        <XIcon className="w-5 h-5" />
-                    </button>
+                    <button onClick={() => { setFilter('custom'); loadData(); }} disabled={!customRange.start || !customRange.end} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50">Apply Strategy</button>
+                    <button onClick={() => setShowCustomRange(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><XIcon className="w-5 h-5" /></button>
                 </div>
             )}
 
-            {/* TOP METRICS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm group hover:border-indigo-100 transition-colors">
+            {/* METRIC CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-200 shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Generations</p>
+                    <p className="text-3xl font-black text-gray-900">{analytics.totalGens.toLocaleString()}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Infrastructure Load</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-200 shadow-sm">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Gross Revenue</p>
-                    <p className="text-3xl font-black text-gray-900">₹{revenue.toLocaleString()}</p>
-                    <div className="mt-2 flex items-center gap-1 text-green-500 font-bold text-[10px]">
-                        <CheckIcon className="w-3 h-3"/> {filter === 'lifetime' ? 'All-Time Earnings' : `Revenue in ${filter}`}
+                    <p className="text-3xl font-black text-green-600">₹{revenue.toLocaleString()}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                        <CheckIcon className="w-3 h-3 text-green-500"/>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Razorpay Capture</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm group hover:border-red-100 transition-colors">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Estimated Burn</p>
-                    <p className="text-3xl font-black text-red-500">₹{Math.ceil(financialData.burnInr).toLocaleString()}</p>
-                    <div className="mt-2 flex items-center gap-1 text-red-400 font-bold text-[10px]">
-                        <LightningIcon className="w-3 h-3"/> {usageLogs.length} AI Calls
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-200 shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Estimated GCP Burn</p>
+                    <p className="text-3xl font-black text-red-500">₹{Math.ceil(analytics.totalBurnInr).toLocaleString()}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                        <LightningIcon className="w-3 h-3 text-red-500"/>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Rate: 90 INR/USD</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm group hover:border-amber-100 transition-colors">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Storage Cost</p>
-                    <p className="text-3xl font-black text-amber-600">₹{financialData.storageCostInr.toFixed(2)}</p>
-                    <div className="mt-2 flex items-center gap-1 text-amber-500 font-bold text-[10px]">
-                        <InformationCircleIcon className="w-3 h-3"/> {financialData.storageGb.toFixed(2)} GB Used
-                    </div>
-                </div>
-
-                <div className={`p-6 rounded-[2rem] border-2 shadow-xl relative overflow-hidden transition-all duration-500 ${financialData.profit >= 0 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-red-600 border-red-500 text-white'}`}>
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
-                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Net Profit</p>
-                    <p className="text-3xl font-black">₹{Math.floor(financialData.profit).toLocaleString()}</p>
-                    <div className="mt-2 flex items-center gap-1 font-bold text-[10px]">
-                        <SparklesIcon className="w-3 h-3 text-yellow-300"/> Margin: {financialData.margin.toFixed(1)}%
+                <div className={`p-6 rounded-[2.5rem] border-2 shadow-xl relative overflow-hidden transition-all duration-500 ${analytics.netProfit >= 0 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-red-600 border-red-500 text-white'}`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Net surplus</p>
+                    <p className="text-3xl font-black">₹{Math.floor(analytics.netProfit).toLocaleString()}</p>
+                    <div className="mt-2 flex items-center gap-2 font-bold text-[10px]">
+                        <SparklesIcon className="w-3 h-3 text-yellow-300"/> 
+                        Margin: {analytics.profitMargin.toFixed(1)}%
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Burn Breakdown */}
-                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-sm">
-                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-8 flex items-center gap-2">
-                        <ChartBarIcon className="w-5 h-5 text-indigo-500"/> Burn Breakdown
-                    </h3>
-                    <div className="space-y-6">
-                        {Object.entries(financialData.featureBurn)
-                            .sort(([,a], [,b]) => b - a)
-                            .map(([feature, cost]) => {
-                                const percent = (cost / (financialData.burnInr || 1)) * 100;
-                                return (
-                                    <div key={feature}>
-                                        <div className="flex justify-between text-[11px] font-bold mb-2">
-                                            <span className="text-gray-700">{feature}</span>
-                                            <span className="text-gray-400">₹{Math.ceil(cost).toLocaleString()}</span>
-                                        </div>
-                                        <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden border border-gray-100">
-                                            <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${percent}%` }}></div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        }
-                        {Object.keys(financialData.featureBurn).length === 0 && (
-                            <div className="py-10 text-center text-gray-400 text-xs font-medium italic">No usage logged in current period.</div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Storage Health */}
-                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-sm flex flex-col">
-                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-8 flex items-center gap-2">
-                        <BoxIcon className="w-5 h-5 text-amber-500"/> Cloud Storage Health
-                    </h3>
-                    
-                    <div className="flex-1 flex flex-col justify-center items-center text-center">
-                        <div className="relative mb-8">
-                            <div className="w-32 h-32 rounded-full border-8 border-gray-100 flex items-center justify-center">
-                                <div className="text-center">
-                                    <p className="text-2xl font-black text-gray-900">{Math.round((financialData.storageGb / 5) * 100)}%</p>
-                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Free Tier</p>
-                                </div>
-                            </div>
-                            <svg className="absolute inset-0 w-32 h-32 transform -rotate-90">
-                                <circle 
-                                    cx="64" cy="64" r="56" 
-                                    fill="transparent" 
-                                    stroke="currentColor" 
-                                    strokeWidth="8" 
-                                    className="text-amber-500"
-                                    strokeDasharray={351.8}
-                                    strokeDashoffset={351.8 - (351.8 * Math.min(financialData.storageGb / 5, 1))}
-                                    strokeLinecap="round"
-                                />
-                            </svg>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-8 w-full">
-                            <div className="text-center">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Assets</p>
-                                <p className="text-xl font-black text-gray-900">{storage.fileCount.toLocaleString()}</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Bucket Weight</p>
-                                <p className="text-xl font-black text-gray-900">{financialData.storageGb.toFixed(2)} GB</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button 
-                        onClick={handleScanStorage}
-                        disabled={isScanningStorage}
-                        className="mt-10 w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold rounded-2xl border border-gray-200 transition-all flex items-center justify-center gap-2"
-                    >
-                        {isScanningStorage ? (
-                            <><div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div> Scanning Bucket...</>
-                        ) : (
-                            <><ArrowUpCircleIcon className="w-4 h-4"/> Scan Storage Now</>
-                        )}
-                    </button>
-                    <p className="text-[9px] text-gray-400 text-center mt-3 italic">Calculated using Firebase Storage metadata scan.</p>
-                </div>
-            </div>
-
-            {/* RECENT PURCHASES MINI LIST */}
+            {/* FEATURE BREAKDOWN TABLE */}
             <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Filtered Inflow</h3>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{purchases.length} Transactions</div>
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
+                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Feature Contribution</h3>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Breakdown by Volume & Cost</div>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-widest sticky top-0">
+                        <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-widest">
                             <tr>
-                                <th className="px-6 py-3">User</th>
-                                <th className="px-6 py-3">Package</th>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3 text-right">Amount</th>
+                                <th className="px-6 py-4">Tool Name</th>
+                                <th className="px-6 py-4">Usage Count</th>
+                                <th className="px-6 py-4">Total Burn (INR)</th>
+                                <th className="px-6 py-4">Burn Share</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {purchases.map((p) => (
-                                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                            {Object.entries(analytics.featureStats)
+                                .sort(([,a], [,b]) => b.count - a.count)
+                                .map(([name, stats]) => {
+                                    const share = (stats.burn / (analytics.totalBurnInr || 1)) * 100;
+                                    return (
+                                        <tr key={name} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 font-black text-gray-900">{name}</td>
+                                            <td className="px-6 py-4 font-bold text-gray-600">{stats.count.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-black text-red-500">₹{Math.ceil(stats.burn).toLocaleString()}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${share}%` }}></div>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-gray-400">{share.toFixed(1)}%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* PERFORMANCE CHART */}
+            <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm p-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+                    <div>
+                        <h3 className="text-lg font-black text-gray-900 tracking-tight uppercase tracking-widest">Growth Trends</h3>
+                        <p className="text-xs text-gray-400 font-medium">Daily revenue vs infrastucture cost</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-indigo-600 rounded-full"></div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Revenue</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Burn</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="h-64 flex items-end justify-between gap-2 sm:gap-4 px-2">
+                    {analytics.trendData.map((d, i) => {
+                        const maxVal = Math.max(...analytics.trendData.map(t => Math.max(t.revenue, t.burn)), 100);
+                        const revHeight = (d.revenue / maxVal) * 100;
+                        const burnHeight = (d.burn / maxVal) * 100;
+
+                        return (
+                            <div key={i} className="flex-1 flex flex-col justify-end items-center group relative min-w-0">
+                                {/* Hover Tooltip */}
+                                <div className="absolute -top-16 bg-gray-900 text-white p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none shadow-xl border border-white/10 min-w-[120px]">
+                                    <p className="text-[10px] font-black uppercase text-indigo-400 mb-1">{d.date}</p>
+                                    <p className="text-xs font-bold">Rev: ₹{Math.floor(d.revenue).toLocaleString()}</p>
+                                    <p className="text-xs font-bold text-red-400">Burn: ₹{Math.floor(d.burn).toLocaleString()}</p>
+                                    <p className="text-[9px] mt-1 text-gray-400">{d.gens} Generations</p>
+                                </div>
+
+                                <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 max-w-[40px]">
+                                    <div className="flex-1 bg-indigo-600 rounded-t-sm sm:rounded-t-md transition-all duration-500 group-hover:brightness-110" style={{ height: `${Math.max(revHeight, 2)}%` }}></div>
+                                    <div className="flex-1 bg-red-400 rounded-t-sm sm:rounded-t-md transition-all duration-500 group-hover:brightness-110" style={{ height: `${Math.max(burnHeight, 2)}%` }}></div>
+                                </div>
+                                
+                                <p className="text-[8px] sm:text-[9px] font-black text-gray-400 uppercase tracking-tighter mt-3 whitespace-nowrap rotate-[-45deg] sm:rotate-0 origin-center truncate w-full text-center">
+                                    {d.date}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* RAW GENERATION LEDGER */}
+            <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
+                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Generation Ledger</h3>
+                    <button 
+                        onClick={() => {
+                            const csv = [
+                                "Timestamp,Feature,Model,Cost(USD),Cost(INR)",
+                                ...usageLogs.map(l => {
+                                    const date = l.timestamp?.toDate ? l.timestamp.toDate() : new Date((l.timestamp as any).seconds * 1000);
+                                    return `${date.toISOString()},${l.feature},${l.model},${l.estimatedCost},${l.estimatedCost * INR_RATE}`;
+                                })
+                            ].join("\n");
+                            const blob = new Blob([csv], { type: 'text/csv' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `Pixa_Burn_Report_${new Date().toISOString()}.csv`;
+                            a.click();
+                        }}
+                        className="text-[10px] font-black text-indigo-600 hover:underline uppercase tracking-widest"
+                    >
+                        Export CSV
+                    </button>
+                </div>
+                <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-gray-400 font-black uppercase text-[9px] tracking-widest sticky top-0 z-10">
+                            <tr>
+                                <th className="px-6 py-3">Time</th>
+                                <th className="px-6 py-3">Feature</th>
+                                <th className="px-6 py-3">Model</th>
+                                <th className="px-6 py-3 text-right">Cost (INR)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {usageLogs.map((log) => (
+                                <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-4 text-[11px] text-gray-500 font-mono">
+                                        {log.timestamp ? (log.timestamp.toDate ? log.timestamp.toDate().toLocaleString() : new Date((log.timestamp as any).seconds * 1000).toLocaleString()) : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 font-bold text-gray-700">{log.feature}</td>
                                     <td className="px-6 py-4">
-                                        <p className="font-bold text-gray-900 text-xs">{p.userEmail}</p>
-                                        <p className="text-[10px] text-gray-400">{p.userName}</p>
+                                        <span className="bg-gray-100 px-2 py-1 rounded text-[10px] font-mono text-gray-600">{log.model}</span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{p.packName}</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-[10px] text-gray-500 font-mono">
-                                        {p.purchaseDate ? new Date(p.purchaseDate.seconds * 1000).toLocaleDateString() : '-'}
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-black text-green-600">₹{p.amountPaid}</td>
+                                    <td className="px-6 py-4 text-right font-black text-red-500">₹{(log.estimatedCost * INR_RATE).toFixed(2)}</td>
                                 </tr>
                             ))}
-                            {purchases.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="p-12 text-center text-gray-400 text-sm italic">No purchases found in this period.</td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>
