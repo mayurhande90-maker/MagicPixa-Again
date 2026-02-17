@@ -86,8 +86,6 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
     const [progressPercent, setProgressPercent] = useState(0);
     const [loadingText, setLoadingText] = useState("Initializing...");
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
-    const [isRefineOpen, setIsRefineOpen] = useState(false);
-    const [refineText, setRefineText] = useState('');
     const [isZipping, setIsZipping] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,6 +173,10 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 packSize: packSize as any
             }, auth.activeBrandKit);
 
+            if (!outputBase64s || outputBase64s.length === 0) {
+                throw new Error("No images were returned from the engine.");
+            }
+
             const blobUrls = await Promise.all(outputBase64s.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
             setResults(blobUrls);
             setActiveResultIdx(0);
@@ -190,7 +192,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
             }
         } catch (e) {
             console.error(e);
-            alert("Kit generation failed.");
+            alert("Kit generation failed. Please check your connection and try again.");
             setIsGenerating(false);
         }
     };
@@ -387,7 +389,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 </div>
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        {!results.length && !isGenerating && (
+                        {!isGenerating && (
                             <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm min-w-[90px]">
                                 <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
                                 <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">
@@ -399,7 +401,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                     <div className="flex items-center gap-3">
                         {results.length > 0 && !isGenerating ? (
                             <button onClick={handleDownloadAll} disabled={isZipping} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-indigo-600 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
-                        ) : !results.length && (
+                        ) : results.length === 0 && (
                             <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
                                 {isGenerating ? 'Rendering...' : 'Generate Kit'}
                             </button>
@@ -410,7 +412,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
 
             {/* Stage */}
             <div className="relative flex-grow w-full flex items-center justify-center p-6 overflow-hidden pb-10">
-                <div className="w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex flex-col items-center justify-center relative bg-gray-50 shadow-inner">
+                <div className="w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative bg-gray-50 shadow-inner">
                     {isGenerating ? (
                         <div className="flex flex-col items-center justify-center gap-6 px-10 animate-fadeIn text-center">
                             <div className="relative w-24 h-24 flex items-center justify-center">
@@ -426,17 +428,26 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                             </div>
                         </div>
                     ) : results.length > 0 ? (
-                        <div className="w-full h-full flex flex-col animate-fadeIn">
-                            <div className="flex-1 relative flex items-center justify-center p-6 bg-white" onClick={() => setIsFullScreenOpen(true)}>
+                        <div className="w-full h-full flex flex-col animate-fadeIn relative">
+                            {/* Main Hero Viewer */}
+                            <div className="flex-1 relative flex items-center justify-center p-6 bg-white overflow-hidden" onClick={() => setIsFullScreenOpen(true)}>
                                 <img src={results[activeResultIdx]} className="max-w-full max-h-full object-contain drop-shadow-2xl animate-materialize" />
                                 <div className="absolute top-6 left-6 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white text-[9px] font-black uppercase tracking-widest">{getAssetLabel(activeResultIdx)}</div>
                             </div>
-                            <div className="flex-none h-32 bg-gray-50 border-t border-gray-100 flex items-center gap-3 overflow-x-auto px-6 no-scrollbar">
-                                {results.map((res, idx) => (
-                                    <button key={idx} onClick={() => setActiveResultIdx(idx)} className={`shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${activeResultIdx === idx ? 'border-indigo-600 scale-105 shadow-md shadow-indigo-500/20' : 'border-white opacity-50 grayscale hover:opacity-100 hover:grayscale-0'}`}>
-                                        <img src={res} className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
+                            
+                            {/* Immersive Film-strip Overlay */}
+                            <div className="absolute bottom-6 left-0 right-0 z-20 px-4">
+                                <div className="bg-white/40 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-3 shadow-2xl overflow-hidden flex items-center gap-3 overflow-x-auto no-scrollbar scroll-smooth h-24">
+                                    {results.map((res, idx) => (
+                                        <button 
+                                            key={idx} 
+                                            onClick={(e) => { e.stopPropagation(); setActiveResultIdx(idx); }} 
+                                            className={`shrink-0 w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all duration-500 ${activeResultIdx === idx ? 'border-indigo-600 scale-110 shadow-lg' : 'border-white/50 opacity-60 grayscale-[0.5]'}`}
+                                        >
+                                            <img src={res} className="w-full h-full object-cover" />
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     ) : (
@@ -485,7 +496,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                         </div>
                     )}
 
-                    {mainImage && !results.length && !isGenerating && (
+                    {mainImage && results.length === 0 && !isGenerating && (
                         <button onClick={handleReset} className="absolute top-4 right-4 bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all z-40">
                             <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
                             <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
