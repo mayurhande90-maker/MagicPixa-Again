@@ -31,11 +31,12 @@ const PACK_SIZES = [
 
 const VIBES = ['Clean Studio', 'Luxury', 'Organic/Nature', 'Tech/Neon', 'Lifestyle'];
 
-const CustomRefineIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-    </svg>
-);
+const TALENT_AI_PHASES = [
+    { id: 'gender', label: 'Persona', options: ['Female', 'Male'] },
+    { id: 'ethnicity', label: 'Region', options: ['Indian', 'Asian', 'International', 'African'] },
+    { id: 'skinTone', label: 'Skin', options: ['Fair', 'Wheatish', 'Dusky'] },
+    { id: 'bodyType', label: 'Build', options: ['Slim', 'Average', 'Athletic', 'Plus Size'] }
+];
 
 const PremiumUpload: React.FC<{ label: string; uploadText?: string; image: { url: string } | null; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onClear: () => void; icon: React.ReactNode; heightClass?: string; compact?: boolean; }> = ({ label, uploadText, image, onUpload, onClear, icon, heightClass = "h-40", compact }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -68,14 +69,15 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
     const [currentStep, setCurrentStep] = useState(0);
     const [mode, setMode] = useState<'product' | 'apparel' | null>(null);
     const [mainImage, setMainImage] = useState<{ url: string; base64: any } | null>(null);
-    const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
+    const [packSize, setPackSize] = useState<5 | 7 | 10 | null>(null);
     const [productName, setProductName] = useState('');
     const [vibe, setVibe] = useState('');
     
     // Apparel specifics
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: any } | null>(null);
-    const [talentParams, setTalentParams] = useState({ gender: '', ethnicity: '', skinTone: '', bodyType: '' });
+    const [talentParams, setTalentParams] = useState<Record<string, string>>({});
+    const [talentAiPhase, setTalentAiPhase] = useState(0);
 
     // Results
     const [results, setResults] = useState<string[]>([]);
@@ -91,6 +93,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = useMemo(() => {
+        if (packSize === null) return 0;
         const key = PACK_SIZES.find(p => p.size === packSize)?.costKey || 'Pixa Ecommerce Kit';
         return appConfig?.featureCosts[key] || 25;
     }, [packSize, appConfig]);
@@ -103,20 +106,20 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
         if (idx === 0) return true;
         if (idx === 1) return !!mode;
         if (idx === 2) return !!mainImage;
-        if (idx === 3) return !!packSize;
-        if (idx === 4) return !!vibe;
+        if (idx === 3) return packSize !== null;
+        if (idx === 4) return !!vibe && !!productName.trim();
         return false;
     };
 
     const isStrategyComplete = useMemo(() => {
-        const base = !!mode && !!mainImage && !!productName && !!vibe;
+        const base = !!mode && !!mainImage && !!productName.trim() && !!vibe && packSize !== null;
         if (mode === 'apparel') {
             if (modelSource === 'upload') return base && !!modelImage;
-            if (modelSource === 'ai') return base && !!talentParams.gender && !!talentParams.ethnicity;
+            if (modelSource === 'ai') return base && Object.keys(talentParams).length === TALENT_AI_PHASES.length;
             return false;
         }
         return base;
-    }, [mode, mainImage, productName, vibe, modelSource, modelImage, talentParams]);
+    }, [mode, mainImage, productName, vibe, packSize, modelSource, modelImage, talentParams]);
 
     useEffect(() => {
         let interval: any;
@@ -166,10 +169,10 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 type: mode!,
                 mainImage: mainImage.base64,
                 modelImage: modelSource === 'upload' ? modelImage?.base64 : undefined,
-                modelParams: modelSource === 'ai' ? { ...talentParams, age: 'Young Adult' } : undefined,
+                modelParams: modelSource === 'ai' ? { ...talentParams, age: 'Young Adult' } as any : undefined,
                 productType: productName,
                 productVibe: vibe,
-                packSize: packSize
+                packSize: packSize as any
             }, auth.activeBrandKit);
 
             const blobUrls = await Promise.all(outputBase64s.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
@@ -219,7 +222,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
     const handleReset = () => {
         setResults([]); setMainImage(null); setModelImage(null); setMode(null);
         setProductName(''); setVibe(''); setCurrentStep(0); setModelSource(null);
-        setTalentParams({ gender: '', ethnicity: '', skinTone: '', bodyType: '' });
+        setTalentParams({}); setTalentAiPhase(0); setPackSize(null);
     };
 
     const getAssetLabel = (idx: number) => {
@@ -266,6 +269,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                                 className={`shrink-0 min-w-[100px] px-5 py-4 rounded-2xl border transition-all duration-300 transform active:scale-95 flex flex-col items-center gap-1 ${packSize === p.size ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
                             >
                                 <span className="text-[11px] font-black uppercase tracking-wider">{p.tier}</span>
+                                <div className="h-px w-6 bg-gray-200 group-hover:bg-indigo-300 my-1"></div>
                                 <span className={`text-[9px] font-bold ${packSize === p.size ? 'text-indigo-200' : 'text-gray-400'} uppercase tracking-widest`}>{p.size} Assets</span>
                             </button>
                         ))}
@@ -280,8 +284,12 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                                 <button 
                                     key={v} 
                                     onClick={() => { 
-                                        setVibe(v); 
-                                        setTimeout(() => setCurrentStep(4), 600); 
+                                        if (productName.trim()) {
+                                            setVibe(v); 
+                                            setTimeout(() => setCurrentStep(4), 600); 
+                                        } else {
+                                            alert("Please enter product name first.");
+                                        }
                                     }} 
                                     className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase border transition-all ${vibe === v ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}
                                 >
@@ -300,29 +308,43 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                         </div>
                     </div>
                 );
-                return (
-                    <div className="w-full px-6 flex flex-col gap-4 py-2">
-                        <div className="flex gap-3">
-                            <button onClick={() => setModelSource('ai')} className={`flex-1 py-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${modelSource === 'ai' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-sm' : 'bg-white border-gray-100 text-gray-400'}`}>
-                                <SparklesIcon className="w-5 h-5" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Pixa Model</span>
-                            </button>
-                            <button onClick={() => setModelSource('upload')} className={`flex-1 py-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${modelSource === 'upload' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-sm' : 'bg-white border-gray-100 text-gray-400'}`}>
-                                <UserIcon className="w-5 h-5" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">My Model</span>
-                            </button>
-                        </div>
-                        {modelSource === 'ai' && (
-                            <div className="grid grid-cols-2 gap-3 animate-fadeIn">
-                                <select value={talentParams.gender} onChange={e => setTalentParams({...talentParams, gender: e.target.value})} className="p-3.5 bg-gray-50 border-none rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none"><option value="">Gender</option><option>Female</option><option>Male</option></select>
-                                <select value={talentParams.ethnicity} onChange={e => setTalentParams({...talentParams, ethnicity: e.target.value})} className="p-3.5 bg-gray-50 border-none rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none"><option value="">Ethnicity</option><option>Indian</option><option>Asian</option><option>International</option><option>African</option></select>
-                                <select value={talentParams.skinTone} onChange={e => setTalentParams({...talentParams, skinTone: e.target.value})} className="p-3.5 bg-gray-50 border-none rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none"><option value="">Skin</option><option>Fair</option><option>Wheatish</option><option>Dusky</option></select>
-                                <select value={talentParams.bodyType} onChange={e => setTalentParams({...talentParams, bodyType: e.target.value})} className="p-3.5 bg-gray-50 border-none rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none"><option value="">Build</option><option>Slim</option><option>Average</option><option>Athletic</option><option>Plus Size</option></select>
+                
+                if (modelSource === 'ai') {
+                    const phase = TALENT_AI_PHASES[talentAiPhase];
+                    return (
+                        <div className="w-full px-6 flex flex-col gap-2 py-2 animate-fadeIn">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{phase.label}</label>
+                                <button onClick={() => setModelSource(null)} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Change type</button>
                             </div>
-                        )}
-                        {modelSource === 'upload' && (
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                                {phase.options.map(opt => (
+                                    <button 
+                                        key={opt}
+                                        onClick={() => {
+                                            setTalentParams(prev => ({ ...prev, [phase.id]: opt }));
+                                            if (talentAiPhase < TALENT_AI_PHASES.length - 1) {
+                                                setTimeout(() => setTalentAiPhase(prev => prev + 1), 600);
+                                            }
+                                        }}
+                                        className={`shrink-0 px-6 py-3 rounded-2xl text-[11px] font-black uppercase border transition-all ${talentParams[phase.id] === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (modelSource === 'upload') {
+                    return (
+                        <div className="w-full px-6 flex flex-col gap-2 py-2 animate-fadeIn">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Digital Twin</label>
+                                <button onClick={() => setModelSource(null)} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Change type</button>
+                            </div>
                             <div className="animate-fadeIn">
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Upload Digital Twin</p>
                                 <PremiumUpload 
                                     label="Person Reference" 
                                     uploadText="Full body photo" 
@@ -334,7 +356,22 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                                     compact 
                                 />
                             </div>
-                        )}
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="w-full px-6 flex flex-col gap-4 py-2">
+                        <div className="flex gap-3">
+                            <button onClick={() => { setModelSource('ai'); setTalentAiPhase(0); setTalentParams({}); }} className={`flex-1 py-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all bg-white border-gray-100 text-gray-400 hover:border-indigo-200`}>
+                                <SparklesIcon className="w-5 h-5 text-indigo-400" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">AI Model</span>
+                            </button>
+                            <button onClick={() => setModelSource('upload')} className={`flex-1 py-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all bg-white border-gray-100 text-gray-400 hover:border-indigo-200`}>
+                                <UserIcon className="w-5 h-5 text-blue-400" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">My Model</span>
+                            </button>
+                        </div>
                     </div>
                 );
             default: return null;
@@ -351,9 +388,11 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 <div className="px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         {!results.length && !isGenerating && (
-                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
+                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm min-w-[90px]">
                                 <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
-                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
+                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">
+                                    {packSize ? `${cost} Credits` : 'Select Pack'}
+                                </span>
                             </div>
                         )}
                     </div>
@@ -485,8 +524,8 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
                                         const isAccessible = isStepAccessible(idx);
                                         const isFilled = (idx === 0 && !!mode) || 
                                                         (idx === 1 && !!mainImage) || 
-                                                        (idx === 2 && !!packSize) || 
-                                                        (idx === 3 && !!productName && !!vibe) || 
+                                                        (idx === 2 && packSize !== null) || 
+                                                        (idx === 3 && !!vibe && !!productName.trim()) || 
                                                         (idx === 4 && (mode === 'product' || !!modelSource));
                                         
                                         return (
