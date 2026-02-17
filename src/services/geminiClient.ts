@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { logApiError, logUsage, auth } from '../firebase';
 
@@ -5,6 +6,7 @@ import { logApiError, logUsage, auth } from '../firebase';
 export const USE_SECURE_BACKEND = false; 
 
 // GOOGLE AI ESTIMATES (USD) - Internal rates for logging
+// These reflect current Gemini per-image and per-token pricing averages.
 const ESTIMATED_RATES: Record<string, number> = {
     'gemini-3-pro-image-preview': 0.02,
     'gemini-2.5-flash-image': 0.002, 
@@ -17,8 +19,6 @@ const ESTIMATED_RATES: Record<string, number> = {
  * Detects the API key from the environment.
  */
 export const getAiClient = (): GoogleGenAI => {
-    // In browser environments using Vite, process.env.API_KEY may be undefined.
-    // We check both the platform-standard process.env and the Vite-standard import.meta.env.
     const apiKey = process.env.API_KEY || (import.meta as any).env.VITE_API_KEY;
     
     if (!apiKey) {
