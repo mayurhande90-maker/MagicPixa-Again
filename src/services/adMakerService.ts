@@ -1,3 +1,4 @@
+
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
@@ -102,6 +103,7 @@ interface CreativeBrief {
 
 /**
  * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO)
+ * LOGIC UPGRADE: High-Conversion Copywriting Protocol
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -112,19 +114,25 @@ const performAdIntelligence = async (
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `Act as a world-class CMO and Strategy Director. 
+    const prompt = `Act as a world-class CMO and Lead Strategy Director at a top-tier creative agency. 
     Develop a high-conversion creative brief for this ${inputs.industry} asset: "${inputs.productName || 'Subject'}".
-    Context: "${inputs.description || 'N/A'}"
     
-    *** THE STRATEGIC MANDATE ***
-    1. **MARKET RESEARCH**: Use Google Search to analyze 2025 consumer behavior and visual trends for the ${inputs.industry} industry in the user's specific context.
-    2. **AIDA COPYWRITING**: 
-       - **Attention**: Headline (2-5 words) that stops the scroll.
-       - **Interest/Desire**: Subheadline that builds perceived value.
+    *** THE CONTEXT ANCHOR (PRIORITY 1) ***
+    User Context: "${inputs.description || 'N/A'}"
+    
+    *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
+    1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Defined by Excellence", "Unleash Your Potential", "Discover the Difference", "Elevate Your Life", "Quality You Can Trust", or "Premium Standard".
+    2. **SPECIFICITY & HOOKS**: Craft a headline (2-5 words) that is directly linked to the specific use-case in the description. 
+       - If describing "morning coffee", use hooks about "The 6AM Ritual" or "Foggy Mornings, Sharp Mind".
+       - If describing a "summer sale", focus on "Heat-Wave Hero" or "Last Chance for Sun".
+    3. **AIDA FRAMEWORK**:
+       - **Attention**: The Hook (Headline).
+       - **Interest/Desire**: The Benefit (Subheadline).
        - **Action**: High-intent CTA.
-    3. **ART DIRECTION**: Plan a visual hierarchy that follows the "3% Design Rule" (Visual Focal Point, minimal cognitive load).
     
-    RETURN JSON:
+    4. **MARKET RESEARCH**: Use Google Search to identify 2025 consumer trends for ${inputs.industry} and integrate a trending "angle" into the copy.
+    
+    RETURN JSON ONLY:
     {
         "strategicCopy": { "headline": "string", "subheadline": "string", "cta": "string" },
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
@@ -146,10 +154,12 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
+        // Smarter fallback using provided info
+        const fallbackHeadline = inputs.productName ? `${inputs.productName} Standard` : "Ready for Launch";
         return { 
-            strategicCopy: { headline: "Defined by Excellence", subheadline: "The new standard in premium quality.", cta: "Shop Collection" }, 
+            strategicCopy: { headline: fallbackHeadline, subheadline: "Designed for those who lead the way.", cta: "Shop Collection" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
-            industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
+            industryLogic: { categoryBadgeText: 'Selected Grade', forbiddenKeywords: [] },
             visualDirection: "Clean commercial studio aesthetics." 
         };
     }
