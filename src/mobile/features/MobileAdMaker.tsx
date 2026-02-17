@@ -91,7 +91,8 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
     const refineCost = 5;
-    const isLowCredits = (auth.user?.credits || 0) < cost;
+    const userCredits = auth.user?.credits || 0;
+    const isLowCredits = userCredits < cost;
 
     // --- LOGIC ---
 
@@ -349,7 +350,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 <div className="w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative bg-gray-50 shadow-inner">
                     <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
                         {isGenerating ? null : result ? (
-                            <img src={result} onClick={() => setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
+                            <img src={result} onClick={() => !isGenerating && setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
                         ) : (
                             <div className="relative w-full h-full p-4 flex flex-col items-center justify-center animate-fadeIn">
                                 {image ? (
@@ -394,15 +395,17 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
                         {isGenerating && (
                             <div className="absolute inset-0 z-50 flex items-center justify-center animate-fadeIn px-10">
-                                <div className="bg-black/60 backdrop-blur-xl px-8 py-12 rounded-[3.5rem] border border-white/20 shadow-2xl w-full max-w-[280px] flex flex-col items-center gap-10 animate-breathe">
-                                    <div className="relative w-24 h-24 flex items-center justify-center">
-                                        <svg className="w-full h-full transform -rotate-90"><circle cx="48" cy="48" r="44" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-white/10" strokeDasharray={276.4} strokeDashoffset={276.4 - (276.4 * (progressPercent / 100))} strokeLinecap="round" /></svg>
-                                        <div className="absolute text-sm font-black text-white">{Math.round(progressPercent)}%</div>
+                                <div className="bg-black/60 backdrop-blur-xl px-6 py-8 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[230px] flex flex-col items-center gap-6 animate-breathe">
+                                    <div className="relative w-20 h-20 flex items-center justify-center">
+                                        <svg className="w-full h-full transform -rotate-90">
+                                          <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-white/10" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
+                                        </svg>
+                                        <div className="absolute text-xs font-black text-white">{Math.round(progressPercent)}%</div>
                                     </div>
                                     <div className="text-center">
                                         <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] opacity-80">Neural Core</span>
                                         <div className="h-px w-8 bg-indigo-500/50 mx-auto my-3" />
-                                        <span className="text-[10px] text-indigo-200 font-bold uppercase tracking-widest animate-pulse leading-relaxed">{loadingText}</span>
+                                        <span className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest animate-pulse leading-relaxed">{loadingText}</span>
                                     </div>
                                 </div>
                             </div>
@@ -417,7 +420,14 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Refine image</button>
-                            <div className="grid grid-cols-2 gap-3"><button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">New Project</button><button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2">Regenerate</button></div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
+                                    <PlusIcon className="w-4 h-4" /> New Project
+                                </button>
+                                <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm">
+                                    <RegenerateIcon className="w-4 h-4" /> Regenerate
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div className={`flex flex-col transition-all duration-700 ${industry ? 'opacity-100 translate-y-0' : 'opacity-100 translate-y-0'}`}>
@@ -478,6 +488,19 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     )}
                 </div>
             </div>
+
+            {/* FULL SCREEN IMAGE MODAL */}
+            {isFullScreenOpen && result && (
+                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
+                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
+                        <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'admaker-creation.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
+                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
+                    </div>
+                    <div className="w-full h-full flex items-center justify-center p-2">
+                        <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
+                    </div>
+                </div>
+            )}
 
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Ad Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
                 <div className="space-y-6 pb-6">
