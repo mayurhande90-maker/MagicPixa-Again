@@ -1,5 +1,5 @@
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { logApiError, auth } from '../firebase';
 import { BrandKit } from "../types";
@@ -52,9 +52,10 @@ const performForensicAudit = async (base64: string, mimeType: string): Promise<s
     OUTPUT: A technical "Sacred Asset Protocol" paragraph for a render engine.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
+            featureName: 'Merchant Forensic Audit'
         });
         return response.text || "Standard geometry, matte material.";
     } catch (e) {
@@ -83,7 +84,7 @@ const architectPackStrategy = async (audit: string, inputs: MerchantInputs): Pro
     RETURN: A JSON array of ${inputs.packSize} strings, each being a highly detailed prompt for the production engine.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ text: prompt }] },
             config: {
@@ -92,7 +93,8 @@ const architectPackStrategy = async (audit: string, inputs: MerchantInputs): Pro
                     type: Type.ARRAY,
                     items: { type: Type.STRING }
                 }
-            }
+            },
+            featureName: 'Merchant Pack Strategy'
         });
         return JSON.parse(response.text || "[]");
     } catch (e) {
@@ -139,13 +141,14 @@ const generateVariant = async (
     if (optModel) parts.push({ text: "MODEL REFERENCE:" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
-            config: { responseModalities: [Modality.IMAGE] }
+            config: { responseModalities: [Modality.IMAGE] },
+            featureName: 'Merchant Variant Generation'
         });
 
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error(`Failed to render ${role}`);
     } catch (e) {

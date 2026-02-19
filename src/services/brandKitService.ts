@@ -1,6 +1,6 @@
 
 import { Type, Modality } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { resizeImage, makeTransparent } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -35,7 +35,7 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
         
         Return ONLY a JSON object: { "primary": "#RRGGBB", "secondary": "#RRGGBB", "accent": "#RRGGBB" }`;
 
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', // Upgraded for better color theory reasoning
             contents: {
                 parts: [
@@ -54,7 +54,8 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
                     },
                     required: ['primary', 'secondary', 'accent']
                 }
-            }
+            },
+            featureName: 'Brand Color Extraction'
         });
 
         let text = response.text || "";
@@ -130,12 +131,13 @@ export const generateBrandIdentity = async (
     \`\`\``;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', // Upgraded to Pro for Deep Research
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
-            }
+            },
+            featureName: 'Brand Identity Generation'
         });
 
         let text = response.text || "{}";
@@ -225,12 +227,13 @@ export const analyzeCompetitorStrategy = async (
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', // Pro model required for complex reasoning + search + vision
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }] // Enabled for website analysis
-            }
+            },
+            featureName: 'Competitor Strategy Analysis'
         });
 
         let text = response.text || "{}";

@@ -1,6 +1,6 @@
 
 import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { resizeImage, makeTransparent } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -60,7 +60,7 @@ export const detectObjectAtPoint = async (
         Return the [ymin, xmin, ymax, xmax] bounding box for the entire object.
         Return ONLY the coordinates as a JSON array of 4 integers.`;
 
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-flash-preview', 
             contents: {
                 parts: [
@@ -80,7 +80,8 @@ export const detectObjectAtPoint = async (
                         xmax: { type: Type.NUMBER }
                     }
                 }
-            }
+            },
+            featureName: 'Object Detection'
         });
 
         const text = response.text || "[]";
@@ -102,9 +103,10 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     3. **OPTICAL DEGRADATION**: Identify motion blur, lens softness, and fading levels.
     Output a concise "Restoration Master Blueprint" for an AI generator to follow.`;
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
+            featureName: 'Photo Condition Analysis'
         });
         return response.text || "Standard restoration, fix damage and sharpen.";
     } catch (e) { return "Standard restoration, fix damage and sharpen."; }
@@ -124,9 +126,10 @@ const performForensicBiometricScan = async (ai: any, base64: string, mimeType: s
     
     OUTPUT: A technical "Biometric Feature Lock" for the render engine.`;
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', 
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
+            featureName: 'Forensic Biometric Scan'
         });
         return response.text || "Preserve facial features exactly with zero modification to geometry.";
     } catch (e) { return "Preserve facial features exactly with zero modification to geometry."; }
@@ -174,7 +177,7 @@ export const colourizeImage = async (
     
     OUTPUT: A single hyper-realistic 4K restored image where the person is 100% identical to the original photo, just cleaned and clarified.`;
 
-    const response = await ai.models.generateContent({
+    const response = await secureGenerateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
       config: { 
@@ -184,8 +187,9 @@ export const colourizeImage = async (
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
       },
+      featureName: 'Photo Restoration'
     });
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("Forensic engine failed to reconstruct. The asset may be too degraded.");
   } catch (error) { throw error; }
@@ -240,9 +244,10 @@ const performDualForensicAudit = async (
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts }
+            contents: { parts },
+            featureName: 'Dual Forensic Audit'
         });
         return response.text || "Standard biometric rig, preserve facial structures exactly.";
     } catch (e) { return "Standard biometric rig, preserve facial structures exactly."; }
@@ -275,9 +280,10 @@ const architectInteractionRig = async (
     Output a concise "Spatial Interaction Rig" blueprint.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ text: prompt }] }
+            contents: { parts: [{ text: prompt }] },
+            featureName: 'Interaction Physics Architecture'
         });
         return response.text || "Natural interaction pose, standard contact shadows.";
     } catch (e) { return "Natural interaction pose, standard contact shadows."; }
@@ -332,7 +338,7 @@ export const generateMagicSoul = async (
     parts.push({ text: masterMandate });
     parts.push({ text: brandDNA });
 
-    const response = await ai.models.generateContent({
+    const response = await secureGenerateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
       config: { 
@@ -342,9 +348,10 @@ export const generateMagicSoul = async (
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
       },
+      featureName: 'Magic Soul Generation'
     });
 
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("Production engine failed to render. Identity sync unstable.");
   } catch (error) { throw error; }
@@ -360,13 +367,14 @@ export const removeElementFromImage = async (
         const { data: optImage, mimeType: optMime } = await optimizeImageForEditing(base64ImageData, mimeType);
         const { data: optMask, mimeType: maskMime } = await optimizeImageForEditing(maskBase64, 'image/png');
         const prompt = `Magic Eraser. Remove White Pixels from Image and heal background seamlessly.`;
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts: [{ inlineData: { data: optImage, mimeType: optMime } }, { inlineData: { data: optMask, mimeType: maskMime } }, { text: prompt }] },
-            config: { responseModalities: [Modality.IMAGE] }
+            config: { responseModalities: [Modality.IMAGE] },
+            featureName: 'Magic Eraser'
         });
         // Corrected access path for image generation results from nano banana series.
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("No image generated.");
     } catch (error) { throw error; }

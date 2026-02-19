@@ -1,6 +1,6 @@
 
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage, urlToBase64 } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
@@ -144,13 +144,14 @@ const performAdIntelligence = async (
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', 
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
                 responseMimeType: "application/json"
-            }
+            },
+            featureName: 'Ad Intelligence Analysis'
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
@@ -238,7 +239,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
@@ -251,8 +252,9 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 ]
             },
+            featureName: 'Ad Creative Generation'
         });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("Ad Production engine failed. Ensure your source photos are clear.");
     } catch (e) { throw e; }
@@ -272,7 +274,7 @@ export const refineAdCreative = async (
     OUTPUT: A single 4K photorealistic refined image.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: {
                 parts: [
@@ -281,8 +283,9 @@ export const refineAdCreative = async (
                 ]
             },
             config: { responseModalities: [Modality.IMAGE] },
+            featureName: 'Ad Creative Refinement'
         });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("Refinement engine failed.");
     } catch (e) { throw e; }

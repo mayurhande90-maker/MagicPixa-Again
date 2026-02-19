@@ -1,5 +1,5 @@
 import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -54,7 +54,7 @@ export const analyzeMockupSuggestions = async (
     try {
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
         const prompt = `Analyze design. Suggest 3 product mockups. ${brand ? `This is for brand '${brand.companyName}' in '${brand.industry}'.` : ''} Return JSON array.`;
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
             config: {
@@ -74,7 +74,8 @@ export const analyzeMockupSuggestions = async (
                         required: ['title', 'reasoning', 'targetObject', 'material', 'sceneVibe', 'objectColor']
                     }
                 }
-            }
+            },
+            featureName: 'Mockup Suggestion Analysis'
         });
         return JSON.parse(response.text || "[]");
     } catch (e) {
@@ -109,12 +110,13 @@ export const generateMagicMockup = async (
         APPLICATION: Design using ${material} (${physics}). Wrap around object curvature.
         OUTPUT: High-res single image.`;
 
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
             config: { responseModalities: [Modality.IMAGE] },
+            featureName: 'Magic Mockup Generation'
         });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("No image generated.");
     } catch (error) { throw error; }

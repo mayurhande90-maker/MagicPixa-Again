@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { db } from '../firebase';
 import firebase from 'firebase/compat/app';
 import { Ticket } from '../types';
@@ -112,7 +112,7 @@ export const sendSupportMessage = async (
     }
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-flash-preview',
             contents: chatHistory,
             config: {
@@ -135,7 +135,8 @@ export const sendSupportMessage = async (
                     },
                     required: ["type", "text"]
                 }
-            }
+            },
+            featureName: 'Support Chat'
         });
 
         const data = JSON.parse(response.text || "{}");
@@ -162,15 +163,15 @@ export const sendSupportMessage = async (
 
 export const analyzeSupportImage = async (base64: string, mimeType: string): Promise<string> => {
     try {
-        const ai = getAiClient();
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
                     { text: "Look at this screenshot and tell me in very simple, non-technical language what you see. Is there an error message or does an image look a bit strange? Just give a simple summary for a helpful support assistant." }
                 ]
-            }
+            },
+            featureName: 'Support Image Analysis'
         });
         return response.text || "I couldn't quite see what was in the image. Could you describe the problem?";
     } catch (e) {

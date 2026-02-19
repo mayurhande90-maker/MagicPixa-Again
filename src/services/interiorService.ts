@@ -1,6 +1,6 @@
 
 import { Modality, Type } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -32,9 +32,10 @@ const performForensicSpatialAudit = async (ai: any, base64: string, mimeType: st
     OUTPUT: A technical "Structural & Lighting Rig Protocol" for the render engine.`;
     
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
+            featureName: 'Forensic Spatial Audit'
         });
         return response.text || "Structural lock on walls and windows. Match existing light vectors.";
     } catch (e) { return "Structural lock on walls and windows. Match existing light vectors."; }
@@ -81,7 +82,7 @@ export const generateInteriorDesign = async (
     
     OUTPUT: A single hyper-realistic 8K architectural render where the original room structure is preserved perfectly.`;
 
-    const response = await ai.models.generateContent({
+    const response = await secureGenerateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
       config: { 
@@ -91,9 +92,10 @@ export const generateInteriorDesign = async (
               imageSize: "1K"
           }
       },
+      featureName: 'Interior Design Generation'
     });
     
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("Spatial engine failed to render. identity sync unstable.");
   } catch (error) { throw error; }

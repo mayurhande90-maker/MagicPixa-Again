@@ -1,6 +1,6 @@
 
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
 // Optimize images to 1024px to manage token limits
@@ -96,7 +96,7 @@ const performTrendResearch = async (
     }`;
 
     try {
-        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
             contents: {
                 parts: [
@@ -119,8 +119,9 @@ const performTrendResearch = async (
                     },
                     required: ["headline", "visualStyle", "layoutPlan", "rewrittenFeatures"]
                 }
-            }
-        }));
+            },
+            featureName: 'Realty Trend Research'
+        });
 
         const jsonText = response.text || "{}";
         return JSON.parse(jsonText);
@@ -197,16 +198,17 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     parts.push({ text: designPrompt });
 
-    const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await secureGenerateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: { 
             responseModalities: [Modality.IMAGE],
             imageConfig: { aspectRatio: "1:1", imageSize: "1K" } // Standard social media square
         },
-    }));
+        featureName: 'Realty Ad Generation'
+    });
 
-    const finalImageBase64 = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data)?.inlineData?.data;
+    const finalImageBase64 = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data)?.inlineData?.data;
     if (!finalImageBase64) throw new Error("Ad generation failed.");
 
     return finalImageBase64;

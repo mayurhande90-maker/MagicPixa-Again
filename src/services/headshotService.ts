@@ -1,5 +1,5 @@
 import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
 // Helper: Resize to 1024px (Balanced for Flash model)
@@ -69,14 +69,15 @@ const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string
     5. **MANDATE**: This is a SACRED IDENTITY ANCHOR. You must ensure the generated output is a 1:1 biometric clone. Any beautification or generic "improvement" is a failure of identity integrity.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-flash-preview', 
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
                     { text: prompt }
                 ]
-            }
+            },
+            featureName: 'Headshot Identity Scan'
         });
         return response.text || "Preserve facial structure exactly.";
     } catch (e) {
@@ -156,7 +157,7 @@ export const generateProfessionalHeadshot = async (
 
         parts.push({ text: prompt });
 
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts },
             config: { 
@@ -171,9 +172,10 @@ export const generateProfessionalHeadshot = async (
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 ]
             },
+            featureName: 'Professional Headshot Generation'
         });
 
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("Identity-lock engine failed. Please use a clearer, well-lit photo.");
 

@@ -1,5 +1,5 @@
 
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { BrandKit } from "../types";
 
 /**
@@ -87,13 +87,14 @@ export const generateCaptions = async (
     ]
     \`\`\``;
 
-    const response = await ai.models.generateContent({
+    const response = await secureGenerateContent({
       model: 'gemini-3-pro-preview',
       contents: { parts: [{ inlineData: { data: base64ImageData, mimeType: mimeType } }, { text: prompt }] },
       config: { 
         tools: [{ googleSearch: {} }],
         temperature: 0.9, 
       },
+      featureName: 'Caption Generation'
     });
 
     const text = response.text || "";

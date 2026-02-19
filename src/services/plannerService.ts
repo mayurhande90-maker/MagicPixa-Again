@@ -1,6 +1,6 @@
 
 import { Modality, Type, GenerateContentResponse } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { BrandKit, ProductAnalysis } from "../types";
 import { resizeImage } from "../utils/imageUtils";
 
@@ -69,7 +69,7 @@ export const analyzeProductPhysically = async (
     }`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
@@ -91,7 +91,8 @@ export const analyzeProductPhysically = async (
                     },
                     required: ["detectedName", "category", "state", "physicalScale", "sceneConstraints", "visualCues"]
                 }
-            }
+            },
+            featureName: 'Product Physical Analysis'
         });
 
         const data = JSON.parse(response.text || "{}");
@@ -160,7 +161,7 @@ export const generateContentPlan = async (
     RETURN JSON ARRAY.`;
 
     try {
-        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ text: strategyPrompt }] },
             config: {
@@ -189,8 +190,9 @@ export const generateContentPlan = async (
                         required: ["date", "topic", "postType", "selectedProductId", "visualIdea", "visualBrief", "imagePrompt", "headline", "caption", "reasoning", "archetype", "analysisSnippet"]
                     }
                 }
-            }
-        }));
+            },
+            featureName: 'Content Plan Generation'
+        });
 
         const jsonText = response.text || "[]";
         let plan: CalendarPost[] = JSON.parse(jsonText);
@@ -255,16 +257,17 @@ export const generatePostImage = async (
     parts.push({ text: productionPrompt });
 
     try {
-        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
                 imageConfig: { aspectRatio: "4:5", imageSize: "1K" }
             },
-        }));
+            featureName: 'Post Image Generation'
+        });
 
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
         return imagePart?.inlineData?.data || "";
     } catch (e) {
         console.error("High-fidelity rendering failed", e);
@@ -334,7 +337,7 @@ export const extractPlanFromDocument = async (
     Execute extraction now.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', // Pro model for document reasoning
             contents: {
                 parts: [
@@ -344,7 +347,8 @@ export const extractPlanFromDocument = async (
             },
             config: { 
                 responseMimeType: "application/json" 
-            }
+            },
+            featureName: 'Plan Document Extraction'
         });
 
         const jsonText = response.text || "[]";

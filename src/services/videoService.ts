@@ -1,16 +1,16 @@
 
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateVideos } from "./geminiClient";
 
 export const generateVideo = async (prompt: string) => {
-    const ai = getAiClient();
-    return await ai.models.generateVideos({
+    return await secureGenerateVideos({
         model: 'veo-3.1-generate-preview', // Upgraded to High Quality model
         prompt: prompt,
         config: {
             numberOfVideos: 1,
             resolution: '720p',
             aspectRatio: '16:9'
-        }
+        },
+        featureName: 'Video Generation'
     });
 };
 

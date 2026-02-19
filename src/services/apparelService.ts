@@ -1,6 +1,6 @@
 
 import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { getAiClient } from "./geminiClient";
+import { getAiClient, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -78,7 +78,7 @@ export const generateApparelTryOn = async (
         parts.push({ text: stylingDirectives });
     }
 
-    const response = await ai.models.generateContent({
+    const response = await secureGenerateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts },
       config: { 
@@ -88,8 +88,9 @@ export const generateApparelTryOn = async (
               { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
       },
+      featureName: 'Apparel Try-On Generation'
     });
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("Failed to generate apparel try-on.");
   } catch (error) { throw error; }

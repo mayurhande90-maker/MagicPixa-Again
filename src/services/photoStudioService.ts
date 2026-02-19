@@ -210,7 +210,7 @@ export const editImageWithPrompt = async (
       featureName: 'Pixa Production Render'
     });
 
-    const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("AI Production engine failed. Please try a clearer source photo.");
   } catch (error) { throw error; }
@@ -259,7 +259,7 @@ export const generateModelShot = async (
         },
         featureName: 'Pixa Model Production'
       });
-      const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+      const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
       if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
       throw new Error("Model production engine failed.");
     } catch (error) { throw error; }
@@ -290,7 +290,7 @@ export const refineStudioImage = async (
             config: { responseModalities: [Modality.IMAGE] },
             featureName: 'Pixa Refinement Engine'
         });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("Refinement failed.");
     } catch (e) { throw e; }

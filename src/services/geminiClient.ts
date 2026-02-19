@@ -11,7 +11,9 @@ const ESTIMATED_RATES: Record<string, number> = {
     'gemini-3-pro-image-preview': 0.02,
     'gemini-2.5-flash-image': 0.002, 
     'gemini-3-pro-preview': 0.0005,
-    'gemini-3-flash-preview': 0.0001
+    'gemini-3-flash-preview': 0.0001,
+    'veo-3.1-generate-preview': 0.50,
+    'veo-3.1-fast-generate-preview': 0.20
 };
 
 /**
@@ -101,10 +103,37 @@ export const secureGenerateContent = async (params: {
         return await response.json();
     } else {
         const ai = getAiClient();
-        return await ai.models.generateContent({
+        return await callWithRetry(() => ai.models.generateContent({
             model: params.model,
             contents: params.contents,
             config: params.config
-        });
+        }));
     }
+};
+
+/**
+ * The Main Entry Point for AI Video Generation.
+ */
+export const secureGenerateVideos = async (params: { 
+    model: string; 
+    prompt: string; 
+    image?: any;
+    config?: any;
+    featureName?: string;
+}) => {
+    const user = auth?.currentUser;
+    const userId = user?.uid || 'anonymous';
+    const rate = ESTIMATED_RATES[params.model] || 0.20;
+
+    // Log usage immediately
+    logUsage(params.model, params.featureName || 'Unknown', userId, rate)
+        .catch(e => console.warn("Financial logging failed", e));
+
+    const ai = getAiClient();
+    return await callWithRetry(() => ai.models.generateVideos({
+        model: params.model,
+        prompt: params.prompt,
+        image: params.image,
+        config: params.config
+    }));
 };

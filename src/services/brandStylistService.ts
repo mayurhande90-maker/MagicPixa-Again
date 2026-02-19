@@ -1,6 +1,6 @@
 
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 
 // Helper: Resize image with customizable width
@@ -174,7 +174,7 @@ export const generateStyledBrandAsset = async (
     analysisParts.push({ text: jsonSchemaPart });
 
     // Execute Analysis
-    const analysisResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+    const analysisResponse = await secureGenerateContent({
         model: 'gemini-3-pro-preview',
         contents: { parts: analysisParts },
         config: {
@@ -200,8 +200,9 @@ export const generateStyledBrandAsset = async (
                 },
                 required: ["visualStyle", "layoutPlan", "generatedHeadline", "technicalExecution", "detectedTypographyType"]
             }
-        }
-    }));
+        },
+        featureName: 'Brand Stylist Analysis'
+    });
 
     let blueprint;
     try {
@@ -289,7 +290,7 @@ export const generateStyledBrandAsset = async (
 
     parts.push({ text: genPrompt });
 
-    const genResponse = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+    const genResponse = await secureGenerateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts },
         config: { 
@@ -304,10 +305,11 @@ export const generateStyledBrandAsset = async (
                 { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             ]
-        }
-    }));
+        },
+        featureName: 'Brand Stylist Generation'
+    });
 
-    const imagePart = genResponse.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+    const imagePart = genResponse.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
     if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
     throw new Error("No image generated. The request might have been blocked.");
 };

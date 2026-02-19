@@ -1,5 +1,5 @@
 import { Modality, HarmCategory, HarmBlockThreshold, Type, GenerateContentResponse } from "@google/genai";
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
@@ -58,7 +58,7 @@ const performTrendResearch = async (category: string, title: string, mood?: stri
     }`;
 
     try {
-        const response = await callWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
             contents: { parts: [{ text: prompt }] },
             config: {
@@ -76,8 +76,9 @@ const performTrendResearch = async (category: string, title: string, mood?: stri
                     },
                     required: ["emotion", "curiosityHeadline", "visualStrategy", "vibe"]
                 }
-            }
-        }));
+            },
+            featureName: 'Thumbnail Trend Research'
+        });
         return JSON.parse(response.text || "{}");
     } catch (e) {
         return { emotion: mood || "Curiosity", curiosityHeadline: "THE TRUTH REVEALED", visualStrategy: "Extreme close-up of subject with shocked expression", vibe: "Intense" };
@@ -92,9 +93,10 @@ const performBiometricScan = async (ai: any, base64: string, mimeType: string, l
     Precisely describe: 1. Face shape and jawline angle. 2. Eye shape (eyelid type, canthal tilt). 3. Nose bridge width and tip shape. 4. Mouth shape (lip thickness, cupid's bow). 5. Exact hair texture and hairline.
     This description is a SACRED IDENTITY LOCK. The final render MUST be a 1:1 pixel-perfect physical replica of this person. DO NOT use generic faces.`;
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview', 
-            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }
+            contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
+            featureName: 'Thumbnail Biometric Scan'
         });
         return response.text || "Preserve identity exactly.";
     } catch (e) { return "Preserve identity exactly."; }
@@ -201,7 +203,7 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
 
         parts.push({ text: prompt });
 
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-image-preview',
             contents: { parts },
             config: { 
@@ -214,9 +216,10 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 ]
             },
+            featureName: 'Thumbnail Generation'
         });
 
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData?.data);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
         if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
         throw new Error("AI Production engine failed to render.");
     } catch (error) { 

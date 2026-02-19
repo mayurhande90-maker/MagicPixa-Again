@@ -1,5 +1,5 @@
 
-import { getAiClient, callWithRetry } from "./geminiClient";
+import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { urlToBase64 } from "../utils/imageUtils";
 
 /**
@@ -10,8 +10,6 @@ export const analyzeVaultDNA = async (
     featureLabel: string,
     imageUrls: string[]
 ): Promise<string> => {
-    const ai = getAiClient();
-    
     // Limit to top 5 images to stay within token/context limits for analysis
     const selectedUrls = imageUrls.slice(0, 5);
     
@@ -47,11 +45,12 @@ export const analyzeVaultDNA = async (
     Avoid generic fluff. Focus on the hard visual rules seen in these specific examples.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await secureGenerateContent({
             model: 'gemini-3-pro-preview',
             contents: {
                 parts: [...imageParts, { text: prompt }]
-            }
+            },
+            featureName: 'Vault DNA Analysis'
         });
 
         return response.text || "Could not generate DNA report.";
