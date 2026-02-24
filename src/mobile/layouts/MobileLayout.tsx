@@ -1,17 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, AuthProps } from '../../types';
+import { View, AuthProps, Announcement } from '../../types';
 import { MobileBottomNav } from '../components/MobileBottomNav';
 import { MagicPixaLogo, CreditCoinIcon, GiftIcon } from '../../components/icons';
 import { MobileReferralModal } from '../components/MobileReferralModal';
+import { NotificationDisplay } from '../../components/NotificationDisplay';
 
 interface MobileLayoutProps {
     children: React.ReactNode;
     activeTab: View;
     setActiveTab: (tab: View) => void;
     auth: AuthProps;
+    announcement?: Announcement | null;
+    showBanner?: boolean;
+    setShowBanner?: (show: boolean) => void;
 }
 
-export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab, setActiveTab, auth }) => {
+export const MobileLayout: React.FC<MobileLayoutProps> = ({ 
+    children, 
+    activeTab, 
+    setActiveTab, 
+    auth,
+    announcement,
+    showBanner,
+    setShowBanner
+}) => {
     const [showReferralModal, setShowReferralModal] = useState(false);
     const [isPulsing, setIsPulsing] = useState(false);
     const prevCreditsRef = useRef<number>(auth.user?.credits || 0);
@@ -31,6 +43,20 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, activeTab,
 
     return (
         <div className="fixed inset-0 flex flex-col bg-white overflow-hidden safe-area-inset">
+            {/* Global Announcement - Mobile Optimized */}
+            {showBanner && announcement && announcement.isActive && setShowBanner && (
+                <div className="flex-none">
+                    <NotificationDisplay 
+                        title={announcement.title} 
+                        message={announcement.message} 
+                        type={announcement.type} 
+                        style={announcement.style || 'banner'} 
+                        link={announcement.link} 
+                        onClose={() => setShowBanner(false)} 
+                    />
+                </div>
+            )}
+
             {/* Header - Compact */}
             <header className="flex-none px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-md z-50">
                 <MagicPixaLogo className="scale-90 origin-left" />

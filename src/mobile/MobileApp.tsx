@@ -26,9 +26,12 @@ const Billing = lazy(() => import('../components/Billing').then(m => ({ default:
 interface MobileAppProps {
     auth: AuthProps;
     appConfig: AppConfig | null;
+    announcement?: Announcement | null;
+    showBanner?: boolean;
+    setShowBanner?: (show: boolean) => void;
 }
 
-export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
+export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig, announcement, showBanner, setShowBanner }) => {
     const [activeTab, setActiveTab] = useState<View>('home_dashboard');
     const [showSplash, setShowSplash] = useState(true);
     
@@ -121,7 +124,14 @@ export const MobileApp: React.FC<MobileAppProps> = ({ auth, appConfig }) => {
         <>
             {showSplash && <MobileSplashScreen onComplete={() => setShowSplash(false)} />}
             
-            <MobileLayout activeTab={activeTab} setActiveTab={setActiveTab} auth={auth}>
+            <MobileLayout 
+                activeTab={activeTab} 
+                setActiveTab={setActiveTab} 
+                auth={auth}
+                announcement={announcement}
+                showBanner={showBanner}
+                setShowBanner={setShowBanner}
+            >
                 <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>}>
                     {PERSISTENT_TABS.map((tab) => (
                         <div 

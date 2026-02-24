@@ -47,7 +47,7 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
     // 1. BANNER (Top Bar - Standard)
     if (style === 'banner') {
         return (
-            <div className={`w-full px-12 py-3 relative flex items-center justify-center text-sm font-medium z-[90] shadow-sm border-b transition-all duration-300 ${theme.bg} ${theme.border} ${theme.text}`}>
+            <div className={`w-full px-4 sm:px-12 py-3 relative flex items-center justify-center text-sm font-medium z-[90] shadow-sm border-b transition-all duration-300 ${theme.bg} ${theme.border} ${theme.text}`}>
                 <div className="flex items-center justify-center gap-3 max-w-7xl">
                     <theme.Icon className={`w-5 h-5 shrink-0 ${theme.iconColor}`} />
                     <span className="text-center">
@@ -70,8 +70,8 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
     // 2. PILL (Floating Dynamic Island - Bottom Center)
     if (style === 'pill') {
         return (
-            <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] transition-all duration-500 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-gray-200 rounded-full pl-6 pr-10 py-3 flex items-center justify-center gap-4 min-w-[320px] max-w-md relative">
+            <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] transition-all duration-500 ease-out transform w-[calc(100%-2rem)] sm:w-auto ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-gray-200 rounded-full pl-6 pr-10 py-3 flex items-center justify-center gap-4 sm:min-w-[320px] max-w-md mx-auto relative">
                     <div className={`p-1.5 rounded-full shrink-0 ${theme.bg} ${theme.iconColor}`}>
                         <theme.Icon className="w-5 h-5" />
                     </div>
@@ -91,8 +91,8 @@ export const NotificationDisplay: React.FC<NotificationDisplayProps> = ({
     // 3. TOAST (Bottom Right)
     if (style === 'toast') {
         return (
-            <div className={`fixed bottom-8 right-8 z-[200] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'}`}>
-                <div className={`bg-white shadow-xl border-l-4 rounded-r-xl p-4 flex items-start gap-3 max-w-sm ${theme.border.replace('border', 'border-l')}`}>
+            <div className={`fixed bottom-8 right-4 sm:right-8 z-[200] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform w-[calc(100%-2rem)] sm:w-auto ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'}`}>
+                <div className={`bg-white shadow-xl border-l-4 rounded-r-xl p-4 flex items-start gap-3 max-w-sm ml-auto ${theme.border.replace('border', 'border-l')}`}>
                     <theme.Icon className={`w-5 h-5 mt-0.5 ${theme.iconColor}`} />
                     <div>
                         <h4 className={`text-sm font-bold ${theme.text} ${!title ? 'capitalize' : ''}`}>{displayTitle}</h4>

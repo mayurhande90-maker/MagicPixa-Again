@@ -313,7 +313,13 @@ function App() {
     if (authProps.isAuthenticated) {
         return (
             <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white overflow-y-auto`}>
-                <MobileApp auth={authProps} appConfig={appConfig} />
+                <MobileApp 
+                    auth={authProps} 
+                    appConfig={appConfig} 
+                    announcement={announcement}
+                    showBanner={showBanner}
+                    setShowBanner={setShowBanner}
+                />
                 {activeUser?.systemNotification && !activeUser.systemNotification.read && (
                     <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
                 )}
@@ -322,6 +328,9 @@ function App() {
     } else if (currentPage === 'home') {
         return (
             <div className="min-h-screen bg-white font-sans text-slate-900">
+                {showBanner && announcement && announcement.isActive && (
+                    <NotificationDisplay title={announcement.title} message={announcement.message} type={announcement.type} style={announcement.style || 'banner'} link={announcement.link} onClose={() => setShowBanner(false)} />
+                )}
                 <MobileHomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />
                 {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
             </div>
