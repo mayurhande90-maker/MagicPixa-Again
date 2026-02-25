@@ -12,6 +12,7 @@ import { generateInteriorDesign } from '../../services/interiorService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { ImageModal } from '../../components/FeatureLayout';
 import { MobileInteriorStyles as styles } from '../../styles/features/MobileInterior.styles';
 
 const INTERIOR_STEPS = [
@@ -67,7 +68,7 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setLastCreationId(null);
     };
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return !!image;
         if (idx === 1) return !!spaceType;
         if (idx === 2) return !!roomType;
@@ -384,10 +385,11 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             </MobileSheet>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10"><XIcon className="w-6 h-6" /></button>
-                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" />
-                </div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'interior.png')}
+                />
             )}
             <style>{`
                 @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }

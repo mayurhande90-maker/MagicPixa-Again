@@ -12,6 +12,7 @@ import { colourizeImage } from '../../services/imageToolsService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { ImageModal } from '../../components/FeatureLayout';
 import { RestoreStyles } from '../../styles/features/PixaPhotoRestore.styles';
 
 // --- CONFIGURATION ---
@@ -65,7 +66,7 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
 
     // --- 2. LOGIC ---
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         if (idx === 1) return !!mode;
         if (idx === 2) return !!image;
@@ -432,7 +433,11 @@ export const MobileRestore: React.FC<MobileRestoreProps> = ({ auth, appConfig, o
             </MobileSheet>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}><button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10"><XIcon className="w-6 h-6" /></button><img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" /></div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'restored.png')}
+                />
             )}
 
             {milestoneBonus !== undefined && milestoneBonus !== false && (

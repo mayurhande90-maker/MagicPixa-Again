@@ -94,7 +94,7 @@ export const MobileCaption: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setCurrentStep(0);
     };
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         if (idx === 1) return !!language;
         if (idx === 2) return !!image;

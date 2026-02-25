@@ -11,6 +11,7 @@ import { fileToBase64, base64ToBlobUrl, urlToBase64, downloadImage } from '../..
 import { editImageWithPrompt, analyzeProductImage, analyzeProductForModelPrompts, generateModelShot, refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { ImageModal } from '../../components/FeatureLayout';
 
 const PRODUCT_STEPS = [
     { id: 'category', label: 'Category', options: ['Beauty', 'Food', 'Fashion', 'Electronics', 'Home Decor', 'Medical Product', 'Jewellery', 'Footwear', 'Toys', 'Automotive', 'Other / Custom'] },
@@ -68,7 +69,7 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
 
     const activeSteps = studioMode === 'model' ? MODEL_STEPS : PRODUCT_STEPS;
     
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         const prevStep = activeSteps[idx - 1];
         if (!prevStep) return false;
@@ -490,15 +491,11 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
             </div>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
-                        <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
-                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
-                    </div>
-                    <div className="w-full h-full flex items-center justify-center p-2">
-                        <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
-                    </div>
-                </div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'magicpixa-studio.png')}
+                />
             )}
 
             <MobileSheet 

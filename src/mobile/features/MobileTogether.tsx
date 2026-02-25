@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../../types';
-import { FeatureLayout, MilestoneSuccessModal, checkMilestone } from '../../components/FeatureLayout';
+import { FeatureLayout, MilestoneSuccessModal, checkMilestone, ImageModal } from '../../components/FeatureLayout';
 import { PixaTogetherIcon, XIcon, UserIcon, SparklesIcon, CreditCoinIcon, MagicWandIcon, ShieldCheckIcon, InformationCircleIcon, CameraIcon, FlagIcon, UploadIcon, CheckIcon, LockIcon, UsersIcon, EngineIcon, BuildingIcon, DocumentTextIcon, ArrowLeftIcon, DownloadIcon, RegenerateIcon, PlusIcon, ImageIcon, RefreshIcon } from '../../components/icons';
 import { RefinementPanel } from '../../components/RefinementPanel';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64, downloadImage } from '../../utils/imageUtils';
@@ -143,7 +143,7 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
         return steps;
     }, [mode]);
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         const prevStep = activeSteps[idx - 1];
         if (!prevStep) return false;
@@ -576,12 +576,11 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
             </MobileSheet>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10">
-                        <XIcon className="w-6 h-6" />
-                    </button>
-                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" />
-                </div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'together.png')}
+                />
             )}
 
             {/* Hidden Inputs for Canvas Interaction */}

@@ -12,6 +12,7 @@ import { generateMerchantBatch } from '../../services/merchantService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { ImageModal } from '../../components/FeatureLayout';
 // @ts-ignore
 import JSZip from 'jszip';
 
@@ -110,7 +111,7 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
 
     // --- LOGIC ---
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         if (idx === 1) return !!mode;
         if (idx === 2) return !!mainImage;
@@ -568,13 +569,15 @@ export const MobileEcommerceKit: React.FC<{ auth: AuthProps; appConfig: AppConfi
 
             {/* Full Screen Viewer */}
             {isFullScreenOpen && results.length > 0 && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
-                        <button onClick={(e) => { e.stopPropagation(); downloadImage(results[activeResultIdx], 'pixa-ecom.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
-                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
-                    </div>
-                    <img src={results[activeResultIdx]} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" />
-                </div>
+                <ImageModal 
+                    imageUrl={results[activeResultIdx]} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(results[activeResultIdx], 'pixa-ecom.png')}
+                    hasNext={activeResultIdx < results.length - 1}
+                    hasPrev={activeResultIdx > 0}
+                    onNext={() => setActiveResultIdx(prev => Math.min(results.length - 1, prev + 1))}
+                    onPrev={() => setActiveResultIdx(prev => Math.max(0, prev - 1))}
+                />
             )}
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setMainImage)} />

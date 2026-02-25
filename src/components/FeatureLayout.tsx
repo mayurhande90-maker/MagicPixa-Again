@@ -17,7 +17,7 @@ import {
 } from './icons';
 import { downloadImage } from '../utils/imageUtils';
 import { submitFeedback, auth } from '../firebase';
-import { FeatureStyles } from '../styles/FeatureLayout.styles.ts';
+import { FeatureStyles } from '../styles/FeatureLayout.styles';
 import { BrandKit } from '../types';
 
 export const InputField: React.FC<any> = ({ label, id, ...props }) => (
@@ -81,6 +81,12 @@ export const ImageModal: React.FC<{
     children?: React.ReactNode;
     hideDefaultActions?: boolean;
 }> = ({ imageUrl, onClose, onDownload, onDelete, onNext, onPrev, hasNext, hasPrev, children, hideDefaultActions }) => {
+    const [scale, setScale] = useState(1);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [lastTouch, setLastTouch] = useState<{ x: number, y: number } | null>(null);
+    const [initialDistance, setInitialDistance] = useState<number | null>(null);
+    const [initialScale, setInitialScale] = useState(1);
     
     // Keyboard navigation support
     useEffect(() => {
@@ -97,36 +103,114 @@ export const ImageModal: React.FC<{
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onNext, onPrev, hasNext, hasPrev, onClose]);
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length === 1) {
+            setLastTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+            setIsDragging(true);
+        } else if (e.touches.length === 2) {
+            const distance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            setInitialDistance(distance);
+            setInitialScale(scale);
+            setIsDragging(false);
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (e.touches.length === 1 && isDragging && lastTouch && scale > 1) {
+            const deltaX = e.touches[0].clientX - lastTouch.x;
+            const deltaY = e.touches[0].clientY - lastTouch.y;
+            setPosition(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+            setLastTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+        } else if (e.touches.length === 2 && initialDistance !== null) {
+            const distance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            const newScale = Math.max(1, Math.min(5, initialScale * (distance / initialDistance)));
+            setScale(newScale);
+            
+            // If we're zooming out to 1, reset position
+            if (newScale === 1) {
+                setPosition({ x: 0, y: 0 });
+            }
+        }
+    };
+
+    const handleTouchEnd = () => {
+        setLastTouch(null);
+        setInitialDistance(null);
+        setIsDragging(false);
+    };
+
+    const handleReset = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+    };
+
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6" onClick={onClose}>
-            <div className="relative w-full h-full flex items-center justify-center">
-                <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-[250]"><XIcon className="w-8 h-8" /></button>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl p-6 overflow-hidden" onClick={onClose}>
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                <div className="absolute top-4 right-4 flex items-center gap-2 z-[250]">
+                    {scale > 1 && (
+                        <button 
+                            onClick={handleReset} 
+                            className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest"
+                        >
+                            Reset Zoom
+                        </button>
+                    )}
+                    <button onClick={onClose} className="text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"><XIcon className="w-8 h-8" /></button>
+                </div>
                 
-                {/* Navigation Buttons */}
-                {hasPrev && onPrev && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onPrev(); }} 
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white bg-black/20 hover:bg-black/50 p-3 rounded-full transition-all z-50"
-                        title="Previous Image (Left Arrow)"
-                    >
-                        <ArrowLeftIcon className="w-8 h-8" />
-                    </button>
-                )}
-                
-                {hasNext && onNext && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onNext(); }} 
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white bg-black/20 hover:bg-black/50 p-3 rounded-full transition-all z-50"
-                        title="Next Image (Right Arrow)"
-                    >
-                        <ChevronRightIcon className="w-8 h-8" />
-                    </button>
+                {/* Navigation Buttons - Hidden when zoomed in */}
+                {scale === 1 && (
+                    <>
+                        {hasPrev && onPrev && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onPrev(); }} 
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white bg-black/20 hover:bg-black/50 p-3 rounded-full transition-all z-50"
+                                title="Previous Image (Left Arrow)"
+                            >
+                                <ArrowLeftIcon className="w-8 h-8" />
+                            </button>
+                        )}
+                        
+                        {hasNext && onNext && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onNext(); }} 
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white bg-black/20 hover:bg-black/50 p-3 rounded-full transition-all z-50"
+                                title="Next Image (Right Arrow)"
+                            >
+                                <ChevronRightIcon className="w-8 h-8" />
+                            </button>
+                        )}
+                    </>
                 )}
 
-                <img src={imageUrl} alt="Full view" className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain animate-fadeIn" onClick={(e) => e.stopPropagation()} />
+                <div 
+                    className="w-full h-full flex items-center justify-center transition-transform duration-75 ease-out"
+                    style={{ 
+                        transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                        touchAction: 'none'
+                    }}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <img 
+                        src={imageUrl} 
+                        alt="Full view" 
+                        className="max-w-full max-h-[calc(100vh-150px)] rounded-lg shadow-2xl object-contain animate-fadeIn pointer-events-none" 
+                    />
+                </div>
                 
-                {/* Overlay Area (for Refinement Panel) */}
-                {children && (
+                {/* Overlay Area (for Refinement Panel) - Hidden when zoomed in */}
+                {children && scale === 1 && (
                     <div className="absolute inset-0 z-[60] flex items-end justify-center pb-24 pointer-events-none px-6">
                         <div className="pointer-events-auto w-full max-w-lg">
                             {children}
@@ -134,8 +218,8 @@ export const ImageModal: React.FC<{
                     </div>
                 )}
 
-                {/* Bottom Action Bar */}
-                {(!hideDefaultActions && (onDownload || onDelete)) && (
+                {/* Bottom Action Bar - Hidden when zoomed in */}
+                {scale === 1 && (!hideDefaultActions && (onDownload || onDelete)) && (
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-[70] flex-wrap justify-center" onClick={(e) => e.stopPropagation()}>
                         {onDownload && (
                             <button onClick={onDownload} className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform">

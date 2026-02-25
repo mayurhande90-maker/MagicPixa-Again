@@ -12,6 +12,7 @@ import { generateApparelTryOn } from '../../services/apparelService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation, claimMilestoneBonus } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
+import { ImageModal } from '../../components/FeatureLayout';
 import { MobileTryOnStyles as styles } from '../../styles/features/MobileTryOn.styles';
 
 // --- CONFIGURATION ---
@@ -118,7 +119,7 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
 
     // --- LOGIC ---
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         if (idx === 1) return !!personImage;
         if (idx >= 2) return (!!topGarment || !!bottomGarment);
@@ -525,12 +526,11 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
             </MobileSheet>
 
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <button onClick={() => setIsFullScreenOpen(false)} className="absolute top-10 right-6 p-3 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10">
-                        <XIcon className="w-6 h-6" />
-                    </button>
-                    <img src={result} className="max-w-full max-h-full object-contain rounded-lg animate-materialize shadow-2xl" />
-                </div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'tryon.png')}
+                />
             )}
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setPersonImage)} />

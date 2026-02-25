@@ -8,6 +8,7 @@ import { fileToBase64, base64ToBlobUrl, downloadImage } from '../../utils/imageU
 import { executeDailyMission } from '../../services/missionService';
 import { saveCreation, completeDailyMission, getCreations } from '../../firebase';
 import { getDailyMission, isMissionLocked } from '../../utils/dailyMissions';
+import { ImageModal } from '../../components/FeatureLayout';
 
 export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: () => void; setActiveTab: (tab: View) => void; }> = ({ auth, onGenerationStart, setActiveTab }) => {
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
@@ -295,15 +296,11 @@ export const MobileDailyMission: React.FC<{ auth: AuthProps; onGenerationStart: 
 
             {/* Full Screen Viewer */}
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
-                        <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'magicpixa-studio.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
-                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
-                    </div>
-                    <div className="w-full h-full flex items-center justify-center p-2">
-                        <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
-                    </div>
-                </div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'mission-reward.png')}
+                />
             )}
 
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />

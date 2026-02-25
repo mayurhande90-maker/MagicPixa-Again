@@ -22,7 +22,7 @@ import { generateAdCreative } from '../../services/adMakerService';
 import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
-import { SelectionGrid } from '../../components/FeatureLayout';
+import { SelectionGrid, ImageModal } from '../../components/FeatureLayout';
 import { AdMakerStyles as styles } from '../../styles/features/PixaAdMaker.styles';
 
 const AD_STEPS = [
@@ -96,7 +96,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     // --- LOGIC ---
 
-    const isStepAccessible = (idx: number) => {
+    const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
         if (idx === 1) return !!industry && !!image;
         if (idx === 2) {
@@ -491,15 +491,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
             {/* FULL SCREEN IMAGE MODAL */}
             {isFullScreenOpen && result && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 animate-fadeIn" onClick={() => setIsFullScreenOpen(false)}>
-                    <div className="absolute top-10 right-6 flex items-center gap-4 z-50">
-                        <button onClick={(e) => { e.stopPropagation(); downloadImage(result, 'admaker-creation.png'); }} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><DownloadIcon className="w-6 h-6" /></button>
-                        <button onClick={() => setIsFullScreenOpen(false)} className="p-3 bg-white/10 hover:bg-red-50 text-white rounded-full backdrop-blur-md transition-all border border-white/10"><XIcon className="w-6 h-6" /></button>
-                    </div>
-                    <div className="w-full h-full flex items-center justify-center p-2">
-                        <img src={result} className="max-w-full max-h-full object-contain animate-materialize rounded-lg" onClick={e => e.stopPropagation()} />
-                    </div>
-                </div>
+                <ImageModal 
+                    imageUrl={result} 
+                    onClose={() => setIsFullScreenOpen(false)}
+                    onDownload={() => downloadImage(result, 'admaker-creation.png')}
+                />
             )}
 
             <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Ad Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
