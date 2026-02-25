@@ -312,7 +312,7 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
 
                 <div className="relative z-10 text-center">
                     <h1 className="text-[2.8rem] font-black text-[#1A1A1E] leading-[1.05] mb-4 tracking-tight">
-                        Create <br/> Stunning Visuals, <br/> <span className="text-[#4D7CFF]">No Prompt Required</span>
+                        Create <br/> Stunning Visuals <br/> <span className="text-[#4D7CFF]">No Prompt <br/> Required</span>
                     </h1>
                     <p className="text-base text-gray-500 font-medium mb-8 leading-relaxed px-2">
                         MagicPixa understands what you need. Turn your simple photos into masterpieces effortlessly.
