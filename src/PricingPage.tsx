@@ -277,7 +277,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ navigateTo, auth, appConfig }
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                                 ) : auth.isAuthenticated 
                                                     ? (isCurrent ? <><CheckIcon className="w-4 h-4"/> Active</> : isDowngrade ? "Included" : <><LightningIcon className="w-4 h-4"/> Upgrade Now</>)
-                                                    : <><SparklesIcon className="w-4 h-4"/> Get Started</>
+                                                    : <>Get Started</>
                                                 }
                                             </button>
                                         </div>
