@@ -175,7 +175,7 @@ export const generateStyledBrandAsset = async (
 
     // Execute Analysis
     const analysisResponse = await secureGenerateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3.1-pro-preview',
         contents: { parts: analysisParts },
         config: {
             ...config,
@@ -291,13 +291,13 @@ export const generateStyledBrandAsset = async (
     parts.push({ text: genPrompt });
 
     const genResponse = await secureGenerateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
         contents: { parts },
         config: { 
             responseModalities: [Modality.IMAGE],
             imageConfig: {
                 aspectRatio: targetAspectRatio,
-                imageSize: "1K"
+                imageSize: "2K"
             },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },

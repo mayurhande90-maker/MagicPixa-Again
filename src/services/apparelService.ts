@@ -79,10 +79,11 @@ export const generateApparelTryOn = async (
     }
 
     const response = await secureGenerateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
+          imageConfig: { imageSize: "2K" },
           safetySettings: [
               { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
               { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },

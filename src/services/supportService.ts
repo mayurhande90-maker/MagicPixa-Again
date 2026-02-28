@@ -113,7 +113,7 @@ export const sendSupportMessage = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
@@ -164,7 +164,7 @@ export const sendSupportMessage = async (
 export const analyzeSupportImage = async (base64: string, mimeType: string): Promise<string> => {
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },

@@ -145,7 +145,7 @@ const performAdIntelligence = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', 
+            model: 'gemini-3.1-pro-preview', 
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -240,11 +240,11 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1" },
+                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "2K" },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -275,14 +275,17 @@ export const refineAdCreative = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: {
                 parts: [
                     { inlineData: { data: optResult.data, mimeType: optResult.mimeType } },
                     { text: prompt }
                 ]
             },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { imageSize: "2K" }
+            },
             featureName: 'Ad Creative Refinement'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);

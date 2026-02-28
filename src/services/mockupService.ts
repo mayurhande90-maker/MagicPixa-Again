@@ -55,7 +55,7 @@ export const analyzeMockupSuggestions = async (
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType);
         const prompt = `Analyze design. Suggest 3 product mockups. ${brand ? `This is for brand '${brand.companyName}' in '${brand.industry}'.` : ''} Return JSON array.`;
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
             config: {
                 responseMimeType: "application/json",
@@ -111,9 +111,12 @@ export const generateMagicMockup = async (
         OUTPUT: High-res single image.`;
 
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { imageSize: "2K" }
+            },
             featureName: 'Magic Mockup Generation'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);

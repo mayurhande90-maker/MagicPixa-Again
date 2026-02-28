@@ -59,7 +59,7 @@ const performTrendResearch = async (category: string, title: string, mood?: stri
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -94,7 +94,7 @@ const performBiometricScan = async (ai: any, base64: string, mimeType: string, l
     This description is a SACRED IDENTITY LOCK. The final render MUST be a 1:1 pixel-perfect physical replica of this person. DO NOT use generic faces.`;
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', 
+            model: 'gemini-3.1-pro-preview', 
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
             featureName: 'Thumbnail Biometric Scan'
         });
@@ -204,11 +204,11 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         parts.push({ text: prompt });
 
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: inputs.format === 'portrait' ? '9:16' : '16:9', imageSize: "1K" },
+                imageConfig: { aspectRatio: inputs.format === 'portrait' ? '9:16' : '16:9', imageSize: "2K" },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },

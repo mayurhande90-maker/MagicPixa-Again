@@ -88,7 +88,7 @@ export const generateCaptions = async (
     \`\`\``;
 
     const response = await secureGenerateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3.1-pro-preview',
       contents: { parts: [{ inlineData: { data: base64ImageData, mimeType: mimeType } }, { text: prompt }] },
       config: { 
         tools: [{ googleSearch: {} }],

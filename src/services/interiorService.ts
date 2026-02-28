@@ -33,7 +33,7 @@ const performForensicSpatialAudit = async (ai: any, base64: string, mimeType: st
     
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
             featureName: 'Forensic Spatial Audit'
         });
@@ -83,13 +83,13 @@ export const generateInteriorDesign = async (
     OUTPUT: A single hyper-realistic 8K architectural render where the original room structure is preserved perfectly.`;
 
     const response = await secureGenerateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
       contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
       config: { 
           responseModalities: [Modality.IMAGE],
           imageConfig: {
               aspectRatio: "4:3",
-              imageSize: "1K"
+              imageSize: "2K"
           }
       },
       featureName: 'Interior Design Generation'

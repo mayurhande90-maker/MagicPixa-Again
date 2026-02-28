@@ -70,7 +70,7 @@ const performDeepIdentityScan = async (ai: any, base64: string, mimeType: string
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-flash-preview', 
+            model: 'gemini-3.1-pro-preview', 
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
@@ -158,12 +158,13 @@ export const generateProfessionalHeadshot = async (
         parts.push({ text: prompt });
 
         const response = await secureGenerateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts },
             config: { 
                 // FIX: aspectRatio must be inside imageConfig in GenerateContentParameters
                 imageConfig: {
-                    aspectRatio: '1:1'
+                    aspectRatio: '1:1',
+                    imageSize: '2K'
                 },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },

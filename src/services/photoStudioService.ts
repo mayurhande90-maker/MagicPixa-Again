@@ -44,7 +44,7 @@ const performPhysicsAudit = async (base64: string, mimeType: string): Promise<st
     
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
             featureName: 'Forensic Physics Audit'
         });
@@ -78,7 +78,7 @@ const performShotStrategy = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: prompt }] },
             featureName: 'Shot Strategy Engine'
         });
@@ -95,7 +95,7 @@ export const analyzeProductImage = async (
         const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
         const prompt = `Analyze product. Suggest 4 professional photography concepts. Return ONLY a JSON array of strings.`;
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', 
+            model: 'gemini-3.1-pro-preview', 
             contents: { parts: [{ inlineData: { data, mimeType: optimizedMime } }, { text: prompt }] },
             config: {
                 responseMimeType: "application/json",
@@ -196,10 +196,11 @@ export const editImageWithPrompt = async (
     parts.push({ text: prompt });
 
     const response = await secureGenerateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
+          imageConfig: { imageSize: "2K" },
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -246,10 +247,11 @@ export const generateModelShot = async (
       OUTPUT: A hyper-realistic 8K fashion portrait. The product identity must be 100% preserved.`;
       
       const response = await secureGenerateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
         contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
         config: { 
             responseModalities: [Modality.IMAGE],
+            imageConfig: { imageSize: "2K" },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -285,9 +287,12 @@ export const refineStudioImage = async (
     
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts: [{ inlineData: { data: optResult.data, mimeType: optResult.mimeType } }, { text: prompt }] },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { imageSize: "2K" }
+            },
             featureName: 'Pixa Refinement Engine'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);

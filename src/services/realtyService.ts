@@ -97,7 +97,7 @@ const performTrendResearch = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType: mimeType } },
@@ -199,11 +199,11 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
     parts.push({ text: designPrompt });
 
     const response = await secureGenerateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
         contents: { parts },
         config: { 
             responseModalities: [Modality.IMAGE],
-            imageConfig: { aspectRatio: "1:1", imageSize: "1K" } // Standard social media square
+            imageConfig: { aspectRatio: "1:1", imageSize: "2K" } // Standard social media square
         },
         featureName: 'Realty Ad Generation'
     });

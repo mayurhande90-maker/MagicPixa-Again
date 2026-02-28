@@ -70,7 +70,7 @@ export const analyzeProductPhysically = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
@@ -162,7 +162,7 @@ export const generateContentPlan = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: strategyPrompt }] },
             config: {
                 tools: [{ googleSearch: {} }], 
@@ -258,11 +258,11 @@ export const generatePostImage = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: "4:5", imageSize: "1K" }
+                imageConfig: { aspectRatio: "4:5", imageSize: "2K" }
             },
             featureName: 'Post Image Generation'
         });
@@ -338,7 +338,7 @@ export const extractPlanFromDocument = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', // Pro model for document reasoning
+            model: 'gemini-3.1-pro-preview', // Pro model for document reasoning
             contents: {
                 parts: [
                     { inlineData: { data: fileBase64, mimeType } }, 

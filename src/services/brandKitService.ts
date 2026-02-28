@@ -36,7 +36,7 @@ export const extractBrandColors = async (base64: string, mimeType: string): Prom
         Return ONLY a JSON object: { "primary": "#RRGGBB", "secondary": "#RRGGBB", "accent": "#RRGGBB" }`;
 
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', // Upgraded for better color theory reasoning
+            model: 'gemini-3.1-pro-preview', // Upgraded for better color theory reasoning
             contents: {
                 parts: [
                     { inlineData: { data, mimeType: optimizedMime } },
@@ -132,7 +132,7 @@ export const generateBrandIdentity = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', // Upgraded to Pro for Deep Research
+            model: 'gemini-3.1-pro-preview', // Upgraded to Pro for Deep Research
             contents: { parts: [{ text: prompt }] },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -228,7 +228,7 @@ export const analyzeCompetitorStrategy = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', // Pro model required for complex reasoning + search + vision
+            model: 'gemini-3.1-pro-preview', // Pro model required for complex reasoning + search + vision
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }] // Enabled for website analysis

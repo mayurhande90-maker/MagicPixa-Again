@@ -53,7 +53,7 @@ const performForensicAudit = async (base64: string, mimeType: string): Promise<s
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
             featureName: 'Merchant Forensic Audit'
         });
@@ -85,7 +85,7 @@ const architectPackStrategy = async (audit: string, inputs: MerchantInputs): Pro
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: prompt }] },
             config: {
                 responseMimeType: "application/json",
@@ -142,9 +142,12 @@ const generateVariant = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { imageSize: "2K" }
+            },
             featureName: 'Merchant Variant Generation'
         });
 

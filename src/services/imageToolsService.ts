@@ -61,7 +61,7 @@ export const detectObjectAtPoint = async (
         Return ONLY the coordinates as a JSON array of 4 integers.`;
 
         const response = await secureGenerateContent({
-            model: 'gemini-3-flash-preview', 
+            model: 'gemini-3.1-pro-preview', 
             contents: {
                 parts: [
                     { inlineData: { data, mimeType: optMime } },
@@ -104,7 +104,7 @@ const analyzePhotoCondition = async (ai: any, base64: string, mimeType: string):
     Output a concise "Restoration Master Blueprint" for an AI generator to follow.`;
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
             featureName: 'Photo Condition Analysis'
         });
@@ -127,7 +127,7 @@ const performForensicBiometricScan = async (ai: any, base64: string, mimeType: s
     OUTPUT: A technical "Biometric Feature Lock" for the render engine.`;
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview', 
+            model: 'gemini-3.1-pro-preview', 
             contents: { parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] },
             featureName: 'Forensic Biometric Scan'
         });
@@ -178,10 +178,11 @@ export const colourizeImage = async (
     OUTPUT: A single hyper-realistic 4K restored image where the person is 100% identical to the original photo, just cleaned and clarified.`;
 
     const response = await secureGenerateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
       contents: { parts: [{ inlineData: { data: data, mimeType: optimizedMime } }, { text: prompt }] },
       config: { 
           responseModalities: [Modality.IMAGE],
+          imageConfig: { imageSize: "2K" },
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -245,7 +246,7 @@ const performDualForensicAudit = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts },
             featureName: 'Dual Forensic Audit'
         });
@@ -281,7 +282,7 @@ const architectInteractionRig = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: prompt }] },
             featureName: 'Interaction Physics Architecture'
         });
@@ -339,10 +340,11 @@ export const generateMagicSoul = async (
     parts.push({ text: brandDNA });
 
     const response = await secureGenerateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
+          imageConfig: { imageSize: "2K" },
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -368,9 +370,12 @@ export const removeElementFromImage = async (
         const { data: optMask, mimeType: maskMime } = await optimizeImageForEditing(maskBase64, 'image/png');
         const prompt = `Magic Eraser. Remove White Pixels from Image and heal background seamlessly.`;
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: { parts: [{ inlineData: { data: optImage, mimeType: optMime } }, { inlineData: { data: optMask, mimeType: maskMime } }, { text: prompt }] },
-            config: { responseModalities: [Modality.IMAGE] },
+            config: { 
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { imageSize: "2K" }
+            },
             featureName: 'Magic Eraser'
         });
         // Corrected access path for image generation results from nano banana series.

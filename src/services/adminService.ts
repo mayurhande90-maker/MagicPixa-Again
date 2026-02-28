@@ -46,7 +46,7 @@ export const analyzeVaultDNA = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: {
                 parts: [...imageParts, { text: prompt }]
             },

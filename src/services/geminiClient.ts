@@ -8,10 +8,10 @@ export const USE_SECURE_BACKEND = false;
 // GOOGLE AI ESTIMATES (USD) - Internal rates for logging
 // These reflect current Gemini per-image and per-token pricing averages.
 const ESTIMATED_RATES: Record<string, number> = {
-    'gemini-3-pro-image-preview': 0.02,
+    'gemini-3.1-flash-image-preview': 0.02,
     'gemini-2.5-flash-image': 0.002, 
-    'gemini-3-pro-preview': 0.0005,
-    'gemini-3-flash-preview': 0.0001,
+    'gemini-3.1-pro-preview': 0.0005,
+    'gemini-3.1-flash-preview': 0.0001,
     'veo-3.1-generate-preview': 0.50,
     'veo-3.1-fast-generate-preview': 0.20
 };
