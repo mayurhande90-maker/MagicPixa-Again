@@ -1,6 +1,6 @@
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage, urlToBase64 } from "../utils/imageUtils";
+import { resizeImage, urlToBase64, applyWatermark } from "../utils/imageUtils";
 import { logApiError, auth } from '../firebase';
 import { BrandKit } from "../types";
 
@@ -114,7 +114,8 @@ const generateVariant = async (
     audit: string,
     optBack?: { data: string; mimeType: string } | null,
     optModel?: { data: string; mimeType: string } | null,
-    brand?: BrandKit | null
+    brand?: BrandKit | null,
+    userPlan?: string
 ): Promise<string> => {
     const ai = getAiClient();
     const parts: any[] = [];
@@ -152,7 +153,13 @@ const generateVariant = async (
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error(`Failed to render ${role}`);
     } catch (e) {
         throw e;
@@ -175,7 +182,7 @@ const runBatchWithConcurrency = async <T>(tasks: (() => Promise<T>)[], concurren
     return results.filter((r): r is T => r !== undefined);
 };
 
-export const generateMerchantBatch = async (inputs: MerchantInputs, brand?: BrandKit | null): Promise<string[]> => {
+export const generateMerchantBatch = async (inputs: MerchantInputs, brand?: BrandKit | null, userPlan?: string): Promise<string[]> => {
     const optMain = await optimizeImage(inputs.mainImage.base64, inputs.mainImage.mimeType);
     const optBack = inputs.backImage ? await optimizeImage(inputs.backImage.base64, inputs.backImage.mimeType) : null;
     const optModel = inputs.modelImage ? await optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType) : null;
@@ -193,7 +200,7 @@ export const generateMerchantBatch = async (inputs: MerchantInputs, brand?: Bran
 
     // 3. Parallel Production
     const tasks = finalShots.map((strategy, idx) => 
-        () => generateVariant(`Asset ${idx+1}`, strategy, inputs, optMain, audit, optBack, optModel, brand)
+        () => generateVariant(`Asset ${idx+1}`, strategy, inputs, optMain, audit, optBack, optModel, brand, userPlan)
     );
 
     return await runBatchWithConcurrency(tasks, 3);

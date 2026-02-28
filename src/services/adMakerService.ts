@@ -1,7 +1,7 @@
 
 import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage, urlToBase64 } from "../utils/imageUtils";
+import { resizeImage, urlToBase64, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
@@ -169,7 +169,7 @@ const performAdIntelligence = async (
 /**
  * PHASE 2: THE PRODUCTION ENGINE (Art Director + Visualizer)
  */
-export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null): Promise<string> => {
+export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null, userPlan?: string): Promise<string> => {
     const ai = getAiClient();
     
     // 1. Visual DNA & Context Retrieval
@@ -255,7 +255,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             featureName: 'Ad Creative Generation'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error("Ad Production engine failed. Ensure your source photos are clear.");
     } catch (e) { throw e; }
 };
@@ -263,7 +269,8 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 export const refineAdCreative = async (
     base64Result: string,
     mimeType: string,
-    instruction: string
+    instruction: string,
+    userPlan?: string
 ): Promise<string> => {
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
@@ -289,7 +296,13 @@ export const refineAdCreative = async (
             featureName: 'Ad Creative Refinement'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error("Refinement engine failed.");
     } catch (e) { throw e; }
 };

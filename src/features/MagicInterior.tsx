@@ -87,7 +87,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
-            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit);
+            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit, auth.user?.basePlan);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -102,7 +102,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(result);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering");
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering", auth.user?.basePlan);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);

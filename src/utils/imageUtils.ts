@@ -202,3 +202,52 @@ export const makeTransparent = (base64Data: string): Promise<string> => {
         img.src = `data:image/png;base64,${base64Data}`;
     });
 };
+
+/**
+ * Applies a watermark to a base64 image.
+ * The watermark is placed at the bottom right corner with 50% opacity.
+ */
+export const applyWatermark = (base64Data: string, mimeType: string): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                resolve(base64Data);
+                return;
+            }
+
+            // Draw original image
+            ctx.drawImage(img, 0, 0);
+
+            // Watermark text settings
+            const text = "MagicPixa";
+            const fontSize = Math.max(20, Math.floor(img.width * 0.04));
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; // White with 50% opacity
+            ctx.textAlign = "right";
+            ctx.textBaseline = "bottom";
+
+            // Add shadow for better visibility on light backgrounds
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+
+            // Padding from edges
+            const padding = fontSize * 0.5;
+            
+            // Draw text
+            ctx.fillText(text, img.width - padding, img.height - padding);
+
+            // Return as base64
+            resolve(canvas.toDataURL(mimeType, 0.95).split(',')[1]);
+        };
+        img.onerror = () => resolve(base64Data);
+        img.src = `data:${mimeType};base64,${base64Data}`;
+    });
+};

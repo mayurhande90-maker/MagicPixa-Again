@@ -119,7 +119,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
         setLastCreationId(null);
         
         try {
-            const res = await executeDailyMission(image.base64.base64, image.base64.mimeType, mission.config);
+            const res = await executeDailyMission(image.base64.base64, image.base64.mimeType, mission.config, auth.user?.basePlan);
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
             setResult(blobUrl);
             

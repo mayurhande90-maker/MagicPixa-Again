@@ -1,7 +1,7 @@
 
 import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, secureGenerateContent } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 export interface ApparelStylingOptions {
@@ -31,7 +31,8 @@ export const generateApparelTryOn = async (
   bottomGarment: { base64: string; mimeType: string } | null,
   userPrompt?: string,
   stylingOptions?: ApparelStylingOptions,
-  brand?: BrandKit | null
+  brand?: BrandKit | null,
+  userPlan?: string
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -92,7 +93,13 @@ export const generateApparelTryOn = async (
       featureName: 'Apparel Try-On Generation'
     });
     const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+        let resData = imagePart.inlineData.data;
+        if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+            resData = await applyWatermark(resData, 'image/png');
+        }
+        return resData;
+    }
     throw new Error("Failed to generate apparel try-on.");
   } catch (error) { throw error; }
 };

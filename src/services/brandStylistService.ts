@@ -1,7 +1,7 @@
 
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 
 // Helper: Resize image with customizable width
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -65,7 +65,8 @@ export const generateStyledBrandAsset = async (
     language: string = 'English',
     campaignType: 'physical' | 'digital' = 'physical',
     brandColor?: string,
-    fontStyle: string = 'Modern Sans'
+    fontStyle: string = 'Modern Sans',
+    userPlan?: string
 ): Promise<string> => {
     const ai = getAiClient();
     
@@ -310,6 +311,12 @@ export const generateStyledBrandAsset = async (
     });
 
     const imagePart = genResponse.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+        let resData = imagePart.inlineData.data;
+        if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+            resData = await applyWatermark(resData, 'image/png');
+        }
+        return resData;
+    }
     throw new Error("No image generated. The request might have been blocked.");
 };

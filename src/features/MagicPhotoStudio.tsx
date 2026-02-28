@@ -161,11 +161,11 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         try {
             let res;
             if (studioMode === 'model') {
-                 res = await generateModelShot(image.base64.base64, image.base64.mimeType, { modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming, freeformPrompt: selectedPrompt || undefined }, auth.activeBrandKit);
+                 res = await generateModelShot(image.base64.base64, image.base64.mimeType, { modelType, region: modelRegion, skinTone, bodyType, composition: modelComposition, framing: modelFraming, freeformPrompt: selectedPrompt || undefined }, auth.activeBrandKit, auth.user?.basePlan);
             } else {
                 const finalCategory = category === 'Other / Custom' ? customCategory : category;
                 let generationDirection = selectedPrompt || (finalCategory ? `${visualType || 'Professional'} shot of ${finalCategory} product. Style: ${brandStyle || 'Clean'}.` : "Professional studio lighting");
-                res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit);
+                res = await editImageWithPrompt(image.base64.base64, image.base64.mimeType, generationDirection, auth.activeBrandKit, auth.user?.basePlan);
             }
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png');
@@ -204,7 +204,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         try {
             const currentB64 = await urlToBase64(result);
             const featureContext = studioMode === 'model' ? 'Model Photography' : 'Product Photography';
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, featureContext);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, featureContext, auth.user?.basePlan);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);

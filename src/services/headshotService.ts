@@ -1,6 +1,6 @@
 import { Modality, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 
 // Helper: Resize to 1024px (Balanced for Flash model)
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -92,7 +92,8 @@ export const generateProfessionalHeadshot = async (
     background: string,
     customDescription?: string,
     partnerBase64?: string,
-    partnerMimeType?: string
+    partnerMimeType?: string,
+    userPlan?: string
 ): Promise<string> => {
     const ai = getAiClient();
     try {
@@ -177,7 +178,13 @@ export const generateProfessionalHeadshot = async (
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error("Identity-lock engine failed. Please use a clearer, well-lit photo.");
 
     } catch (error) {

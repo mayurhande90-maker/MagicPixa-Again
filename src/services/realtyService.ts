@@ -1,7 +1,7 @@
 
 import { Modality, GenerateContentResponse, Type } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 
 // Optimize images to 1024px to manage token limits
 const optimizeImage = async (base64: string, mimeType: string): Promise<{ data: string; mimeType: string }> => {
@@ -148,7 +148,7 @@ const performTrendResearch = async (
  * PHASE 2: THE VISUAL OUTPUT (Graphic Design)
  * Acts as the Senior Designer.
  */
-export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> => {
+export const generateRealtyAd = async (inputs: RealtyInputs, userPlan?: string): Promise<string> => {
     const ai = getAiClient();
 
     // 1. Optimize Assets
@@ -210,6 +210,10 @@ export const generateRealtyAd = async (inputs: RealtyInputs): Promise<string> =>
 
     const finalImageBase64 = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data)?.inlineData?.data;
     if (!finalImageBase64) throw new Error("Ad generation failed.");
+
+    if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+        return await applyWatermark(finalImageBase64, 'image/png');
+    }
 
     return finalImageBase64;
 };

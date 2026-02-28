@@ -1,6 +1,6 @@
 import { Modality, HarmCategory, HarmBlockThreshold, Type, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 // Helper: Optimize image for high-fidelity production (1536px for face detail retention)
@@ -105,7 +105,7 @@ const performBiometricScan = async (ai: any, base64: string, mimeType: string, l
 /**
  * THE PRODUCTION ENGINE: PIXA THUMBNAIL PRO
  */
-export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKit | null): Promise<string> => {
+export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKit | null, userPlan?: string): Promise<string> => {
     const ai = getAiClient();
     try {
         // 1. FRESH STRATEGY
@@ -220,7 +220,13 @@ export const generateThumbnail = async (inputs: ThumbnailInputs, brand?: BrandKi
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error("AI Production engine failed to render.");
     } catch (error) { 
         console.error("Thumbnail AI Service Error:", error);

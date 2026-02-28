@@ -180,7 +180,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setLoading(true); setResultImage(null); setLastCreationId(null);
         
         try {
-            const res = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined);
+            const res = await generateProfessionalHeadshot(image.base64.base64, image.base64.mimeType, archetype, finalBackground, customDesc, mode === 'duo' ? partnerImage?.base64.base64 : undefined, mode === 'duo' ? partnerImage?.base64.mimeType : undefined, auth.user?.basePlan);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Headshot Pro'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot Pro'); 
@@ -202,7 +202,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Executive Headshot");
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Professional Executive Headshot", auth.user?.basePlan);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);

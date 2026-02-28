@@ -1,7 +1,7 @@
 
 import { Modality, Type } from "@google/genai";
 import { getAiClient, secureGenerateContent } from "./geminiClient";
-import { resizeImage } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 // QUALITY UPGRADE: Increased optimization width for architectural detail
@@ -51,7 +51,8 @@ export const generateInteriorDesign = async (
   style: string,
   spaceType: 'home' | 'office',
   roomType: string,
-  brand?: BrandKit | null
+  brand?: BrandKit | null,
+  userPlan?: string
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -96,7 +97,13 @@ export const generateInteriorDesign = async (
     });
     
     const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+        let resData = imagePart.inlineData.data;
+        if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+            resData = await applyWatermark(resData, 'image/png');
+        }
+        return resData;
+    }
     throw new Error("Spatial engine failed to render. identity sync unstable.");
   } catch (error) { throw error; }
 };

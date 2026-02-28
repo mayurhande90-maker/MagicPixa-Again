@@ -89,7 +89,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setLoading(true); setResult(null); setLastCreationId(null);
         const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try {
-            const res = await generateThumbnail(currentInputs, auth.activeBrandKit);
+            const res = await generateThumbnail(currentInputs, auth.activeBrandKit, auth.user?.basePlan);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail Pro');
@@ -106,7 +106,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(result);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "YouTube/Social Media Thumbnail");
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "YouTube/Social Media Thumbnail", auth.user?.basePlan);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);
@@ -142,7 +142,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
         setLoading(true); setResult(null); setLastCreationId(null); 
         const currentInputs = { format, category, mood: mood || undefined, micMode: isPodcast ? podcastGear : undefined, title, customText: customText || undefined, referenceImage: referenceImage?.base64, subjectImage: subjectImage?.base64, hostImage: hostImage?.base64, guestImage: guestImage?.base64, elementImage: elementImage?.base64, requestId: Math.random().toString(36).substring(7) };
         try { 
-            const res = await generateThumbnail(currentInputs, auth.activeBrandKit); 
+            const res = await generateThumbnail(currentInputs, auth.activeBrandKit, auth.user?.basePlan); 
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl); 
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Thumbnail Pro (Regen)'); setLastCreationId(creationId); 
             const updatedUser = await deductCredits(auth.user.uid, regenCost, 'Pixa Thumbnail Pro (Regen)'); 

@@ -213,7 +213,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 mode, relationship, mood, environment, pose, timeline, customDescription, referencePoseBase64: refPose?.base64.base64, referencePoseMimeType: refPose?.base64.mimeType, faceStrength, clothingMode, locks, autoFix
             };
 
-            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config, auth.activeBrandKit);
+            const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config, auth.activeBrandKit, auth.user?.basePlan);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
@@ -229,7 +229,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Couple/Duo Portrait");
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Couple/Duo Portrait", auth.user?.basePlan);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);

@@ -452,7 +452,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined
             };
             
-            const resB64 = await generateAdCreative(inputs, auth.activeBrandKit);
+            const resB64 = await generateAdCreative(inputs, auth.activeBrandKit, auth.user?.basePlan);
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResultImage(blobUrl);
             
@@ -483,7 +483,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineAdCreative(currentB64.base64, currentB64.mimeType, refineText);
+            const res = await refineAdCreative(currentB64.base64, currentB64.mimeType, refineText, auth.user?.basePlan);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;

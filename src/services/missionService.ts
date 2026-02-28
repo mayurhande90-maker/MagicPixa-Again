@@ -7,20 +7,21 @@ import { MissionConfig } from '../utils/dailyMissions';
 export const executeDailyMission = async (
     base64: string, 
     mimeType: string, 
-    config: MissionConfig
+    config: MissionConfig,
+    userPlan?: string
 ): Promise<string> => {
     try {
         // Dispatch to the correct service based on mission type
         if (config.toolType === 'studio' && config.prompt) {
-            return await editImageWithPrompt(base64, mimeType, config.prompt);
+            return await editImageWithPrompt(base64, mimeType, config.prompt, undefined, userPlan);
         } 
         
         if (config.toolType === 'interior' && config.interiorStyle && config.interiorRoomType) {
-            return await generateInteriorDesign(base64, mimeType, config.interiorStyle, 'home', config.interiorRoomType);
+            return await generateInteriorDesign(base64, mimeType, config.interiorStyle, 'home', config.interiorRoomType, undefined, userPlan);
         } 
         
         if (config.toolType === 'colour' && config.colourMode) {
-            return await colourizeImage(base64, mimeType, config.colourMode);
+            return await colourizeImage(base64, mimeType, config.colourMode, undefined, userPlan);
         }
 
         throw new Error("Invalid mission configuration or missing parameters.");

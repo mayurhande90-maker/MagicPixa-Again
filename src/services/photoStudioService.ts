@@ -1,7 +1,7 @@
 
 import { Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage, urlToBase64 } from "../utils/imageUtils";
+import { resizeImage, urlToBase64, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
@@ -142,7 +142,8 @@ export const editImageWithPrompt = async (
   base64ImageData: string,
   mimeType: string,
   styleInstructions: string,
-  brand?: BrandKit | null
+  brand?: BrandKit | null,
+  userPlan?: string
 ): Promise<string> => {
   try {
     // 1. Vault Retrieval (Visual Anchor)
@@ -212,7 +213,13 @@ export const editImageWithPrompt = async (
     });
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+        let resData = imagePart.inlineData.data;
+        if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+            resData = await applyWatermark(resData, 'image/png');
+        }
+        return resData;
+    }
     throw new Error("AI Production engine failed. Please try a clearer source photo.");
   } catch (error) { throw error; }
 };
@@ -221,7 +228,8 @@ export const generateModelShot = async (
     base64ImageData: string,
     mimeType: string,
     inputs: { modelType: string; region?: string; skinTone?: string; bodyType?: string; composition?: string; framing?: string; freeformPrompt?: string; },
-    brand?: BrandKit | null
+    brand?: BrandKit | null,
+    userPlan?: string
   ): Promise<string> => {
     try {
       const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 2048);
@@ -262,7 +270,13 @@ export const generateModelShot = async (
         featureName: 'Pixa Model Production'
       });
       const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-      if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+      if (imagePart?.inlineData?.data) {
+          let resData = imagePart.inlineData.data;
+          if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+              resData = await applyWatermark(resData, 'image/png');
+          }
+          return resData;
+      }
       throw new Error("Model production engine failed.");
     } catch (error) { throw error; }
   };
@@ -271,7 +285,8 @@ export const refineStudioImage = async (
     base64Result: string,
     mimeType: string,
     instruction: string,
-    featureContext: string = "Commercial Product Shot"
+    featureContext: string = "Commercial Product Shot",
+    userPlan?: string
 ): Promise<string> => {
     // QUALITY UPGRADE: Increased width to 3072 and quality to 0.95 for refinements
     const optResult = await optimizeImage(base64Result, mimeType, 3072);
@@ -296,7 +311,13 @@ export const refineStudioImage = async (
             featureName: 'Pixa Refinement Engine'
         });
         const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error("Refinement failed.");
     } catch (e) { throw e; }
 };

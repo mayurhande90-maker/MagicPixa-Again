@@ -220,7 +220,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 type: mode, mainImage: mainImage.base64, backImage: backImage?.base64, modelImage: modelSource === 'upload' ? modelImage?.base64 : undefined,
                 modelParams: modelSource === 'ai' ? { gender: aiGender, ethnicity: aiEthnicity, age: 'Young Adult', skinTone: aiSkinTone, bodyType: aiBodyType } : undefined,
                 productType: productType, productVibe: productVibe, packSize: packSize
-            }, auth.activeBrandKit);
+            }, auth.activeBrandKit, auth.user?.basePlan);
             if (!outputBase64Images || outputBase64Images.length === 0) throw new Error("Generation failed.");
             const blobUrls = await Promise.all(outputBase64Images.map(b64 => base64ToBlobUrl(b64, 'image/jpeg')));
             setResults(blobUrls);

@@ -1,7 +1,7 @@
 
 import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, secureGenerateContent } from "./geminiClient";
-import { resizeImage, makeTransparent } from "../utils/imageUtils";
+import { resizeImage, makeTransparent, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 // QUALITY UPGRADE: Increased to 2048px with high quality factor
@@ -142,7 +142,8 @@ export const colourizeImage = async (
   base64ImageData: string,
   mimeType: string,
   mode: 'restore_color' | 'restore_only',
-  brand?: BrandKit | null
+  brand?: BrandKit | null,
+  userPlan?: string
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -191,7 +192,13 @@ export const colourizeImage = async (
       featureName: 'Photo Restoration'
     });
     const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+        let resData = imagePart.inlineData.data;
+        if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+            resData = await applyWatermark(resData, 'image/png');
+        }
+        return resData;
+    }
     throw new Error("Forensic engine failed to reconstruct. The asset may be too degraded.");
   } catch (error) { throw error; }
 };
@@ -299,7 +306,8 @@ export const generateMagicSoul = async (
   personBBase64: string | null | undefined,
   personBMimeType: string | null | undefined,
   inputs: PixaTogetherConfig,
-  brand?: BrandKit | null
+  brand?: BrandKit | null,
+  userPlan?: string
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -354,7 +362,13 @@ export const generateMagicSoul = async (
     });
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+        let resData = imagePart.inlineData.data;
+        if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+            resData = await applyWatermark(resData, 'image/png');
+        }
+        return resData;
+    }
     throw new Error("Production engine failed to render. Identity sync unstable.");
   } catch (error) { throw error; }
 };
@@ -362,7 +376,8 @@ export const generateMagicSoul = async (
 export const removeElementFromImage = async (
     base64ImageData: string,
     mimeType: string,
-    maskBase64: string
+    maskBase64: string,
+    userPlan?: string
 ): Promise<string> => {
     const ai = getAiClient();
     try {
@@ -380,7 +395,13 @@ export const removeElementFromImage = async (
         });
         // Corrected access path for image generation results from nano banana series.
         const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data);
-        if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+        if (imagePart?.inlineData?.data) {
+            let resData = imagePart.inlineData.data;
+            if (!['Studio Pack', 'Agency Pack'].includes(userPlan || '')) {
+                resData = await applyWatermark(resData, 'image/png');
+            }
+            return resData;
+        }
         throw new Error("No image generated.");
     } catch (error) { throw error; }
 };
