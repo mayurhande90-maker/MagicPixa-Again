@@ -8,6 +8,7 @@ import {
 } from '../components/icons';
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
@@ -304,7 +305,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
-                        {loading && (<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"><div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4"><div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div></div><p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-8">{loadingText}</p></div>)}
+                        <LoadingOverlay isVisible={loading} loadingText={loadingText} />
                         {!loading && results.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60"><div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6"><PixaEcommerceIcon className="w-10 h-10 text-indigo-300" /></div><h3 className="text-xl font-bold text-gray-400">Ready to Create</h3><p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">Select a mode and pack size on the right to generate your assets.</p></div>)}
                         {!loading && results.length > 0 && mode && (
                             <div className="flex flex-col lg:flex-row h-full">
