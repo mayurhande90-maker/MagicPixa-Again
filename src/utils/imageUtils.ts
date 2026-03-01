@@ -1,4 +1,6 @@
 
+import { BRANDING } from '../config/branding';
+
 export interface Base64File {
   base64: string;
   mimeType: string;
@@ -224,25 +226,47 @@ export const applyWatermark = (base64Data: string, mimeType: string): Promise<st
             // Draw original image
             ctx.drawImage(img, 0, 0);
 
-            // Watermark text settings
-            const text = "MagicPixa";
-            const fontSize = Math.max(20, Math.floor(img.width * 0.04));
+            // Watermark text settings from centralized config
+            const { watermark } = BRANDING;
+            const fontSize = Math.max(watermark.minFontSize, Math.floor(img.width * watermark.fontSizeRatio));
             ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; // White with 50% opacity
+            ctx.fillStyle = watermark.color;
+            
+            // Add shadow for better visibility
+            ctx.shadowColor = watermark.shadow.color;
+            ctx.shadowBlur = watermark.shadow.blur;
+            ctx.shadowOffsetX = watermark.shadow.offsetX;
+            ctx.shadowOffsetY = watermark.shadow.offsetY;
+
+            // Padding from edges
+            const padding = fontSize * watermark.paddingRatio;
+            
+            // Position logic
+            let x = img.width - padding;
+            let y = img.height - padding;
             ctx.textAlign = "right";
             ctx.textBaseline = "bottom";
 
-            // Add shadow for better visibility on light backgrounds
-            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-
-            // Padding from edges
-            const padding = fontSize * 0.5;
+            if (watermark.position === "bottom-left") {
+                x = padding;
+                ctx.textAlign = "left";
+            } else if (watermark.position === "top-right") {
+                y = padding + fontSize;
+                ctx.textBaseline = "top";
+            } else if (watermark.position === "top-left") {
+                x = padding;
+                y = padding + fontSize;
+                ctx.textAlign = "left";
+                ctx.textBaseline = "top";
+            } else if (watermark.position === "center") {
+                x = img.width / 2;
+                y = img.height / 2;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+            }
             
             // Draw text
-            ctx.fillText(text, img.width - padding, img.height - padding);
+            ctx.fillText(watermark.text, x, y);
 
             // Return as base64
             resolve(canvas.toDataURL(mimeType, 0.95).split(',')[1]);
