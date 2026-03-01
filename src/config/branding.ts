@@ -6,8 +6,8 @@ export const BRANDING = {
     name: "MagicPixa",
     watermark: {
         text: "MagicPixa",
-        fontSizeRatio: 0.04, // 4% of image width
-        minFontSize: 20,
+        fontSizeRatio: 0.025, // 2.5% of image width
+        minFontSize: 14,
         opacity: 0.5,
         color: "rgba(255, 255, 255, 0.5)",
         shadow: {
