@@ -181,7 +181,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 targetAudience,
                 sellingPoints, 
                 texts: texts
-            }, auth.user?.basePlan);
+            }, auth.user?.basePlan || undefined);
             
             const blobUrl = await base64ToBlobUrl(assetUrl, 'image/png'); 
             setResultImage(blobUrl);

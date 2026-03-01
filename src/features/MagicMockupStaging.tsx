@@ -134,7 +134,8 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 material, 
                 sceneVibe, 
                 objectColor, 
-                auth.activeBrandKit
+                auth.activeBrandKit,
+                auth.user?.basePlan || undefined
             );
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);

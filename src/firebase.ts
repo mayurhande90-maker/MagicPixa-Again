@@ -133,9 +133,9 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
 
     if (Object.keys(updates).length > 0) {
         await userRef.update(updates);
-        return { uid: doc.id, ...userData, ...updates } as User;
+        return { ...userData, ...updates, uid: doc.id } as User;
     }
-    return { uid: doc.id, ...userData } as User;
+    return { ...userData, uid: doc.id } as User;
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
@@ -549,6 +549,7 @@ export const claimReferralCode = async (uid: string, code: string) => {
             creditChange: '+10',
             date: firebase.firestore.FieldValue.serverTimestamp()
         }));
+        if (!db) throw new Error("Database not initialized");
         const refUserRef = db.collection('users').doc(referrerId);
         t.update(refUserRef, {
             referralCount: firebase.firestore.FieldValue.increment(1),

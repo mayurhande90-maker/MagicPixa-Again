@@ -40,7 +40,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const cost = appConfig?.featureCosts['Pixa Mockups'] || appConfig?.featureCosts['Magic Mockup'] || 8;
     const userCredits = auth.user?.credits || 0;
-    const isLowCredits = designImage && userCredits < cost;
+    const isLowCredits = !!(designImage && userCredits < cost);
 
     const objectOptions = ['T-Shirt', 'Hoodie', 'iPhone 15', 'MacBook', 'Coffee Mug', 'Water Bottle', 'Tote Bag', 'Notebook', 'Business Card', 'Packaging Box', 'Neon Sign', 'Wall Sign', 'Other / Custom'];
     const materialOptions = ['Standard Ink', 'Embroidery', 'Gold Foil', 'Silver Foil', 'Deboss', 'Emboss', 'Laser Etch', 'Smart Object'];
@@ -70,7 +70,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (!designImage || !auth.user || !finalTarget || !material || !sceneVibe) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResultImage(null); setLastCreationId(null);
-        try { const res = await generateMagicMockup(designImage.base64.base64, designImage.base64.mimeType, finalTarget, material, sceneVibe, objectColor, auth.activeBrandKit, auth.user?.basePlan); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Mockups'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Mockups'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
+        try { const res = await generateMagicMockup(designImage.base64.base64, designImage.base64.mimeType, finalTarget, material, sceneVibe, objectColor, auth.activeBrandKit, auth.user?.basePlan || undefined); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Mockups'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Mockups'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
     };
 
     const handleRefine = async (refineText: string) => {
@@ -81,7 +81,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "3D Product Mockup", auth.user?.basePlan);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "3D Product Mockup", auth.user?.basePlan || undefined);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);
@@ -135,7 +135,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         <span>Make Changes</span>
                     </button>
                 ) : null}
-                resultHeightClass="h-[800px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Mockup" }} scrollRef={scrollRef}
+                resultHeightClass="h-[800px]" hideGenerateButton={!!isLowCredits} generateButtonStyle={{ className: "bg-[#F9D230] text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02]", hideIcon: true, label: "Generate Mockup" }} scrollRef={scrollRef}
                 leftContent={
                     designImage ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">

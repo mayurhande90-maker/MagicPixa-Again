@@ -248,6 +248,7 @@ export const resolveTicket = async (adminUid: string, ticketId: string, status: 
         });
 
         if (status === 'resolved' && refundAmount && ticketData.type === 'refund') {
+            if (!db) throw new Error("Database not initialized");
             const userRef = db.collection('users').doc(ticketData.userId);
             t.update(userRef, {
                 credits: firebase.firestore.FieldValue.increment(refundAmount)

@@ -227,7 +227,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({ auth, setActiveTab }) =>
 
         txs.forEach(tx => {
             if (!tx.date) return;
-            const date = (tx.date as any).toDate ? (tx.date as any).toDate() : new Date((tx.date as any).seconds * 1000 || tx.date);
+            const date = (tx.date as any).toDate ? (tx.date as any).toDate() : new Date((typeof tx.date === 'number' ? tx.date : (tx.date as any).seconds * 1000) as any);
             let key;
             if (date.toDateString() === today.toDateString()) key = 'Today';
             else if (date.toDateString() === yesterday.toDateString()) key = 'Yesterday';

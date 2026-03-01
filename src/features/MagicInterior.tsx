@@ -39,7 +39,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const cost = appConfig?.featureCosts['Pixa Interior Design'] || appConfig?.featureCosts['Magic Interior'] || 8;
     const userCredits = auth.user?.credits || 0;
-    const isLowCredits = image && userCredits < cost;
+    const isLowCredits = !!(image && userCredits < cost);
 
     const homeRooms = ['Living Room', 'Bedroom', 'Kitchen', 'Dining Room', 'Bathroom', 'Home Office', 'Balcony/Patio', 'Gaming Room'];
     const officeRooms = ['Open Workspace', 'Private Office', 'Conference Room', 'Reception / Lobby', 'Break Room', 'Meeting Pod'];
@@ -87,7 +87,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (!image || !auth.user) return; if (isLowCredits) { alert("Insufficient credits."); return; }
         setLoading(true); setResult(null); setLastCreationId(null);
         try {
-            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit, auth.user?.basePlan);
+            const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit, auth.user?.basePlan || undefined);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
             const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
@@ -102,7 +102,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(result);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering", auth.user?.basePlan);
+            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering", auth.user?.basePlan || undefined);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);
@@ -159,7 +159,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         </button>
                     </div>
                 ) : null}
-                resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits} 
+                resultHeightClass="h-[600px]" hideGenerateButton={!!isLowCredits} 
                 generateButtonStyle={{ 
                     className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", 
                     hideIcon: true,

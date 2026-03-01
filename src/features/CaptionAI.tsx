@@ -26,7 +26,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
 
     const cost = appConfig?.featureCosts['Pixa Caption Pro'] || appConfig?.featureCosts['CaptionAI'] || 2;
     const userCredits = auth.user?.credits || 0;
-    const isLowCredits = image && userCredits < cost;
+    const isLowCredits = !!(image && userCredits < cost);
     
     const captionTypes = ['SEO Friendly', 'Long Caption', 'Short Caption'];
     const toneOptions = [
@@ -102,7 +102,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     return (
         <>
             <FeatureLayout
-                title="Pixa Caption Pro" description="Get viral, research-backed captions optimized for engagement and organic reach." icon={<PixaCaptionIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} resultHeightClass="h-[600px]" hideGenerateButton={isLowCredits}
+                title="Pixa Caption Pro" description="Get viral, research-backed captions optimized for engagement and organic reach." icon={<PixaCaptionIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>} rawIcon={true} creditCost={cost} isGenerating={loading} canGenerate={canGenerate} onGenerate={handleGenerate} resultImage={null} onNewSession={handleNewSession} resultHeightClass="h-[600px]" hideGenerateButton={!!isLowCredits}
                 activeBrandKit={auth.activeBrandKit}
                 isBrandCritical={true}
                 generateButtonStyle={{ 
