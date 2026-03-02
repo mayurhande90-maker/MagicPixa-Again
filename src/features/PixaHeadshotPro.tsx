@@ -37,6 +37,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import { RefundModal } from '../components/RefundModal';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { HeadshotStyles } from '../styles/features/PixaHeadshotPro.styles';

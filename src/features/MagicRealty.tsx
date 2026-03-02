@@ -7,6 +7,7 @@ import { generateRealtyAd } from '../services/realtyService';
 import { deductCredits, saveCreation, claimMilestoneBonus } from '../firebase';
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';

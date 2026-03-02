@@ -6,6 +6,7 @@ import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { generateApparelTryOn } from '../services/apparelService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
@@ -179,14 +180,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading && (
-                            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
-                                </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse">{loadingText}</p>
-                            </div>
-                        )}
+                        <LoadingOverlay isVisible={loading} loadingText={loadingText} />
 
                         {isCapturing && <div className="absolute inset-0 z-50 bg-white animate-flash"></div>}
 
@@ -277,7 +271,6 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                             .animate-flash { animation: flash 0.3s ease-out forwards; }
                             @keyframes ghost-shimmer { 0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.2)); } 50% { transform: translateY(-5px) scale(1.02); filter: drop-shadow(0 0 25px rgba(79, 70, 229, 0.5)); } }
                             .animate-ghost-shimmer { animation: ghost-shimmer 3s ease-in-out infinite; }
-                            @keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }
                         `}</style>
                     </div>
                 }
