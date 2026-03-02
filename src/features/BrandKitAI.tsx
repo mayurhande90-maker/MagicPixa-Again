@@ -10,6 +10,7 @@ import { MagicEditorModal } from '../components/MagicEditorModal';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { BrandStylistStyles } from '../styles/features/BrandStylist.styles';
@@ -60,6 +61,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
+    const progress = useSimulatedProgress(loading);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
@@ -151,6 +153,7 @@ export const BrandStylistAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                         <LoadingOverlay 
                             isVisible={loading} 
                             loadingText={loadingText} 
+                            progress={progress}
                             gradient={genMode === 'remix' ? 'from-purple-400 to-pink-500' : 'from-blue-400 to-indigo-500'} 
                         />
                         {!loading && (

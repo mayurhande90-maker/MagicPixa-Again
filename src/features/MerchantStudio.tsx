@@ -9,6 +9,7 @@ import {
 import { fileToBase64, Base64File, downloadImage, base64ToBlobUrl, resizeImage } from '../utils/imageUtils';
 import { generateMerchantBatch } from '../services/merchantService';
 import { LoadingOverlay } from '../components/LoadingOverlay';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { saveCreation, deductCredits, logApiError, submitFeedback, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
 import { MerchantStyles } from '../styles/features/MerchantStudio.styles';
 // @ts-ignore
@@ -153,6 +154,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [packSize, setPackSize] = useState<5 | 7 | 10>(5);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
+    const progress = useSimulatedProgress(loading);
     const [results, setResults] = useState<string[]>([]);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [viewIndex, setViewIndex] = useState<number | null>(null);
@@ -305,7 +307,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl overflow-hidden border border-gray-100 relative group">
-                        <LoadingOverlay isVisible={loading} loadingText={loadingText} />
+                        <LoadingOverlay isVisible={loading} loadingText={loadingText} progress={progress} />
                         {!loading && results.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60"><div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6"><PixaEcommerceIcon className="w-10 h-10 text-indigo-300" /></div><h3 className="text-xl font-bold text-gray-400">Ready to Create</h3><p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">Select a mode and pack size on the right to generate your assets.</p></div>)}
                         {!loading && results.length > 0 && mode && (
                             <div className="flex flex-col lg:flex-row h-full">

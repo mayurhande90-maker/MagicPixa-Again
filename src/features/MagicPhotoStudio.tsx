@@ -13,6 +13,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, logAp
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { PhotoStudioStyles } from '../styles/features/MagicPhotoStudio.styles';
@@ -42,6 +43,8 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+
+    const progress = useSimulatedProgress(loading || isRefining);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const redoFileInputRef = useRef<HTMLInputElement>(null);
@@ -290,7 +293,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             leftContent={
                 image ? (
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                         <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} />
+                         <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
                         {(isAnalyzing || isAnalyzingModel) && (
                             <div className={PhotoStudioStyles.analysisOverlay}>
                                 <>

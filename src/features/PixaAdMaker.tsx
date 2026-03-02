@@ -14,6 +14,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUs
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
@@ -309,6 +310,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(loading || isRefining);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [showBrandModal, setShowBrandModal] = useState(false);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
@@ -316,8 +320,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-    const [isRefineActive, setIsRefineActive] = useState(false);
-    const [isRefining, setIsRefining] = useState(false);
     const refineCost = 5;
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -594,7 +596,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} />
+                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
                         {!industry ? (
                             <div className="text-center opacity-50 select-none">
                                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">

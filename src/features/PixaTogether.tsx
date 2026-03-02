@@ -10,6 +10,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -157,6 +158,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(loading || isRefining);
     const refineCost = 5;
 
     const cost = appConfig?.featureCosts['Pixa Together'] || appConfig?.featureCosts['Magic Soul'] || 8;
@@ -308,7 +310,7 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
                 resultHeightClass="h-[850px]" hideGenerateButton={isLowCredits} generateButtonStyle={{ className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", hideIcon: true, label: "Generate Magic" }} scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} />
+                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
                         
                         {!personA && !personB ? (
                             <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaTogetherIcon className="w-10 h-10 text-pink-500" /></div><h3 className="text-xl font-bold text-gray-300">Duo Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload people to begin.</p></div>

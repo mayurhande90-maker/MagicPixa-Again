@@ -10,6 +10,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { ThumbnailStyles } from '../styles/features/ThumbnailStudio.styles';
@@ -60,6 +61,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(loading || isRefining);
     const refineCost = 5;
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -181,7 +183,7 @@ export const ThumbnailStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} />
+                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
                         {!(loading || isRefining) && (
                             <div className="text-center opacity-50 select-none">
                                 <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">

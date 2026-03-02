@@ -10,6 +10,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MockupStyles } from '../styles/features/MagicMockup.styles';
@@ -34,6 +35,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(loading || isRefining);
     const refineCost = 2;
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -140,7 +142,7 @@ export const MagicMockup: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 leftContent={
                     designImage ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} />
+                            <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
                             <img src={designImage.url} className={`max-w-full max-h-full object-contain shadow-md transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Design" />
                             {!loading && !isRefining && (<button onClick={() => fileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Design"><UploadIcon className="w-5 h-5"/></button>)}
                         </div>

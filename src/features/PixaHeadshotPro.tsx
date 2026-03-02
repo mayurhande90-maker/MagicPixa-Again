@@ -37,6 +37,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from
 import { MagicEditorModal } from '../components/MagicEditorModal';
 import { processRefundRequest } from '../services/refundService';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
@@ -111,6 +112,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(loading || isRefining);
     const refineCost = 2;
 
     const cost = appConfig?.featureCosts['Pixa Headshot Pro'] || 4;
@@ -276,7 +278,7 @@ export const PixaHeadshotPro: React.FC<{ auth: AuthProps; appConfig: AppConfig |
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex flex-col items-center justify-center p-2 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} />
+                        <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
                         
                         {!image && !partnerImage ? (
                             <div className="text-center opacity-50 select-none"><div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4"><PixaHeadshotIcon className="w-10 h-10 text-indigo-500" /></div><h3 className="text-xl font-bold text-gray-300">Identity-Lock Canvas</h3><p className="text-sm text-gray-300 mt-1">Upload portrait to begin forensic sync.</p></div>

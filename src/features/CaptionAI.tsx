@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuthProps, AppConfig } from '../types';
 import { generateCaptions } from '../services/captionService';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { deductCredits } from '../firebase';
 import { fileToBase64, Base64File } from '../utils/imageUtils';
@@ -18,6 +19,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
     const [captionType, setCaptionType] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const progress = useSimulatedProgress(loading || isAnalyzing);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,7 +117,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                            <LoadingOverlay isVisible={loading || isAnalyzing} loadingText={loadingText} />
+                            <LoadingOverlay isVisible={loading || isAnalyzing} loadingText={loadingText} progress={progress} />
                             <img src={image.url} className={`max-w-full max-h-full rounded-xl shadow-md object-contain transition-all duration-700 ${loading ? 'scale-95 opacity-50' : ''}`} alt="Source" />
                             {!loading && (<><button onClick={handleNewSession} className="absolute top-4 right-4 bg-white p-2.5 rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all z-40" title="Remove Photo"><XIcon className="w-5 h-5"/></button><button onClick={() => redoFileInputRef.current?.click()} className="absolute top-4 left-4 bg-white p-2.5 rounded-full shadow-md hover:bg-[#4D7CFF] hover:text-white text-gray-500 transition-all z-40" title="Change Photo"><UploadIcon className="w-5 h-5"/></button></>)}
                         </div>

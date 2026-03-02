@@ -8,6 +8,7 @@ import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus } from
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { processRefundRequest } from '../services/refundService';
 import ToastNotification from '../components/ToastNotification';
 import { MagicEditorModal } from '../components/MagicEditorModal';
@@ -32,6 +33,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
+    const progress = useSimulatedProgress(loading);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
@@ -180,7 +182,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        <LoadingOverlay isVisible={loading} loadingText={loadingText} />
+                        <LoadingOverlay isVisible={loading} loadingText={loadingText} progress={progress} />
 
                         {isCapturing && <div className="absolute inset-0 z-50 bg-white animate-flash"></div>}
 

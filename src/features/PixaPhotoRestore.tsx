@@ -12,6 +12,7 @@ import ToastNotification from '../components/ToastNotification';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { RestoreStyles } from '../styles/features/PixaPhotoRestore.styles';
 
 const ColorRestoreIcon = ({ className }: { className?: string }) => (
@@ -112,6 +113,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(loading || isRefining);
     const refineCost = 5;
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -227,6 +229,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
                         <LoadingOverlay 
                             isVisible={loading || isRefining} 
                             loadingText={loadingText} 
+                            progress={progress}
                             className="bg-white/40"
                             gradient="from-blue-500 to-indigo-600"
                         />
