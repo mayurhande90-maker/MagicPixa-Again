@@ -2,11 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 
 /**
  * Custom hook to simulate progress for AI generation tasks.
- * Uses staged phases to feel realistic:
- * 1. 0-20%: Rapid jump (Initialization)
- * 2. 20-70%: Steady crawl (Core Generation)
- * 3. 70-95%: Slowdown (Refining)
- * 4. 95-99%: Micro-movements (Finalizing)
+ * Uses an asymptotic curve (Zeno's Paradox) so it never technically stops moving,
+ * matching high-end mobile experiences.
  */
 export const useSimulatedProgress = (isLoading: boolean, duration: number = 20000) => {
     const [progress, setProgress] = useState(0);
@@ -20,37 +17,22 @@ export const useSimulatedProgress = (isLoading: boolean, duration: number = 2000
             
             const updateProgress = () => {
                 const elapsed = Date.now() - startTimeRef.current;
-                const t = Math.min(1, elapsed / duration);
                 
-                let baseProgress = 0;
-                
-                // Staged Progress Logic
-                if (t < 0.1) {
-                    // Phase 1: 0% - 20% (Rapid jump in first 10% of time)
-                    baseProgress = (t / 0.1) * 20;
-                } else if (t < 0.6) {
-                    // Phase 2: 20% - 70% (Steady crawl for next 50% of time)
-                    baseProgress = 20 + ((t - 0.1) / 0.5) * 50;
-                } else if (t < 0.9) {
-                    // Phase 3: 70% - 95% (Significant slowdown for next 30% of time)
-                    baseProgress = 70 + ((t - 0.6) / 0.3) * 25;
-                } else {
-                    // Phase 4: 95% - 99% (Very slow micro-movements for last 10% of time)
-                    baseProgress = 95 + ((t - 0.9) / 0.1) * 4;
-                }
+                // Asymptotic curve: progress = 100 * (1 - e^(-elapsed / k))
+                // Reaches ~95% at the 'duration' mark, then continues infinitely slower towards 100%
+                const k = duration / 3;
+                const baseProgress = 100 * (1 - Math.exp(-elapsed / k));
                 
                 // Add subtle "active" jitter to make it feel like real-time processing
-                const jitter = (Math.sin(elapsed / 400) * 0.15) + (Math.sin(elapsed / 1000) * 0.1);
+                const jitter = (Math.sin(elapsed / 500) * 0.1) + (Math.sin(elapsed / 1200) * 0.05);
                 
                 setProgress(prev => {
                     const nextVal = baseProgress + jitter;
-                    // Ensure we don't go backwards and stay within 0-99 range
-                    return Math.min(99, Math.max(prev, nextVal));
+                    // Cap at 99.9% so it never looks "finished" until the server responds
+                    return Math.min(99.9, Math.max(prev, nextVal));
                 });
                 
-                if (t < 1) {
-                    timerRef.current = requestAnimationFrame(updateProgress);
-                }
+                timerRef.current = requestAnimationFrame(updateProgress);
             };
             
             timerRef.current = requestAnimationFrame(updateProgress);

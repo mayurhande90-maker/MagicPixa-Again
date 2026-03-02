@@ -27,7 +27,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn ${className}`}>
             <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4 relative">
                 <div 
-                    className={`h-full bg-gradient-to-r ${gradient} ${isSimulated ? 'animate-[progress_2s_ease-in-out_infinite]' : 'transition-all duration-500'}`}
+                    className={`h-full bg-gradient-to-r ${gradient} ${isSimulated ? 'animate-[progress_2s_ease-in-out_infinite]' : 'transition-[width] duration-700 ease-out'}`}
                     style={!isSimulated ? { width: `${progress}%` } : {}}
                 ></div>
             </div>
