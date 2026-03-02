@@ -240,14 +240,8 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
-                        {loading ? (
-                            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-                                <div className="w-64 h-1.5 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4">
-                                    <div className="h-full bg-gradient-to-r from-indigo-400 to-blue-500 animate-[progress_2s_ease-in-out_infinite] rounded-full"></div>
-                                </div>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse bg-black/40 px-4 py-2 rounded-full">{loadingText}</p>
-                            </div>
-                        ) : (
+                        <LoadingOverlay isVisible={loading} loadingText={loadingText} />
+                        {!loading && (
                             <div className="text-center opacity-50 select-none">
                                 <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <BuildingIcon className="w-12 h-12 text-indigo-400" />
@@ -256,7 +250,6 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <p className="text-sm text-gray-300 mt-2">Upload property photo to start.</p>
                             </div>
                         )}
-                        <style>{`@keyframes progress { 0% { width: 0%; margin-left: 0; } 50% { width: 100%; margin-left: 0; } 100% { width: 0%; margin-left: 100%; } }`}</style>
                     </div>
                 }
                 rightContent={
