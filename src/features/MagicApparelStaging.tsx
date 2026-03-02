@@ -61,7 +61,7 @@ export const MagicApparelStaging: React.FC<{ auth: AuthProps; appConfig: AppConf
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 2000);
+            }, 5000);
         }
         return () => clearInterval(interval);
     }, [loading]);

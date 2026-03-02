@@ -144,7 +144,7 @@ export const MagicRealty: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 2000); 
+            }, 5000); 
         } 
         return () => clearInterval(interval); 
     }, [loading]);

@@ -141,7 +141,7 @@ export const PixaPhotoRestore: React.FC<{ auth: AuthProps; appConfig: AppConfig 
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 2000); 
+            }, 5000); 
         } 
         return () => clearInterval(interval); 
     }, [loading, isRefining]);

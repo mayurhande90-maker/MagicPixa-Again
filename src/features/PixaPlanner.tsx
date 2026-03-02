@@ -205,7 +205,6 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                 <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-2 bg-gray-100 rounded-full overflow-hidden"}>
                     <div className={PlannerStyles.progressFill + " h-full bg-indigo-600 transition-all duration-300"} style={{ width: `${progress}%` }}></div>
                 </div>
-                <p className="text-[clamp(8px,1.1vh,10px)] font-black text-gray-400 mt-4 tracking-widest uppercase">{Math.round(progress)}% COMPLETE</p>
             </div>
         </div>,
         document.body

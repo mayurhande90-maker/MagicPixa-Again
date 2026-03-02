@@ -93,7 +93,7 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 1800);
+            }, 5000);
         }
         return () => clearInterval(interval);
     }, [loading, isRefining]);

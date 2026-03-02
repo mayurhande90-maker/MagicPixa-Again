@@ -59,7 +59,7 @@ export const CaptionAI: React.FC<{ auth: AuthProps; appConfig: AppConfig | null 
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 1800); 
+            }, 5000); 
         } 
         return () => clearInterval(interval); 
     }, [loading]);

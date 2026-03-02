@@ -200,7 +200,7 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 2500); 
+            }, 5000); 
         } 
         return () => clearInterval(interval); 
     }, [loading]);

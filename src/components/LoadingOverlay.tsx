@@ -16,7 +16,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     isVisible, 
     loadingText, 
     progress,
-    gradient = "from-blue-400 to-purple-500",
+    gradient = "from-blue-500 to-purple-600",
     className = ""
 }) => {
     if (!isVisible) return null;
@@ -36,11 +36,6 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-6">
                     {loadingText}
                 </p>
-                {!isSimulated && (
-                    <span className="text-[10px] font-black text-white/60 tracking-tighter bg-white/10 px-2 py-0.5 rounded-full">
-                        {Math.round(progress)}% COMPLETE
-                    </span>
-                )}
             </div>
             
             <style>{`

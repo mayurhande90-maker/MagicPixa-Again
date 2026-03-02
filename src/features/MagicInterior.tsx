@@ -73,7 +73,7 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 2500); 
+            }, 5000); 
         } 
         return () => clearInterval(interval); 
     }, [loading, isRefining]);

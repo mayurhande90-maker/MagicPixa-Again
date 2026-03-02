@@ -80,7 +80,7 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
             interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
-            }, 2000); 
+            }, 5000); 
         } 
         return () => clearInterval(interval); 
     }, [loading]);
