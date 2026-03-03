@@ -28,20 +28,11 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
             <div className="w-64 h-3 bg-gray-800/50 rounded-full overflow-hidden shadow-inner mb-4 relative border border-white/5">
                 {/* Moving Gradient Layer */}
                 <div 
-                    className={`h-full absolute inset-0 animate-move-gradient ${!isSimulated ? 'transition-[width] duration-700 ease-out' : ''}`}
+                    className="h-full absolute inset-0 animate-move-gradient"
                     style={{ 
-                        width: isSimulated ? '100%' : `${progress}%`,
+                        width: '100%',
                         backgroundImage: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)',
                         backgroundSize: '200% 100%'
-                    }}
-                ></div>
-                
-                {/* Floating Particles Layer */}
-                <div 
-                    className="h-full absolute inset-0 opacity-30 animate-float-particles" 
-                    style={{
-                        backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-                        backgroundSize: '12px 12px'
                     }}
                 ></div>
             </div>
@@ -57,15 +48,8 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                     0% { background-position: 0% 50%; }
                     100% { background-position: 200% 50%; }
                 }
-                @keyframes float-particles {
-                    0% { background-position: 0px 0px; }
-                    100% { background-position: 40px 20px; }
-                }
                 .animate-move-gradient {
                     animation: move-gradient 3s linear infinite;
-                }
-                .animate-float-particles {
-                    animation: float-particles 8s linear infinite;
                 }
             `}</style>
         </div>
