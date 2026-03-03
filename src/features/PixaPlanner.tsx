@@ -196,7 +196,38 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
             <div className="bg-white rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,64px)] max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight" onClick={e => e.stopPropagation()}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
-                <div className="w-[clamp(48px,10vh,80px)] h-[clamp(48px,10vh,80px)] border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-[min(4vh,32px)]"></div>
+                
+                {/* Percentage Ring */}
+                <div className="relative w-24 h-24 flex items-center justify-center mb-6">
+                    <svg className="w-full h-full transform -rotate-90">
+                        {/* Background Circle */}
+                        <circle
+                            cx="48" cy="48" r="40"
+                            stroke="currentColor" strokeWidth="6"
+                            fill="transparent" className="text-gray-100"
+                        />
+                        {/* Progress Stroke */}
+                        <circle
+                            cx="48" cy="48" r="40"
+                            stroke="url(#planner-ring-gradient)" strokeWidth="6"
+                            fill="transparent"
+                            strokeDasharray="251.2"
+                            strokeDashoffset={251.2 - (251.2 * (progress || 0)) / 100}
+                            strokeLinecap="round"
+                            className="transition-all duration-700 ease-out"
+                        />
+                        <defs>
+                            <linearGradient id="planner-ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#4f46e5" />
+                                <stop offset="100%" stopColor="#9333ea" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span className="absolute text-xl font-black text-gray-900">
+                        {Math.round(progress || 0)}%
+                    </span>
+                </div>
+
                 <h2 className="text-[clamp(18px,3vh,24px)] font-black text-gray-900 mb-2">Agency processing active.</h2>
                 <p className="text-[clamp(12px,1.6vh,14px)] text-gray-500 font-medium mb-[min(4vh,32px)] h-10">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
                 
