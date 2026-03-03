@@ -25,10 +25,24 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
     return (
         <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn ${className}`}>
-            <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden shadow-inner mb-4 relative">
+            <div className="w-64 h-3 bg-gray-800/50 rounded-full overflow-hidden shadow-inner mb-4 relative border border-white/5">
+                {/* Moving Gradient Layer */}
                 <div 
-                    className={`h-full bg-gradient-to-r ${gradient} ${isSimulated ? 'animate-[progress_2s_ease-in-out_infinite]' : 'transition-[width] duration-700 ease-out'}`}
-                    style={!isSimulated ? { width: `${progress}%` } : {}}
+                    className={`h-full absolute inset-0 animate-move-gradient ${!isSimulated ? 'transition-[width] duration-700 ease-out' : ''}`}
+                    style={{ 
+                        width: isSimulated ? '100%' : `${progress}%`,
+                        backgroundImage: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)',
+                        backgroundSize: '200% 100%'
+                    }}
+                ></div>
+                
+                {/* Floating Particles Layer */}
+                <div 
+                    className="h-full absolute inset-0 opacity-30 animate-float-particles" 
+                    style={{
+                        backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+                        backgroundSize: '12px 12px'
+                    }}
                 ></div>
             </div>
             
@@ -39,10 +53,19 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
             </div>
             
             <style>{`
-                @keyframes progress {
-                    0% { width: 0%; margin-left: 0; }
-                    50% { width: 100%; margin-left: 0; }
-                    100% { width: 0%; margin-left: 100%; }
+                @keyframes move-gradient {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 200% 50%; }
+                }
+                @keyframes float-particles {
+                    0% { background-position: 0px 0px; }
+                    100% { background-position: 40px 20px; }
+                }
+                .animate-move-gradient {
+                    animation: move-gradient 3s linear infinite;
+                }
+                .animate-float-particles {
+                    animation: float-particles 8s linear infinite;
                 }
             `}</style>
         </div>

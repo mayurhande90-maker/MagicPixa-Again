@@ -201,11 +201,45 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                 <p className="text-[clamp(12px,1.6vh,14px)] text-gray-500 font-medium mb-[min(4vh,32px)] h-10">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
                 
                 <ThinkingLog logs={logs} />
-
-                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-2 bg-gray-100 rounded-full overflow-hidden"}>
-                    <div className={PlannerStyles.progressFill + " h-full bg-indigo-600 transition-all duration-300"} style={{ width: `${progress}%` }}></div>
+                
+                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-3 bg-gray-100 rounded-full overflow-hidden relative border border-gray-200/50 shadow-inner"}>
+                    {/* Moving Gradient Layer */}
+                    <div 
+                        className="h-full absolute inset-0 animate-move-gradient transition-[width] duration-700 ease-out"
+                        style={{ 
+                            width: `${progress}%`,
+                            backgroundImage: 'linear-gradient(90deg, #4f46e5, #9333ea, #4f46e5)',
+                            backgroundSize: '200% 100%'
+                        }}
+                    ></div>
+                    
+                    {/* Floating Particles Layer */}
+                    <div 
+                        className="h-full absolute inset-0 opacity-20 animate-float-particles" 
+                        style={{
+                            backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+                            backgroundSize: '12px 12px'
+                        }}
+                    ></div>
                 </div>
             </div>
+            
+            <style>{`
+                @keyframes move-gradient {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 200% 50%; }
+                }
+                @keyframes float-particles {
+                    0% { background-position: 0px 0px; }
+                    100% { background-position: 40px 20px; }
+                }
+                .animate-move-gradient {
+                    animation: move-gradient 3s linear infinite;
+                }
+                .animate-float-particles {
+                    animation: float-particles 8s linear infinite;
+                }
+            `}</style>
         </div>,
         document.body
     );
