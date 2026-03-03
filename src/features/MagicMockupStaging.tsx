@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
 import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
+import { LoadingOverlay } from '../components/LoadingOverlay';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { 
     PixaMockupIcon, UploadIcon, XIcon, SparklesIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, 
     BrandKitIcon, HomeIcon, LightbulbIcon, MagicWandIcon, TrashIcon, UserIcon, ApparelIcon, 
@@ -58,6 +60,7 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
     const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
+    const progress = useSimulatedProgress(loading);
 
     const cost = 8;
     const userCredits = auth.user?.credits || 0;
@@ -66,7 +69,6 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
 
     // Dynamic Loading Sequence
     useEffect(() => { 
-        let interval: any; 
         if (loading) { 
             const steps = [
                 "Pixa is extracting visual anchors...", 
@@ -77,12 +79,12 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
             ]; 
             let step = 0; 
             setLoadingText(steps[0]); 
-            interval = setInterval(() => { 
+            const interval = setInterval(() => { 
                 step = (step + 1) % steps.length; 
                 setLoadingText(steps[step]); 
             }, 5000); 
+            return () => clearInterval(interval);
         } 
-        return () => clearInterval(interval); 
     }, [loading]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,12 +214,7 @@ export const MagicMockupStaging: React.FC<{ auth: AuthProps; appConfig: AppConfi
                 scrollRef={scrollRef}
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100 overflow-hidden group mx-auto shadow-sm">
-                         {loading && (
-                            <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-                                <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
-                                <p className="text-sm font-black text-white tracking-[0.2em] uppercase animate-pulse">{loadingText}</p>
-                            </div>
-                        )}
+                         <LoadingOverlay isVisible={loading} loadingText={loadingText} progress={progress} />
 
                         {designImage ? (
                             <div className="relative w-full h-full flex items-center justify-center animate-fadeIn">

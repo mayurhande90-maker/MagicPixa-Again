@@ -31,6 +31,8 @@ import {
     extractBrandColors 
 } from '../services/brandKitService';
 
+import { LoadingOverlay } from '../components/LoadingOverlay';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import ToastNotification from '../components/ToastNotification';
 import { BrandKitManagerStyles } from '../styles/features/BrandKitManager.styles';
 
@@ -323,6 +325,7 @@ const BrandCreationWizard: React.FC<{
     const [magicUrl, setMagicUrl] = useState('');
     const [magicDesc, setMagicDesc] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const progress = useSimulatedProgress(isGenerating);
     const [isSaving, setIsSaving] = useState(false);
     
     // Local Upload State for Wizard (Tracks count of uploading files)
@@ -468,6 +471,7 @@ const BrandCreationWizard: React.FC<{
             case 0: 
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-[min(4vh,40px)] relative">
+                        <LoadingOverlay isVisible={isGenerating} loadingText="Pixa AI is scanning your website..." progress={progress} />
                         <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-all shadow-sm z-50 backdrop-blur-sm">
                             <XIcon className="w-6 h-6" />
                         </button>
@@ -995,6 +999,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [isAnalyzingCompetitor, setIsAnalyzingCompetitor] = useState(false);
+    const competitorProgress = useSimulatedProgress(isAnalyzingCompetitor);
 
     const productInputRef = useRef<HTMLInputElement>(null);
     const moodInputRef = useRef<HTMLInputElement>(null);
@@ -1348,7 +1353,8 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                                         <button onClick={runCompetitorAnalysis} disabled={isAnalyzingCompetitor || !kit.competitor?.website} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none">{isAnalyzingCompetitor ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Analyzing Strategy...</>) : (<><LightningIcon className="w-4 h-4 text-white" /> Analyze & Outsmart</>)}</button>
                                     </div>
 
-                                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 h-full">
+                                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 h-full relative overflow-hidden">
+                                        <LoadingOverlay isVisible={isAnalyzingCompetitor} loadingText="Analyzing Competitor Strategy..." progress={competitorProgress} />
                                         {kit.competitor?.analysis ? (
                                             <div className="space-y-6 animate-fadeIn">
                                                 <div className="flex items-center justify-between"><h3 className="text-sm font-black text-gray-800 uppercase tracking-wide">Strategic Report</h3><span className="text-[10px] text-gray-400">Updated: {new Date(kit.competitor.analysis.lastUpdated).toLocaleDateString()}</span></div>

@@ -10,6 +10,8 @@ import {
 import { executeDailyMission } from '../services/missionService';
 import { fileToBase64, Base64File, base64ToBlobUrl } from '../utils/imageUtils';
 import { getDailyMission, isMissionLocked } from '../utils/dailyMissions';
+import { LoadingOverlay } from '../components/LoadingOverlay';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { 
     UploadIcon, 
     FlagIcon,
@@ -74,11 +76,32 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
     const [showSuccess, setShowSuccess] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [loadingText, setLoadingText] = useState("Pixa is executing mission...");
+    const progress = useSimulatedProgress(loading);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mission = getDailyMission();
     const isLocked = isMissionLocked(auth.user);
+
+    useEffect(() => {
+        if (loading) {
+            const steps = [
+                "Pixa is analyzing mission objectives...",
+                "Synthesizing high-fidelity assets...",
+                "Harmonizing brand aesthetics...",
+                "Validating mission compliance...",
+                "Finalizing daily reward..."
+            ];
+            let step = 0;
+            setLoadingText(steps[0]);
+            const interval = setInterval(() => {
+                step = (step + 1) % steps.length;
+                setLoadingText(steps[step]);
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [loading]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -167,6 +190,7 @@ export const DailyMissionStudio: React.FC<{ auth: AuthProps; navigateTo: any }> 
                 leftContent={
                     image ? (
                         <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm group">
+                            <LoadingOverlay isVisible={loading} loadingText={loadingText} progress={progress} />
                             {/* Background Glow behind image - lighter */}
                             <div className="absolute inset-0 bg-gradient-to-b from-indigo-50 to-transparent opacity-50"></div>
                             

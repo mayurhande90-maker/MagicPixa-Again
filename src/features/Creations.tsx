@@ -6,6 +6,8 @@ import { downloadImage, urlToBase64, base64ToBlobUrl } from '../utils/imageUtils
 import { refineStudioImage } from '../services/photoStudioService';
 import { ImageModal } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
+import { LoadingOverlay } from '../components/LoadingOverlay';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import ToastNotification from '../components/ToastNotification';
 import { 
     AdjustmentsVerticalIcon, 
@@ -53,6 +55,7 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
     // Refinement State
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const progress = useSimulatedProgress(isRefining);
     const [refineLoadingText, setRefineLoadingText] = useState("");
     const refineCost = 5;
 
@@ -549,9 +552,8 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
 
                     <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
                         {isRefining ? (
-                            <div className="bg-gray-900/90 backdrop-blur-xl px-10 py-6 rounded-[2rem] border border-white/20 shadow-2xl flex flex-col items-center gap-4 animate-fadeIn">
-                                <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                                <p className="text-xs font-black text-white uppercase tracking-[0.2em] animate-pulse text-center">{refineLoadingText}</p>
+                            <div className="relative w-full max-w-md">
+                                <LoadingOverlay isVisible={isRefining} loadingText={refineLoadingText} progress={progress} />
                             </div>
                         ) : (
                             <>

@@ -2,34 +2,36 @@ import { useState, useEffect, useRef } from 'react';
 
 /**
  * Custom hook to simulate progress for AI generation tasks.
- * Uses an asymptotic curve (Zeno's Paradox) so it never technically stops moving,
- * matching high-end mobile experiences.
+ * Uses a 3-phase realistic progress engine:
+ * 1. Phase 1 (0-60%): Fast initial progress.
+ * 2. Phase 2 (60-85%): Steady medium-paced progress.
+ * 3. Phase 3 (85-98%): Asymptotic slow-down.
+ * 4. Final: Jump to 100% when loading finishes.
  */
-export const useSimulatedProgress = (isLoading: boolean, duration: number = 20000) => {
+export const useSimulatedProgress = (isLoading: boolean) => {
     const [progress, setProgress] = useState(0);
     const timerRef = useRef<number | null>(null);
-    const startTimeRef = useRef<number>(0);
 
     useEffect(() => {
         if (isLoading) {
             setProgress(0);
-            startTimeRef.current = Date.now();
             
             const updateProgress = () => {
-                const elapsed = Date.now() - startTimeRef.current;
-                
-                // Asymptotic curve: progress = 100 * (1 - e^(-elapsed / k))
-                // Reaches ~95% at the 'duration' mark, then continues infinitely slower towards 100%
-                const k = duration / 3;
-                const baseProgress = 100 * (1 - Math.exp(-elapsed / k));
-                
-                // Add subtle "active" jitter to make it feel like real-time processing
-                const jitter = (Math.sin(elapsed / 500) * 0.1) + (Math.sin(elapsed / 1200) * 0.05);
-                
                 setProgress(prev => {
-                    const nextVal = baseProgress + jitter;
-                    // Cap at 99.9% so it never looks "finished" until the server responds
-                    return Math.min(99.9, Math.max(prev, nextVal));
+                    let nextVal = prev;
+                    if (prev < 60) {
+                        nextVal += 0.8; // Phase 1: Fast
+                    } else if (prev < 85) {
+                        nextVal += 0.3; // Phase 2: Steady
+                    } else if (prev < 98) {
+                        // Phase 3: Asymptotic slow-down
+                        // The closer to 98, the slower it moves
+                        const remaining = 98 - prev;
+                        nextVal += remaining * 0.01; 
+                    }
+                    
+                    // Cap at 98.5% until loading finishes
+                    return Math.min(98.5, nextVal);
                 });
                 
                 timerRef.current = requestAnimationFrame(updateProgress);
@@ -40,7 +42,7 @@ export const useSimulatedProgress = (isLoading: boolean, duration: number = 2000
             if (timerRef.current) {
                 cancelAnimationFrame(timerRef.current);
             }
-            // When loading finishes, jump to 100
+            // When loading finishes, jump to 100 if we were actually loading
             setProgress(prev => prev > 0 ? 100 : 0);
         }
 
@@ -49,7 +51,7 @@ export const useSimulatedProgress = (isLoading: boolean, duration: number = 2000
                 cancelAnimationFrame(timerRef.current);
             }
         };
-    }, [isLoading, duration]);
+    }, [isLoading]);
 
     return progress;
 };

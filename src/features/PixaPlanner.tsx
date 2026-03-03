@@ -11,6 +11,7 @@ import {
     CopyIcon, ChevronRightIcon, CampaignStudioIcon, StrategyStarIcon,
     CogIcon, PlusIcon, EyeIcon
 } from '../components/icons';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 import { generateContentPlan, generatePostImage, extractPlanFromDocument, analyzeProductPhysically, CalendarPost, PlanConfig } from '../services/plannerService';
 import { deductCredits, saveCreation, getUserBrands, activateBrand } from '../firebase';
 import { base64ToBlobUrl, urlToBase64, downloadImage, rawFileToBase64, resizeImage } from '../utils/imageUtils';
@@ -520,6 +521,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [productAudits, setProductAudits] = useState<Record<string, ProductAnalysis>>({});
     const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({}); 
     const [progress, setProgress] = useState(0);
+    const simulatedProgress = useSimulatedProgress(isGenerating);
     const [loadingText, setLoadingText] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -1038,7 +1040,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             {/* MODALS */}
             {isGenerating && (
-                <ProgressModal loadingText={loadingText} logs={logs} progress={progress} />
+                <ProgressModal loadingText={loadingText} logs={logs} progress={simulatedProgress} />
             )}
             
             {isSettingsModalOpen && (
