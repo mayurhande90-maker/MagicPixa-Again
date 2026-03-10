@@ -30,18 +30,18 @@ export interface AdMakerInputs {
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
-    'Hero Focus': "SPATIAL GRID: [Subject: Center-Weighted, Scale 70%] | [Headline: Upper 15%, Center-Align] | [CTA: Bottom 10%, Floating]. Rule: Maximum focal impact on the product.",
-    'Split Design': "SPATIAL GRID: [Subject: Left 50% Horizontal Column] | [Text/Copy Stack: Right 50% Horizontal Column]. Rule: Hard vertical axis split for clean informational hierarchy.",
-    'Bottom Strip': "SPATIAL GRID: [Subject: Upper 80% Canvas] | [Information Strip: Bottom 20% with semi-transparent backdrop]. Rule: Cinematic focus with a grounded info footer.",
-    'Social Proof': "SPATIAL GRID: [Subject: Center-Right] | [Review Bubble/Badge: Bottom-Left Overlay]. Rule: Offset subject to create space for secondary trust markers.",
-    'Magazine Cover': "SPATIAL GRID: [Subject: Center, Scale 85%, Overlaps Background Typography] | [Headline: Massive stylized font behind or slightly overlapping subject]. Rule: High-prestige editorial cover aesthetic.",
-    'Minimalist Zen': "SPATIAL GRID: [Subject: Bottom-Right Third, Scale 35%] | [Headline: Top-Left, small, elegant serif] | [White Space: 75% of canvas]. Rule: High-end boutique minimalism with maximum breathing room.",
-    'Feature Callout': "SPATIAL GRID: [Subject: Center, Scale 60%] | [Callout Lines: Thin pointers radiating from product parts to small text labels]. Rule: Technical education and feature highlighting.",
-    'Action Dynamic': "SPATIAL GRID: [Subject: Diagonally tilted 15 degrees, motion blur trails] | [Headline: Bold, italicized, aggressive placement]. Rule: High-energy urgency and excitement.",
-    'Contrast Grid': "SPATIAL GRID: [Vertical Split: 50/50] | [Left Pane: Problem or 'Before' state] | [Right Pane: Product or 'After' state]. Rule: Immediate visual proof of transformation and solution.",
-    'The Trio': "SPATIAL GRID: [Main Hero: Center, Scale 100%] | [Variant 1: Lower Left, Scale 40%] | [Variant 2: Lower Right, Scale 40%]. Rule: Depth-based hierarchy for product ranges.",
-    'Range Lineup': "SPATIAL GRID: [3 Items: Arranged side-by-side on a horizontal shelf plane]. Rule: Perfect symmetrical alignment for collections.",
-    'Hero & Variants': "SPATIAL GRID: [Hero Item: Front & Center] | [2 Supporting Items: Blurred in the shallow background]. Rule: Dynamic bokeh-based product storytelling."
+    'Hero Focus': "The product is the undisputed hero, placed front and center with a powerful presence. The headline floats elegantly in the upper third, while the CTA is grounded at the bottom. This layout maximizes focal impact and product desire.",
+    'Split Design': "A sophisticated vertical split. One side (left or right depending on visual balance) is dedicated to a clean, high-fidelity product showcase, while the other side houses a structured stack of headline, subheadline, and CTA. Perfect for clear informational hierarchy.",
+    'Bottom Strip': "A cinematic wide-angle approach. The product dominates the upper 80% of the frame in a lifestyle or studio setting. A semi-transparent information strip at the bottom elegantly contains the brand identity and CTA.",
+    'Social Proof': "An organic, trust-focused composition. The product is offset to one side, leaving room for a floating 'Review Bubble' or 'Trust Badge' in the opposite corner. This creates a balanced, relatable narrative.",
+    'Magazine Cover': "High-prestige editorial style. The product is large and centered, often slightly overlapping bold, stylized background typography. The headline is massive and integrated into the scene like a luxury fashion cover.",
+    'Minimalist Zen': "Extreme boutique minimalism. The product is small and placed in a corner (e.g., bottom-right), surrounded by 70% intentional white space. The headline is a tiny, elegant serif in the opposite corner. Maximum breathing room.",
+    'Feature Callout': "A technical, educational layout. The product is centered at a 60% scale, with thin, elegant 'pointer lines' radiating from key features to small, sharp text labels. Ideal for highlighting innovation.",
+    'Action Dynamic': "High-energy urgency. The product is tilted at a dynamic angle (e.g., 15 degrees) with subtle motion blur. The headline is bold, italicized, and placed aggressively to create a sense of speed and excitement.",
+    'Contrast Grid': "A powerful 'Before & After' or 'Problem & Solution' split. The canvas is divided 50/50, showing the challenge on one side and the product as the hero solution on the other. Immediate visual proof.",
+    'The Trio': "A depth-based collection showcase. One main hero item is front and center, with two supporting variants placed slightly behind and to the sides at a smaller scale, creating a rich product family narrative.",
+    'Range Lineup': "Perfect symmetrical alignment. Three or more products are arranged side-by-side on a clean horizontal plane (like a premium shelf), showcasing the full variety of the collection.",
+    'Hero & Variants': "Dynamic bokeh-based storytelling. The hero item is in sharp focus in the foreground, while supporting items or ingredients are blurred artistically in the shallow background to add context and depth."
 };
 
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -103,6 +103,7 @@ interface CreativeBrief {
         lightingMood: string;
         compositionalStyle: string;
     };
+    harmonizedLayout: string;
 }
 
 /**
@@ -129,6 +130,14 @@ const performAdIntelligence = async (
     1. Use Google Search to identify the EXACT consumer trends for ${inputs.industry} as of March 2026. 
     2. Identify "Viral Marketing Hooks" and "Visual Aesthetic Shifts" (e.g., specific color grading or lighting styles trending on social media).
     
+    *** BLUEPRINT HARMONY (CRITICAL) ***
+    User Selected Layout: "${inputs.layoutTemplate || 'Hero Focus'}"
+    Selected Aspect Ratio: "${inputs.aspectRatio || '1:1'}"
+    Blueprint Narrative: "${LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']}"
+    
+    Your Task: Harmonize the user's selected layout with the March 2026 trends you discovered. 
+    Adjust the layout narrative to be "Aspect-Aware". For example, if the ratio is 9:16, ensure the layout uses the vertical space effectively for the product and copy.
+    
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
     2. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
@@ -139,7 +148,8 @@ const performAdIntelligence = async (
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
         "visualDirection": "string",
-        "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" }
+        "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" },
+        "harmonizedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine)"
     }`;
 
     const parts: any[] = lowResAssets.map((asset) => ({ text: `ASSET FOR AUDIT:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -163,7 +173,8 @@ const performAdIntelligence = async (
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
             industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
             visualDirection: "Clean commercial studio aesthetics.",
-            trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" }
+            trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" },
+            harmonizedLayout: LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']
         };
     }
 };
@@ -202,6 +213,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     - **LIGHTING MOOD**: ${brief.trendAnalysis.lightingMood}
     - **COMPOSITIONAL STYLE**: ${brief.trendAnalysis.compositionalStyle}
     - **VISUAL DIRECTION**: ${brief.visualDirection}
+    - **HARMONIZED LAYOUT**: ${brief.harmonizedLayout}
     
     *** IDENTITY ANCHOR v7.0 (SACRED ASSET PROTOCOL) ***
     1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. 
