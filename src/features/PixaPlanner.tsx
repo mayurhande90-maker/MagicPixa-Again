@@ -200,7 +200,7 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                 
                 {/* Percentage Ring */}
                 <div className="relative w-24 h-24 flex items-center justify-center mb-6">
-                    <svg className="w-full h-full transform -rotate-90">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
                         {/* Background Circle */}
                         <circle
                             cx="48" cy="48" r="40"
@@ -212,13 +212,13 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                             cx="48" cy="48" r="40"
                             stroke="url(#planner-ring-gradient)" strokeWidth="6"
                             fill="transparent"
-                            strokeDasharray="251.2"
+                            strokeDasharray="251.2 251.2"
                             strokeDashoffset={251.2 - (251.2 * (progress || 0)) / 100}
                             strokeLinecap="round"
                             className="transition-all duration-300 ease-out"
                         />
                         <defs>
-                            <linearGradient id="planner-ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <linearGradient id="planner-ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
                                 <stop offset="0%" stopColor="#4f46e5" />
                                 <stop offset="100%" stopColor="#9333ea" />
                             </linearGradient>

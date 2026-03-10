@@ -27,7 +27,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn ${className}`}>
             {/* Percentage Ring */}
             <div className="relative w-24 h-24 flex items-center justify-center mb-6">
-                <svg className="w-full h-full transform -rotate-90">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
                     {/* Background Circle */}
                     <circle
                         cx="48" cy="48" r="40"
@@ -39,13 +39,13 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                         cx="48" cy="48" r="40"
                         stroke="url(#ring-gradient)" strokeWidth="6"
                         fill="transparent"
-                        strokeDasharray="251.2"
+                        strokeDasharray="251.2 251.2"
                         strokeDashoffset={251.2 - (251.2 * (progress || 0)) / 100}
                         strokeLinecap="round"
                         className="transition-all duration-300 ease-out"
                     />
                     <defs>
-                        <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
                             <stop offset="0%" stopColor="#3b82f6" />
                             <stop offset="100%" stopColor="#8b5cf6" />
                         </linearGradient>
