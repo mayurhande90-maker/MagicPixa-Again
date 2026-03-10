@@ -15,72 +15,107 @@ interface LoadingOverlayProps {
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ 
     isVisible, 
     loadingText, 
-    progress,
+    progress = 0,
     gradient = "from-blue-500 to-purple-600",
     className = ""
 }) => {
     if (!isVisible) return null;
 
-    const isSimulated = progress === undefined;
+    const displayProgress = Math.round(progress);
+    
+    // Technical Sub-Step Sequencing
+    const getStepText = () => {
+        if (progress < 20) return "Initializing Neural Engine...";
+        if (progress < 50) return "Synthesizing Visual Geometry...";
+        if (progress < 85) return "Refining Lighting & Textures...";
+        if (progress < 100) return "Finalizing High-Fidelity Export...";
+        return "Masterpiece Ready!";
+    };
+
+    const activeText = loadingText.includes("Generating") || loadingText.includes("Processing") || loadingText === "Architecting High-Fidelity Assets..."
+        ? getStepText() 
+        : loadingText;
 
     return (
-        <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn ${className}`}>
-            {/* Percentage Ring */}
-            <div className="relative w-24 h-24 flex items-center justify-center mb-6">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
-                    {/* Background Circle */}
-                    <circle
-                        cx="48" cy="48" r="40"
-                        stroke="currentColor" strokeWidth="6"
-                        fill="transparent" className="text-white/10"
-                    />
-                    {/* Progress Stroke */}
-                    <circle
-                        cx="48" cy="48" r="40"
-                        stroke="url(#ring-gradient)" strokeWidth="6"
-                        fill="transparent"
-                        strokeDasharray="251.2 251.2"
-                        strokeDashoffset={251.2 - (251.2 * (progress || 0)) / 100}
-                        strokeLinecap="round"
-                        className="transition-all duration-300 ease-out"
-                    />
-                    <defs>
-                        <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
-                            <stop offset="0%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#8b5cf6" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <span className="absolute text-xl font-black text-white">
-                    {Math.round(progress || 0)}%
-                </span>
-            </div>
+        <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn ${className}`}>
+            {/* Pro Progress Unit with Breathing Animation */}
+            <div className="relative flex flex-col items-center animate-pro-breathe">
+                
+                {/* Orbiting Data Particles */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full blur-[1px] shadow-[0_0_8px_#60a5fa] animate-orbit-1"></div>
+                    <div className="absolute top-0 left-1/2 w-1 h-1 bg-purple-400 rounded-full blur-[1px] shadow-[0_0_8px_#c084fc] animate-orbit-2"></div>
+                    <div className="absolute top-0 left-1/2 w-2 h-2 bg-indigo-400 rounded-full blur-[1px] shadow-[0_0_10px_#818cf8] animate-orbit-3"></div>
+                </div>
 
-            <div className="w-64 h-3 bg-gray-800/50 rounded-full overflow-hidden shadow-inner mb-4 relative border border-white/5">
-                {/* Moving Gradient Layer */}
-                <div 
-                    className="h-full absolute inset-0 animate-move-gradient"
-                    style={{ 
-                        width: '100%',
-                        backgroundImage: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)',
-                        backgroundSize: '200% 100%'
-                    }}
-                ></div>
-            </div>
-            
-            <div className="flex flex-col items-center gap-2">
-                <p className="text-sm font-bold text-white tracking-widest uppercase animate-pulse text-center px-6">
-                    {loadingText}
-                </p>
+                {/* Luminous Conic Ring */}
+                <div className="relative w-32 h-32 flex items-center justify-center mb-8">
+                    {/* Background Glow */}
+                    <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-2xl animate-pulse"></div>
+                    
+                    {/* The Conic Ring */}
+                    <div 
+                        className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                        style={{
+                            background: `conic-gradient(from 0deg, #3b82f6, #8b5cf6, #3b82f6 ${progress}%, transparent 0%)`,
+                            WebkitMaskImage: 'radial-gradient(transparent 62%, black 64%)',
+                            maskImage: 'radial-gradient(transparent 62%, black 64%)',
+                            transition: 'background 0.3s ease-out'
+                        }}
+                    ></div>
+
+                    {/* Inner Glass Circle */}
+                    <div className="absolute inset-[10%] rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex flex-col items-center justify-center shadow-inner">
+                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-md">
+                            {displayProgress}<span className="text-sm opacity-50 ml-0.5">%</span>
+                        </span>
+                    </div>
+                </div>
+
+                {/* Technical Milestone Text */}
+                <div className="flex flex-col items-center gap-3 max-w-xs">
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] animate-pulse text-center">
+                        {activeText}
+                    </p>
+                    
+                    {/* Minimal Progress Bar */}
+                    <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <div 
+                            className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transition-all duration-300 ease-out"
+                            style={{ width: `${progress}%`, backgroundSize: '200% 100%' }}
+                        ></div>
+                    </div>
+                </div>
             </div>
             
             <style>{`
-                @keyframes move-gradient {
-                    0% { background-position: 0% 50%; }
-                    100% { background-position: 200% 50%; }
+                @keyframes pro-breathe {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.03); }
                 }
-                .animate-move-gradient {
-                    animation: move-gradient 3s linear infinite;
+                @keyframes orbit-1 {
+                    from { transform: rotate(0deg) translateX(70px) rotate(0deg); }
+                    to { transform: rotate(360deg) translateX(70px) rotate(-360deg); }
+                }
+                @keyframes orbit-2 {
+                    from { transform: rotate(120deg) translateX(85px) rotate(-120deg); }
+                    to { transform: rotate(480deg) translateX(85px) rotate(-480deg); }
+                }
+                @keyframes orbit-3 {
+                    from { transform: rotate(240deg) translateX(60px) rotate(-240deg); }
+                    to { transform: rotate(600deg) translateX(60px) rotate(-600deg); }
+                }
+                .animate-pro-breathe {
+                    animation: pro-breathe 4s ease-in-out infinite;
+                }
+                .animate-orbit-1 {
+                    animation: orbit-1 6s linear infinite;
+                }
+                .animate-orbit-2 {
+                    animation: orbit-2 8s linear infinite;
+                }
+                .animate-orbit-3 {
+                    animation: orbit-3 10s linear infinite;
                 }
             `}</style>
         </div>

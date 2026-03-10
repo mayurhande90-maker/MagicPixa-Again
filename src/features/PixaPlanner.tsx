@@ -193,67 +193,92 @@ const ThinkingLog: React.FC<{ logs: string[] }> = ({ logs }) => {
 };
 
 const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: number }> = ({ loadingText, logs, progress }) => {
+    const displayProgress = Math.round(progress);
+    
+    // Technical Sub-Step Sequencing
+    const getStepText = () => {
+        if (progress < 20) return "Initializing Neural Engine...";
+        if (progress < 50) return "Synthesizing Visual Geometry...";
+        if (progress < 85) return "Refining Lighting & Textures...";
+        if (progress < 100) return "Finalizing High-Fidelity Export...";
+        return "Masterpiece Ready!";
+    };
+
+    const activeText = !loadingText || loadingText === 'Architecting High-Fidelity Assets...'
+        ? getStepText() 
+        : loadingText;
+
     return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,64px)] max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-bounce-slight" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,64px)] max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-pro-breathe" onClick={e => e.stopPropagation()}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
                 
-                {/* Percentage Ring */}
-                <div className="relative w-24 h-24 flex items-center justify-center mb-6">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
-                        {/* Background Circle */}
-                        <circle
-                            cx="48" cy="48" r="40"
-                            stroke="currentColor" strokeWidth="6"
-                            fill="transparent" className="text-gray-100"
-                        />
-                        {/* Progress Stroke */}
-                        <circle
-                            cx="48" cy="48" r="40"
-                            stroke="url(#planner-ring-gradient)" strokeWidth="6"
-                            fill="transparent"
-                            strokeDasharray="251.2 251.2"
-                            strokeDashoffset={251.2 - (251.2 * (progress || 0)) / 100}
-                            strokeLinecap="round"
-                            className="transition-all duration-300 ease-out"
-                        />
-                        <defs>
-                            <linearGradient id="planner-ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stopColor="#4f46e5" />
-                                <stop offset="100%" stopColor="#9333ea" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    <span className="absolute text-xl font-black text-gray-900">
-                        {Math.round(progress || 0)}%
-                    </span>
+                {/* Orbiting Data Particles */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/4 left-1/2 w-1.5 h-1.5 bg-indigo-400 rounded-full blur-[1px] shadow-[0_0_8px_#818cf8] animate-orbit-1"></div>
+                    <div className="absolute top-1/4 left-1/2 w-1 h-1 bg-purple-400 rounded-full blur-[1px] shadow-[0_0_8px_#c084fc] animate-orbit-2"></div>
+                </div>
+
+                {/* Luminous Conic Ring */}
+                <div className="relative w-32 h-32 flex items-center justify-center mb-8">
+                    {/* Background Glow */}
+                    <div className="absolute inset-0 rounded-full bg-indigo-500/5 blur-2xl animate-pulse"></div>
+                    
+                    {/* The Conic Ring */}
+                    <div 
+                        className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.1)]"
+                        style={{
+                            background: `conic-gradient(from 0deg, #4f46e5, #9333ea, #4f46e5 ${progress}%, transparent 0%)`,
+                            WebkitMaskImage: 'radial-gradient(transparent 62%, black 64%)',
+                            maskImage: 'radial-gradient(transparent 62%, black 64%)',
+                            transition: 'background 0.3s ease-out'
+                        }}
+                    ></div>
+
+                    {/* Inner Circle */}
+                    <div className="absolute inset-[10%] rounded-full bg-gray-50 flex flex-col items-center justify-center shadow-inner border border-gray-100">
+                        <span className="text-3xl font-black text-gray-900 tracking-tighter">
+                            {displayProgress}<span className="text-sm opacity-30 ml-0.5">%</span>
+                        </span>
+                    </div>
                 </div>
 
                 <h2 className="text-[clamp(18px,3vh,24px)] font-black text-gray-900 mb-2">Agency processing active.</h2>
-                <p className="text-[clamp(12px,1.6vh,14px)] text-gray-500 font-medium mb-[min(4vh,32px)] h-10">{loadingText || 'Architecting High-Fidelity Assets...'}</p>
+                <p className="text-[clamp(10px,1.4vh,12px)] text-indigo-600 font-black uppercase tracking-[0.2em] mb-[min(4vh,32px)] h-6 animate-pulse">
+                    {activeText}
+                </p>
                 
                 <ThinkingLog logs={logs} />
                 
-                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-3 bg-gray-100 rounded-full overflow-hidden relative border border-gray-200/50 shadow-inner"}>
-                    {/* Moving Gradient Layer */}
+                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-2 bg-gray-100 rounded-full overflow-hidden relative border border-gray-200/50 shadow-inner"}>
                     <div 
-                        className="h-full absolute inset-0 animate-move-gradient"
-                        style={{ 
-                            width: '100%',
-                            backgroundImage: 'linear-gradient(90deg, #4f46e5, #9333ea, #4f46e5)',
-                            backgroundSize: '200% 100%'
-                        }}
+                        className="h-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 transition-all duration-300 ease-out"
+                        style={{ width: `${progress}%`, backgroundSize: '200% 100%' }}
                     ></div>
                 </div>
             </div>
             
             <style>{`
-                @keyframes move-gradient {
-                    0% { background-position: 0% 50%; }
-                    100% { background-position: 200% 50%; }
+                @keyframes pro-breathe {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
                 }
-                .animate-move-gradient {
-                    animation: move-gradient 3s linear infinite;
+                @keyframes orbit-1 {
+                    from { transform: rotate(0deg) translateX(80px) rotate(0deg); }
+                    to { transform: rotate(360deg) translateX(80px) rotate(-360deg); }
+                }
+                @keyframes orbit-2 {
+                    from { transform: rotate(180deg) translateX(95px) rotate(-180deg); }
+                    to { transform: rotate(540deg) translateX(95px) rotate(-540deg); }
+                }
+                .animate-pro-breathe {
+                    animation: pro-breathe 4s ease-in-out infinite;
+                }
+                .animate-orbit-1 {
+                    animation: orbit-1 7s linear infinite;
+                }
+                .animate-orbit-2 {
+                    animation: orbit-2 10s linear infinite;
                 }
             `}</style>
         </div>,
