@@ -73,16 +73,15 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 </div>
 
                 {/* Technical Milestone Text */}
-                <div className="flex flex-col items-center gap-3 max-w-xs">
-                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] animate-pulse text-center">
+                <div className="flex flex-col items-center gap-4 max-w-xs">
+                    <p className="text-[13px] font-[900] text-white uppercase tracking-[0.3em] animate-pulse text-center drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
                         {activeText}
                     </p>
                     
-                    {/* Minimal Progress Bar */}
-                    <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    {/* Traveling Gradient Progress Bar */}
+                    <div className="w-56 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/10 relative">
                         <div 
-                            className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transition-all duration-300 ease-out"
-                            style={{ width: `${progress}%`, backgroundSize: '200% 100%' }}
+                            className="absolute top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-traveling-bar"
                         ></div>
                     </div>
                 </div>
@@ -92,6 +91,10 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 @keyframes pro-breathe {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.03); }
+                }
+                @keyframes traveling-bar {
+                    0% { left: -100%; }
+                    100% { left: 100%; }
                 }
                 @keyframes orbit-1 {
                     from { transform: rotate(0deg) translateX(70px) rotate(0deg); }
@@ -107,6 +110,9 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 }
                 .animate-pro-breathe {
                     animation: pro-breathe 4s ease-in-out infinite;
+                }
+                .animate-traveling-bar {
+                    animation: traveling-bar 2s linear infinite;
                 }
                 .animate-orbit-1 {
                     animation: orbit-1 6s linear infinite;

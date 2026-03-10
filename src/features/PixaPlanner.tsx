@@ -210,7 +210,7 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
 
     return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,64px)] max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-pro-breathe" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#1A1A1E] rounded-[2.5rem] p-[min(6vh,32px)] md:p-[min(8vh,64px)] max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform scale-100 animate-pro-breathe" onClick={e => e.stopPropagation()}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
                 
                 {/* Orbiting Data Particles */}
@@ -222,11 +222,11 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                 {/* Luminous Conic Ring */}
                 <div className="relative w-32 h-32 flex items-center justify-center mb-8">
                     {/* Background Glow */}
-                    <div className="absolute inset-0 rounded-full bg-indigo-500/5 blur-2xl animate-pulse"></div>
+                    <div className="absolute inset-0 rounded-full bg-indigo-500/10 blur-2xl animate-pulse"></div>
                     
                     {/* The Conic Ring */}
                     <div 
-                        className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.1)]"
+                        className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.2)]"
                         style={{
                             background: `conic-gradient(from 0deg, #4f46e5, #9333ea, #4f46e5 ${progress}%, transparent 0%)`,
                             WebkitMaskImage: 'radial-gradient(transparent 62%, black 64%)',
@@ -236,24 +236,23 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                     ></div>
 
                     {/* Inner Circle */}
-                    <div className="absolute inset-[10%] rounded-full bg-gray-50 flex flex-col items-center justify-center shadow-inner border border-gray-100">
-                        <span className="text-3xl font-black text-gray-900 tracking-tighter">
+                    <div className="absolute inset-[10%] rounded-full bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center shadow-inner border border-white/10">
+                        <span className="text-3xl font-black text-white tracking-tighter">
                             {displayProgress}<span className="text-sm opacity-30 ml-0.5">%</span>
                         </span>
                     </div>
                 </div>
 
-                <h2 className="text-[clamp(18px,3vh,24px)] font-black text-gray-900 mb-2">Agency processing active.</h2>
-                <p className="text-[clamp(10px,1.4vh,12px)] text-indigo-600 font-black uppercase tracking-[0.2em] mb-[min(4vh,32px)] h-6 animate-pulse">
+                <h2 className="text-[clamp(18px,3vh,24px)] font-black text-white mb-2">Agency processing active.</h2>
+                <p className="text-[clamp(12px,1.6vh,14px)] text-white font-[900] uppercase tracking-[0.2em] mb-[min(4vh,32px)] h-6 animate-pulse drop-shadow-sm">
                     {activeText}
                 </p>
                 
                 <ThinkingLog logs={logs} />
                 
-                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-2 bg-gray-100 rounded-full overflow-hidden relative border border-gray-200/50 shadow-inner"}>
+                <div className={PlannerStyles.progressBar + " mt-[min(4vh,32px)] w-full h-2 bg-white/10 rounded-full overflow-hidden relative border border-white/10 shadow-inner"}>
                     <div 
-                        className="h-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 transition-all duration-300 ease-out"
-                        style={{ width: `${progress}%`, backgroundSize: '200% 100%' }}
+                        className="absolute top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-traveling-bar"
                     ></div>
                 </div>
             </div>
@@ -262,6 +261,10 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                 @keyframes pro-breathe {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.02); }
+                }
+                @keyframes traveling-bar {
+                    0% { left: -100%; }
+                    100% { left: 100%; }
                 }
                 @keyframes orbit-1 {
                     from { transform: rotate(0deg) translateX(80px) rotate(0deg); }
@@ -273,6 +276,9 @@ const ProgressModal: React.FC<{ loadingText: string; logs: string[]; progress: n
                 }
                 .animate-pro-breathe {
                     animation: pro-breathe 4s ease-in-out infinite;
+                }
+                .animate-traveling-bar {
+                    animation: traveling-bar 2s linear infinite;
                 }
                 .animate-orbit-1 {
                     animation: orbit-1 7s linear infinite;
