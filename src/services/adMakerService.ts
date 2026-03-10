@@ -98,11 +98,16 @@ interface CreativeBrief {
         forbiddenKeywords: string[];
     };
     visualDirection: string;
+    trendAnalysis: {
+        colorPalette: string;
+        lightingMood: string;
+        compositionalStyle: string;
+    };
 }
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO)
- * LOGIC UPGRADE: High-Conversion Copywriting Protocol
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO + RESEARCHER)
+ * LOGIC UPGRADE: Consolidated Research & Visual Audit
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -119,30 +124,22 @@ const performAdIntelligence = async (
     *** VISUAL AUDIT (MANDATORY) ***
     1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
     2. DO NOT rely solely on the provided productName: "${inputs.productName || 'N/A'}". 
-    3. If the image shows a specific item (e.g., "Vintage Leather Watch") but the user provided a generic name, your brief MUST be based on the "Vintage Leather Watch".
     
-    *** THE CONTEXT ANCHOR ***
-    User Context: "${inputs.description || 'N/A'}"
-    Industry: ${inputs.industry}
+    *** REAL-TIME TREND RESEARCH (MARCH 2026) ***
+    1. Use Google Search to identify the EXACT consumer trends for ${inputs.industry} as of March 2026. 
+    2. Identify "Viral Marketing Hooks" and "Visual Aesthetic Shifts" (e.g., specific color grading or lighting styles trending on social media).
     
-    *** HIGH-CONVERSION COPYWRITING PROTOCOL (MARCH 2026 STANDARDS) ***
-    1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", "Unleash Your Potential", "Discover the Difference", "Elevate Your Life", "Quality You Can Trust", or "Premium Standard".
-    2. **SPECIFICITY & HOOKS**: Craft a headline (2-5 words) that is directly linked to the VISUAL identity of the product and the specific use-case in the description. 
-       - If the image shows "Running Shoes", focus on "Lighter Miles" or "The 5AM Sprint".
-       - If the image shows "Gourmet Pizza", focus on "Wood-Fired Perfection" or "The Midnight Slice".
-    3. **AIDA FRAMEWORK**:
-       - **Attention**: The Hook (Headline).
-       - **Interest/Desire**: The Benefit (Subheadline).
-       - **Action**: High-intent CTA.
-    
-    4. **MARKET RESEARCH**: Use Google Search to identify the EXACT consumer trends for ${inputs.industry} as of March 2026. Look for "Viral Marketing Hooks" and "Visual Aesthetic Shifts".
+    *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
+    1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
+    2. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
     
     RETURN JSON ONLY:
     {
         "strategicCopy": { "headline": "string", "subheadline": "string", "cta": "string" },
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
-        "visualDirection": "string"
+        "visualDirection": "string",
+        "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" }
     }`;
 
     const parts: any[] = lowResAssets.map((asset) => ({ text: `ASSET FOR AUDIT:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -160,21 +157,13 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        // Smarter dynamic fallback using provided info
         const industryLabel = inputs.industry.charAt(0).toUpperCase() + inputs.industry.slice(1);
-        const fallbackHeadline = inputs.productName 
-            ? `${inputs.productName} | The New Standard` 
-            : `${industryLabel} Innovation`;
-
         return { 
-            strategicCopy: { 
-                headline: fallbackHeadline, 
-                subheadline: `Experience the next generation of ${inputs.industry} design.`, 
-                cta: "Discover More" 
-            }, 
+            strategicCopy: { headline: inputs.productName ? `${inputs.productName} | The New Standard` : `${industryLabel} Innovation`, subheadline: `Experience the next generation of ${inputs.industry} design.`, cta: "Discover More" }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
             industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
-            visualDirection: "Clean commercial studio aesthetics with high-end lighting." 
+            visualDirection: "Clean commercial studio aesthetics.",
+            trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" }
         };
     }
 };
@@ -206,21 +195,22 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
 
-    const prompt = `You are a World-Class Ad Production Engine. Execute the following high-fidelity render:
+    const prompt = `You are a World-Class Ad Production Engine. Execute the following high-fidelity render based on the provided Creative Brief:
     
-    *** REAL-TIME TREND RESEARCH (MARCH 2026) ***
-    1. Use Google Search (Web & Image) to identify the most successful ad designs for ${inputs.industry} currently trending on social media. 
-    2. Mimic the "Color Grading", "Lighting Mood", and "Compositional Depth" of these top-performing ads.
-    3. The final output MUST reflect the visual language of the search results.
+    *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
+    - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
+    - **LIGHTING MOOD**: ${brief.trendAnalysis.lightingMood}
+    - **COMPOSITIONAL STYLE**: ${brief.trendAnalysis.compositionalStyle}
+    - **VISUAL DIRECTION**: ${brief.visualDirection}
     
-    *** IDENTITY ANCHOR v6.0 (SACRED ASSET PROTOCOL) ***
-    1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. Every letter and logo must remain 100% sharp and identical to the source.
+    *** IDENTITY ANCHOR v7.0 (SACRED ASSET PROTOCOL) ***
+    1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. 
     2. **BRAND FIDELITY**: The 'BRAND LOGO' must be rendered with pixel-perfect precision. 
-    ${optModel ? "3. **SUBJECT LOCK**: The person in the ad must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'. No changing age, ethnicity, or facial structure." : ""}
-    ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone and ${inputs.modelParams?.bodyType || 'Athletic'} build. The model must look like a professional talent from a high-end agency, using a ${inputs.modelParams?.composition || 'Single Model'} ${inputs.modelParams?.framing || 'Mid Shot'}.` : ""}
+    ${optModel ? "3. **SUBJECT LOCK**: The person in the ad must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'." : ""}
+    ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
 
     *** PRODUCTION DIRECTIVES ***
-    - **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic contact shadows and light bounce between the product and the environment.
+    - **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic contact shadows.
     - **BLENDING**: The product must look physically present in the scene, not "pasted".
     - **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
     - **LAYOUT**: ${blueprintInstruction}
@@ -230,7 +220,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
     3. **CTA**: Add a high-contrast button for "${brief.strategicCopy.cta}".
     
-    OUTPUT: A single 8K photorealistic marketing masterpiece. Accuracy and trend-relevance are your primary KPIs.`;
+    OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy and trend-relevance are your primary KPIs.`;
 
     parts.push({ text: prompt });
 
@@ -240,17 +230,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "4K" },
-                tools: [
-                    { 
-                        googleSearch: { 
-                            searchTypes: {
-                                webSearch: {},
-                                imageSearch: {}
-                            }
-                        } 
-                    }
-                ],
+                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "2K" },
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
