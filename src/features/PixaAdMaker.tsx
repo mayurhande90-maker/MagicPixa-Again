@@ -371,13 +371,20 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (loading || isRefining) {
             const steps = isRefining 
                 ? ["Elite Retoucher: Analyzing ad depth...", "Optical Audit: Tracing branding spill...", "Contact Correction: Recalculating typography shadows...", "Global Illumination: Polishing masterpiece..."]
-                : ["CMO Intelligence: Researching 2025 Market Trends...", "Art Direction: Architecting visual hierarchy...", "Optical Audit: Locking product identity...", "Production: Simulating lighting & physics...", "Elite Retoucher: Final pixel polish..."];
+                : [
+                    "CMO Intelligence: Researching March 2026 Market Trends...",
+                    "Trend Analysis: Identifying Viral Visual Aesthetics...",
+                    "Art Direction: Architecting High-Conversion Hierarchy...",
+                    "Optical Audit: Locking Sacred Product Identity...",
+                    "Production: Simulating Ray-Traced Global Illumination...",
+                    "Elite Retoucher: Final 8K Pixel Polish..."
+                ];
             let step = 0;
             setLoadingText(steps[0]);
             interval = setInterval(() => {
                 step = (step + 1) % steps.length;
                 setLoadingText(steps[step]);
-            }, 5000);
+            }, 4000);
         }
         return () => clearInterval(interval);
     }, [loading, isRefining]);

@@ -3,7 +3,6 @@ import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThresho
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
 import { resizeImage, urlToBase64, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
-import { getVaultImages, getVaultFolderConfig } from "../firebase";
 
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
@@ -120,7 +119,7 @@ const performAdIntelligence = async (
     *** THE CONTEXT ANCHOR (PRIORITY 1) ***
     User Context: "${inputs.description || 'N/A'}"
     
-    *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
+    *** HIGH-CONVERSION COPYWRITING PROTOCOL (MARCH 2026 STANDARDS) ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Defined by Excellence", "Unleash Your Potential", "Discover the Difference", "Elevate Your Life", "Quality You Can Trust", or "Premium Standard".
     2. **SPECIFICITY & HOOKS**: Craft a headline (2-5 words) that is directly linked to the specific use-case in the description. 
        - If describing "morning coffee", use hooks about "The 6AM Ritual" or "Foggy Mornings, Sharp Mind".
@@ -130,7 +129,7 @@ const performAdIntelligence = async (
        - **Interest/Desire**: The Benefit (Subheadline).
        - **Action**: High-intent CTA.
     
-    4. **MARKET RESEARCH**: Use Google Search to identify 2025 consumer trends for ${inputs.industry} and integrate a trending "angle" into the copy.
+    4. **MARKET RESEARCH**: Use Google Search to identify the EXACT consumer trends for ${inputs.industry} as of March 2026. Look for "Viral Marketing Hooks" and "Visual Aesthetic Shifts".
     
     RETURN JSON ONLY:
     {
@@ -172,23 +171,7 @@ const performAdIntelligence = async (
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null, userPlan?: string): Promise<string> => {
     const ai = getAiClient();
     
-    // 1. Visual DNA & Context Retrieval
-    let vaultAssets: { data: string, mimeType: string }[] = [];
-    let vaultDna = "";
-    try {
-        const [refs, conf] = await Promise.all([
-            getVaultImages('brand_stylist', inputs.industry),
-            getVaultFolderConfig('brand_stylist', inputs.industry)
-        ]);
-        if (conf) vaultDna = conf.dna;
-        const selectedRefs = refs.slice(0, 3);
-        vaultAssets = await Promise.all(selectedRefs.map(async (r) => {
-            const res = await urlToBase64(r.imageUrl);
-            return { data: res.base64, mimeType: res.mimeType };
-        }));
-    } catch (e) { console.warn("Vault retrieval failed", e); }
-
-    // 2. Departmental Engines (Strategy + Prep)
+    // 1. Departmental Engines (Strategy + Prep)
     const [brief, optimizedMains, optLogo, optModel, optRef] = await Promise.all([
         performAdIntelligence(inputs, brand),
         Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
@@ -199,13 +182,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const parts: any[] = [];
     
-    // Add Vault References for Style Continuity
-    if (vaultAssets.length > 0) {
-        vaultAssets.forEach((v, i) => {
-            parts.push({ text: `AGENCY LIGHTING REF ${i+1}:` }, { inlineData: { data: v.data, mimeType: v.mimeType } });
-        });
-    }
-
     // Add Primary Product Assets
     optimizedMains.forEach((opt, idx) => {
         parts.push({ text: `SACRED PRODUCT ASSET ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
@@ -218,14 +194,20 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const prompt = `You are a World-Class Ad Production Engine. Execute the following high-fidelity render:
     
-    *** IDENTITY ANCHOR v5.0 (SACRED ASSET PROTOCOL) ***
+    *** REAL-TIME TREND RESEARCH (MARCH 2026) ***
+    1. Use Google Search (Web & Image) to identify the most successful ad designs for ${inputs.industry} currently trending on social media. 
+    2. Mimic the "Color Grading", "Lighting Mood", and "Compositional Depth" of these top-performing ads.
+    3. The final output MUST reflect the visual language of the search results.
+    
+    *** IDENTITY ANCHOR v6.0 (SACRED ASSET PROTOCOL) ***
     1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. Every letter and logo must remain 100% sharp and identical to the source.
     2. **BRAND FIDELITY**: The 'BRAND LOGO' must be rendered with pixel-perfect precision. 
     ${optModel ? "3. **SUBJECT LOCK**: The person in the ad must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'. No changing age, ethnicity, or facial structure." : ""}
+    ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone and ${inputs.modelParams?.bodyType || 'Athletic'} build. The model must look like a professional talent from a high-end agency, using a ${inputs.modelParams?.composition || 'Single Model'} ${inputs.modelParams?.framing || 'Mid Shot'}.` : ""}
 
     *** PRODUCTION DIRECTIVES ***
-    - **LIGHTING**: ${vaultDna ? `Adhere to this rigorous lighting protocol: ${vaultDna}` : 'Apply multi-point professional studio lighting.'}
-    - **BLENDING**: Apply "Ray-Traced Graphic Blending". Ensure realistic contact shadows and global illumination bounce between the subject and the environment.
+    - **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic contact shadows and light bounce between the product and the environment.
+    - **BLENDING**: The product must look physically present in the scene, not "pasted".
     - **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
     - **LAYOUT**: ${blueprintInstruction}
 
@@ -234,7 +216,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
     3. **CTA**: Add a high-contrast button for "${brief.strategicCopy.cta}".
     
-    OUTPUT: A single 8K photorealistic marketing masterpiece. Accuracy is your primary KPI.`;
+    OUTPUT: A single 8K photorealistic marketing masterpiece. Accuracy and trend-relevance are your primary KPIs.`;
 
     parts.push({ text: prompt });
 
@@ -244,7 +226,17 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
             contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
-                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "2K" },
+                imageConfig: { aspectRatio: inputs.aspectRatio || "1:1", imageSize: "4K" },
+                tools: [
+                    { 
+                        googleSearch: { 
+                            searchTypes: {
+                                webSearch: {},
+                                imageSearch: {}
+                            }
+                        } 
+                    }
+                ],
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
