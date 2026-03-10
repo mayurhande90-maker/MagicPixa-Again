@@ -114,16 +114,22 @@ const performAdIntelligence = async (
     );
 
     const prompt = `Act as a world-class CMO and Lead Strategy Director at a top-tier creative agency. 
-    Develop a high-conversion creative brief for this ${inputs.industry} asset: "${inputs.productName || 'Subject'}".
+    Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
     
-    *** THE CONTEXT ANCHOR (PRIORITY 1) ***
+    *** VISUAL AUDIT (MANDATORY) ***
+    1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
+    2. DO NOT rely solely on the provided productName: "${inputs.productName || 'N/A'}". 
+    3. If the image shows a specific item (e.g., "Vintage Leather Watch") but the user provided a generic name, your brief MUST be based on the "Vintage Leather Watch".
+    
+    *** THE CONTEXT ANCHOR ***
     User Context: "${inputs.description || 'N/A'}"
+    Industry: ${inputs.industry}
     
     *** HIGH-CONVERSION COPYWRITING PROTOCOL (MARCH 2026 STANDARDS) ***
-    1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Defined by Excellence", "Unleash Your Potential", "Discover the Difference", "Elevate Your Life", "Quality You Can Trust", or "Premium Standard".
-    2. **SPECIFICITY & HOOKS**: Craft a headline (2-5 words) that is directly linked to the specific use-case in the description. 
-       - If describing "morning coffee", use hooks about "The 6AM Ritual" or "Foggy Mornings, Sharp Mind".
-       - If describing a "summer sale", focus on "Heat-Wave Hero" or "Last Chance for Sun".
+    1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", "Unleash Your Potential", "Discover the Difference", "Elevate Your Life", "Quality You Can Trust", or "Premium Standard".
+    2. **SPECIFICITY & HOOKS**: Craft a headline (2-5 words) that is directly linked to the VISUAL identity of the product and the specific use-case in the description. 
+       - If the image shows "Running Shoes", focus on "Lighter Miles" or "The 5AM Sprint".
+       - If the image shows "Gourmet Pizza", focus on "Wood-Fired Perfection" or "The Midnight Slice".
     3. **AIDA FRAMEWORK**:
        - **Attention**: The Hook (Headline).
        - **Interest/Desire**: The Benefit (Subheadline).
@@ -154,13 +160,21 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        // Smarter fallback using provided info
-        const fallbackHeadline = inputs.productName ? `${inputs.productName} Standard` : "Ready for Launch";
+        // Smarter dynamic fallback using provided info
+        const industryLabel = inputs.industry.charAt(0).toUpperCase() + inputs.industry.slice(1);
+        const fallbackHeadline = inputs.productName 
+            ? `${inputs.productName} | The New Standard` 
+            : `${industryLabel} Innovation`;
+
         return { 
-            strategicCopy: { headline: fallbackHeadline, subheadline: "Designed for those who lead the way.", cta: "Shop Collection" }, 
+            strategicCopy: { 
+                headline: fallbackHeadline, 
+                subheadline: `Experience the next generation of ${inputs.industry} design.`, 
+                cta: "Discover More" 
+            }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
-            industryLogic: { categoryBadgeText: 'Selected Grade', forbiddenKeywords: [] },
-            visualDirection: "Clean commercial studio aesthetics." 
+            industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
+            visualDirection: "Clean commercial studio aesthetics with high-end lighting." 
         };
     }
 };
