@@ -42,7 +42,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                         strokeDasharray="251.2"
                         strokeDashoffset={251.2 - (251.2 * (progress || 0)) / 100}
                         strokeLinecap="round"
-                        className="transition-all duration-700 ease-out"
+                        className="transition-all duration-300 ease-out"
                     />
                     <defs>
                         <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
