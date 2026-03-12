@@ -1031,7 +1031,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className="pt-4 border-t border-gray-100">
                                             <div className={AdMakerStyles.sectionHeader}>
                                                 <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Call to Action</label>
+                                                <label className={AdMakerStyles.sectionTitle}>Call to Action (Optional)</label>
                                             </div>
                                             <div className="space-y-4">
                                                 <div className="grid grid-cols-2 gap-3">

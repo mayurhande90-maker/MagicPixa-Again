@@ -144,9 +144,10 @@ const performAdIntelligence = async (
     
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
-    2. **MARKETING AI TITLES**: Generate high-impact, punchy, and modern marketing headlines (similar to viral social media ads).
-    3. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
-    ${inputs.customTitle ? `4. **USER OVERRIDE**: The user has provided a custom title: "${inputs.customTitle}". USE THIS EXACT TITLE as the headline. Do not generate a new one.` : ""}
+    2. **ANTI-LITERAL RULE**: Strictly FORBIDDEN to include the industry name ("${inputs.industry}") or category in the headline. 
+    3. **ABSTRACT HOOKS**: Generate high-impact, punchy, and modern marketing headlines. Focus on the "Vibe" and "Benefit" rather than the category. (e.g., instead of "Best Coffee", use "The Morning Ritual").
+    4. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
+    ${inputs.customTitle ? `5. **USER OVERRIDE**: The user has provided a custom title: "${inputs.customTitle}". USE THIS EXACT TITLE as the headline. Do not generate a new one.` : ""}
     
     RETURN JSON ONLY:
     {
@@ -212,7 +213,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
 
-    const prompt = `You are a World-Class Ad Production Engine. Execute the following high-fidelity render based on the provided Creative Brief:
+    const prompt = `You are an Elite Graphic Designer and World-Class Ad Production Engine. Execute the following high-fidelity render following Swiss Design and International Typographic Style:
     
     *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
     - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
@@ -221,14 +222,21 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     - **VISUAL DIRECTION**: ${brief.visualDirection}
     - **HARMONIZED LAYOUT**: ${brief.harmonizedLayout}
     
-    *** IDENTITY ANCHOR v7.0 (SACRED ASSET PROTOCOL) ***
+    *** SWISS DESIGN ARCHITECTURE (MANDATORY) ***
+    1. **MASSIVE SCALE CONTRAST**: The Headline must be at least 4x larger than the subheadline. Use bold, high-impact Grotesk Sans typography.
+    2. **NEGATIVE SPACE MANDATE**: Ensure at least 20% "breathing room" around every text element. No clutter.
+    3. **GRID ALIGNMENT**: Align all text elements to a strict invisible grid.
+    
+    *** IDENTITY ANCHOR v8.0 (SACRED ASSET PROTOCOL) ***
     1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. 
     2. **BRAND FIDELITY**: The 'BRAND LOGO' must be rendered with pixel-perfect precision. 
     ${optModel ? "3. **SUBJECT LOCK**: The person in the ad must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'." : ""}
     ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
 
-    *** PRODUCTION DIRECTIVES ***
-    - **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic contact shadows.
+    *** PRODUCTION DIRECTIVES (ELITE QUALITY) ***
+    - **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with "Contact Shadows" and "Ambient Occlusion". 
+    - **DEPTH CUES**: Integrate text with depth—some elements can float slightly behind foreground objects for a high-end editorial look.
+    - **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
     - **BLENDING**: The product must look physically present in the scene, not "pasted".
     - **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
     - **LAYOUT**: ${blueprintInstruction}
@@ -239,10 +247,10 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     *** CALL TO ACTION (MANDATORY) ***
     ${(inputs.ctaButton || inputs.customCta) ? `1. **CTA BUTTON**: Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}".` : "1. **NO CTA BUTTON**: Do not render a CTA button."}
-    ${inputs.website ? `2. **WEBSITE**: Render the website URL "${inputs.website}" elegantly near the bottom.` : ""}
+    ${inputs.website ? `2. **WEBSITE**: Render the website URL "${inputs.website}" elegantly near the bottom using a clean Monospace font.` : ""}
     ${inputs.contactNumber ? `3. **CONTACT**: Render the contact number "${inputs.contactNumber}" clearly.` : ""}
     
-    OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy and trend-relevance are your primary KPIs.`;
+    OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
 
     parts.push({ text: prompt });
 
