@@ -32,7 +32,8 @@ export const generateApparelTryOn = async (
   userPrompt?: string,
   stylingOptions?: ApparelStylingOptions,
   brand?: BrandKit | null,
-  userPlan?: string
+  userPlan?: string,
+  isMobile?: boolean
 ): Promise<string> => {
   const ai = getAiClient();
   try {
@@ -79,12 +80,15 @@ export const generateApparelTryOn = async (
         parts.push({ text: stylingDirectives });
     }
 
+    const isPro = ['Studio Pack', 'Agency Pack'].includes(userPlan || '');
+    const imageSize = (isMobile || !isPro) ? "1K" : "2K";
+
     const response = await secureGenerateContent({
       model: 'gemini-3.1-flash-image-preview',
       contents: { parts },
       config: { 
           responseModalities: [Modality.IMAGE],
-          imageConfig: { imageSize: "2K" },
+          imageConfig: { imageSize },
           safetySettings: [
               { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
               { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },

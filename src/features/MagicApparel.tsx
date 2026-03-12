@@ -84,8 +84,54 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     };
 
     const handleGenerate = async () => {
-        if (!personImage || !auth.user) return; if (!topGarment && !bottomGarment) return; if (isLowCredits) { alert("Insufficient credits."); return; } setLoading(true); setResultImage(null); setLastCreationId(null);
-        try { const res = await generateApparelTryOn(personImage.base64.base64, personImage.base64.mimeType, topGarment ? topGarment.base64 : null, bottomGarment ? bottomGarment.base64 : null, undefined, { tuck, sleeve, fit, accessories }, auth.activeBrandKit, auth.user?.basePlan || undefined); const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl); const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn'); setLastCreationId(creationId); const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
+        if (!personImage || !auth.user) return; 
+        if (!topGarment && !bottomGarment) return; 
+        if (isLowCredits) { alert("Insufficient credits."); return; } 
+        
+        setLoading(true); 
+        setResultImage(null); 
+        setLastCreationId(null);
+        
+        const isMobile = window.innerWidth < 768;
+
+        try { 
+            const res = await generateApparelTryOn(
+                personImage.base64.base64, 
+                personImage.base64.mimeType, 
+                topGarment ? topGarment.base64 : null, 
+                bottomGarment ? bottomGarment.base64 : null, 
+                undefined, 
+                { tuck, sleeve, fit, accessories }, 
+                auth.activeBrandKit, 
+                auth.user?.basePlan || undefined,
+                isMobile
+            ); 
+            
+            const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
+            setResultImage(blobUrl); 
+            const dataUri = `data:image/png;base64,${res}`; 
+            
+            // GRACEFUL SAVING: Don't crash the whole UI if the 1MB save fails
+            try {
+                const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn'); 
+                setLastCreationId(creationId); 
+            } catch (saveError) {
+                console.warn("Failed to save to history (likely size limit):", saveError);
+                setNotification({ msg: "Generated! (History save failed due to size)", type: 'info' });
+            }
+
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn'); 
+            if (updatedUser.lifetimeGenerations) { 
+                const bonus = checkMilestone(updatedUser.lifetimeGenerations); 
+                if (bonus !== false) setMilestoneBonus(bonus); 
+            } 
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null); 
+        } catch (e: any) { 
+            console.error(e); 
+            alert(`Generation failed: ${e.message}`); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const handleRefine = async (refineText: string) => {
@@ -102,11 +148,17 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;
             
-            if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, dataUri);
-            } else {
-                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn (Refined)');
-                setLastCreationId(id);
+            // GRACEFUL SAVING: Don't crash the whole UI if the 1MB save fails
+            try {
+                if (lastCreationId) {
+                    await updateCreation(auth.user.uid, lastCreationId, dataUri);
+                } else {
+                    const id = await saveCreation(auth.user.uid, dataUri, 'Pixa TryOn (Refined)');
+                    setLastCreationId(id);
+                }
+            } catch (saveError) {
+                console.warn("Failed to update history (likely size limit):", saveError);
+                setNotification({ msg: "Refined! (History update failed due to size)", type: 'info' });
             }
             
             const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
