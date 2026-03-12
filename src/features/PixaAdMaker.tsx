@@ -95,15 +95,9 @@ const BLUEPRINT_VIBE_CONSTRAINTS: Record<string, string[]> = {
 const LAYOUT_TEMPLATES = [
     'Hero Focus', 
     'Split Design', 
-    'Bottom Strip', 
-    'Social Proof',
-    'Magazine Cover',
-    'Minimalist Zen',
-    'Feature Callout',
-    'Action Dynamic',
-    'Contrast Grid'
+    'Bottom Strip'
 ];
-const COLLECTION_TEMPLATES = ['The Trio', 'Range Lineup', 'Hero & Variants'];
+const COLLECTION_TEMPLATES: string[] = [];
 
 const IndustryCard: React.FC<{ 
     title: string; 
@@ -296,6 +290,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); 
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     
+    const [customTitle, setCustomTitle] = useState('');
+    const [contactNumber, setContactNumber] = useState('');
+    const [ctaButton, setCtaButton] = useState('');
+    const [customCta, setCustomCta] = useState('');
+
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [modelParams, setModelParams] = useState<AdMakerInputs['modelParams']>({
@@ -456,10 +455,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const inputs: AdMakerInputs = {
                 industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
-                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, offer, description, layoutTemplate, aspectRatio,
+                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, contactNumber, offer, description, layoutTemplate, aspectRatio,
                 modelSource: integrationMode === 'subject' ? modelSource : null, 
                 modelImage: integrationMode === 'subject' && modelSource === 'upload' ? modelImage?.base64 : null, 
-                modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined
+                modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined,
+                customTitle, ctaButton, customCta
             };
             
             const resB64 = await generateAdCreative(inputs, auth.activeBrandKit, auth.user?.basePlan || undefined);
@@ -519,6 +519,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
         setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null); setLayoutTemplate('');
+        setCustomTitle(''); setContactNumber(''); setCtaButton(''); setCustomCta('');
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -1015,12 +1016,59 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     value={description} 
                                                     onChange={(e: any) => setDescription(e.target.value)} 
                                                 />
+                                                <div className="animate-fadeIn">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Custom Marketing Title (Optional)</label>
+                                                    <InputField 
+                                                        placeholder="Enter your own title to override AI generation..." 
+                                                        value={customTitle} 
+                                                        onChange={(e: any) => setCustomTitle(e.target.value)} 
+                                                    />
+                                                    <p className="text-[9px] text-gray-400 mt-1 italic">If provided, this title will be used exactly as it is.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <div className={AdMakerStyles.sectionHeader}>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
+                                                <label className={AdMakerStyles.sectionTitle}>Call to Action</label>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <InputField 
+                                                        label="Contact Number"
+                                                        placeholder="e.g. +1 234 567 890" 
+                                                        value={contactNumber} 
+                                                        onChange={(e: any) => setContactNumber(e.target.value)} 
+                                                    />
+                                                    <InputField 
+                                                        label="Website"
+                                                        placeholder="e.g. www.yourbrand.com" 
+                                                        value={website} 
+                                                        onChange={(e: any) => setWebsite(e.target.value)} 
+                                                    />
+                                                </div>
+                                                <SelectionGrid 
+                                                    label="CTA Button" 
+                                                    options={['Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom']} 
+                                                    value={ctaButton} 
+                                                    onChange={setCtaButton} 
+                                                />
+                                                {ctaButton === 'Custom' && (
+                                                    <div className="animate-fadeIn -mt-2">
+                                                        <InputField 
+                                                            placeholder="Enter custom CTA text..." 
+                                                            value={customCta} 
+                                                            onChange={(e: any) => setCustomCta(e.target.value)} 
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
                                         <div className="pt-4 border-t border-gray-100 pb-20">
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '7' : '8') : (auth.activeBrandKit ? '6' : '7') }</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                             </div>
                                             

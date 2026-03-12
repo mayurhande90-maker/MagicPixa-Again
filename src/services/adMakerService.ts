@@ -12,6 +12,7 @@ export interface AdMakerInputs {
     vibe?: string;
     productName?: string;
     website?: string;
+    contactNumber?: string;
     offer?: string;
     description?: string;
     productSpecs?: string;
@@ -27,6 +28,9 @@ export interface AdMakerInputs {
         composition: string;
         framing: string;
     };
+    customTitle?: string;
+    ctaButton?: string;
+    customCta?: string;
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
@@ -140,7 +144,9 @@ const performAdIntelligence = async (
     
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
-    2. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
+    2. **MARKETING AI TITLES**: Generate high-impact, punchy, and modern marketing headlines (similar to viral social media ads).
+    3. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
+    ${inputs.customTitle ? `4. **USER OVERRIDE**: The user has provided a custom title: "${inputs.customTitle}". USE THIS EXACT TITLE as the headline. Do not generate a new one.` : ""}
     
     RETURN JSON ONLY:
     {
@@ -228,9 +234,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     - **LAYOUT**: ${blueprintInstruction}
 
     *** THE CREATIVE COPY (AIDA) ***
-    1. **HEADLINE**: Render "${brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Sans'}.
+    1. **HEADLINE**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Sans'}.
     2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
-    3. **CTA**: Add a high-contrast button for "${brief.strategicCopy.cta}".
+    
+    *** CALL TO ACTION (MANDATORY) ***
+    ${(inputs.ctaButton || inputs.customCta) ? `1. **CTA BUTTON**: Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}".` : "1. **NO CTA BUTTON**: Do not render a CTA button."}
+    ${inputs.website ? `2. **WEBSITE**: Render the website URL "${inputs.website}" elegantly near the bottom.` : ""}
+    ${inputs.contactNumber ? `3. **CONTACT**: Render the contact number "${inputs.contactNumber}" clearly.` : ""}
     
     OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy and trend-relevance are your primary KPIs.`;
 
