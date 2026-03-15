@@ -34,18 +34,18 @@ export interface AdMakerInputs {
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
-    'Hero Focus': "The product is the undisputed hero, placed front and center. INSTAGRAM SAFE ZONE: Keep the top 15% and bottom 15% clear of text. The headline floats elegantly in the upper third safe-zone.",
-    'Split Design': "A sophisticated vertical split. One side is dedicated to a clean product showcase, while the other houses the headline. INSTAGRAM SAFE ZONE: Ensure text is vertically centered to avoid platform overlays.",
-    'Bottom Strip': "A cinematic wide-angle approach. The product dominates the upper frame. INSTAGRAM SAFE ZONE: The semi-transparent information strip must be placed exactly above the bottom 15% UI area.",
-    'Social Proof': "An organic, trust-focused composition. The product is offset to one side. SAFE ZONE: Place the 'Review Bubble' in the upper safe-zone corner.",
-    'Magazine Cover': "High-prestige editorial style. The product is large and centered. SAFE ZONE: Massive typography must be integrated into the middle 70% of the canvas to avoid UI cropping.",
-    'Minimalist Zen': "Extreme boutique minimalism. The product is small and placed in a corner. SAFE ZONE: The headline is a tiny, elegant serif in the opposite safe-zone corner.",
-    'Feature Callout': "A technical, educational layout. The product is centered at a 60% scale. SAFE ZONE: Pointer lines and text must stay within the central 70% area.",
-    'Action Dynamic': "High-energy urgency. The product is tilted at a dynamic angle. SAFE ZONE: Bold italicized headline must be placed aggressively but within safe boundaries.",
-    'Contrast Grid': "A powerful 'Before & After' split. The canvas is divided 50/50. SAFE ZONE: Maintain vertical symmetry within the platform safe zones.",
-    'The Trio': "A depth-based collection showcase. One main hero item is front and center. SAFE ZONE: Keep the top and bottom clear for Instagram engagement buttons.",
-    'Range Lineup': "Perfect symmetrical alignment. Products are arranged side-by-side. SAFE ZONE: Ensure the lineup is centered horizontally and vertically.",
-    'Hero & Variants': "Dynamic bokeh-based storytelling. Hero item in sharp focus. SAFE ZONE: Depth-based text must float in the middle safe-zone layer."
+    'Hero Focus': "The product is the undisputed hero, placed front and center. INSTAGRAM SAFE ZONE: Keep the top 15% and bottom 15% clear of text. The headline floats elegantly in the upper third safe-zone. PHYSICS: Ensure the product has a soft contact shadow on the surface.",
+    'Split Design': "A sophisticated vertical split. One side is dedicated to a clean product showcase, while the other houses the headline. INSTAGRAM SAFE ZONE: Ensure text is vertically centered to avoid platform overlays. DESIGN: Use a strict 50/50 split with a 1px divider line.",
+    'Bottom Strip': "A cinematic wide-angle approach. The product dominates the upper frame. INSTAGRAM SAFE ZONE: The semi-transparent information strip must be placed exactly above the bottom 15% UI area. PHYSICS: Use high-angle lighting to create long, dramatic shadows.",
+    'Social Proof': "An organic, trust-focused composition. The product is offset to one side. SAFE ZONE: Place the 'Review Bubble' in the upper safe-zone corner. DESIGN: Use a handwritten-style font for the review text to contrast with the brand typography.",
+    'Magazine Cover': "High-prestige editorial style. The product is large and centered. SAFE ZONE: Massive typography must be integrated into the middle 70% of the canvas to avoid UI cropping. DESIGN: Text should partially overlap the product for depth.",
+    'Minimalist Zen': "Extreme boutique minimalism. The product is small and placed in a corner. SAFE ZONE: The headline is a tiny, elegant serif in the opposite safe-zone corner. DESIGN: Use 80% negative space.",
+    'Feature Callout': "A technical, educational layout. The product is centered at a 60% scale. SAFE ZONE: Pointer lines and text must stay within the central 70% area. DRAFTING: Use 1px sharp vector lines with circular anchor points to point at product features.",
+    'Action Dynamic': "High-energy urgency. The product is tilted at a dynamic angle. SAFE ZONE: Bold italicized headline must be placed aggressively but within safe boundaries. PHYSICS: Add motion blur to the background to emphasize speed.",
+    'Contrast Grid': "A powerful 'Before & After' split. The canvas is divided 50/50. SAFE ZONE: Maintain vertical symmetry within the platform safe zones. DESIGN: Use high-contrast color grading between the two halves.",
+    'The Trio': "A depth-based collection showcase. One main hero item is front and center. SAFE ZONE: Keep the top and bottom clear for Instagram engagement buttons. PHYSICS: Use shallow depth-of-field (bokeh) for the background items.",
+    'Range Lineup': "Perfect symmetrical alignment. Products are arranged side-by-side. SAFE ZONE: Ensure the lineup is centered horizontally and vertically. PHYSICS: Ensure identical lighting and shadow angles for all products.",
+    'Hero & Variants': "Dynamic bokeh-based storytelling. Hero item in sharp focus. SAFE ZONE: Depth-based text must float in the middle safe-zone layer. PHYSICS: Use a 'Light Wrap' effect where the background glow bleeds into the product edges."
 };
 
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -284,27 +284,38 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
 
     *** PRODUCTION DIRECTIVES (ELITE QUALITY) ***
-    1. **MATERIAL FIDELITY**: The product has a "${brief.detectedFinish || 'Matte'}" finish. 
+    1. **RAY-TRACED PHYSICS DIRECTIVES**:
+       - **CONTACT SHADOWS**: Mandatory soft, realistic shadows where the product touches any surface.
+       - **AMBIENT OCCLUSION**: Subtle darkening in crevices and contact points for depth.
+       - **LIGHT WRAP**: Background light must bleed slightly over product edges for environmental immersion.
+       - **REFLECTIVE GROUNDING**: If on a surface, apply a subtle, blurred reflection of the product.
+    2. **STRICT 12-COLUMN SWISS GRID**:
+       - Align all text elements to a strict invisible grid.
+       - **TYPOGRAPHY CONTRAST**: Use a massive "Display Serif" for the headline and a tiny "Technical Mono" for utility text (website/contact).
+       - **NEGATIVE SPACE**: Enforce a "20% Margin Rule"—no text can touch the edges of the product or canvas.
+    3. **MATERIAL FIDELITY**: The product has a "${brief.detectedFinish || 'Matte'}" finish. 
        - If 'Glossy': Apply sharp, clear reflections of the studio environment.
        - If 'Matte': Apply soft, diffused lighting with no sharp highlights.
        - If 'Metallic': Apply high-contrast rim lighting and anisotropic specular highlights.
        - If 'Glass': Apply realistic refraction, transparency, and caustic light patterns.
        - If 'Fabric': Apply soft micro-shadows to highlight texture and weave.
-    2. **MARKETING TONE**: The ad must convey a "${brief.suggestedTone || 'Bold'}" tone. 
-    3. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
-    4. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
-    5. **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with realistic shadows. 
-    6. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
-    7. **BLENDING**: The product must look physically present in the scene, not "pasted".
-    8. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
-    9. **LAYOUT**: ${blueprintInstruction}
+    4. **MARKETING TONE**: The ad must convey a "${brief.suggestedTone || 'Bold'}" tone. 
+    5. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
+    6. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
+    7. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
+    8. **BLENDING**: The product must look physically present in the scene, not "pasted".
+    9. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
+    10. **LAYOUT**: ${blueprintInstruction}
+    ${inputs.layoutTemplate === 'Feature Callout' ? "11. **TECHNICAL DRAFTING**: Use 1px sharp vector lines with circular anchor points to point at specific product features mentioned in the description." : ""}
 
-    *** THE CREATIVE COPY (MINIMALIST HERO) ***
-    1. **HEADLINE**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
-    2. **CLEAN LAYOUT MANDATE**: DO NOT render any other text at the bottom. No subheadlines, no websites, no contact numbers. The Headline is the absolute hero.
-    
-    *** CALL TO ACTION (OPTIONAL) ***
-    ${(inputs.ctaButton || inputs.customCta) ? `1. **CTA BUTTON**: Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}". Place it elegantly according to the layout.` : "1. **NO CTA BUTTON**: Do not render a CTA button."}
+    *** THE CREATIVE COPY (FULL MARKETING SUITE) ***
+    1. **HEADLINE (HERO SCALE)**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
+    2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.strategicCopy.subheadline}" in a smaller, elegant font below the headline.
+    3. **UTILITY STACK (FOOTER SAFE-ZONE)**:
+       - **WEBSITE**: Render "${inputs.website || ''}" in a tiny, clean technical font at the bottom.
+       - **CONTACT**: Render "${inputs.contactNumber || ''}" near the website.
+    4. **ACTION (CTA BUTTON)**: 
+       ${(inputs.ctaButton || inputs.customCta) ? `Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}".` : "Do not render a CTA button."}
     
     OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
 
