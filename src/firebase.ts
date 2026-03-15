@@ -29,7 +29,6 @@ const checkConfigValue = (value: string | undefined): boolean => {
 };
 
 const allConfigKeys = {
-    "VITE_API_KEY": import.meta.env.VITE_API_KEY,
     "VITE_FIREBASE_API_KEY": firebaseConfig.apiKey,
     "VITE_FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
     "VITE_FIREBASE_PROJECT_ID": firebaseConfig.projectId,
