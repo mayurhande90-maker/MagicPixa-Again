@@ -116,17 +116,18 @@ interface CreativeBrief {
  * It only sees the user's description and specs.
  */
 const generateContextTitle = async (description: string, specs: string): Promise<string> => {
-    const prompt = `You are a World-Class Creative Director. 
-    Synthesize a 2-5 word "Vibe" headline based ONLY on the 'INPUT' below.
+    const prompt = `You are a World-Class Creative Director and High-Conversion Copywriter. 
+    Synthesize a 2-5 word "High-Conversion Marketing Hook" based ONLY on the 'INPUT' below.
     
     *** INPUT ***
     Description: "${description}"
     Specs: "${specs}"
     
-    *** RULES (SACRED) ***
-    1. **NO CATEGORY LEAKAGE**: Do not use any industry names or category labels.
-    2. **NO LITERALS**: Do not describe the product. Describe the "Feeling" or "Result".
-    3. **PURE SYNTHESIS**: Create a brand new, trendy hook. Do not repeat the user's words.
+    *** COPYWRITING PROTOCOL (AIDA) ***
+    1. **ASPIRATIONAL HOOKS**: Do not just name the product. Create a professional marketing hook that triggers desire (e.g., instead of "Fast Car", use "THE VELOCITY OF SILENCE").
+    2. **EMOTIONAL RESONANCE**: Focus on the "Status", "Freedom", or "Transformation" the product provides.
+    3. **NO CATEGORY LEAKAGE**: Do not use any industry names or category labels.
+    4. **PURE SYNTHESIS**: Create a brand new, trendy hook. Do not repeat the user's words.
     
     OUTPUT: Return ONLY the headline string.`;
 
@@ -266,9 +267,10 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     - **HARMONIZED LAYOUT**: ${brief.harmonizedLayout}
     
     *** SWISS DESIGN ARCHITECTURE (MANDATORY) ***
-    1. **MASSIVE SCALE CONTRAST**: The Headline must be at least 4x larger than the subheadline. Use bold, high-impact Grotesk Sans typography.
-    2. **NEGATIVE SPACE MANDATE**: Ensure at least 20% "breathing room" around every text element. No clutter.
-    3. **GRID ALIGNMENT**: Align all text elements to a strict invisible grid.
+    1. **EDITORIAL TYPOGRAPHY**: Use high-contrast Editorial Serifs or Geometric Swiss Grotesks. Apply custom kerning (tracking-wide) for a luxury magazine look.
+    2. **MASSIVE SCALE CONTRAST**: The Headline must be bold and high-impact.
+    3. **NEGATIVE SPACE MANDATE**: Ensure at least 20% "breathing room" around every text element. No clutter.
+    4. **GRID ALIGNMENT**: Align all text elements to a strict invisible grid.
     
     *** IDENTITY ANCHOR v8.0 (SACRED ASSET PROTOCOL) ***
     1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. 
@@ -277,21 +279,20 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
 
     *** PRODUCTION DIRECTIVES (ELITE QUALITY) ***
-    - **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with "Contact Shadows" and "Ambient Occlusion". 
-    - **DEPTH CUES**: Integrate text with depth—some elements can float slightly behind foreground objects for a high-end editorial look.
-    - **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
-    - **BLENDING**: The product must look physically present in the scene, not "pasted".
-    - **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
-    - **LAYOUT**: ${blueprintInstruction}
+    1. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
+    2. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
+    3. **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with realistic shadows. 
+    4. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
+    5. **BLENDING**: The product must look physically present in the scene, not "pasted".
+    6. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
+    7. **LAYOUT**: ${blueprintInstruction}
 
-    *** THE CREATIVE COPY (AIDA) ***
-    1. **HEADLINE**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Sans'}.
-    2. **SUBHEADLINE**: Render "${brief.strategicCopy.subheadline}".
+    *** THE CREATIVE COPY (MINIMALIST HERO) ***
+    1. **HEADLINE**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
+    2. **CLEAN LAYOUT MANDATE**: DO NOT render any other text at the bottom. No subheadlines, no websites, no contact numbers. The Headline is the absolute hero.
     
-    *** CALL TO ACTION (MANDATORY) ***
-    ${(inputs.ctaButton || inputs.customCta) ? `1. **CTA BUTTON**: Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}".` : "1. **NO CTA BUTTON**: Do not render a CTA button."}
-    ${inputs.website ? `2. **WEBSITE**: Render the website URL "${inputs.website}" elegantly near the bottom using a clean Monospace font.` : ""}
-    ${inputs.contactNumber ? `3. **CONTACT**: Render the contact number "${inputs.contactNumber}" clearly.` : ""}
+    *** CALL TO ACTION (OPTIONAL) ***
+    ${(inputs.ctaButton || inputs.customCta) ? `1. **CTA BUTTON**: Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}". Place it elegantly according to the layout.` : "1. **NO CTA BUTTON**: Do not render a CTA button."}
     
     OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
 
