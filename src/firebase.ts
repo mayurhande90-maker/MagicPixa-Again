@@ -63,18 +63,39 @@ export let storage: firebase.storage.Storage | null = null;
 
 if (isConfigValid) {
   try {
-    app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
-    auth = firebase.auth();
+    if (firebase.apps.length === 0) {
+      app = firebase.initializeApp(firebaseConfig);
+    } else {
+      app = firebase.app();
+    }
     
+    auth = firebase.auth();
+    storage = firebase.storage();
+
     // Support for named databases in Firestore (compat mode)
     const dbId = (firebaseConfig as any).firestoreDatabaseId;
     if (dbId && dbId !== '(default)') {
-        db = (app as any).firestore(dbId);
+        // @ts-ignore - Accessing named database in compat mode
+        db = app.firestore(dbId);
     } else {
         db = firebase.firestore();
     }
-    
-    storage = firebase.storage();
+
+    // Connection test as per guidelines
+    if (db) {
+        const testConnection = async () => {
+            try {
+                // @ts-ignore
+                await db.collection('_conn_test').doc('ping').get({ source: 'server' });
+                console.log("Firestore connection verified.");
+            } catch (error: any) {
+                if (error.message && error.message.includes('offline')) {
+                    console.error("Firestore appears to be offline. Please check configuration.");
+                }
+            }
+        };
+        testConnection();
+    }
   } catch (error) {
     console.error("Error initializing Firebase:", error);
   }
