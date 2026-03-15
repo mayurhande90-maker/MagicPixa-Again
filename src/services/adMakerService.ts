@@ -126,13 +126,15 @@ const performAdIntelligence = async (
     const prompt = `Act as a world-class CMO and Lead Strategy Director at a top-tier creative agency. 
     Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
     
+    *** CONTEXTUAL TREND-MAPPING (SACRED PROTOCOL) ***
+    1. **AD CONTEXT AS ANCHOR**: Use the user's description ("${inputs.description || 'N/A'}") and specs ("${inputs.productSpecs || 'N/A'}") as conceptual anchors, NOT as a script.
+    2. **DEEP SEARCH**: Perform a targeted Google Search for the EXACT product niche. Search for: "Viral marketing hooks for [Product Type] 2026", "High-prestige ad headlines for [Product Context]", and "Current visual trends in [Industry]".
+    3. **REFERENCE, DON'T REPEAT**: Strictly FORBIDDEN to use the exact text provided in the description or specs. Instead, take the reference and synthesize own trendy, high-impact AI marketing lines.
+    4. **EMOTIONAL RESONANCE**: Identify the dominant "Emotional Hook" (e.g., Status, Freedom, Security, Joy) currently trending for this specific context.
+    
     *** VISUAL AUDIT (MANDATORY) ***
     1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
     2. DO NOT rely solely on the provided productName: "${inputs.productName || 'N/A'}". 
-    
-    *** REAL-TIME TREND RESEARCH (MARCH 2026) ***
-    1. Use Google Search to identify the EXACT consumer trends for ${inputs.industry} as of March 2026. 
-    2. Identify "Viral Marketing Hooks" and "Visual Aesthetic Shifts" (e.g., specific color grading or lighting styles trending on social media).
     
     *** BLUEPRINT HARMONY (CRITICAL) ***
     User Selected Layout: "${inputs.layoutTemplate || 'Hero Focus'}"
@@ -145,8 +147,8 @@ const performAdIntelligence = async (
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
     2. **ANTI-LITERAL RULE**: Strictly FORBIDDEN to include the industry name ("${inputs.industry}") or category in the headline. 
-    3. **ABSTRACT HOOKS**: Generate high-impact, punchy, and modern marketing headlines. Focus on the "Vibe" and "Benefit" rather than the category. (e.g., instead of "Best Coffee", use "The Morning Ritual").
-    4. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product.
+    3. **ABSTRACT HOOKS**: Generate high-impact, punchy, and modern marketing headlines. Focus on the "Vibe" and "Benefit" discovered during your search. (e.g., instead of "Best Coffee", use "The Morning Ritual").
+    4. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product and the TRENDS discovered.
     ${inputs.customTitle ? `5. **USER OVERRIDE**: The user has provided a custom title: "${inputs.customTitle}". USE THIS EXACT TITLE as the headline. Do not generate a new one.` : ""}
     
     RETURN JSON ONLY:
