@@ -114,13 +114,15 @@ interface CreativeBrief {
  * PHASE 0: THE ELITE COPYWRITER (ISOLATED HEADLINE ENGINE)
  * This engine is physically isolated from industry/category data to prevent leakage.
  */
-const generateEliteHeadline = async (description: string, specs: string): Promise<string> => {
+const generateEliteHeadline = async (description: string, specs: string, feedback?: string): Promise<string> => {
     const prompt = `You are an Elite Ad Copywriter at a top-tier global agency. 
     Your ONLY source of truth is the provided 'AD CONTEXT'. 
     
     *** AD CONTEXT ***
     Description: "${description}"
     Specs: "${specs}"
+    
+    ${feedback ? `*** PREVIOUS ATTEMPT FEEDBACK (CRITICAL) ***\n${feedback}\n` : ""}
     
     *** TASK ***
     Synthesize a 2-5 word "Viral Hook" or "Elite Headline" based ONLY on the essence of the context.
@@ -134,16 +136,75 @@ const generateEliteHeadline = async (description: string, specs: string): Promis
     
     OUTPUT: Return ONLY the headline string. No quotes, no preamble.`;
 
+    const response = await secureGenerateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: { parts: [{ text: prompt }] },
+        featureName: 'Elite Copywriter Headline'
+    });
+    return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
+};
+
+/**
+ * THE ELITE CRITIC (QUALITY CONTROL ENGINE)
+ */
+const auditHeadline = async (headline: string, industry: string, description: string): Promise<{ approved: boolean; feedback?: string }> => {
+    const prompt = `You are a Senior Creative Director and Brand Auditor. 
+    Audit the following headline for a high-end ad campaign.
+    
+    Headline: "${headline}"
+    Forbidden Category: "${industry}"
+    Product Context: "${description}"
+    
+    *** AUDIT CRITERIA ***
+    1. **CATEGORY LEAKAGE**: Does the headline contain the word "${industry}" or any generic industry terms? (REJECT if yes).
+    2. **LITERALISM**: Is the headline too literal? (e.g., if it's a watch, does it say "Watch"? REJECT if yes).
+    3. **QUALITY**: Is the headline "awful", generic, or boring? (REJECT if yes).
+    4. **CONTEXT**: Is the headline derived from the Product Context? (REJECT if no).
+    
+    RETURN JSON ONLY:
+    {
+        "approved": boolean,
+        "feedback": "string (Explain why it failed if rejected, be specific)"
+    }`;
+
+    const response = await secureGenerateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: { parts: [{ text: prompt }] },
+        config: { responseMimeType: "application/json" },
+        featureName: 'Elite Headline Auditor'
+    });
+    
     try {
-        const response = await secureGenerateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: { parts: [{ text: prompt }] },
-            featureName: 'Elite Copywriter Headline'
-        });
-        return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
+        return JSON.parse(response.text || '{"approved": false}');
     } catch (e) {
-        return "UNCOMPROMISING QUALITY";
+        return { approved: false, feedback: "Failed to parse audit response." };
     }
+};
+
+/**
+ * RECURSIVE CRITIC ARCHITECTURE (THE NEVER-FAIL ENGINE)
+ */
+const generateEliteHeadlineWithCritic = async (inputs: AdMakerInputs): Promise<string> => {
+    let attempts = 0;
+    const maxAttempts = 5;
+    let currentHeadline = "";
+    let feedback = "";
+
+    while (attempts < maxAttempts) {
+        attempts++;
+        currentHeadline = await generateEliteHeadline(inputs.description || '', inputs.productSpecs || '', feedback);
+        
+        const audit = await auditHeadline(currentHeadline, inputs.industry, inputs.description || '');
+        
+        if (audit.approved) {
+            return currentHeadline;
+        }
+        
+        feedback = `REJECTION REASON: ${audit.feedback}. RETRYING... ATTEMPT ${attempts}/${maxAttempts}`;
+        console.warn(`Headline Audit Failed: ${currentHeadline}. Reason: ${audit.feedback}`);
+    }
+
+    return currentHeadline; // Return the best we got after max attempts
 };
 
 /**
@@ -156,8 +217,8 @@ const performAdIntelligence = async (
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
     
-    // 0. ELITE HEADLINE SYNTHESIS (ISOLATED)
-    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateEliteHeadline(inputs.description || '', inputs.productSpecs || '');
+    // 0. ELITE HEADLINE SYNTHESIS (RECURSIVE CRITIC ARCHITECTURE)
+    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateEliteHeadlineWithCritic(inputs);
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
