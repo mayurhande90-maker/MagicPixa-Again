@@ -9,17 +9,6 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-
-// Global error handler for the root
-window.onerror = (message, source, lineno, colno, error) => {
-  console.error("Global Error:", message, error);
-  return false;
-};
-
-window.onunhandledrejection = (event) => {
-  console.error("Unhandled Rejection:", event.reason);
-};
-
 root.render(
   <React.StrictMode>
     <ThemeProvider>

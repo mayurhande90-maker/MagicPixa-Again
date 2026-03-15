@@ -224,19 +224,6 @@ function App() {
 
   useEffect(() => {
     if (!firebaseAuth) { setLoading(false); return; }
-    
-    // Handle redirect result for mobile devices
-    firebaseAuth.getRedirectResult().then((result) => {
-        if (result.user) {
-            console.log("Successfully signed in via redirect");
-        }
-    }).catch((error) => {
-        console.error("Redirect sign-in error:", error);
-        if (error.code === 'auth/missing-initial-state') {
-            setAuthError("Sign-in session expired. Please try again.");
-        }
-    });
-
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         updateUserLastActive(firebaseUser.uid);
@@ -338,17 +325,13 @@ function App() {
                 )}
             </div>
         );
-    } else if (currentPage === 'home' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'about' || currentPage === 'pricing') {
+    } else if (currentPage === 'home') {
         return (
             <div className="min-h-screen bg-white font-sans text-slate-900">
                 {showBanner && announcement && announcement.isActive && (
                     <NotificationDisplay title={announcement.title} message={announcement.message} type={announcement.type} style={announcement.style || 'banner'} link={announcement.link} onClose={() => setShowBanner(false)} />
                 )}
-                {currentPage === 'home' && <MobileHomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
-                {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}
-                {currentPage === 'pricing' && <PricingPage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
-                {currentPage === 'privacy' && <PrivacyPolicyPage navigateTo={navigateTo} auth={authProps} />}
-                {currentPage === 'terms' && <TermsConditionsPage navigateTo={navigateTo} auth={authProps} />}
+                <MobileHomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />
                 {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
             </div>
         );
