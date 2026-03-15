@@ -338,13 +338,17 @@ function App() {
                 )}
             </div>
         );
-    } else if (currentPage === 'home') {
+    } else if (currentPage === 'home' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'about' || currentPage === 'pricing') {
         return (
             <div className="min-h-screen bg-white font-sans text-slate-900">
                 {showBanner && announcement && announcement.isActive && (
                     <NotificationDisplay title={announcement.title} message={announcement.message} type={announcement.type} style={announcement.style || 'banner'} link={announcement.link} onClose={() => setShowBanner(false)} />
                 )}
-                <MobileHomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />
+                {currentPage === 'home' && <MobileHomePage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
+                {currentPage === 'about' && <AboutUsPage navigateTo={navigateTo} auth={authProps} />}
+                {currentPage === 'pricing' && <PricingPage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
+                {currentPage === 'privacy' && <PrivacyPolicyPage navigateTo={navigateTo} auth={authProps} />}
+                {currentPage === 'terms' && <TermsConditionsPage navigateTo={navigateTo} auth={authProps} />}
                 {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
             </div>
         );
