@@ -111,6 +111,42 @@ interface CreativeBrief {
 }
 
 /**
+ * PHASE 0: THE ELITE COPYWRITER (ISOLATED HEADLINE ENGINE)
+ * This engine is physically isolated from industry/category data to prevent leakage.
+ */
+const generateEliteHeadline = async (description: string, specs: string): Promise<string> => {
+    const prompt = `You are an Elite Ad Copywriter at a top-tier global agency. 
+    Your ONLY source of truth is the provided 'AD CONTEXT'. 
+    
+    *** AD CONTEXT ***
+    Description: "${description}"
+    Specs: "${specs}"
+    
+    *** TASK ***
+    Synthesize a 2-5 word "Viral Hook" or "Elite Headline" based ONLY on the essence of the context.
+    
+    *** RULES (STRICT) ***
+    1. **NO CATEGORY LEAKAGE**: Do not use words like "Ecommerce", "Fashion", "Food", "Real Estate", etc.
+    2. **NO LITERALS**: Do not describe the product (e.g., if it's a watch, don't say "Watch").
+    3. **ABSTRACT SYNTHESIS**: Focus on the "Feeling", "Status", or "Result" the product provides.
+    4. **TRENDY & MODERN**: Use high-impact, punchy language (e.g., "THE BORDER OF HEAT", "THE ARCHITECT OF TIME").
+    5. **NO USER REPETITION**: Do not repeat the user's exact words from the description.
+    
+    OUTPUT: Return ONLY the headline string. No quotes, no preamble.`;
+
+    try {
+        const response = await secureGenerateContent({
+            model: 'gemini-3.1-pro-preview',
+            contents: { parts: [{ text: prompt }] },
+            featureName: 'Elite Copywriter Headline'
+        });
+        return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
+    } catch (e) {
+        return "UNCOMPROMISING QUALITY";
+    }
+};
+
+/**
  * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO + RESEARCHER)
  * LOGIC UPGRADE: Consolidated Research & Visual Audit
  */
@@ -119,6 +155,10 @@ const performAdIntelligence = async (
     brand?: BrandKit | null
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
+    
+    // 0. ELITE HEADLINE SYNTHESIS (ISOLATED)
+    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateEliteHeadline(inputs.description || '', inputs.productSpecs || '');
+
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
@@ -152,13 +192,12 @@ const performAdIntelligence = async (
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
     2. **ANTI-LITERAL RULE**: Strictly FORBIDDEN to include the industry name ("${inputs.industry}") or category in the headline. 
-    3. **ABSTRACT HOOKS**: Generate high-impact, punchy, and modern marketing headlines. Focus on the "Vibe" and "Benefit" discovered during your search. (e.g., instead of "Best Coffee", use "The Morning Ritual").
-    4. **SPECIFICITY & HOOKS**: Headline (2-5 words) must be directly linked to the VISUAL identity of the product and the TRENDS discovered.
-    ${inputs.customTitle ? `5. **USER OVERRIDE**: The user has provided a custom title: "${inputs.customTitle}". USE THIS EXACT TITLE as the headline. Do not generate a new one.` : ""}
+    3. **HEADLINE LOCK**: The Elite Copywriter has already synthesized the headline: "${eliteHeadline}". YOU MUST USE THIS EXACT HEADLINE.
+    4. **SUBHEADLINE**: Generate a high-impact subheadline that supports the headline: "${eliteHeadline}".
     
     RETURN JSON ONLY:
     {
-        "strategicCopy": { "headline": "string", "subheadline": "string", "cta": "string" },
+        "strategicCopy": { "headline": "${eliteHeadline}", "subheadline": "string", "cta": "string" },
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
         "visualDirection": "string",
