@@ -1058,8 +1058,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 </div>
                                                 <SelectionGrid 
                                                     label="CTA Button" 
-                                                    options={['Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom']} 
-                                                    value={ctaButton} 
+                                                    options={['None', 'Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom']} 
+                                                    value={ctaButton || 'None'} 
                                                     onChange={setCtaButton} 
                                                 />
                                                 {ctaButton === 'Custom' && (

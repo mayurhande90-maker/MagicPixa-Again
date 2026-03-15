@@ -311,11 +311,11 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     *** THE CREATIVE COPY (FULL MARKETING SUITE) ***
     1. **HEADLINE (HERO SCALE)**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
     2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.strategicCopy.subheadline}" in a smaller, elegant font below the headline.
-    3. **UTILITY STACK (FOOTER SAFE-ZONE)**:
-       - **WEBSITE**: Render "${inputs.website || ''}" in a tiny, clean technical font at the bottom.
-       - **CONTACT**: Render "${inputs.contactNumber || ''}" near the website.
+    ${(inputs.website || inputs.contactNumber) ? `3. **UTILITY STACK (FOOTER SAFE-ZONE)**:
+       ${inputs.website ? `- **WEBSITE**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : ""}
+       ${inputs.contactNumber ? `- **CONTACT**: Render "${inputs.contactNumber}" near the website.` : ""}` : "3. **NO UTILITY STACK**: Do not render any website or contact information."}
     4. **ACTION (CTA BUTTON)**: 
-       ${(inputs.ctaButton || inputs.customCta) ? `Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : (inputs.ctaButton || brief.strategicCopy.cta)}".` : "Do not render a CTA button."}
+       ${(inputs.ctaButton && inputs.ctaButton !== 'None') ? `Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : inputs.ctaButton}".` : "Do not render a CTA button."}
     
     OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
 
