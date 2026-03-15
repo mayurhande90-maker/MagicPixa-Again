@@ -7,16 +7,21 @@ import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLo
 import { resizeImage } from './utils/imageUtils';
 import { USE_SECURE_BACKEND } from './services/geminiClient';
 
-const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+// Import the config file directly so it's bundled by Vite
+import firebaseAppletConfig from '../firebase-applet-config.json';
+
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId;
+const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain);
 
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
   authDomain: derivedAuthDomain,
   projectId: projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
+  // Ensure we use the specific database ID if provided
+  firestoreDatabaseId: (firebaseAppletConfig as any).firestoreDatabaseId
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
@@ -25,12 +30,12 @@ const checkConfigValue = (value: string | undefined): boolean => {
 
 const allConfigKeys = {
     "VITE_API_KEY": import.meta.env.VITE_API_KEY,
-    "VITE_FIREBASE_API_KEY": import.meta.env.VITE_FIREBASE_API_KEY,
-    "VITE_FIREBASE_AUTH_DOMAIN": import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    "VITE_FIREBASE_PROJECT_ID": import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    "VITE_FIREBASE_STORAGE_BUCKET": import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    "VITE_FIREBASE_MESSAGING_SENDER_ID": import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    "VITE_FIREBASE_APP_ID": import.meta.env.VITE_FIREBASE_APP_ID
+    "VITE_FIREBASE_API_KEY": firebaseConfig.apiKey,
+    "VITE_FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
+    "VITE_FIREBASE_PROJECT_ID": firebaseConfig.projectId,
+    "VITE_FIREBASE_STORAGE_BUCKET": firebaseConfig.storageBucket,
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": firebaseConfig.messagingSenderId,
+    "VITE_FIREBASE_APP_ID": firebaseConfig.appId
 };
 
 const missingKeys = Object.entries(allConfigKeys)
