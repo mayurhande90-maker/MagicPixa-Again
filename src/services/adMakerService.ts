@@ -100,36 +100,38 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 0: THE BLIND CONTEXT ENGINE (GROUND-ZERO)
- * This engine has ZERO access to industry/category data.
- * It only sees the user's description and specs.
+ * PHASE 0: THE EDITORIAL HEADLINE ENGINE
+ * This engine generates sophisticated, high-end headlines.
+ * It focuses on brevity, impact, and brand-level storytelling.
  */
-const generateContextTitle = async (description: string, specs: string, tone: string = 'Bold'): Promise<string> => {
-    const prompt = `You are a World-Class Creative Director and High-Conversion Copywriter. 
-    Synthesize a 2-5 word "High-Conversion Marketing Hook" based ONLY on the 'INPUT' below.
+const generateEditorialHeadline = async (productName: string, description: string, specs: string, tone: string = 'Luxury'): Promise<string> => {
+    const prompt = `You are a Creative Director at a top-tier global advertising agency (think Apple, Porsche, Leica).
+    Your task is to write a 2-4 word "Editorial Headline" for a product.
     
-    *** INPUT ***
+    *** BRAND DATA ***
+    Product Name: "${productName}"
     Description: "${description}"
-    Specs: "${specs}"
-    Tone of Voice: "${tone}"
+    Technical Specs: "${specs}"
+    Marketing Tone: "${tone}"
     
-    *** COPYWRITING PROTOCOL (AIDA) ***
-    1. **TONE ADHERENCE**: The hook must strictly follow the "${tone}" tone. 
-       - If 'Luxury': Use sophisticated, restrained, and elite language.
-       - If 'Bold': Use powerful, aggressive, and high-impact language.
-       - If 'Witty': Use clever, modern, and slightly playful language.
-       - If 'Urgent': Use action-oriented, fast-paced, and FOMO-inducing language.
-    2. **ASPIRATIONAL HOOKS**: Do not just name the product. Create a professional marketing hook that triggers desire.
-    3. **EMOTIONAL RESONANCE**: Focus on the "Status", "Freedom", or "Transformation" the product provides.
-    4. **NO CATEGORY LEAKAGE**: Do not use any industry names or category labels.
+    *** EDITORIAL GUIDELINES ***
+    1. **BREVITY IS POWER**: Use 2 to 4 words maximum. No fluff.
+    2. **THE APPLE/PORSCHE STYLE**: Avoid "salesy" buzzwords (e.g., "Elevate", "Unleash", "Ultimate"). Instead, use punchy, confident, and slightly abstract statements that define a category.
+    3. **TONE ADHERENCE**:
+       - If 'Luxury': Focus on heritage, silence, and perfection. (e.g., "The New Standard", "Pure Precision").
+       - If 'Bold': Focus on power, dominance, and breaking rules. (e.g., "Defy the Expected", "Raw Power").
+       - If 'Witty': Focus on cleverness and modern irony. (e.g., "Beautifully Simple", "Actually, Better").
+       - If 'Urgent': Focus on the immediate future. (e.g., "The Future, Now").
+    4. **NO CATEGORY LEAKAGE**: Do not use generic industry names (e.g., don't say "The Best Watch").
+    5. **PRODUCT INTEGRITY**: If the product name is strong, use it or a variation of it.
     
-    OUTPUT: Return ONLY the headline string.`;
+    OUTPUT: Return ONLY the headline string. No quotes.`;
 
     try {
         const response = await secureGenerateContent({
             model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: prompt }] },
-            featureName: 'Blind Context Title Engine'
+            featureName: 'Editorial Headline Engine'
         });
         return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
     } catch (e) {
@@ -147,10 +149,9 @@ const performAdIntelligence = async (
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
     
-    // 0. BLIND CONTEXT TITLE ENGINE (GROUND-ZERO)
-    // We'll use a default tone for the initial headline generation, or we can wait until after audit.
-    // Let's stick to a default 'Bold' for the blind engine, then refine if needed.
-    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateContextTitle(inputs.description || '', inputs.productSpecs || '', 'Bold');
+    // 0. EDITORIAL HEADLINE ENGINE (INITIAL PASS)
+    // We pass the product name and description to get a sophisticated starting point.
+    const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateEditorialHeadline(inputs.productName || '', inputs.description || '', inputs.productSpecs || '', 'Luxury');
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
@@ -159,20 +160,27 @@ const performAdIntelligence = async (
     const prompt = `Act as a world-class CMO and Lead Strategy Director at a top-tier creative agency. 
     Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
     
-    *** FORBIDDEN DATA (STRICTLY PROHIBITED) ***
-    - DO NOT USE the industry name: "${inputs.industry}" or any related category terms.
-    - DO NOT USE literal descriptions.
+    *** PRODUCT DATA ***
+    Product Name: "${inputs.productName || 'N/A'}"
+    Description: "${inputs.description || 'N/A'}"
+    Specs: "${inputs.productSpecs || 'N/A'}"
+    Industry: "${inputs.industry || 'N/A'}"
+    Initial Headline Idea: "${initialHeadline}"
     
-    *** CONTEXTUAL TREND-MAPPING (GROUND-ZERO) ***
-    1. **HEADLINE LOCK**: The Blind Context Engine has produced: "${eliteHeadline}". YOU MUST USE THIS EXACT STRING.
-    2. **SUBHEADLINE**: Generate a high-impact subheadline based ONLY on the context.
-    3. **DEEP SEARCH**: Perform a targeted Google Search for the EXACT product niche based ONLY on the context.
+    *** FORBIDDEN DATA (STRICTLY PROHIBITED) ***
+    - DO NOT USE the industry name: "${inputs.industry}" or any related category terms in the headline.
+    - DO NOT USE literal descriptions.
     
     *** VISUAL AUDIT (MANDATORY) ***
     1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
     2. Identify the 'detectedFinish': Is the product Glossy, Matte, Metallic, Glass, or Fabric?
     3. Suggest a 'suggestedTone': Based on the product and description, which marketing tone fits best? (Bold, Luxury, Witty, or Urgent).
-    4. DO NOT rely solely on the provided productName: "${inputs.productName || 'N/A'}". 
+    
+    *** HEADLINE REFINEMENT (THE EDITORIAL UPGRADE) ***
+    1. Review the 'Initial Headline Idea': "${initialHeadline}".
+    2. If the initial headline is generic, REWRITE it to be more "Editorial" (Apple/Porsche style).
+    3. Use the visual data from the audit (e.g., if the product is a deep blue metallic watch, the headline could be "Deep Blue Precision").
+    4. Keep it to 2-4 words. No buzzwords like "Elevate" or "Unleash".
     
     *** BLUEPRINT HARMONY (CRITICAL) ***
     User Selected Layout: "${inputs.layoutTemplate || 'Hero Focus'}"
@@ -185,12 +193,11 @@ const performAdIntelligence = async (
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
     2. **ANTI-LITERAL RULE**: Strictly FORBIDDEN to include the industry name ("${inputs.industry}") or category in the headline. 
-    3. **HEADLINE LOCK**: The Blind Context Engine has produced: "${eliteHeadline}". YOU MUST USE THIS EXACT HEADLINE.
-    4. **SUBHEADLINE**: Generate a high-impact subheadline that supports the headline: "${eliteHeadline}".
+    3. **SUBHEADLINE**: Generate a high-impact subheadline that supports the refined headline.
     
     RETURN JSON ONLY:
     {
-        "strategicCopy": { "headline": "${eliteHeadline}", "subheadline": "string", "cta": "string" },
+        "strategicCopy": { "headline": "string (The refined editorial headline)", "subheadline": "string", "cta": "string" },
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
         "visualDirection": "string",
