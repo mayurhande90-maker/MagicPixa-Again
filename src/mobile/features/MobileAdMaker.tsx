@@ -340,7 +340,6 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="w-full px-6 flex flex-col gap-3 py-2">
                         <input value={productName} onChange={e => setProductName(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Product Name..." />
                         <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-medium focus:border-indigo-500 outline-none shadow-inner h-20 resize-none" placeholder="The Hook / Context (e.g. Summer sale vibes)..." />
-                        <button onClick={() => productName && description.length > 5 && setCurrentStep(6)} className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${productName && description.length > 5 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>Next: Call to Action</button>
                     </div>
                 );
             case 'cta':
@@ -542,7 +541,12 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             }
                                         }
                                         else if (idx === 6) {
-                                            displayLabel = (website || contactNumber || ctaButton !== 'None') ? 'SET' : "";
+                                            if (currentStep === 5 && !!productName && description.length > 5) {
+                                                displayLabel = "NEXT";
+                                                isNextCue = true;
+                                            } else {
+                                                displayLabel = (website || contactNumber || ctaButton !== 'None') ? 'SET' : "";
+                                            }
                                         }
 
                                         return (
