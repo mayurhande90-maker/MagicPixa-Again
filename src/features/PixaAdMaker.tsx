@@ -436,7 +436,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
-        if (!industry || mainImages.length === 0 || !auth.user || !description || !aspectRatio || !integrationMode || !layoutTemplate) return;
+        if (!industry || mainImages.length === 0 || !auth.user || !description || !productName || !aspectRatio || !integrationMode || !layoutTemplate) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         // PRODUCTION MANDATE: Check for selected API key when using pro models
@@ -561,7 +561,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!aspectRatio && !!integrationMode && !!layoutTemplate && !isLowCredits && (
+    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!productName && !!aspectRatio && !!integrationMode && !!layoutTemplate && !isLowCredits && (
         integrationMode === 'product' ? true : (modelSource === 'ai' ? (!!modelParams?.modelType && !!modelParams?.region) : (!!modelImage))
     );
 
@@ -999,6 +999,12 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                             
                                             <div className="space-y-4">
+                                                <InputField 
+                                                    label="Product Name (Mandatory)" 
+                                                    placeholder="e.g. Aura Chronograph, Zen Candle, etc." 
+                                                    value={productName} 
+                                                    onChange={(e: any) => setProductName(e.target.value)} 
+                                                />
                                                 <SelectionGrid 
                                                     label="Visual Mood / Vibe" 
                                                     options={filteredVibes} 
