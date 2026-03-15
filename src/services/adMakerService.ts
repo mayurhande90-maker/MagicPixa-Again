@@ -126,10 +126,15 @@ const performAdIntelligence = async (
     const prompt = `Act as a world-class CMO and Lead Strategy Director at a top-tier creative agency. 
     Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
     
-    *** CONTEXTUAL TREND-MAPPING (SACRED PROTOCOL) ***
-    1. **AD CONTEXT AS ANCHOR**: Use the user's description ("${inputs.description || 'N/A'}") and specs ("${inputs.productSpecs || 'N/A'}") as conceptual anchors, NOT as a script.
-    2. **DEEP SEARCH**: Perform a targeted Google Search for the EXACT product niche. Search for: "Viral marketing hooks for [Product Type] 2026", "High-prestige ad headlines for [Product Context]", and "Current visual trends in [Industry]".
-    3. **REFERENCE, DON'T REPEAT**: Strictly FORBIDDEN to use the exact text provided in the description or specs. Instead, take the reference and synthesize own trendy, high-impact AI marketing lines.
+    *** FORBIDDEN DATA (STRICTLY PROHIBITED) ***
+    - DO NOT USE the industry name: "${inputs.industry}" in any part of the headline or subheadline.
+    - DO NOT USE generic category terms related to "${inputs.industry}".
+    - DO NOT USE literal descriptions of the product type (e.g., if it's a watch, don't use the word "Watch").
+    
+    *** CONTEXTUAL TREND-MAPPING (STRICT REFERENCE ONLY) ***
+    1. **AD CONTEXT AS SOLE ANCHOR**: Use the user's description ("${inputs.description || 'N/A'}") and specs ("${inputs.productSpecs || 'N/A'}") as the ONLY conceptual anchors.
+    2. **DEEP SEARCH**: Perform a targeted Google Search for the EXACT product niche based ONLY on the context. Search for: "Viral marketing hooks for [Context Essence] 2026" and "Emotional triggers for [Context Benefit]".
+    3. **SYNTHESIZE, DON'T REPEAT**: You are FORBIDDEN from repeating the user's exact words. Instead, take the "Vibe" and "Essence" of the context and synthesize a brand new, trendy 2-5 word viral hook.
     4. **EMOTIONAL RESONANCE**: Identify the dominant "Emotional Hook" (e.g., Status, Freedom, Security, Joy) currently trending for this specific context.
     
     *** VISUAL AUDIT (MANDATORY) ***
@@ -176,11 +181,14 @@ const performAdIntelligence = async (
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        const industryLabel = inputs.industry.charAt(0).toUpperCase() + inputs.industry.slice(1);
         return { 
-            strategicCopy: { headline: inputs.productName ? `${inputs.productName} | The New Standard` : `${industryLabel} Innovation`, subheadline: `Experience the next generation of ${inputs.industry} design.`, cta: "Discover More" }, 
+            strategicCopy: { 
+                headline: inputs.productName ? `${inputs.productName} | THE NEW STANDARD` : `UNCOMPROMISING QUALITY`, 
+                subheadline: `Experience the next generation of precision design.`, 
+                cta: "Discover More" 
+            }, 
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
-            industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [] },
+            industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [inputs.industry] },
             visualDirection: "Clean commercial studio aesthetics.",
             trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" },
             harmonizedLayout: LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']
