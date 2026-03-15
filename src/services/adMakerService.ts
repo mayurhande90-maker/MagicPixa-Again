@@ -16,7 +16,6 @@ export interface AdMakerInputs {
     offer?: string;
     description?: string;
     productSpecs?: string;
-    layoutTemplate?: string;
     aspectRatio?: '1:1' | '4:5' | '9:16' | null;
     modelSource?: 'ai' | 'upload' | null;
     modelImage?: { base64: string; mimeType: string } | null;
@@ -96,7 +95,7 @@ interface CreativeBrief {
         lightingMood: string;
         compositionalStyle: string;
     };
-    harmonizedLayout: string;
+    suggestedLayout: string;
 }
 
 /**
@@ -182,13 +181,15 @@ const performAdIntelligence = async (
     3. Use the visual data from the audit (e.g., if the product is a deep blue metallic watch, the headline could be "Deep Blue Precision").
     4. Keep it to 2-4 words. No buzzwords like "Elevate" or "Unleash".
     
-    *** BLUEPRINT HARMONY (CRITICAL) ***
-    User Selected Layout: "${inputs.layoutTemplate || 'Hero Focus'}"
+    *** LAYOUT INTELLIGENCE (CRITICAL) ***
+    Number of Products: ${inputs.mainImages.length}
     Selected Aspect Ratio: "${inputs.aspectRatio || '1:1'}"
-    Blueprint Narrative: "${LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']}"
+    Selected Vibe: "${inputs.vibe || 'Modern'}"
     
-    Your Task: Harmonize the user's selected layout with the March 2026 trends you discovered. 
-    Adjust the layout narrative to be "Aspect-Aware".
+    Your Task: Determine the absolute best layout for this ad. 
+    - If 1 product: Choose between Hero Focus, Split Design, or Magazine Cover.
+    - If 2-5 products: Choose between The Trio, Range Lineup, or Hero & Variants.
+    - The layout must be "Aspect-Aware" (e.g., vertical layouts for 9:16).
     
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
@@ -204,7 +205,7 @@ const performAdIntelligence = async (
         "detectedFinish": "Glossy | Matte | Metallic | Glass | Fabric",
         "suggestedTone": "Bold | Luxury | Witty | Urgent",
         "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" },
-        "harmonizedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine)"
+        "suggestedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine describing exactly where to place products and text)"
     }`;
 
     const parts: any[] = lowResAssets.map((asset) => ({ text: `ASSET FOR AUDIT:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
@@ -234,7 +235,7 @@ const performAdIntelligence = async (
             detectedFinish: 'Matte',
             suggestedTone: 'Bold',
             trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" },
-            harmonizedLayout: LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']
+            suggestedLayout: "The product is the undisputed hero, placed front and center. INSTAGRAM SAFE ZONE: Keep the top 15% and bottom 15% clear of text. The headline floats elegantly in the upper third safe-zone. PHYSICS: Ensure the product has a soft contact shadow on the surface."
         };
     }
 };
@@ -264,8 +265,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     if (optLogo) parts.push({ text: "BRAND LOGO (SACRED):" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     if (optModel) parts.push({ text: "SUBJECT DIGITAL TWIN (SACRED):" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
 
-    const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
-
     const prompt = `Act as a Master Art Director and Elite CGI Artist. Your goal is to create a high-fidelity, professional marketing masterpiece with a perfect Visual Hierarchy.
     
     *** COMPOSITIONAL GOAL (MANDATORY) ***
@@ -276,7 +275,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     - **LIGHTING MOOD**: ${brief.trendAnalysis.lightingMood}
     - **COMPOSITIONAL STYLE**: ${brief.trendAnalysis.compositionalStyle}
     - **VISUAL DIRECTION**: ${brief.visualDirection}
-    - **HARMONIZED LAYOUT**: ${brief.harmonizedLayout}
+    - **SUGGESTED LAYOUT**: ${brief.suggestedLayout}
     
     *** SWISS DESIGN ARCHITECTURE (MANDATORY) ***
     1. **EDITORIAL TYPOGRAPHY**: Use high-contrast Editorial Serifs or Geometric Swiss Grotesks. Apply custom kerning (tracking-wide) for a luxury magazine look.
@@ -312,8 +311,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     7. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
     8. **BLENDING**: The product must look physically present in the scene, not "pasted".
     9. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
-    10. **LAYOUT**: ${blueprintInstruction}
-    ${inputs.layoutTemplate === 'Feature Callout' ? "11. **TECHNICAL DRAFTING**: Use 1px sharp vector lines with circular anchor points to point at specific product features mentioned in the description." : ""}
+    10. **LAYOUT**: ${brief.suggestedLayout}
 
     *** THE CREATIVE COPY (FULL MARKETING SUITE) ***
     1. **HEADLINE (HERO SCALE)**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.

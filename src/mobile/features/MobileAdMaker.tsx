@@ -30,7 +30,6 @@ const AD_STEPS = [
     { id: 'engine', label: 'Engine' },
     { id: 'logo', label: 'Logo' },
     { id: 'creative', label: 'Creative' },
-    { id: 'layout', label: 'Layout' },
     { id: 'format', label: 'Format' },
     { id: 'copy', label: 'Copy' },
     { id: 'cta', label: 'CTA' }
@@ -57,7 +56,6 @@ const MODEL_PARAMS_STEPS = [
 ];
 
 const MOODS = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", "Custom"];
-const LAYOUTS = ['Hero Focus', 'Split Design', 'Bottom Strip'];
 const CTA_BUTTONS = ['None', 'Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom'];
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
@@ -74,11 +72,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [modelStepIdx, setModelStepIdx] = useState(0);
     const [modelParams, setModelParams] = useState<Record<string, string>>({});
     
-    const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
+    const [isCollectionMode, setIsCollectionMode] = useState(false);
+    const [mainImages, setMainImages] = useState<{ url: string; base64: any }[]>([]);
     const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
-    const [layoutTemplate, setLayoutTemplate] = useState('Hero Focus');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>('');
     const [productName, setProductName] = useState('');
     const [description, setDescription] = useState('');
@@ -108,26 +106,25 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const isStepAccessible = (idx: number): boolean => {
         if (idx === 0) return true;
-        if (idx === 1) return !!industry && !!image;
+        if (idx === 1) return !!industry && mainImages.length > 0;
         if (idx === 2) {
             if (engineMode === 'product') return true;
             return Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
         }
         if (idx === 3) return isStepAccessible(2) && !!engineMode;
         if (idx === 4) return !!vibe;
-        if (idx === 5) return !!layoutTemplate;
-        if (idx === 6) return !!aspectRatio;
-        if (idx === 7) return productName.length > 0 && description.length > 5;
+        if (idx === 5) return !!aspectRatio;
+        if (idx === 6) return productName.length > 0 && description.length > 5;
         return false;
     };
 
     const isStrategyComplete = useMemo(() => {
-        const base = !!industry && !!engineMode && !!image && !!vibe && !!aspectRatio && !!productName && description.length > 5 && !!layoutTemplate;
+        const base = !!industry && !!engineMode && mainImages.length > 0 && !!vibe && !!aspectRatio && !!productName && description.length > 5;
         if (engineMode === 'subject') {
             return base && Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
         }
         return base;
-    }, [industry, engineMode, modelParams, image, vibe, aspectRatio, productName, description, layoutTemplate]);
+    }, [industry, engineMode, modelParams, mainImages, vibe, aspectRatio, productName, description]);
 
     useEffect(() => {
         let interval: any;
@@ -158,13 +155,17 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             const base64 = await fileToBase64(file);
-            setter({ url: URL.createObjectURL(file), base64 });
+            const newAsset = { url: URL.createObjectURL(file), base64 };
             
-            if (setter === setImage) {
-                // Advance if industry is already set
+            if (setter === 'mainImages') {
+                if (isCollectionMode) {
+                    setMainImages(prev => [...prev, newAsset].slice(0, 5));
+                } else {
+                    setMainImages([newAsset]);
+                }
                 if (industry) setTimeout(() => setCurrentStep(1), 600);
             } else if (setter === setLogo) {
-                // Deliberate delay after logo upload
+                setLogo(newAsset);
                 setTimeout(() => setCurrentStep(3), 600);
             }
         }
@@ -172,7 +173,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const handleGenerate = async () => {
-        if (!image || !isStrategyComplete || !auth.user || isGenerating) return;
+        if (mainImages.length === 0 || !isStrategyComplete || !auth.user || isGenerating) return;
         if (isLowCredits) return;
 
         onGenerationStart();
@@ -180,13 +181,12 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         try {
             const resB64 = await generateAdCreative({
                 industry: industry.id,
-                mainImages: [image.base64],
+                mainImages: mainImages.map(img => img.base64),
                 logoImage: logo?.base64,
                 vibe: vibe === 'Custom' ? customVibe : vibe,
                 productName: productName,
                 description: description,
                 aspectRatio: aspectRatio as any,
-                layoutTemplate: layoutTemplate,
                 modelSource: engineMode === 'subject' ? 'ai' : null,
                 modelParams: engineMode === 'subject' ? (modelParams as any) : undefined,
                 website,
@@ -230,10 +230,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const handleReset = () => {
-        setResult(null); setImage(null); setLogo(null); setIndustry(null); setEngineMode(null);
-        setVibe(''); setCustomVibe(''); setLayoutTemplate('Hero Focus'); setProductName(''); setDescription(''); 
+        setResult(null); setMainImages([]); setLogo(null); setIndustry(null); setEngineMode(null);
+        setVibe(''); setCustomVibe(''); setProductName(''); setDescription(''); 
         setWebsite(''); setContactNumber(''); setCtaButton('None'); setCustomCta('');
         setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
+        setIsCollectionMode(false);
     };
 
     const renderStepContent = () => {
@@ -246,7 +247,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             {INDUSTRIES.map(ind => (
                                 <button key={ind.id} onClick={() => { 
                                     setIndustry(ind); 
-                                    if(image) setTimeout(() => setCurrentStep(1), 600); 
+                                    if(mainImages.length > 0) setTimeout(() => setCurrentStep(1), 600); 
                                 }} className={`shrink-0 w-24 h-24 rounded-3xl border flex flex-col items-center justify-center gap-1.5 transition-all ${industry?.id === ind.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
                                     <ind.icon className="w-6 h-6" />
                                     <span className="text-[9px] font-black uppercase tracking-tight">{ind.label}</span>
@@ -281,15 +282,24 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     );
                 }
                 return (
-                    <div className="w-full flex gap-4 px-6 py-2">
-                        <button onClick={() => { setEngineMode('product'); setTimeout(() => setCurrentStep(2), 600); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'product' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
-                            <div className="p-3 bg-white rounded-2xl shadow-sm"><CubeIcon className="w-6 h-6 text-blue-500"/></div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Product Ad</span>
-                        </button>
-                        <button onClick={() => { setEngineMode('subject'); setModelStepIdx(0); }} className={`flex-1 h-32 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${engineMode === 'subject' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
-                            <div className="p-3 bg-white rounded-2xl shadow-sm"><UsersIcon className="w-6 h-6 text-purple-500"/></div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Model Ad</span>
-                        </button>
+                    <div className="w-full flex flex-col gap-3 px-6 py-2">
+                        <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full">
+                            <button onClick={() => { 
+                                setIsCollectionMode(false); 
+                                if (mainImages.length > 1) setMainImages(prev => prev.slice(0, 1));
+                            }} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Product</button>
+                            <button onClick={() => { setIsCollectionMode(true); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Collection</button>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => { setEngineMode('product'); setTimeout(() => setCurrentStep(2), 600); }} className={`flex-1 h-24 rounded-[1.5rem] border-2 flex flex-col items-center justify-center gap-1.5 transition-all ${engineMode === 'product' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                                <CubeIcon className="w-5 h-5 text-blue-500"/>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Product Ad</span>
+                            </button>
+                            <button onClick={() => { setEngineMode('subject'); setModelStepIdx(0); }} className={`flex-1 h-24 rounded-[1.5rem] border-2 flex flex-col items-center justify-center gap-1.5 transition-all ${engineMode === 'subject' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                                <UsersIcon className="w-5 h-5 text-purple-500"/>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Model Ad</span>
+                            </button>
+                        </div>
                     </div>
                 );
             case 'logo':
@@ -314,19 +324,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         )}
                     </div>
                 );
-            case 'layout':
-                return (
-                    <div className="w-full flex gap-2 overflow-x-auto no-scrollbar px-6 py-2">
-                        {LAYOUTS.map(l => (
-                            <button key={l} onClick={() => { setLayoutTemplate(l); setTimeout(() => setCurrentStep(5), 600); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${layoutTemplate === l ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{l}</button>
-                        ))}
-                    </div>
-                );
             case 'format':
                 return (
                     <div className="w-full flex gap-4 justify-center px-6 py-2">
                         {(['1:1', '4:5', '9:16'] as const).map(ratio => (
-                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setTimeout(() => setCurrentStep(6), 600); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setTimeout(() => setCurrentStep(5), 600); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
                                 <div className={`border-2 border-current rounded-sm ${ratio === '1:1' ? 'w-4 h-4' : ratio === '4:5' ? 'w-4 h-5' : 'w-3 h-6'}`}></div>
                                 <span className="text-[10px] font-black">{ratio}</span>
                             </button>
@@ -338,7 +340,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="w-full px-6 flex flex-col gap-3 py-2">
                         <input value={productName} onChange={e => setProductName(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Product Name..." />
                         <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-medium focus:border-indigo-500 outline-none shadow-inner h-20 resize-none" placeholder="The Hook / Context (e.g. Summer sale vibes)..." />
-                        <button onClick={() => productName && description.length > 5 && setCurrentStep(7)} className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${productName && description.length > 5 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>Next: Call to Action</button>
+                        <button onClick={() => productName && description.length > 5 && setCurrentStep(6)} className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${productName && description.length > 5 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>Next: Call to Action</button>
                     </div>
                 );
             case 'cta':
@@ -399,11 +401,19 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             <img src={result} onClick={() => !isGenerating && setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
                         ) : (
                             <div className="relative w-full h-full p-4 flex flex-col items-center justify-center animate-fadeIn">
-                                {image ? (
+                                {mainImages.length > 0 ? (
                                     <div className="relative w-72 h-72 animate-fadeIn flex flex-col items-center justify-center">
                                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 to-transparent blur-3xl opacity-60"></div>
                                         <div className="relative p-8 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/60 shadow-2xl flex items-center justify-center overflow-hidden">
-                                            <img src={image.url} className="max-w-full max-h-full object-contain" />
+                                            {isCollectionMode ? (
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {mainImages.map((img, i) => (
+                                                        <img key={i} src={img.url} className="w-full h-full object-contain" />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <img src={mainImages[0].url} className="max-w-full max-h-full object-contain" />
+                                            )}
                                         </div>
                                         {logo && (
                                             <div className="absolute top-0 left-0 w-14 h-14 bg-white rounded-2xl shadow-xl p-2.5 border border-indigo-100 z-20 animate-fadeIn">
@@ -429,7 +439,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             </div>
                         )}
 
-                        {image && !result && !isGenerating && (
+                        {mainImages.length > 0 && !result && !isGenerating && (
                             <button 
                                 onClick={handleReset}
                                 className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
@@ -490,14 +500,13 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
                                         const isFilled = 
-                                            (idx === 0 && !!industry && !!image) || 
+                                            (idx === 0 && !!industry && mainImages.length > 0) || 
                                             (idx === 1 && !!engineMode) || 
                                             (idx === 2 && !!logo) || 
                                             (idx === 3 && !!vibe) || 
-                                            (idx === 4 && !!layoutTemplate) || 
-                                            (idx === 5 && !!aspectRatio) ||
-                                            (idx === 6 && !!productName && description.length > 5) ||
-                                            (idx === 7 && (!!website || !!contactNumber || (ctaButton !== 'None' && ctaButton !== '')));
+                                            (idx === 4 && !!aspectRatio) ||
+                                            (idx === 5 && !!productName && description.length > 5) ||
+                                            (idx === 6 && (!!website || !!contactNumber || (ctaButton !== 'None' && ctaButton !== '')));
                                         
                                         let displayLabel = "";
                                         let isNextCue = false;
@@ -521,26 +530,18 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 displayLabel = "NEXT";
                                                 isNextCue = true;
                                             } else {
-                                                displayLabel = layoutTemplate || "";
-                                            }
-                                        }
-                                        else if (idx === 5) {
-                                            if (currentStep === 4 && !!layoutTemplate) {
-                                                displayLabel = "NEXT";
-                                                isNextCue = true;
-                                            } else {
                                                 displayLabel = aspectRatio || "";
                                             }
                                         }
-                                        else if (idx === 6) {
-                                            if (currentStep === 5 && !!aspectRatio) {
+                                        else if (idx === 5) {
+                                            if (currentStep === 4 && !!aspectRatio) {
                                                 displayLabel = "NEXT";
                                                 isNextCue = true;
                                             } else {
                                                 displayLabel = productName ? 'Ready' : "";
                                             }
                                         }
-                                        else if (idx === 7) {
+                                        else if (idx === 6) {
                                             displayLabel = (website || contactNumber || ctaButton !== 'None') ? 'SET' : "";
                                         }
 
@@ -577,7 +578,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </MobileSheet>
 
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setImage)} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload('mainImages')} />
             <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogo)} />
 
             <style>{`

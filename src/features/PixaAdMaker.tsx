@@ -79,28 +79,6 @@ const VIBE_MAP: Record<string, string[]> = {
     'services': SIMPLE_ARCHETYPES,
 };
 
-const BLUEPRINT_VIBE_CONSTRAINTS: Record<string, string[]> = {
-    'Hero Focus': SIMPLE_ARCHETYPES,
-    'Split Design': SIMPLE_ARCHETYPES,
-    'Bottom Strip': SIMPLE_ARCHETYPES,
-    'Social Proof': SIMPLE_ARCHETYPES,
-    'Magazine Cover': SIMPLE_ARCHETYPES,
-    'Minimalist Zen': SIMPLE_ARCHETYPES,
-    'Feature Callout': SIMPLE_ARCHETYPES,
-    'Action Dynamic': SIMPLE_ARCHETYPES,
-    'Contrast Grid': SIMPLE_ARCHETYPES,
-    'The Trio': SIMPLE_ARCHETYPES,
-    'Range Lineup': SIMPLE_ARCHETYPES,
-    'Hero & Variants': SIMPLE_ARCHETYPES
-};
-
-const LAYOUT_TEMPLATES = [
-    'Hero Focus', 
-    'Split Design', 
-    'Bottom Strip'
-];
-const COLLECTION_TEMPLATES: string[] = [];
-
 const IndustryCard: React.FC<{ 
     title: string; 
     desc: string; 
@@ -288,7 +266,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
-    const [layoutTemplate, setLayoutTemplate] = useState('');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); 
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     
@@ -335,16 +312,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const filteredVibes = useMemo(() => {
         if (!industry) return [];
-        const industryVibes = VIBE_MAP[industry] || [];
-        const supportedVibes = BLUEPRINT_VIBE_CONSTRAINTS[layoutTemplate] || [];
-        return industryVibes.filter(v => supportedVibes.includes(v));
-    }, [industry, layoutTemplate]);
+        return VIBE_MAP[industry] || [];
+    }, [industry]);
 
     useEffect(() => {
         if (vibe && !filteredVibes.includes(vibe)) {
             setVibe('');
         }
-    }, [layoutTemplate, filteredVibes]);
+    }, [filteredVibes]);
 
     useEffect(() => {
         if (auth.activeBrandKit) {
@@ -362,7 +337,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             setMainImages([]);
             setIsCollectionMode(false);
-            setLayoutTemplate('');
             setIntegrationMode(null);
         }
     }, [auth.activeBrandKit]);
@@ -400,7 +374,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             
             if (multi) {
                 if (isCollectionMode) {
-                    setMainImages(prev => [...prev, ...processed].slice(0, 3));
+                    setMainImages(prev => [...prev, ...processed].slice(0, 5));
                 } else {
                     setMainImages(processed.slice(0, 1));
                 }
@@ -416,7 +390,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             setMainImages(prev => prev.filter((_, i) => i !== existingIdx));
         } else {
             if (isCollectionMode) {
-                if (mainImages.length < 3) {
+                if (mainImages.length < 5) {
                     try {
                         const b64 = await urlToBase64(imgUrl);
                         setMainImages(prev => [...prev, { url: imgUrl, base64: b64 }]);
@@ -424,7 +398,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         console.error("Failed to load product", e);
                     }
                 } else {
-                    setNotification({ msg: "Max 3 products allowed for collections.", type: 'info' });
+                    setNotification({ msg: "Max 5 products allowed for collections.", type: 'info' });
                 }
             } else {
                 try {
@@ -438,7 +412,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleGenerate = async () => {
-        if (!industry || mainImages.length === 0 || !auth.user || !description || !productName || !aspectRatio || !integrationMode || !layoutTemplate) return;
+        if (!industry || mainImages.length === 0 || !auth.user || !description || !productName || !aspectRatio || !integrationMode) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         // PRODUCTION MANDATE: Check for selected API key when using pro models
@@ -457,7 +431,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const inputs: AdMakerInputs = {
                 industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
-                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, contactNumber, offer, description, layoutTemplate, aspectRatio,
+                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, contactNumber, offer, description, aspectRatio,
                 modelSource: integrationMode === 'subject' ? modelSource : null, 
                 modelImage: integrationMode === 'subject' && modelSource === 'upload' ? modelImage?.base64 : null, 
                 modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined,
@@ -520,7 +494,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const handleNewSession = () => {
         setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
-        setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null); setLayoutTemplate('');
+        setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null);
         setCustomTitle(''); setContactNumber(''); setCtaButton(''); setCustomCta('');
     };
 
@@ -563,7 +537,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!productName && !!aspectRatio && !!integrationMode && !!layoutTemplate && !isLowCredits && (
+    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!productName && !!aspectRatio && !!integrationMode && !isLowCredits && (
         integrationMode === 'product' ? true : (modelSource === 'ai' ? (!!modelParams?.modelType && !!modelParams?.region) : (!!modelImage))
     );
 
@@ -630,7 +604,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className="inline-flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                             <span className="text-[9px] font-black text-white uppercase tracking-widest">
-                                                {integrationMode === 'product' ? 'Hero Product Locked' : integrationMode === 'subject' ? 'Subject Context Locked' : 'Layout Mode Pending'}
+                                                {integrationMode === 'product' ? 'Hero Product Locked' : integrationMode === 'subject' ? 'Subject Context Locked' : 'AI Layout Engine Active'}
                                             </span>
                                         </div>
                                         {integrationMode === 'subject' && (
@@ -879,25 +853,15 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div>
                                             <div className={AdMakerStyles.sectionHeader}>
                                                 <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '2' : '3'}</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Composition Blueprint</label>
+                                                <label className={AdMakerStyles.sectionTitle}>Campaign Mode</label>
                                             </div>
                                             
                                             <div className="flex bg-gray-50 p-1 rounded-xl mb-3 border border-gray-100 w-fit">
                                                 <button onClick={() => { 
                                                     setIsCollectionMode(false); 
-                                                    setLayoutTemplate('');
                                                     if (mainImages.length > 1) setMainImages(prev => prev.slice(0, 1));
-                                                }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Hero</button>
-                                                <button onClick={() => { setIsCollectionMode(true); setLayoutTemplate(''); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Collection</button>
-                                            </div>
-
-                                            <div className={AdMakerStyles.blueprintGrid}>
-                                                {(isCollectionMode ? COLLECTION_TEMPLATES : LAYOUT_TEMPLATES).map(temp => (
-                                                    <button key={temp} onClick={() => setLayoutTemplate(temp)} className={`${AdMakerStyles.blueprintCard} ${layoutTemplate === temp ? AdMakerStyles.blueprintCardSelected : AdMakerStyles.blueprintCardInactive}`}>
-                                                        <span className={AdMakerStyles.blueprintLabel}>{temp}</span>
-                                                        {layoutTemplate === temp && <div className={AdMakerStyles.blueprintCheck}><CheckIcon className="w-3 h-3"/></div>}
-                                                    </button>
-                                                ))}
+                                                }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Product</button>
+                                                <button onClick={() => { setIsCollectionMode(true); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Collection</button>
                                             </div>
                                         </div>
 
