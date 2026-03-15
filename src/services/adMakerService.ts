@@ -111,100 +111,35 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 0: THE ELITE COPYWRITER (ISOLATED HEADLINE ENGINE)
- * This engine is physically isolated from industry/category data to prevent leakage.
+ * PHASE 0: THE BLIND CONTEXT ENGINE (GROUND-ZERO)
+ * This engine has ZERO access to industry/category data.
+ * It only sees the user's description and specs.
  */
-const generateEliteHeadline = async (description: string, specs: string, feedback?: string): Promise<string> => {
-    const prompt = `You are an Elite Ad Copywriter at a top-tier global agency. 
-    Your ONLY source of truth is the provided 'AD CONTEXT'. 
+const generateContextTitle = async (description: string, specs: string): Promise<string> => {
+    const prompt = `You are a World-Class Creative Director. 
+    Synthesize a 2-5 word "Vibe" headline based ONLY on the 'INPUT' below.
     
-    *** AD CONTEXT ***
+    *** INPUT ***
     Description: "${description}"
     Specs: "${specs}"
     
-    ${feedback ? `*** PREVIOUS ATTEMPT FEEDBACK (CRITICAL) ***\n${feedback}\n` : ""}
+    *** RULES (SACRED) ***
+    1. **NO CATEGORY LEAKAGE**: Do not use any industry names or category labels.
+    2. **NO LITERALS**: Do not describe the product. Describe the "Feeling" or "Result".
+    3. **PURE SYNTHESIS**: Create a brand new, trendy hook. Do not repeat the user's words.
     
-    *** TASK ***
-    Synthesize a 2-5 word "Viral Hook" or "Elite Headline" based ONLY on the essence of the context.
-    
-    *** RULES (STRICT) ***
-    1. **NO CATEGORY LEAKAGE**: Do not use words like "Ecommerce", "Fashion", "Food", "Real Estate", etc.
-    2. **NO LITERALS**: Do not describe the product (e.g., if it's a watch, don't say "Watch").
-    3. **ABSTRACT SYNTHESIS**: Focus on the "Feeling", "Status", or "Result" the product provides.
-    4. **TRENDY & MODERN**: Use high-impact, punchy language (e.g., "THE BORDER OF HEAT", "THE ARCHITECT OF TIME").
-    5. **NO USER REPETITION**: Do not repeat the user's exact words from the description.
-    
-    OUTPUT: Return ONLY the headline string. No quotes, no preamble.`;
+    OUTPUT: Return ONLY the headline string.`;
 
-    const response = await secureGenerateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: { parts: [{ text: prompt }] },
-        featureName: 'Elite Copywriter Headline'
-    });
-    return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
-};
-
-/**
- * THE ELITE CRITIC (QUALITY CONTROL ENGINE)
- */
-const auditHeadline = async (headline: string, industry: string, description: string): Promise<{ approved: boolean; feedback?: string }> => {
-    const prompt = `You are a Senior Creative Director and Brand Auditor. 
-    Audit the following headline for a high-end ad campaign.
-    
-    Headline: "${headline}"
-    Forbidden Category: "${industry}"
-    Product Context: "${description}"
-    
-    *** AUDIT CRITERIA ***
-    1. **CATEGORY LEAKAGE**: Does the headline contain the word "${industry}" or any generic industry terms? (REJECT if yes).
-    2. **LITERALISM**: Is the headline too literal? (e.g., if it's a watch, does it say "Watch"? REJECT if yes).
-    3. **QUALITY**: Is the headline "awful", generic, or boring? (REJECT if yes).
-    4. **CONTEXT**: Is the headline derived from the Product Context? (REJECT if no).
-    
-    RETURN JSON ONLY:
-    {
-        "approved": boolean,
-        "feedback": "string (Explain why it failed if rejected, be specific)"
-    }`;
-
-    const response = await secureGenerateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: { parts: [{ text: prompt }] },
-        config: { responseMimeType: "application/json" },
-        featureName: 'Elite Headline Auditor'
-    });
-    
     try {
-        return JSON.parse(response.text || '{"approved": false}');
+        const response = await secureGenerateContent({
+            model: 'gemini-3.1-pro-preview',
+            contents: { parts: [{ text: prompt }] },
+            featureName: 'Blind Context Title Engine'
+        });
+        return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
     } catch (e) {
-        return { approved: false, feedback: "Failed to parse audit response." };
+        return "UNCOMPROMISING QUALITY";
     }
-};
-
-/**
- * RECURSIVE CRITIC ARCHITECTURE (THE NEVER-FAIL ENGINE)
- */
-const generateEliteHeadlineWithCritic = async (inputs: AdMakerInputs): Promise<string> => {
-    let attempts = 0;
-    const maxAttempts = 5;
-    let currentHeadline = "";
-    let feedback = "";
-
-    while (attempts < maxAttempts) {
-        attempts++;
-        currentHeadline = await generateEliteHeadline(inputs.description || '', inputs.productSpecs || '', feedback);
-        
-        const audit = await auditHeadline(currentHeadline, inputs.industry, inputs.description || '');
-        
-        if (audit.approved) {
-            return currentHeadline;
-        }
-        
-        feedback = `REJECTION REASON: ${audit.feedback}. RETRYING... ATTEMPT ${attempts}/${maxAttempts}`;
-        console.warn(`Headline Audit Failed: ${currentHeadline}. Reason: ${audit.feedback}`);
-    }
-
-    return currentHeadline; // Return the best we got after max attempts
 };
 
 /**
@@ -217,8 +152,8 @@ const performAdIntelligence = async (
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
     
-    // 0. ELITE HEADLINE SYNTHESIS (RECURSIVE CRITIC ARCHITECTURE)
-    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateEliteHeadlineWithCritic(inputs);
+    // 0. BLIND CONTEXT TITLE ENGINE (GROUND-ZERO)
+    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateContextTitle(inputs.description || '', inputs.productSpecs || '');
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
@@ -228,15 +163,13 @@ const performAdIntelligence = async (
     Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
     
     *** FORBIDDEN DATA (STRICTLY PROHIBITED) ***
-    - DO NOT USE the industry name: "${inputs.industry}" in any part of the headline or subheadline.
-    - DO NOT USE generic category terms related to "${inputs.industry}".
-    - DO NOT USE literal descriptions of the product type (e.g., if it's a watch, don't use the word "Watch").
+    - DO NOT USE the industry name: "${inputs.industry}" or any related category terms.
+    - DO NOT USE literal descriptions.
     
-    *** CONTEXTUAL TREND-MAPPING (STRICT REFERENCE ONLY) ***
-    1. **AD CONTEXT AS SOLE ANCHOR**: Use the user's description ("${inputs.description || 'N/A'}") and specs ("${inputs.productSpecs || 'N/A'}") as the ONLY conceptual anchors.
-    2. **DEEP SEARCH**: Perform a targeted Google Search for the EXACT product niche based ONLY on the context. Search for: "Viral marketing hooks for [Context Essence] 2026" and "Emotional triggers for [Context Benefit]".
-    3. **SYNTHESIZE, DON'T REPEAT**: You are FORBIDDEN from repeating the user's exact words. Instead, take the "Vibe" and "Essence" of the context and synthesize a brand new, trendy 2-5 word viral hook.
-    4. **EMOTIONAL RESONANCE**: Identify the dominant "Emotional Hook" (e.g., Status, Freedom, Security, Joy) currently trending for this specific context.
+    *** CONTEXTUAL TREND-MAPPING (GROUND-ZERO) ***
+    1. **HEADLINE LOCK**: The Blind Context Engine has produced: "${eliteHeadline}". YOU MUST USE THIS EXACT STRING.
+    2. **SUBHEADLINE**: Generate a high-impact subheadline based ONLY on the context.
+    3. **DEEP SEARCH**: Perform a targeted Google Search for the EXACT product niche based ONLY on the context.
     
     *** VISUAL AUDIT (MANDATORY) ***
     1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
@@ -248,12 +181,12 @@ const performAdIntelligence = async (
     Blueprint Narrative: "${LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']}"
     
     Your Task: Harmonize the user's selected layout with the March 2026 trends you discovered. 
-    Adjust the layout narrative to be "Aspect-Aware". For example, if the ratio is 9:16, ensure the layout uses the vertical space effectively for the product and copy.
+    Adjust the layout narrative to be "Aspect-Aware".
     
     *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
     1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
     2. **ANTI-LITERAL RULE**: Strictly FORBIDDEN to include the industry name ("${inputs.industry}") or category in the headline. 
-    3. **HEADLINE LOCK**: The Elite Copywriter has already synthesized the headline: "${eliteHeadline}". YOU MUST USE THIS EXACT HEADLINE.
+    3. **HEADLINE LOCK**: The Blind Context Engine has produced: "${eliteHeadline}". YOU MUST USE THIS EXACT HEADLINE.
     4. **SUBHEADLINE**: Generate a high-impact subheadline that supports the headline: "${eliteHeadline}".
     
     RETURN JSON ONLY:
