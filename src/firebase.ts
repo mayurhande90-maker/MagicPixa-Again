@@ -10,18 +10,29 @@ import { USE_SECURE_BACKEND } from './services/geminiClient';
 // Import the config file directly so it's bundled by Vite
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
-const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId;
-const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain);
+// Hardcoded fallbacks for APK/Production environments where env vars might be missing
+const FALLBACK_CONFIG = {
+  projectId: "magicpixa-prod2",
+  appId: "1:975816945931:web:2fd6d22a330528f1d6f20e",
+  apiKey: "AIzaSyA24HC0EoCiNJrZiPQ-UnqcMMoy4AbIsDg",
+  authDomain: "magicpixa-prod2.firebaseapp.com",
+  firestoreDatabaseId: "ai-studio-2c7634f2-0fb9-4be3-a912-593f46f96faa",
+  storageBucket: "magicpixa-prod2.firebasestorage.app",
+  messagingSenderId: "975816945931"
+};
+
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId || FALLBACK_CONFIG.projectId;
+const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain || FALLBACK_CONFIG.authDomain);
 
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey || FALLBACK_CONFIG.apiKey,
   authDomain: derivedAuthDomain,
   projectId: projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket || FALLBACK_CONFIG.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId || FALLBACK_CONFIG.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId || FALLBACK_CONFIG.appId,
   // Ensure we use the specific database ID if provided
-  firestoreDatabaseId: (firebaseAppletConfig as any).firestoreDatabaseId
+  firestoreDatabaseId: (firebaseAppletConfig as any).firestoreDatabaseId || FALLBACK_CONFIG.firestoreDatabaseId
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
@@ -54,7 +65,15 @@ if (isConfigValid) {
   try {
     app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
     auth = firebase.auth();
-    db = firebase.firestore();
+    
+    // Support for named databases in Firestore (compat mode)
+    const dbId = (firebaseConfig as any).firestoreDatabaseId;
+    if (dbId && dbId !== '(default)') {
+        db = (app as any).firestore(dbId);
+    } else {
+        db = firebase.firestore();
+    }
+    
     storage = firebase.storage();
   } catch (error) {
     console.error("Error initializing Firebase:", error);
