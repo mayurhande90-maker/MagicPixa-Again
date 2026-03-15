@@ -31,8 +31,6 @@ export interface AdMakerInputs {
     customTitle?: string;
     ctaButton?: string;
     customCta?: string;
-    productFinish?: 'Glossy' | 'Matte' | 'Metallic' | 'Glass' | 'Fabric';
-    copywritingTone?: 'Bold' | 'Luxury' | 'Witty' | 'Urgent';
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
@@ -91,6 +89,8 @@ interface CreativeBrief {
         forbiddenKeywords: string[];
     };
     visualDirection: string;
+    detectedFinish: 'Glossy' | 'Matte' | 'Metallic' | 'Glass' | 'Fabric';
+    suggestedTone: 'Bold' | 'Luxury' | 'Witty' | 'Urgent';
     trendAnalysis: {
         colorPalette: string;
         lightingMood: string;
@@ -148,7 +148,9 @@ const performAdIntelligence = async (
     const ai = getAiClient();
     
     // 0. BLIND CONTEXT TITLE ENGINE (GROUND-ZERO)
-    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateContextTitle(inputs.description || '', inputs.productSpecs || '', inputs.copywritingTone);
+    // We'll use a default tone for the initial headline generation, or we can wait until after audit.
+    // Let's stick to a default 'Bold' for the blind engine, then refine if needed.
+    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateContextTitle(inputs.description || '', inputs.productSpecs || '', 'Bold');
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
@@ -168,7 +170,9 @@ const performAdIntelligence = async (
     
     *** VISUAL AUDIT (MANDATORY) ***
     1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
-    2. DO NOT rely solely on the provided productName: "${inputs.productName || 'N/A'}". 
+    2. Identify the 'detectedFinish': Is the product Glossy, Matte, Metallic, Glass, or Fabric?
+    3. Suggest a 'suggestedTone': Based on the product and description, which marketing tone fits best? (Bold, Luxury, Witty, or Urgent).
+    4. DO NOT rely solely on the provided productName: "${inputs.productName || 'N/A'}". 
     
     *** BLUEPRINT HARMONY (CRITICAL) ***
     User Selected Layout: "${inputs.layoutTemplate || 'Hero Focus'}"
@@ -190,6 +194,8 @@ const performAdIntelligence = async (
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
         "visualDirection": "string",
+        "detectedFinish": "Glossy | Matte | Metallic | Glass | Fabric",
+        "suggestedTone": "Bold | Luxury | Witty | Urgent",
         "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" },
         "harmonizedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine)"
     }`;
@@ -218,6 +224,8 @@ const performAdIntelligence = async (
             identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
             industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [inputs.industry] },
             visualDirection: "Clean commercial studio aesthetics.",
+            detectedFinish: 'Matte',
+            suggestedTone: 'Bold',
             trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" },
             harmonizedLayout: LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus']
         };
@@ -276,19 +284,20 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
 
     *** PRODUCTION DIRECTIVES (ELITE QUALITY) ***
-    1. **MATERIAL FIDELITY**: The product has a "${inputs.productFinish || 'Matte'}" finish. 
+    1. **MATERIAL FIDELITY**: The product has a "${brief.detectedFinish || 'Matte'}" finish. 
        - If 'Glossy': Apply sharp, clear reflections of the studio environment.
        - If 'Matte': Apply soft, diffused lighting with no sharp highlights.
        - If 'Metallic': Apply high-contrast rim lighting and anisotropic specular highlights.
        - If 'Glass': Apply realistic refraction, transparency, and caustic light patterns.
        - If 'Fabric': Apply soft micro-shadows to highlight texture and weave.
-    2. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
-    2. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
-    3. **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with realistic shadows. 
-    4. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
-    5. **BLENDING**: The product must look physically present in the scene, not "pasted".
-    6. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
-    7. **LAYOUT**: ${blueprintInstruction}
+    2. **MARKETING TONE**: The ad must convey a "${brief.suggestedTone || 'Bold'}" tone. 
+    3. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
+    4. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
+    5. **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with realistic shadows. 
+    6. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
+    7. **BLENDING**: The product must look physically present in the scene, not "pasted".
+    8. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
+    9. **LAYOUT**: ${blueprintInstruction}
 
     *** THE CREATIVE COPY (MINIMALIST HERO) ***
     1. **HEADLINE**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
