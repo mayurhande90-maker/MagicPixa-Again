@@ -30,8 +30,10 @@ const AD_STEPS = [
     { id: 'engine', label: 'Engine' },
     { id: 'logo', label: 'Logo' },
     { id: 'creative', label: 'Creative' },
+    { id: 'layout', label: 'Layout' },
     { id: 'format', label: 'Format' },
-    { id: 'copy', label: 'Copy' }
+    { id: 'copy', label: 'Copy' },
+    { id: 'cta', label: 'CTA' }
 ];
 
 const INDUSTRIES = [
@@ -54,7 +56,9 @@ const MODEL_PARAMS_STEPS = [
     { id: 'framing', label: 'Shot', options: ['Tight Close', 'Close-Up', 'Mid Shot', 'Wide Shot'] }
 ];
 
-const MOODS = ['Luxury', 'Cinematic', 'Minimalist', 'Vibrant', 'Organic', 'Cyberpunk'];
+const MOODS = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", "Custom"];
+const LAYOUTS = ['Hero Focus', 'Split Design', 'Bottom Strip'];
+const CTA_BUTTONS = ['None', 'Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom'];
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
@@ -73,9 +77,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [image, setImage] = useState<{ url: string; base64: any } | null>(null);
     const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
     const [vibe, setVibe] = useState('');
+    const [customVibe, setCustomVibe] = useState('');
+    const [layoutTemplate, setLayoutTemplate] = useState('Hero Focus');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>('');
     const [productName, setProductName] = useState('');
     const [description, setDescription] = useState('');
+    const [website, setWebsite] = useState('');
+    const [contactNumber, setContactNumber] = useState('');
+    const [ctaButton, setCtaButton] = useState('None');
+    const [customCta, setCustomCta] = useState('');
 
     const [result, setResult] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -105,17 +115,19 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
         if (idx === 3) return isStepAccessible(2) && !!engineMode;
         if (idx === 4) return !!vibe;
-        if (idx === 5) return !!aspectRatio;
+        if (idx === 5) return !!layoutTemplate;
+        if (idx === 6) return !!aspectRatio;
+        if (idx === 7) return productName.length > 0 && description.length > 5;
         return false;
     };
 
     const isStrategyComplete = useMemo(() => {
-        const base = !!industry && !!engineMode && !!image && !!vibe && !!aspectRatio && !!productName && description.length > 5;
+        const base = !!industry && !!engineMode && !!image && !!vibe && !!aspectRatio && !!productName && description.length > 5 && !!layoutTemplate;
         if (engineMode === 'subject') {
             return base && Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
         }
         return base;
-    }, [industry, engineMode, modelParams, image, vibe, aspectRatio, productName, description]);
+    }, [industry, engineMode, modelParams, image, vibe, aspectRatio, productName, description, layoutTemplate]);
 
     useEffect(() => {
         let interval: any;
@@ -170,13 +182,16 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 industry: industry.id,
                 mainImages: [image.base64],
                 logoImage: logo?.base64,
-                vibe: vibe,
+                vibe: vibe === 'Custom' ? customVibe : vibe,
                 productName: productName,
                 description: description,
                 aspectRatio: aspectRatio as any,
-                layoutTemplate: 'Hero Focus',
+                layoutTemplate: layoutTemplate,
                 modelSource: engineMode === 'subject' ? 'ai' : null,
-                modelParams: engineMode === 'subject' ? (modelParams as any) : undefined
+                modelParams: engineMode === 'subject' ? (modelParams as any) : undefined,
+                website,
+                contactNumber,
+                ctaButton: ctaButton === 'None' ? '' : (ctaButton === 'Custom' ? customCta : ctaButton)
             }, auth.activeBrandKit);
             
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
@@ -216,7 +231,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const handleReset = () => {
         setResult(null); setImage(null); setLogo(null); setIndustry(null); setEngineMode(null);
-        setVibe(''); setProductName(''); setDescription(''); setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
+        setVibe(''); setCustomVibe(''); setLayoutTemplate('Hero Focus'); setProductName(''); setDescription(''); 
+        setWebsite(''); setContactNumber(''); setCtaButton('None'); setCustomCta('');
+        setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
     };
 
     const renderStepContent = () => {
@@ -289,16 +306,27 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="w-full flex flex-col gap-4 px-6 py-2">
                         <div className="flex gap-2 overflow-x-auto no-scrollbar">
                             {MOODS.map(m => (
-                                <button key={m} onClick={() => { setVibe(m); setTimeout(() => setCurrentStep(4), 600); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
+                                <button key={m} onClick={() => { setVibe(m); if(m !== 'Custom') setTimeout(() => setCurrentStep(4), 600); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
                             ))}
                         </div>
+                        {vibe === 'Custom' && (
+                            <input value={customVibe} onChange={e => setCustomVibe(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Describe your vibe (e.g. Retro Neon)..." />
+                        )}
+                    </div>
+                );
+            case 'layout':
+                return (
+                    <div className="w-full flex gap-2 overflow-x-auto no-scrollbar px-6 py-2">
+                        {LAYOUTS.map(l => (
+                            <button key={l} onClick={() => { setLayoutTemplate(l); setTimeout(() => setCurrentStep(5), 600); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${layoutTemplate === l ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{l}</button>
+                        ))}
                     </div>
                 );
             case 'format':
                 return (
                     <div className="w-full flex gap-4 justify-center px-6 py-2">
                         {(['1:1', '4:5', '9:16'] as const).map(ratio => (
-                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setTimeout(() => setCurrentStep(5), 600); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
+                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setTimeout(() => setCurrentStep(6), 600); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
                                 <div className={`border-2 border-current rounded-sm ${ratio === '1:1' ? 'w-4 h-4' : ratio === '4:5' ? 'w-4 h-5' : 'w-3 h-6'}`}></div>
                                 <span className="text-[10px] font-black">{ratio}</span>
                             </button>
@@ -310,6 +338,24 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     <div className="w-full px-6 flex flex-col gap-3 py-2">
                         <input value={productName} onChange={e => setProductName(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Product Name..." />
                         <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-medium focus:border-indigo-500 outline-none shadow-inner h-20 resize-none" placeholder="The Hook / Context (e.g. Summer sale vibes)..." />
+                        <button onClick={() => productName && description.length > 5 && setCurrentStep(7)} className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${productName && description.length > 5 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>Next: Call to Action</button>
+                    </div>
+                );
+            case 'cta':
+                return (
+                    <div className="w-full px-6 flex flex-col gap-3 py-2 overflow-y-auto no-scrollbar max-h-[160px]">
+                        <div className="flex gap-2">
+                            <input value={website} onChange={e => setWebsite(e.target.value)} className="flex-1 p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[11px] font-medium focus:border-indigo-500 outline-none shadow-inner" placeholder="Website (Optional)..." />
+                            <input value={contactNumber} onChange={e => setContactNumber(e.target.value)} className="flex-1 p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[11px] font-medium focus:border-indigo-500 outline-none shadow-inner" placeholder="Contact (Optional)..." />
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                            {CTA_BUTTONS.map(btn => (
+                                <button key={btn} onClick={() => setCtaButton(btn)} className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${ctaButton === btn ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{btn}</button>
+                            ))}
+                        </div>
+                        {ctaButton === 'Custom' && (
+                            <input value={customCta} onChange={e => setCustomCta(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Custom CTA Text..." />
+                        )}
                     </div>
                 );
             default: return null;
@@ -443,7 +489,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (idx === 0 && !!industry && !!image) || (idx === 1 && !!engineMode) || (idx === 2 && !!logo) || (idx === 3 && !!vibe) || (idx === 4 && !!aspectRatio);
+                                        const isFilled = 
+                                            (idx === 0 && !!industry && !!image) || 
+                                            (idx === 1 && !!engineMode) || 
+                                            (idx === 2 && !!logo) || 
+                                            (idx === 3 && !!vibe) || 
+                                            (idx === 4 && !!layoutTemplate) || 
+                                            (idx === 5 && !!aspectRatio) ||
+                                            (idx === 6 && !!productName && description.length > 5) ||
+                                            (idx === 7 && (!!website || !!contactNumber || (ctaButton !== 'None' && ctaButton !== '')));
                                         
                                         let displayLabel = "";
                                         let isNextCue = false;
@@ -467,10 +521,28 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 displayLabel = "NEXT";
                                                 isNextCue = true;
                                             } else {
+                                                displayLabel = layoutTemplate || "";
+                                            }
+                                        }
+                                        else if (idx === 5) {
+                                            if (currentStep === 4 && !!layoutTemplate) {
+                                                displayLabel = "NEXT";
+                                                isNextCue = true;
+                                            } else {
                                                 displayLabel = aspectRatio || "";
                                             }
                                         }
-                                        else if (idx === 5) displayLabel = productName ? 'Ready' : "";
+                                        else if (idx === 6) {
+                                            if (currentStep === 5 && !!aspectRatio) {
+                                                displayLabel = "NEXT";
+                                                isNextCue = true;
+                                            } else {
+                                                displayLabel = productName ? 'Ready' : "";
+                                            }
+                                        }
+                                        else if (idx === 7) {
+                                            displayLabel = (website || contactNumber || ctaButton !== 'None') ? 'SET' : "";
+                                        }
 
                                         return (
                                             <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
