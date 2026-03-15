@@ -66,30 +66,32 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string;
 
 const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
 
+const SIMPLE_ARCHETYPES = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", CUSTOM_VIBE_KEY];
+
 const VIBE_MAP: Record<string, string[]> = {
-    'ecommerce': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
-    'fmcg': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
-    'fashion': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", CUSTOM_VIBE_KEY],
-    'realty': ["Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", CUSTOM_VIBE_KEY],
-    'food': ["Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", CUSTOM_VIBE_KEY],
-    'saas': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
-    'education': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
-    'services': ["Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
+    'ecommerce': SIMPLE_ARCHETYPES,
+    'fmcg': SIMPLE_ARCHETYPES,
+    'fashion': SIMPLE_ARCHETYPES,
+    'realty': SIMPLE_ARCHETYPES,
+    'food': SIMPLE_ARCHETYPES,
+    'saas': SIMPLE_ARCHETYPES,
+    'education': SIMPLE_ARCHETYPES,
+    'services': SIMPLE_ARCHETYPES,
 };
 
 const BLUEPRINT_VIBE_CONSTRAINTS: Record<string, string[]> = {
-    'Hero Focus': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", "Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", "Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", "Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
-    'Split Design': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Professional & Trust", "Minimalistic", CUSTOM_VIBE_KEY],
-    'Bottom Strip': ["Luxury & Elegant", "Big Sale / Discount", "Lifestyle", "Clean Studio", "Nature", "Cinematic", "Grand & Expensive", "Bright & Airy", "Cozy & Warm", "Modern & Sharp", "Lush & Green", "Delicious & Fresh", "Classy & Dim", "Rustic & Homemade", "Vibrant Street", "Clean & Healthy", "Modern & Sleek", "Professional & Trust", "Cyberpunk / Neon", "Minimalistic", "High Energy", CUSTOM_VIBE_KEY],
-    'Social Proof': ["Lifestyle", "Cozy & Warm", "Delicious & Fresh", "Clean & Healthy", "Friendly", "Professional & Trust", CUSTOM_VIBE_KEY],
-    'Magazine Cover': ["Luxury & Elegant", "Cinematic", "Lifestyle", "Grand & Expensive", "Modern & Sharp", "Classy & Dim", CUSTOM_VIBE_KEY],
-    'Minimalist Zen': ["Clean Studio", "Minimalistic", "Modern & Sleek", "Luxury & Elegant", "Modern & Sharp", CUSTOM_VIBE_KEY],
-    'Feature Callout': ["Clean Studio", "Modern & Sleek", "Professional & Trust", "High Energy", CUSTOM_VIBE_KEY],
-    'Action Dynamic': ["High Energy", "Cyberpunk / Neon", "Cinematic", "Vibrant Street", CUSTOM_VIBE_KEY],
-    'Contrast Grid': ["Professional & Trust", "Modern & Sleek", "Minimalistic", "Clean Studio", CUSTOM_VIBE_KEY],
-    'The Trio': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Minimalistic", "Nature", CUSTOM_VIBE_KEY],
-    'Range Lineup': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Minimalistic", "Nature", CUSTOM_VIBE_KEY],
-    'Hero & Variants': ["Luxury & Elegant", "Clean Studio", "Modern & Sleek", "Minimalistic", "Nature", CUSTOM_VIBE_KEY]
+    'Hero Focus': SIMPLE_ARCHETYPES,
+    'Split Design': SIMPLE_ARCHETYPES,
+    'Bottom Strip': SIMPLE_ARCHETYPES,
+    'Social Proof': SIMPLE_ARCHETYPES,
+    'Magazine Cover': SIMPLE_ARCHETYPES,
+    'Minimalist Zen': SIMPLE_ARCHETYPES,
+    'Feature Callout': SIMPLE_ARCHETYPES,
+    'Action Dynamic': SIMPLE_ARCHETYPES,
+    'Contrast Grid': SIMPLE_ARCHETYPES,
+    'The Trio': SIMPLE_ARCHETYPES,
+    'Range Lineup': SIMPLE_ARCHETYPES,
+    'Hero & Variants': SIMPLE_ARCHETYPES
 };
 
 const LAYOUT_TEMPLATES = [
@@ -302,6 +304,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     });
 
     const [productName, setProductName] = useState('');
+    const [productFinish, setProductFinish] = useState<AdMakerInputs['productFinish']>('Matte');
+    const [copywritingTone, setCopywritingTone] = useState<AdMakerInputs['copywritingTone']>('Bold');
     const [website, setWebsite] = useState('');
     const [offer, setOffer] = useState('');
     const [description, setDescription] = useState('');
@@ -455,7 +459,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const inputs: AdMakerInputs = {
                 industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
-                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, contactNumber, offer, description, layoutTemplate, aspectRatio,
+                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, productFinish, copywritingTone, website, contactNumber, offer, description, layoutTemplate, aspectRatio,
                 modelSource: integrationMode === 'subject' ? modelSource : null, 
                 modelImage: integrationMode === 'subject' && modelSource === 'upload' ? modelImage?.base64 : null, 
                 modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined,
@@ -1006,10 +1010,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     onChange={(e: any) => setProductName(e.target.value)} 
                                                 />
                                                 <SelectionGrid 
-                                                    label="Visual Mood / Vibe" 
+                                                    label="Visual Style" 
                                                     options={filteredVibes} 
                                                     value={vibe} 
                                                     onChange={setVibe} 
+                                                />
+                                                <SelectionGrid 
+                                                    label="Product Finish" 
+                                                    options={['Glossy', 'Matte', 'Metallic', 'Glass', 'Fabric']} 
+                                                    value={productFinish || 'Matte'} 
+                                                    onChange={(val) => setProductFinish(val as any)} 
+                                                />
+                                                <SelectionGrid 
+                                                    label="Marketing Tone" 
+                                                    options={['Bold', 'Luxury', 'Witty', 'Urgent']} 
+                                                    value={copywritingTone || 'Bold'} 
+                                                    onChange={(val) => setCopywritingTone(val as any)} 
                                                 />
                                                 {vibe === CUSTOM_VIBE_KEY && (
                                                     <div className="animate-fadeIn -mt-2">

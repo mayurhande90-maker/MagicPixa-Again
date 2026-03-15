@@ -31,21 +31,23 @@ export interface AdMakerInputs {
     customTitle?: string;
     ctaButton?: string;
     customCta?: string;
+    productFinish?: 'Glossy' | 'Matte' | 'Metallic' | 'Glass' | 'Fabric';
+    copywritingTone?: 'Bold' | 'Luxury' | 'Witty' | 'Urgent';
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
-    'Hero Focus': "The product is the undisputed hero, placed front and center with a powerful presence. The headline floats elegantly in the upper third, while the CTA is grounded at the bottom. This layout maximizes focal impact and product desire.",
-    'Split Design': "A sophisticated vertical split. One side (left or right depending on visual balance) is dedicated to a clean, high-fidelity product showcase, while the other side houses a structured stack of headline, subheadline, and CTA. Perfect for clear informational hierarchy.",
-    'Bottom Strip': "A cinematic wide-angle approach. The product dominates the upper 80% of the frame in a lifestyle or studio setting. A semi-transparent information strip at the bottom elegantly contains the brand identity and CTA.",
-    'Social Proof': "An organic, trust-focused composition. The product is offset to one side, leaving room for a floating 'Review Bubble' or 'Trust Badge' in the opposite corner. This creates a balanced, relatable narrative.",
-    'Magazine Cover': "High-prestige editorial style. The product is large and centered, often slightly overlapping bold, stylized background typography. The headline is massive and integrated into the scene like a luxury fashion cover.",
-    'Minimalist Zen': "Extreme boutique minimalism. The product is small and placed in a corner (e.g., bottom-right), surrounded by 70% intentional white space. The headline is a tiny, elegant serif in the opposite corner. Maximum breathing room.",
-    'Feature Callout': "A technical, educational layout. The product is centered at a 60% scale, with thin, elegant 'pointer lines' radiating from key features to small, sharp text labels. Ideal for highlighting innovation.",
-    'Action Dynamic': "High-energy urgency. The product is tilted at a dynamic angle (e.g., 15 degrees) with subtle motion blur. The headline is bold, italicized, and placed aggressively to create a sense of speed and excitement.",
-    'Contrast Grid': "A powerful 'Before & After' or 'Problem & Solution' split. The canvas is divided 50/50, showing the challenge on one side and the product as the hero solution on the other. Immediate visual proof.",
-    'The Trio': "A depth-based collection showcase. One main hero item is front and center, with two supporting variants placed slightly behind and to the sides at a smaller scale, creating a rich product family narrative.",
-    'Range Lineup': "Perfect symmetrical alignment. Three or more products are arranged side-by-side on a clean horizontal plane (like a premium shelf), showcasing the full variety of the collection.",
-    'Hero & Variants': "Dynamic bokeh-based storytelling. The hero item is in sharp focus in the foreground, while supporting items or ingredients are blurred artistically in the shallow background to add context and depth."
+    'Hero Focus': "The product is the undisputed hero, placed front and center. INSTAGRAM SAFE ZONE: Keep the top 15% and bottom 15% clear of text. The headline floats elegantly in the upper third safe-zone.",
+    'Split Design': "A sophisticated vertical split. One side is dedicated to a clean product showcase, while the other houses the headline. INSTAGRAM SAFE ZONE: Ensure text is vertically centered to avoid platform overlays.",
+    'Bottom Strip': "A cinematic wide-angle approach. The product dominates the upper frame. INSTAGRAM SAFE ZONE: The semi-transparent information strip must be placed exactly above the bottom 15% UI area.",
+    'Social Proof': "An organic, trust-focused composition. The product is offset to one side. SAFE ZONE: Place the 'Review Bubble' in the upper safe-zone corner.",
+    'Magazine Cover': "High-prestige editorial style. The product is large and centered. SAFE ZONE: Massive typography must be integrated into the middle 70% of the canvas to avoid UI cropping.",
+    'Minimalist Zen': "Extreme boutique minimalism. The product is small and placed in a corner. SAFE ZONE: The headline is a tiny, elegant serif in the opposite safe-zone corner.",
+    'Feature Callout': "A technical, educational layout. The product is centered at a 60% scale. SAFE ZONE: Pointer lines and text must stay within the central 70% area.",
+    'Action Dynamic': "High-energy urgency. The product is tilted at a dynamic angle. SAFE ZONE: Bold italicized headline must be placed aggressively but within safe boundaries.",
+    'Contrast Grid': "A powerful 'Before & After' split. The canvas is divided 50/50. SAFE ZONE: Maintain vertical symmetry within the platform safe zones.",
+    'The Trio': "A depth-based collection showcase. One main hero item is front and center. SAFE ZONE: Keep the top and bottom clear for Instagram engagement buttons.",
+    'Range Lineup': "Perfect symmetrical alignment. Products are arranged side-by-side. SAFE ZONE: Ensure the lineup is centered horizontally and vertically.",
+    'Hero & Variants': "Dynamic bokeh-based storytelling. Hero item in sharp focus. SAFE ZONE: Depth-based text must float in the middle safe-zone layer."
 };
 
 const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
@@ -62,27 +64,14 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
 };
 
 const VIBE_PROMPTS: Record<string, string> = {
-    "Luxury & Elegant": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk. Typography: Tracking-wide, Serif, elegant.",
-    "Big Sale / Discount": "High-energy urgency, bold typography, vibrant attention-grabbing colors, aggressive retail focus for deal-seekers. Typography: Bold, high-contrast Sans-Serif.",
-    "Lifestyle": "Lifestyle setting, natural organic environment, warm sunlight, blurred living room/kitchen background, relatable and emotional. Typography: Clean, modern, approachable.",
-    "Clean Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting. Typography: Minimalist, mid-weight Sans-Serif.",
-    "Nature": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones. Typography: Natural, organic, light weights.",
-    "Cinematic": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel.",
-    "Grand & Expensive": "Architectural showcase style, high-contrast luxury photography, premium status, dusk/blue hour lighting with warm interior glow.",
-    "Bright & Airy": "Clean real estate listing style, high exposure, informative and bright, spacious and welcoming daylight feel.",
-    "Cozy & Warm": "Residential inviting feel, golden hour sunlight, soft textures, warm homey atmosphere.",
-    "Modern & Sharp": "Modern architecture, clean lines, high sharpness, neutral tones, tech-forward presentation.",
-    "Lush & Green": "Focus on landscaping and exterior beauty, vibrant greenery, bright clear sky, spacious outdoor context.",
-    "Delicious & Fresh": "Mouth-watering focus, vibrant saturated colors, fresh ingredients visible, bright natural light, energetic appetite-hook style.",
-    "Classy & Dim": "Fine dining atmosphere, low-key moody lighting, elegant and sophisticated, focus on texture and intimacy.",
-    "Rustic & Homemade": "Warm wood surfaces, farmhouse aesthetic, organic textures, natural flour or herb dustings, cozy kitchen vibe.",
-    "Vibrant Street": "High-energy, colorful, pop-art style food photography, sharp contrast, urban food stall context.",
-    "Clean & Healthy": "Minimalist, bright whites and greens, clean porcelain surfaces, very light and airy health-conscious look.",
-    "Modern & Sleek": "Modern tech aesthetic, Apple-style gradients, clean glass and metal surfaces, futuristic and professional.",
-    "Professional & Trust": "Clean corporate blue and white theme, high clarity, trustworthy and stable business presentation.",
-    "Cyberpunk / Neon": "Futuristic dark mode, glowing purple and blue neon lines, high-tech digital grid elements.",
-    "Minimalistic": "Bold massive typography, extreme white space, ultra-minimalist focus on a single core message.",
-    "High Energy": "Dynamic camera angles, action-oriented visuals, vibrant speed lines, high-impact motion feel."
+    "Luxury": "Luxury focus, premium aesthetic, minimal high-end composition, elegant lighting with deep soft shadows, expensive materials like marble or silk. Typography: Tracking-wide, Serif, elegant.",
+    "Modern": "Modern tech aesthetic, Apple-style gradients, clean glass and metal surfaces, futuristic and professional. Typography: Bold, high-contrast Sans-Serif.",
+    "Natural": "Eco-friendly focus, sunlight dapples, plants, wood and stone textures, soft earthy tones. Typography: Natural, organic, light weights.",
+    "Moody": "Dramatic low-key lighting, moody shadows, neon blue or orange accents, high-end editorial feel. Typography: High-contrast, sharp.",
+    "Bright": "High energy, clear real estate listing style, high exposure, informative and bright, white background. Typography: Clean, modern, approachable.",
+    "Colorful": "High-energy, colorful, pop-art style, vibrant saturated colors, sharp contrast. Typography: Bold, playful.",
+    "Studio": "Minimalist product listing, seamless grey or white background, perfect balanced studio softbox lighting. Typography: Minimalist, mid-weight Sans-Serif.",
+    "Simple": "Extreme boutique minimalism, bold massive typography, extreme white space, ultra-minimalist focus. Typography: Elegant, light weights."
 };
 
 interface CreativeBrief {
@@ -115,19 +104,24 @@ interface CreativeBrief {
  * This engine has ZERO access to industry/category data.
  * It only sees the user's description and specs.
  */
-const generateContextTitle = async (description: string, specs: string): Promise<string> => {
+const generateContextTitle = async (description: string, specs: string, tone: string = 'Bold'): Promise<string> => {
     const prompt = `You are a World-Class Creative Director and High-Conversion Copywriter. 
     Synthesize a 2-5 word "High-Conversion Marketing Hook" based ONLY on the 'INPUT' below.
     
     *** INPUT ***
     Description: "${description}"
     Specs: "${specs}"
+    Tone of Voice: "${tone}"
     
     *** COPYWRITING PROTOCOL (AIDA) ***
-    1. **ASPIRATIONAL HOOKS**: Do not just name the product. Create a professional marketing hook that triggers desire (e.g., instead of "Fast Car", use "THE VELOCITY OF SILENCE").
-    2. **EMOTIONAL RESONANCE**: Focus on the "Status", "Freedom", or "Transformation" the product provides.
-    3. **NO CATEGORY LEAKAGE**: Do not use any industry names or category labels.
-    4. **PURE SYNTHESIS**: Create a brand new, trendy hook. Do not repeat the user's words.
+    1. **TONE ADHERENCE**: The hook must strictly follow the "${tone}" tone. 
+       - If 'Luxury': Use sophisticated, restrained, and elite language.
+       - If 'Bold': Use powerful, aggressive, and high-impact language.
+       - If 'Witty': Use clever, modern, and slightly playful language.
+       - If 'Urgent': Use action-oriented, fast-paced, and FOMO-inducing language.
+    2. **ASPIRATIONAL HOOKS**: Do not just name the product. Create a professional marketing hook that triggers desire.
+    3. **EMOTIONAL RESONANCE**: Focus on the "Status", "Freedom", or "Transformation" the product provides.
+    4. **NO CATEGORY LEAKAGE**: Do not use any industry names or category labels.
     
     OUTPUT: Return ONLY the headline string.`;
 
@@ -154,7 +148,7 @@ const performAdIntelligence = async (
     const ai = getAiClient();
     
     // 0. BLIND CONTEXT TITLE ENGINE (GROUND-ZERO)
-    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateContextTitle(inputs.description || '', inputs.productSpecs || '');
+    const eliteHeadline = inputs.customTitle ? inputs.customTitle : await generateContextTitle(inputs.description || '', inputs.productSpecs || '', inputs.copywritingTone);
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
@@ -257,7 +251,10 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const blueprintInstruction = LAYOUT_BLUEPRINTS[inputs.layoutTemplate || 'Hero Focus'] || LAYOUT_BLUEPRINTS['Hero Focus'];
 
-    const prompt = `You are an Elite Graphic Designer and World-Class Ad Production Engine. Execute the following high-fidelity render following Swiss Design and International Typographic Style:
+    const prompt = `Act as a Master Art Director and Elite CGI Artist. Your goal is to create a high-fidelity, professional marketing masterpiece with a perfect Visual Hierarchy.
+    
+    *** COMPOSITIONAL GOAL (MANDATORY) ***
+    Create a 3D depth-of-field where the product is the primary light source and the text acts as a structural element of the environment. The composition must be "Platform-Aware" for Instagram.
     
     *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
     - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
@@ -279,7 +276,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
 
     *** PRODUCTION DIRECTIVES (ELITE QUALITY) ***
-    1. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
+    1. **MATERIAL FIDELITY**: The product has a "${inputs.productFinish || 'Matte'}" finish. 
+       - If 'Glossy': Apply sharp, clear reflections of the studio environment.
+       - If 'Matte': Apply soft, diffused lighting with no sharp highlights.
+       - If 'Metallic': Apply high-contrast rim lighting and anisotropic specular highlights.
+       - If 'Glass': Apply realistic refraction, transparency, and caustic light patterns.
+       - If 'Fabric': Apply soft micro-shadows to highlight texture and weave.
+    2. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
     2. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
     3. **LAYERED DEPTH**: Treat the ad as a 3D scene. Place the product with realistic shadows. 
     4. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
