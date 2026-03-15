@@ -152,20 +152,22 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     }, [isGenerating]);
 
     const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            const base64 = await fileToBase64(file);
-            const newAsset = { url: URL.createObjectURL(file), base64 };
+        if (e.target.files && e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+            const assets = await Promise.all(files.map(async file => {
+                const base64 = await fileToBase64(file);
+                return { url: URL.createObjectURL(file), base64 };
+            }));
             
             if (setter === 'mainImages') {
                 if (isCollectionMode) {
-                    setMainImages(prev => [...prev, newAsset].slice(0, 5));
+                    setMainImages(prev => [...prev, ...assets].slice(0, 5));
                 } else {
-                    setMainImages([newAsset]);
+                    setMainImages([assets[0]]);
                 }
                 if (industry) setTimeout(() => setCurrentStep(1), 600);
             } else if (setter === setLogo) {
-                setLogo(newAsset);
+                setLogo(assets[0]);
                 setTimeout(() => setCurrentStep(3), 600);
             }
         }
@@ -405,10 +407,20 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 to-transparent blur-3xl opacity-60"></div>
                                         <div className="relative p-8 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/60 shadow-2xl flex items-center justify-center overflow-hidden">
                                             {isCollectionMode ? (
-                                                <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid grid-cols-2 gap-2 w-full h-full">
                                                     {mainImages.map((img, i) => (
-                                                        <img key={i} src={img.url} className="w-full h-full object-contain" />
+                                                        <div key={i} className="relative aspect-square">
+                                                            <img src={img.url} className="w-full h-full object-contain" />
+                                                            <button onClick={(e) => { e.stopPropagation(); setMainImages(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg">
+                                                                <XIcon className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
                                                     ))}
+                                                    {mainImages.length < 5 && (
+                                                        <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-square bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 active:scale-95 transition-all">
+                                                            <PlusIcon className="w-6 h-6" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <img src={mainImages[0].url} className="max-w-full max-h-full object-contain" />
@@ -582,7 +594,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 </div>
             </MobileSheet>
 
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload('mainImages')} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" multiple={isCollectionMode} onChange={handleUpload('mainImages')} />
             <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogo)} />
 
             <style>{`
