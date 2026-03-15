@@ -117,8 +117,32 @@ const sanitizeData = (data: any) => {
 
 export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
-    const provider = new firebase.auth.GoogleAuthProvider();
-    return await auth.signInWithPopup(provider);
+    
+    try {
+        // Force local persistence to prevent state loss on mobile
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
+
+        // On mobile APKs, popups are often blocked or fail to return state.
+        // We try popup first, but fall back to redirect which is more reliable in WebViews.
+        try {
+            return await auth.signInWithPopup(provider);
+        } catch (popupError: any) {
+            console.log("Popup failed, trying redirect...", popupError.code);
+            if (popupError.code === 'auth/popup-blocked' || 
+                popupError.code === 'auth/operation-not-supported-in-this-environment' ||
+                popupError.code === 'auth/auth-domain-config-required') {
+                return await auth.signInWithRedirect(provider);
+            }
+            throw popupError;
+        }
+    } catch (error: any) {
+        console.error("Sign-in process failed", error);
+        throw error;
+    }
 };
 
 export const updateUserLastActive = async (uid: string) => {

@@ -224,6 +224,19 @@ function App() {
 
   useEffect(() => {
     if (!firebaseAuth) { setLoading(false); return; }
+    
+    // Handle redirect result for mobile devices
+    firebaseAuth.getRedirectResult().then((result) => {
+        if (result.user) {
+            console.log("Successfully signed in via redirect");
+        }
+    }).catch((error) => {
+        console.error("Redirect sign-in error:", error);
+        if (error.code === 'auth/missing-initial-state') {
+            setAuthError("Sign-in session expired. Please try again.");
+        }
+    });
+
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         updateUserLastActive(firebaseUser.uid);
