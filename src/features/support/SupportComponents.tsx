@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Markdown from 'react-markdown';
 import { Ticket } from '../../types';
 import { 
     SparklesIcon, 
@@ -157,23 +158,22 @@ export const TicketProposalCard: React.FC<{
 };
 
 export const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ text, isWelcome }) => {
-    const parseBold = (str: string) => {
-        const parts = str.split(/(\*\*.*?\*\*)/g);
-        return parts.map((part, i) => {
-            if (part.startsWith('**') && part.endsWith('**')) return <strong key={i} className="font-black text-gray-900">{part.slice(2, -2)}</strong>;
-            return part;
-        });
-    };
     return (
-        <div className={`space-y-4 ${isWelcome ? 'pt-1' : ''} break-words w-full`}>
-            {text.split('\n').map((line, i) => {
-                const trimmed = line.trim();
-                if (!trimmed) return <div key={i} className="h-1"></div>;
-                if (isWelcome && i === 0) return <h3 key={i} className="font-black text-[clamp(20px,3.2vh,28px)] text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 mb-4 tracking-tighter leading-none">{trimmed.replace(/^#+\s*/, '')}</h3>;
-                if (trimmed.startsWith('###') || trimmed.startsWith('##')) return <h3 key={i} className="font-bold text-[clamp(13px,1.8vh,15px)] mt-1 mb-1 tracking-tight text-gray-800">{trimmed.replace(/^#+\s*/, '')}</h3>;
-                if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return (<div key={i} className="flex gap-4 items-start pl-1"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0 shadow-sm"></div><span className="flex-1 leading-relaxed text-slate-600 text-[clamp(12px,1.6vh,14px)] font-medium">{parseBold(trimmed.replace(/^[-*]\s*/, ''))}</span></div>);
-                return <p key={i} className="leading-relaxed text-slate-600 text-[clamp(12px,1.6vh,14px)] font-medium">{parseBold(line)}</p>;
-            })}
+        <div className={`markdown-body ${isWelcome ? 'pt-1' : ''} break-words w-full`}>
+            <Markdown
+                components={{
+                    h1: ({node, ...props}) => <h1 className="text-xl font-black text-indigo-600 mb-2" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-lg font-black text-gray-800 mb-2" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-base font-bold text-gray-800 mb-1" {...props} />,
+                    p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed text-slate-600 font-medium" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1 text-slate-600 font-medium" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1 text-slate-600 font-medium" {...props} />,
+                    li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-black text-gray-900" {...props} />,
+                }}
+            >
+                {text}
+            </Markdown>
         </div>
     );
 };

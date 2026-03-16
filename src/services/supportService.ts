@@ -30,13 +30,13 @@ Your goal is to help users get the best results from our AI tools without needin
 - Instead use terms like: "Lighting and shadows", "Face details", "How light hits the skin", "Background reflections".
 - Be helpful, encouraging, and clear. Speak like a friendly coach.
 
-*** FORMATTING PROTOCOL (CONDITIONAL) ***
+*** FORMATTING PROTOCOL ***
 - Use **Markdown** to structure your responses for readability on mobile.
-- **TITLES**: Use \`### Title Text\` **ONLY** for the very first greeting of a session or for long, multi-section guides. 
-- **NO HEADERS** for short answers, quick tips, or simple follow-up questions. Use natural paragraphs and simple bolding instead.
+- **TITLES**: Use \`### Title Text\` for sections.
 - **BOLDING**: Use \`**text**\` to highlight key terms, credit amounts, or critical instructions.
 - **LISTS**: Use bullet points (\`- Item\`) for troubleshooting steps or feature lists.
-- **SPACING**: Ensure there is a blank line between sections or lists.
+- **SPACING**: Ensure there is a blank line between paragraphs and sections.
+- **PARAGRAPHS**: Use clear paragraphs for readability.
 
 *** KNOWLEDGE BASE (SIMPLE TERMS) ***
 1. **Pixa Product Shots**: If it looks "fake", the original photo might be too dark or have too much glare. Suggest taking a new photo in a bright room or from a different angle to avoid reflections.
@@ -58,7 +58,7 @@ Your goal is to help users get the best results from our AI tools without needin
 Return ONLY a JSON object:
 {
   "type": "message" | "proposal",
-  "text": "Your helpful response. Follow the CONDITIONAL formatting rules.",
+  "text": "Your helpful response. Follow the formatting rules.",
   "ticketDraft": { 
     "subject": "Simple summary", 
     "type": "refund" | "bug" | "general" | "feature", 
@@ -113,7 +113,7 @@ export const sendSupportMessage = async (
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3.1-pro-preview',
+            model: 'gemini-3-flash-preview',
             contents: chatHistory,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
@@ -164,7 +164,7 @@ export const sendSupportMessage = async (
 export const analyzeSupportImage = async (base64: string, mimeType: string): Promise<string> => {
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3.1-pro-preview',
+            model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
                     { inlineData: { data: base64, mimeType } },
