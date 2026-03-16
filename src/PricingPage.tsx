@@ -31,6 +31,7 @@ const PLAN_BENEFITS: Record<string, string[]> = {
         '50 AI Credits (Try every tool)',
         '1 Brand Kit Slot',
         'Standard Definition (HD) Output',
+        'Standard Watermark included',
         'Standard Support (AI Bot)',
         'Personal Usage License'
     ],
@@ -38,6 +39,7 @@ const PLAN_BENEFITS: Record<string, string[]> = {
         '165 AI Credits (Better Value)',
         '3 Brand Kit Slots',
         'High-Resolution (4K) Output',
+        'Watermark on all exports',
         'Full Commercial Usage Rights',
         'Verified Identity Lock 6.0'
     ],
@@ -45,6 +47,7 @@ const PLAN_BENEFITS: Record<string, string[]> = {
         '300 AI Credits (Bulk Savings)',
         '10 Brand Kit Slots',
         'Ultra-Resolution (8K) Output',
+        'No Watermark (Clean Exports)',
         'Priority Processing (2x Faster)',
         'Priority Support (Human Agent)'
     ],
@@ -52,6 +55,7 @@ const PLAN_BENEFITS: Record<string, string[]> = {
         '1200 AI Credits (Best Rate)',
         '50 Brand Kit Slots',
         'Unlimited 8K High-Res Exports',
+        'No Watermark (White-Label)',
         'Dedicated Account Manager',
         'White-Label Content (No Metadata)'
     ]
