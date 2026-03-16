@@ -325,7 +325,7 @@ function App() {
   if (isMobile) {
     if (authProps.isAuthenticated) {
         return (
-            <div className={`min-h-screen flex flex-col font-sans text-slate-900 bg-white overflow-y-auto`}>
+            <div className="min-h-screen bg-white font-sans text-slate-900">
                 <MobileApp 
                     auth={authProps} 
                     appConfig={appConfig} 

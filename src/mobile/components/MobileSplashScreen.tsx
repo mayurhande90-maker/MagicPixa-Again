@@ -7,15 +7,17 @@ interface MobileSplashScreenProps {
 export const MobileSplashScreen: React.FC<MobileSplashScreenProps> = ({ onComplete }) => {
     const [isClosing, setIsClosing] = useState(false);
 
+    const onCompleteRef = React.useRef(onComplete);
+    onCompleteRef.current = onComplete;
+
     useEffect(() => {
-        // Professional duration: long enough to feel premium, short enough to be efficient
         const timer = setTimeout(() => {
             setIsClosing(true);
-            setTimeout(onComplete, 1000); // Wait for the high-fidelity blur dissolve
+            setTimeout(() => onCompleteRef.current(), 1000);
         }, 3200);
 
         return () => clearTimeout(timer);
-    }, [onComplete]);
+    }, []);
 
     return (
         <div className={`fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center overflow-hidden transition-all duration-1000 ease-in-out ${isClosing ? 'opacity-0 backdrop-blur-xl scale-105 pointer-events-none' : 'opacity-100'}`}>

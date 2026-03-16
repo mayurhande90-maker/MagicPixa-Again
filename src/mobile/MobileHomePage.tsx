@@ -253,6 +253,17 @@ export const MobileHomePage: React.FC<MobileHomePageProps> = ({ navigateTo, auth
     return (
         <div className="pb-32 animate-fadeIn overflow-x-hidden">
             <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fadeIn { animation: fadeIn 0.8s ease-out forwards; }
+                .animate-fadeInUp { animation: fadeInUp 0.8s ease-out forwards; }
+                
                 @keyframes auto-wipe {
                     0%, 10% { clip-path: inset(0 100% 0 0); }
                     40%, 60% { clip-path: inset(0 0% 0 0); }
