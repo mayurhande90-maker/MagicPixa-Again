@@ -92,7 +92,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
             const welcomeMsg: ChatMessage = {
                 id: 'welcome_' + Date.now(),
                 role: 'model',
-                content: `### ${greeting}, ${firstName}!\n\nI'm **Pixa**, your dedicated Technical Concierge. I can help you master our high-fidelity AI tools, troubleshoot issues, or handle credit inquiries.\n\nWhat can I do for you today?`,
+                content: `**${greeting}, ${firstName}!**\n\nI'm **Pixa**, your dedicated Technical Concierge. I can help you master our high-fidelity AI tools, troubleshoot issues, or handle credit inquiries.\n\nWhat can I do for you today?`,
                 timestamp: Date.now()
             };
             setMessages([welcomeMsg]);
