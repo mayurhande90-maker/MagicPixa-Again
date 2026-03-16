@@ -159,16 +159,16 @@ export const TicketProposalCard: React.FC<{
 
 export const FormattedMessage: React.FC<{ text: string; isWelcome?: boolean }> = ({ text, isWelcome }) => {
     return (
-        <div className={`markdown-body ${isWelcome ? 'pt-1' : ''} break-words w-full`}>
+        <div className={`${isWelcome ? 'pt-1' : ''} break-words w-full text-left`}>
             <Markdown
                 components={{
-                    h1: ({node, ...props}) => <h1 className="text-xl font-black text-indigo-600 mb-2" {...props} />,
-                    h2: ({node, ...props}) => <h2 className="text-lg font-black text-gray-800 mb-2" {...props} />,
-                    h3: ({node, ...props}) => <h3 className="text-base font-bold text-gray-800 mb-1" {...props} />,
-                    p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed text-slate-600 font-medium" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1 text-slate-600 font-medium" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1 text-slate-600 font-medium" {...props} />,
-                    li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                    h1: ({node, ...props}) => <h1 className="text-xl font-black text-indigo-600 mb-2 text-left" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-lg font-black text-gray-800 mb-2 text-left" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-base font-bold text-gray-800 mb-1 text-left" {...props} />,
+                    p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed text-slate-600 font-medium text-left" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1 text-slate-600 font-medium text-left" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1 text-slate-600 font-medium text-left" {...props} />,
+                    li: ({node, ...props}) => <li className="mb-1 text-left" {...props} />,
                     strong: ({node, ...props}) => <strong className="font-black text-gray-900" {...props} />,
                 }}
             >

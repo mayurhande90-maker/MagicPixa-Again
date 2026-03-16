@@ -297,7 +297,7 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                             
                                             {/* RENDER TEXT CONTENT */}
                                             {msg.content && (
-                                                <div className={`px-[min(2.2vh,24px)] py-[min(1.8vh,18px)] rounded-3xl text-[clamp(12px,1.6vh,15px)] leading-relaxed border shadow-sm relative ${
+                                                <div className={`px-[min(2.2vh,24px)] py-[min(1.8vh,18px)] rounded-3xl text-[clamp(12px,1.6vh,15px)] leading-relaxed border shadow-sm relative text-left ${
                                                     msg.role === 'user' 
                                                     ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
                                                     : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
