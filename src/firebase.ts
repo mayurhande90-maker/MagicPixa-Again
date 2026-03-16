@@ -7,16 +7,32 @@ import { AppConfig, Purchase, User, BrandKit, AuditLog, Announcement, ApiErrorLo
 import { resizeImage } from './utils/imageUtils';
 import { USE_SECURE_BACKEND } from './services/geminiClient';
 
-const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+// Import the config file directly so it's bundled by Vite
+import firebaseAppletConfig from '../firebase-applet-config.json';
+
+// Hardcoded fallbacks for APK/Production environments where env vars might be missing
+const FALLBACK_CONFIG = {
+  projectId: "magicpixa-prod2",
+  appId: "1:975816945931:web:2fd6d22a330528f1d6f20e",
+  apiKey: "AIzaSyA24HC0EoCiNJrZiPQ-UnqcMMoy4AbIsDg",
+  authDomain: "magicpixa-prod2.firebaseapp.com",
+  firestoreDatabaseId: "ai-studio-2c7634f2-0fb9-4be3-a912-593f46f96faa",
+  storageBucket: "magicpixa-prod2.firebasestorage.app",
+  messagingSenderId: "975816945931"
+};
+
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId || FALLBACK_CONFIG.projectId;
+const derivedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain || FALLBACK_CONFIG.authDomain);
 
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey || FALLBACK_CONFIG.apiKey,
   authDomain: derivedAuthDomain,
   projectId: projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket || FALLBACK_CONFIG.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId || FALLBACK_CONFIG.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId || FALLBACK_CONFIG.appId,
+  // Ensure we use the specific database ID if provided
+  firestoreDatabaseId: (firebaseAppletConfig as any).firestoreDatabaseId || FALLBACK_CONFIG.firestoreDatabaseId
 };
 
 const checkConfigValue = (value: string | undefined): boolean => {
@@ -24,13 +40,12 @@ const checkConfigValue = (value: string | undefined): boolean => {
 };
 
 const allConfigKeys = {
-    "VITE_API_KEY": import.meta.env.VITE_API_KEY,
-    "VITE_FIREBASE_API_KEY": import.meta.env.VITE_FIREBASE_API_KEY,
-    "VITE_FIREBASE_AUTH_DOMAIN": import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    "VITE_FIREBASE_PROJECT_ID": import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    "VITE_FIREBASE_STORAGE_BUCKET": import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    "VITE_FIREBASE_MESSAGING_SENDER_ID": import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    "VITE_FIREBASE_APP_ID": import.meta.env.VITE_FIREBASE_APP_ID
+    "VITE_FIREBASE_API_KEY": firebaseConfig.apiKey,
+    "VITE_FIREBASE_AUTH_DOMAIN": firebaseConfig.authDomain,
+    "VITE_FIREBASE_PROJECT_ID": firebaseConfig.projectId,
+    "VITE_FIREBASE_STORAGE_BUCKET": firebaseConfig.storageBucket,
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": firebaseConfig.messagingSenderId,
+    "VITE_FIREBASE_APP_ID": firebaseConfig.appId
 };
 
 const missingKeys = Object.entries(allConfigKeys)
@@ -48,10 +63,39 @@ export let storage: firebase.storage.Storage | null = null;
 
 if (isConfigValid) {
   try {
-    app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
+    if (firebase.apps.length === 0) {
+      app = firebase.initializeApp(firebaseConfig);
+    } else {
+      app = firebase.app();
+    }
+    
     auth = firebase.auth();
-    db = firebase.firestore();
     storage = firebase.storage();
+
+    // Support for named databases in Firestore (compat mode)
+    const dbId = (firebaseConfig as any).firestoreDatabaseId;
+    if (dbId && dbId !== '(default)') {
+        // @ts-ignore - Accessing named database in compat mode
+        db = app.firestore(dbId);
+    } else {
+        db = firebase.firestore();
+    }
+
+    // Connection test as per guidelines
+    if (db) {
+        const testConnection = async () => {
+            try {
+                // @ts-ignore
+                await db.collection('_conn_test').doc('ping').get({ source: 'server' });
+                console.log("Firestore connection verified.");
+            } catch (error: any) {
+                if (error.message && error.message.includes('offline')) {
+                    console.error("Firestore appears to be offline. Please check configuration.");
+                }
+            }
+        };
+        testConnection();
+    }
   } catch (error) {
     console.error("Error initializing Firebase:", error);
   }
@@ -73,8 +117,32 @@ const sanitizeData = (data: any) => {
 
 export const signInWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
-    const provider = new firebase.auth.GoogleAuthProvider();
-    return await auth.signInWithPopup(provider);
+    
+    try {
+        // Force local persistence to prevent state loss on mobile
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
+
+        // On mobile APKs, popups are often blocked or fail to return state.
+        // We try popup first, but fall back to redirect which is more reliable in WebViews.
+        try {
+            return await auth.signInWithPopup(provider);
+        } catch (popupError: any) {
+            console.log("Popup failed, trying redirect...", popupError.code);
+            if (popupError.code === 'auth/popup-blocked' || 
+                popupError.code === 'auth/operation-not-supported-in-this-environment' ||
+                popupError.code === 'auth/auth-domain-config-required') {
+                return await auth.signInWithRedirect(provider);
+            }
+            throw popupError;
+        }
+    } catch (error: any) {
+        console.error("Sign-in process failed", error);
+        throw error;
+    }
 };
 
 export const updateUserLastActive = async (uid: string) => {

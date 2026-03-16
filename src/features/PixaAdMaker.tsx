@@ -983,19 +983,19 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                     </div>
                                                 )}
                                                 <TextAreaField 
-                                                    label="Ad Context (AIDA Protocol)" 
-                                                    placeholder={industry ? INDUSTRY_PLACEHOLDERS[industry] : "e.g. Organic skincare for glowing morning routine. Focus on texture and ingredients."} 
+                                                    label="What is this ad about? (Context)" 
+                                                    placeholder={industry ? INDUSTRY_PLACEHOLDERS[industry] : "e.g. 10 Secret features of the new iPhone 15 Pro. Focus on luxury and speed."} 
                                                     value={description} 
                                                     onChange={(e: any) => setDescription(e.target.value)} 
                                                 />
                                                 <div className="animate-fadeIn">
                                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Custom Marketing Title (Optional)</label>
                                                     <InputField 
-                                                        placeholder="Enter your own title to override AI generation..." 
+                                                        placeholder="Leave empty for AI Trendy Title..." 
                                                         value={customTitle} 
                                                         onChange={(e: any) => setCustomTitle(e.target.value)} 
                                                     />
-                                                    <p className="text-[9px] text-gray-400 mt-1 italic">If provided, this title will be used exactly as it is.</p>
+                                                    <p className="text-[9px] text-gray-400 mt-1 italic">If empty, our AI will generate a high-CTR trendy title for you.</p>
                                                 </div>
                                             </div>
                                         </div>

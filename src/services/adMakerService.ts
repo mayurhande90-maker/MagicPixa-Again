@@ -99,30 +99,25 @@ interface CreativeBrief {
 }
 
 /**
- * PHASE 0: THE EDITORIAL HEADLINE ENGINE
- * This engine generates sophisticated, high-end headlines.
- * It focuses on brevity, impact, and brand-level storytelling.
+ * PHASE 0: THE TRENDY AI TITLE ENGINE
+ * This engine generates viral, high-CTR ad headlines using the "Clickbait Success Formula".
  */
-const generateEditorialHeadline = async (productName: string, description: string, specs: string, tone: string = 'Luxury'): Promise<string> => {
-    const prompt = `You are a Creative Director at a top-tier global advertising agency (think Apple, Porsche, Leica).
-    Your task is to write a 2-4 word "Editorial Headline" for a product.
+const generateTrendyAdTitle = async (productName: string, description: string, industry: string, tone: string = 'Viral'): Promise<string> => {
+    const prompt = `You are a World-Class Ad Copywriter and Viral Growth Hacker.
+    Your task is to write a 2-5 word "Trendy AI Title" (Curiosity Gap Headline) for a high-performance ad.
     
     *** BRAND DATA ***
     Product Name: "${productName}"
-    Description: "${description}"
-    Technical Specs: "${specs}"
+    Ad Context: "${description}"
+    Industry: "${industry}"
     Marketing Tone: "${tone}"
     
-    *** EDITORIAL GUIDELINES ***
-    1. **BREVITY IS POWER**: Use 2 to 4 words maximum. No fluff.
-    2. **THE APPLE/PORSCHE STYLE**: Avoid "salesy" buzzwords (e.g., "Elevate", "Unleash", "Ultimate"). Instead, use punchy, confident, and slightly abstract statements that define a category.
-    3. **TONE ADHERENCE**:
-       - If 'Luxury': Focus on heritage, silence, and perfection. (e.g., "The New Standard", "Pure Precision").
-       - If 'Bold': Focus on power, dominance, and breaking rules. (e.g., "Defy the Expected", "Raw Power").
-       - If 'Witty': Focus on cleverness and modern irony. (e.g., "Beautifully Simple", "Actually, Better").
-       - If 'Urgent': Focus on the immediate future. (e.g., "The Future, Now").
-    4. **NO CATEGORY LEAKAGE**: Do not use generic industry names (e.g., don't say "The Best Watch").
-    5. **PRODUCT INTEGRITY**: If the product name is strong, use it or a variation of it.
+    *** VIRAL GUIDELINES (CLICKBAIT SUCCESS FORMULA) ***
+    1. **CURIOSITY GAP**: Create a headline that makes people stop scrolling. Use the "Curiosity Gap" technique.
+    2. **BREVITY IS POWER**: Use 2 to 5 words maximum. No fluff.
+    3. **TRENDY AI STYLE**: Focus on high-impact, trendy, and performance-oriented language.
+    4. **EMOTIONAL HOOK**: Identify one dominant emotion (Curiosity, Surprise, Fear, Authority, or Contrast).
+    5. **NO GENERIC BUZZWORDS**: Avoid "Elevate", "Unleash", "Ultimate", "Best".
     
     OUTPUT: Return ONLY the headline string. No quotes.`;
 
@@ -130,7 +125,7 @@ const generateEditorialHeadline = async (productName: string, description: strin
         const response = await secureGenerateContent({
             model: 'gemini-3.1-pro-preview',
             contents: { parts: [{ text: prompt }] },
-            featureName: 'Editorial Headline Engine'
+            featureName: 'Trendy Ad Title Engine'
         });
         return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
     } catch (e) {
@@ -139,8 +134,8 @@ const generateEditorialHeadline = async (productName: string, description: strin
 };
 
 /**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO + RESEARCHER)
- * LOGIC UPGRADE: Consolidated Research & Visual Audit
+ * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO + TREND RESEARCHER)
+ * LOGIC UPGRADE: Consolidated Research & Viral Visual Audit
  */
 const performAdIntelligence = async (
     inputs: AdMakerInputs, 
@@ -148,38 +143,36 @@ const performAdIntelligence = async (
 ): Promise<CreativeBrief> => {
     const ai = getAiClient();
     
-    // 0. EDITORIAL HEADLINE ENGINE (INITIAL PASS)
-    // We pass the product name and description to get a sophisticated starting point.
-    const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateEditorialHeadline(inputs.productName || '', inputs.description || '', inputs.productSpecs || '', 'Luxury');
+    // 0. TRENDY AI TITLE ENGINE (INITIAL PASS)
+    // We pass the product name and context to get a viral starting point.
+    const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateTrendyAdTitle(inputs.productName || '', inputs.description || '', inputs.industry || '', 'Viral');
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
     );
 
-    const prompt = `Act as a world-class CMO and Lead Strategy Director at a top-tier creative agency. 
+    const prompt = `Act as a world-class CMO and Viral Trend Researcher. 
     Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
     
     *** PRODUCT DATA ***
     Product Name: "${inputs.productName || 'N/A'}"
-    Description: "${inputs.description || 'N/A'}"
-    Specs: "${inputs.productSpecs || 'N/A'}"
+    Ad Context: "${inputs.description || 'N/A'}"
     Industry: "${inputs.industry || 'N/A'}"
-    Initial Headline Idea: "${initialHeadline}"
+    Initial Trendy Headline: "${initialHeadline}"
     
-    *** FORBIDDEN DATA (STRICTLY PROHIBITED) ***
-    - DO NOT USE the industry name: "${inputs.industry}" or any related category terms in the headline.
-    - DO NOT USE literal descriptions.
+    *** TREND RESEARCH TASK (MARCH 2026) ***
+    1. Research high-performing viral ad trends for Industry: "${inputs.industry}" and Topic: "${inputs.description}".
+    2. Identify the "Clickbait Success Formula" currently working for this niche.
     
     *** VISUAL AUDIT (MANDATORY) ***
-    1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand (if visible).
+    1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand.
     2. Identify the 'detectedFinish': Is the product Glossy, Matte, Metallic, Glass, or Fabric?
-    3. Suggest a 'suggestedTone': Based on the product and description, which marketing tone fits best? (Bold, Luxury, Witty, or Urgent).
+    3. Suggest a 'suggestedTone': Based on the product and viral trends, which marketing tone fits best? (Bold, Luxury, Witty, or Urgent).
     
-    *** HEADLINE REFINEMENT (THE EDITORIAL UPGRADE) ***
-    1. Review the 'Initial Headline Idea': "${initialHeadline}".
-    2. If the initial headline is generic, REWRITE it to be more "Editorial" (Apple/Porsche style).
-    3. Use the visual data from the audit (e.g., if the product is a deep blue metallic watch, the headline could be "Deep Blue Precision").
-    4. Keep it to 2-4 words. No buzzwords like "Elevate" or "Unleash".
+    *** HEADLINE REFINEMENT (THE VIRAL UPGRADE) ***
+    1. Review the 'Initial Trendy Headline': "${initialHeadline}".
+    2. If the initial headline is generic, REWRITE it to be a 2-5 word Curiosity Gap headline.
+    3. Use the visual data from the audit to anchor the headline.
     
     *** LAYOUT INTELLIGENCE (CRITICAL) ***
     Number of Products: ${inputs.mainImages.length}
@@ -187,18 +180,11 @@ const performAdIntelligence = async (
     Selected Vibe: "${inputs.vibe || 'Modern'}"
     
     Your Task: Determine the absolute best layout for this ad. 
-    - If 1 product: Choose between Hero Focus, Split Design, or Magazine Cover.
-    - If 2-5 products: Choose between The Trio, Range Lineup, or Hero & Variants.
     - The layout must be "Aspect-Aware" (e.g., vertical layouts for 9:16).
-    
-    *** HIGH-CONVERSION COPYWRITING PROTOCOL ***
-    1. **NO CORPORATE FILLERS**: Strictly FORBIDDEN to use generic lines like "Ready for launch", "Defined by Excellence", etc.
-    2. **ANTI-LITERAL RULE**: Strictly FORBIDDEN to include the industry name ("${inputs.industry}") or category in the headline. 
-    3. **SUBHEADLINE**: Generate a high-impact subheadline that supports the refined headline.
     
     RETURN JSON ONLY:
     {
-        "strategicCopy": { "headline": "string (The refined editorial headline)", "subheadline": "string", "cta": "string" },
+        "strategicCopy": { "headline": "string (The final refined trendy headline)", "subheadline": "string", "cta": "string" },
         "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
         "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
         "visualDirection": "string",
