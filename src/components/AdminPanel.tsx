@@ -26,7 +26,6 @@ import { AdminComms } from './admin/AdminComms';
 import { AdminConfig } from './admin/AdminConfig';
 import { AdminSystem } from './admin/AdminSystem';
 import { AdminVault } from './admin/AdminVault';
-import { AdminFinancials } from './admin/AdminFinancials';
 import { AdminLabManager } from './admin/AdminLabManager';
 
 interface AdminPanelProps {
@@ -36,7 +35,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'financials' | 'vault' | 'lab' | 'users' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'vault' | 'lab' | 'users' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
 
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
@@ -54,7 +53,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                 <h1 className={AdminStyles.title}><ShieldCheckIcon className="w-8 h-8 text-indigo-600" /> Admin Command</h1>
                 <div className={AdminStyles.tabsContainer}>
                     <TabButton id="overview" label="Overview" icon={ChartBarIcon} />
-                    <TabButton id="financials" label="Financials" icon={CreditCardIcon} />
                     <TabButton id="vault" label="Style Vault" icon={CloudUploadIcon} />
                     <TabButton id="lab" label="Lab Manager" icon={MagicWandIcon} />
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
@@ -67,7 +65,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             </div>
 
             {activeTab === 'overview' && <AdminOverview onNavigate={(tab) => setActiveTab(tab as any)} />}
-            {activeTab === 'financials' && <AdminFinancials auth={auth} />}
             {activeTab === 'vault' && <AdminVault auth={auth} />}
             {activeTab === 'lab' && <AdminLabManager auth={auth} />}
             {activeTab === 'feedback' && <AdminFeedback />}
