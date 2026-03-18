@@ -40,6 +40,8 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const [progressPercent, setProgressPercent] = useState(0);
     const [loadingText, setLoadingText] = useState("Spatial Audit...");
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [isRefineOpen, setIsRefineOpen] = useState(false);
@@ -131,6 +133,10 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
             setResult(blobUrl);
             setIsGenerating(false);
 
+            const prompt = `Architectural Interior Design: ${spaceType} ${roomType}, style: ${designStyle}${notes ? `, notes: ${notes}` : ''}`;
+            setOriginalImage({ base64: image!.base64.base64, mimeType: image!.base64.mimeType });
+            setOriginalPrompt(prompt);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior (Mobile)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -151,7 +157,15 @@ export const MobileInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Architectural Render");
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                "Architectural Render",
+                undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);

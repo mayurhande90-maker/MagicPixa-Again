@@ -376,7 +376,7 @@ export const uploadLabAsset = async (uid: string, dataUri: string, featureId: st
     return await ref.getDownloadURL();
 };
 
-export const saveCreation = async (uid: string, imageUrl: string, feature: string): Promise<string> => {
+export const saveCreation = async (uid: string, imageUrl: string, feature: string, originalImage?: { base64: string; mimeType: string }, originalPrompt?: string): Promise<string> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;
     
@@ -392,16 +392,18 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
         }
     }
     
-    const docRef = await db.collection('users').doc(uid).collection('creations').add({
+    const docRef = await db.collection('users').doc(uid).collection('creations').add(sanitizeData({
         imageUrl: finalImage,
         feature,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        storagePath: ''
-    });
+        storagePath: '',
+        originalImage,
+        originalPrompt
+    }));
     return docRef.id;
 };
 
-export const updateCreation = async (uid: string, creationId: string, imageUrl: string): Promise<void> => {
+export const updateCreation = async (uid: string, creationId: string, imageUrl: string, originalImage?: { base64: string; mimeType: string }, originalPrompt?: string): Promise<void> => {
     if (!db) throw new Error("DB not initialized");
     let finalImage = imageUrl;
     
@@ -414,10 +416,12 @@ export const updateCreation = async (uid: string, creationId: string, imageUrl: 
         }
     }
     
-    await db.collection('users').doc(uid).collection('creations').doc(creationId).update({
+    await db.collection('users').doc(uid).collection('creations').doc(creationId).update(sanitizeData({
         imageUrl: finalImage,
-        lastEditedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+        lastEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        originalImage,
+        originalPrompt
+    }));
 };
 
 export const getCreations = async (uid: string) => {

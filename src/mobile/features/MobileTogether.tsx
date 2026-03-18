@@ -101,6 +101,8 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
     const [loadingText, setLoadingText] = useState("Initializing...");
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [milestoneBonus, setMilestoneBonus] = useState<number | false>(false);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -235,6 +237,11 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
             setResult(blobUrl);
             setIsGenerating(false);
 
+            const prompt = `Pixa Together: ${mode}, relationship: ${relationship}, timeline: ${timeline}, environment: ${environment}${customDescription ? `, details: ${customDescription}` : ''}`;
+            // For Together, we use personA as the primary reference for refinement anchoring
+            setOriginalImage({ base64: personA!.base64.base64, mimeType: personA!.base64.mimeType });
+            setOriginalPrompt(prompt);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together (Mobile)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -260,7 +267,15 @@ export const MobileTogether: React.FC<MobileTogetherProps> = ({ auth, appConfig,
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "Duo Portrait");
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                text, 
+                "Duo Portrait",
+                undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);

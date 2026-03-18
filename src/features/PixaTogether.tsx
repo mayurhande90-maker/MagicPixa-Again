@@ -149,6 +149,8 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [showMagicEditor, setShowMagicEditor] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
@@ -219,7 +221,13 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             const res = await generateMagicSoul(personA.base64.base64, personA.base64.mimeType, isSingleSubject ? null : personB?.base64.base64, isSingleSubject ? null : personB?.base64.mimeType, config, auth.activeBrandKit, auth.user?.basePlan || undefined);
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResultImage(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
+            const dataUri = `data:image/png;base64,${res}`; 
+
+            const prompt = `Pixa Together: ${mode}, relationship: ${relationship}, mood: ${mood}, timeline: ${timeline}, environment: ${environment}${customDescription ? `, details: ${customDescription}` : ''}`;
+            setOriginalImage({ base64: personA.base64.base64, mimeType: personA.base64.mimeType });
+            setOriginalPrompt(prompt);
+
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Together'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Together'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) setMilestoneBonus(bonus); } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e: any) { console.error(e); alert(`Generation failed: ${e.message}`); } finally { setLoading(false); }
     };
@@ -232,7 +240,15 @@ export const PixaTogether: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Couple/Duo Portrait", auth.user?.basePlan || undefined);
+            const res = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                "Couple/Duo Portrait", 
+                auth.user?.basePlan || undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);

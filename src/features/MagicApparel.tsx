@@ -36,6 +36,8 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
     const [loadingText, setLoadingText] = useState("");
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [isDragging, setIsDragging] = useState(false);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
@@ -110,6 +112,10 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl); 
             const dataUri = `data:image/png;base64,${res}`; 
+
+            const prompt = `Apparel Try-On: fit: ${fit}, tuck: ${tuck}, sleeve: ${sleeve}${accessories ? `, accessories: ${accessories}` : ''}`;
+            setOriginalImage({ base64: personImage.base64.base64, mimeType: personImage.base64.mimeType });
+            setOriginalPrompt(prompt);
             
             // GRACEFUL SAVING: Don't crash the whole UI if the 1MB save fails
             try {
@@ -142,7 +148,15 @@ export const MagicApparel: React.FC<{ auth: AuthProps; appConfig: AppConfig | nu
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Fashion Try-On Image", auth.user?.basePlan || undefined);
+            const res = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                "Fashion Try-On Image", 
+                auth.user?.basePlan || undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);

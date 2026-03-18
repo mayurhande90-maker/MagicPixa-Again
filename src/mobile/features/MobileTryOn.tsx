@@ -105,6 +105,8 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
     const [progressPercent, setProgressPercent] = useState(0);
     const [loadingText, setLoadingText] = useState(LOADING_MESSAGES[0]);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
@@ -200,6 +202,10 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
             setResult(blobUrl);
             setIsGenerating(false);
 
+            const prompt = `Apparel Try-On: fit: ${fitType}, finish: ${finishType.join(', ')}${accessories ? `, accessories: ${accessories}` : ''}`;
+            setOriginalImage({ base64: personImage!.base64.base64, mimeType: personImage!.base64.mimeType });
+            setOriginalPrompt(prompt);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa TryOn (Mobile)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -220,7 +226,15 @@ export const MobileTryOn: React.FC<MobileTryOnProps> = ({ auth, appConfig, onGen
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "Apparel Portrait");
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                text, 
+                "Apparel Portrait",
+                undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);

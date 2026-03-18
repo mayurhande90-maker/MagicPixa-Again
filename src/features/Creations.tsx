@@ -230,7 +230,15 @@ export const Creations: React.FC<{ auth: AuthProps; navigateTo: any }> = ({ auth
         setIsRefineActive(false);
         try {
             const currentB64 = await urlToBase64(viewCreation.imageUrl);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, `${viewCreation.feature} Refinement`);
+            const res = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                `${viewCreation.feature} Refinement`,
+                undefined,
+                viewCreation.originalImage || undefined,
+                viewCreation.originalPrompt || undefined
+            );
             
             const dataUri = `data:image/png;base64,${res}`;
             const featureName = `(Refined) ${viewCreation.feature}`;

@@ -61,6 +61,8 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
 
     const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || 8;
     const refineCost = 5;
@@ -180,6 +182,13 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             setResult(blobUrl);
             setIsGenerating(false);
 
+            const prompt = `YouTube/Social Media Thumbnail: ${category}, mood: ${mood}, title: ${context}, style: ${format}`;
+            const primaryImg = isPodcast ? hostImg : subjectImg;
+            if (primaryImg) {
+                setOriginalImage({ base64: primaryImg.base64.base64, mimeType: primaryImg.base64.mimeType });
+            }
+            setOriginalPrompt(prompt);
+
             await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail (Mobile)');
             const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Thumbnail Pro');
             setLastCreationId(id);
@@ -198,7 +207,15 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "YouTube/Social Media Thumbnail");
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                text, 
+                "YouTube/Social Media Thumbnail",
+                undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);

@@ -88,6 +88,8 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
     const [loadingText, setLoadingText] = useState("Initializing...");
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [milestoneBonus, setMilestoneBonus] = useState<number | false>(false);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -194,6 +196,10 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
             setResult(blobUrl);
             setIsGenerating(false);
 
+            const prompt = `Professional headshot, archetype: ${archetype}, background: ${background === 'Custom' ? customBackgroundPrompt : background}${customDesc ? `, details: ${customDesc}` : ''}`;
+            setOriginalImage({ base64: image!.base64.base64, mimeType: image!.base64.mimeType });
+            setOriginalPrompt(prompt);
+
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Headshot (Mobile)');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
 
@@ -219,7 +225,15 @@ export const MobileHeadshot: React.FC<MobileHeadshotProps> = ({ auth, appConfig,
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, text, "Professional Headshot");
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                text, 
+                "Professional Headshot",
+                undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);

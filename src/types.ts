@@ -223,6 +223,8 @@ export interface Creation {
     feature: string;
     createdAt: Timestamp;
     lastEditedAt?: Timestamp; // Added for editor tracking
+    originalImage?: { base64: string; mimeType: string }; // Added for anchored refinements
+    originalPrompt?: string; // Added for anchored refinements
 }
 
 export interface VaultReference {

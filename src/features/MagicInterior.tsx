@@ -22,6 +22,8 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [result, setResult] = useState<string | null>(null);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState<string>('');
     const [spaceType, setSpaceType] = useState<'home' | 'office'>('home');
     const [roomType, setRoomType] = useState('');
     const [style, setStyle] = useState('');
@@ -92,7 +94,13 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         try {
             const res = await generateInteriorDesign(image.base64.base64, image.base64.mimeType, style, spaceType, roomType, auth.activeBrandKit, auth.user?.basePlan || undefined);
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); setResult(blobUrl);
-            const dataUri = `data:image/png;base64,${res}`; const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
+            const dataUri = `data:image/png;base64,${res}`; 
+
+            const prompt = `Architectural Interior Design: ${spaceType} ${roomType}, style: ${style}`;
+            setOriginalImage({ base64: image.base64.base64, mimeType: image.base64.mimeType });
+            setOriginalPrompt(prompt);
+
+            const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa Interior Design'); setLastCreationId(creationId);
             const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Interior Design'); if (updatedUser.lifetimeGenerations) { const bonus = checkMilestone(updatedUser.lifetimeGenerations); if (bonus !== false) { setMilestoneBonus(bonus); } } auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
         } catch (e) { console.error(e); alert("Generation failed. Please try again."); } finally { setLoading(false); }
     };
@@ -105,7 +113,15 @@ export const MagicInterior: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(result);
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Interior Design Rendering", auth.user?.basePlan || undefined);
+            const res = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                "Interior Design Rendering", 
+                auth.user?.basePlan || undefined,
+                originalImage || undefined,
+                originalPrompt || undefined
+            );
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);

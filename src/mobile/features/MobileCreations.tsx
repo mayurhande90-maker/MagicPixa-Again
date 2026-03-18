@@ -117,7 +117,15 @@ export const MobileCreations: React.FC<{ auth: AuthProps }> = ({ auth }) => {
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(viewCreation.imageUrl);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, viewCreation.feature);
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                viewCreation.feature,
+                undefined,
+                viewCreation.originalImage || undefined,
+                viewCreation.originalPrompt || undefined
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             
             const dataUri = `data:image/png;base64,${resB64}`;
