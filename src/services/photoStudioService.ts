@@ -286,24 +286,43 @@ export const refineStudioImage = async (
     mimeType: string,
     instruction: string,
     featureContext: string = "Commercial Product Shot",
-    userPlan?: string
+    userPlan?: string,
+    originalImage?: { base64: string, mimeType: string },
+    originalPrompt?: string
 ): Promise<string> => {
     // QUALITY UPGRADE: Increased width to 3072 and quality to 0.95 for refinements
     const optResult = await optimizeImage(base64Result, mimeType, 3072);
-    const prompt = `You are an Elite Commercial AI Retoucher. 
+    
+    let prompt = `You are an Elite Commercial AI Retoucher. 
     CURRENT TASK: Refine this ${featureContext} based on feedback: "${instruction}". 
     
     *** CORE MANDATES ***
     1. **PIXEL PRESERVATION**: Keep 98% of the original image identical.
     2. **IDENTITY LOCK**: Maintain the exact identity of the primary subject (product or person).
-    3. **PRECISION MODIFICATION**: Apply the requested change while ensuring seamless lighting and shadow blending.
+    3. **PRECISION MODIFICATION**: Apply the requested change while ensuring seamless lighting and shadow blending.`;
+
+    if (originalPrompt) {
+        prompt += `\n\n*** ORIGINAL CONTEXT ***\nThis image was originally generated with the concept: "${originalPrompt}". Keep this core concept intact while applying the new changes.`;
+    }
+
+    if (originalImage) {
+        prompt += `\n\n*** SACRED ASSET ANCHOR ***\nI have provided the ORIGINAL raw photo as the first image, and the CURRENT generated image as the second image. You MUST use the first image as the absolute source of truth for the product's physical geometry, branding, and identity.`;
+    }
     
-    OUTPUT: A single 4K photorealistic refined image.`;
+    prompt += `\n\nOUTPUT: A single 4K photorealistic refined image.`;
     
+    const parts: any[] = [];
+    if (originalImage) {
+        const optOriginal = await optimizeImage(originalImage.base64, originalImage.mimeType, 2048);
+        parts.push({ inlineData: { data: optOriginal.data, mimeType: optOriginal.mimeType } });
+    }
+    parts.push({ inlineData: { data: optResult.data, mimeType: optResult.mimeType } });
+    parts.push({ text: prompt });
+
     try {
         const response = await secureGenerateContent({
             model: 'gemini-3.1-flash-image-preview',
-            contents: { parts: [{ inlineData: { data: optResult.data, mimeType: optResult.mimeType } }, { text: prompt }] },
+            contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
                 imageConfig: { imageSize: "2K" }

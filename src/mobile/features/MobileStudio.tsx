@@ -213,7 +213,24 @@ export const MobileStudio: React.FC<MobileStudioProps> = ({ auth, appConfig, onG
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Studio Rendering");
+            
+            const originalImageParam = image ? { base64: image.base64.base64, mimeType: image.base64.mimeType } : undefined;
+            const finalCategory = selections['category'] === 'Other / Custom' ? customCategory : selections['category'];
+            const promptParts = Object.entries(selections).map(([key, val]) => {
+                if (key === 'category') return finalCategory;
+                return val;
+            });
+            const originalPromptParam = promptParts.join(', ');
+
+            const resB64 = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                "Studio Rendering",
+                auth.user?.basePlan || undefined,
+                originalImageParam,
+                originalPromptParam
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);

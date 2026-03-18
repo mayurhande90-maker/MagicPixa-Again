@@ -302,12 +302,6 @@ export const SupportChatWindow: React.FC<SupportChatWindowProps> = ({ auth, appC
                                                     ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-600' 
                                                     : 'bg-white text-slate-700 rounded-tl-none border-gray-100'
                                                 }`}>
-                                                    {msg.role === 'model' && (
-                                                        <div className="flex items-center gap-1.5 mb-2 opacity-50">
-                                                            <ShieldCheckIcon className="w-3.5 h-3.5 text-indigo-500" />
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-indigo-600">Verified Pixa Solution</span>
-                                                        </div>
-                                                    )}
                                                     {msg.role === 'user' 
                                                         ? <div className="whitespace-pre-wrap break-words font-medium">{msg.content}</div>
                                                         : <FormattedMessage text={msg.content} isWelcome={index === 0 && msg.content.includes("###")} />

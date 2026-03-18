@@ -469,7 +469,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setIsRefineActive(false); 
         try {
             const currentB64 = await urlToBase64(resultImage);
-            const res = await refineAdCreative(currentB64.base64, currentB64.mimeType, refineText, auth.user?.basePlan || undefined);
+            
+            const originalImageParam = mainImages.length > 0 ? { base64: mainImages[0].base64.base64, mimeType: mainImages[0].base64.mimeType } : undefined;
+            const originalPromptParam = `Product: ${productName}. Description: ${description}. Vibe: ${vibe === CUSTOM_VIBE_KEY ? customVibe : vibe}. Aspect Ratio: ${aspectRatio}.`;
+
+            const res = await refineAdCreative(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                auth.user?.basePlan || undefined,
+                originalImageParam,
+                originalPromptParam
+            );
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResultImage(blobUrl);
             const dataUri = `data:image/png;base64,${res}`;

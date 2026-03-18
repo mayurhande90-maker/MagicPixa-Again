@@ -208,7 +208,22 @@ export const MagicPhotoStudio: React.FC<{ auth: AuthProps; navigateTo: any; appC
         try {
             const currentB64 = await urlToBase64(result);
             const featureContext = studioMode === 'model' ? 'Model Photography' : 'Product Photography';
-            const res = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, featureContext, auth.user?.basePlan || undefined);
+            
+            const originalImageParam = image ? { base64: image.base64.base64, mimeType: image.base64.mimeType } : undefined;
+            const finalCategory = category === 'Other / Custom' ? customCategory : category;
+            const originalPromptParam = studioMode === 'model' 
+                ? selectedPrompt || `${modelType}, ${modelRegion}, ${skinTone}, ${bodyType}, ${modelComposition}, ${modelFraming}`
+                : selectedPrompt || (finalCategory ? `${visualType || 'Professional'} shot of ${finalCategory} product. Style: ${brandStyle || 'Clean'}.` : "Professional studio lighting");
+
+            const res = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                featureContext, 
+                auth.user?.basePlan || undefined,
+                originalImageParam,
+                originalPromptParam
+            );
             
             const blobUrl = await base64ToBlobUrl(res, 'image/png'); 
             setResult(blobUrl);

@@ -344,25 +344,39 @@ export const refineAdCreative = async (
     base64Result: string,
     mimeType: string,
     instruction: string,
-    userPlan?: string
+    userPlan?: string,
+    originalImage?: { base64: string, mimeType: string },
+    originalPrompt?: string
 ): Promise<string> => {
     const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
-    const prompt = `You are an Elite Ad Retoucher. Modify the provided ad based on feedback: "${instruction}".
+    let prompt = `You are an Elite Ad Retoucher. Modify the provided ad based on feedback: "${instruction}".
     1. **Preservation**: Maintain 98% of the original product identity and branding.
-    2. **Precision**: Only iterate on the requested areas.
-    OUTPUT: A single 4K photorealistic refined image.`;
+    2. **Precision**: Only iterate on the requested areas.`;
+
+    if (originalPrompt) {
+        prompt += `\n\n*** ORIGINAL CONTEXT ***\nThis ad was originally generated with the concept: "${originalPrompt}". Keep this core concept intact while applying the new changes.`;
+    }
+
+    if (originalImage) {
+        prompt += `\n\n*** SACRED ASSET ANCHOR ***\nI have provided the ORIGINAL raw photo as the first image, and the CURRENT generated ad as the second image. You MUST use the first image as the absolute source of truth for the product's physical geometry, branding, and identity.`;
+    }
+
+    prompt += `\n\nOUTPUT: A single 4K photorealistic refined image.`;
+
+    const parts: any[] = [];
+    if (originalImage) {
+        const optOriginal = await optimizeImage(originalImage.base64, originalImage.mimeType, 1536);
+        parts.push({ inlineData: { data: optOriginal.data, mimeType: optOriginal.mimeType } });
+    }
+    parts.push({ inlineData: { data: optResult.data, mimeType: optResult.mimeType } });
+    parts.push({ text: prompt });
 
     try {
         const response = await secureGenerateContent({
             model: 'gemini-3.1-flash-image-preview',
-            contents: {
-                parts: [
-                    { inlineData: { data: optResult.data, mimeType: optResult.mimeType } },
-                    { text: prompt }
-                ]
-            },
+            contents: { parts },
             config: { 
                 responseModalities: [Modality.IMAGE],
                 imageConfig: { imageSize: "2K" }

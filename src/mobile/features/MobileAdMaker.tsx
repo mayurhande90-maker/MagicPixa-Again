@@ -18,8 +18,7 @@ import {
     ServicesAdIcon 
 } from '../../components/icons/adMakerIcons';
 import { fileToBase64, base64ToBlobUrl, downloadImage, urlToBase64 } from '../../utils/imageUtils';
-import { generateAdCreative } from '../../services/adMakerService';
-import { refineStudioImage } from '../../services/photoStudioService';
+import { generateAdCreative, refineAdCreative } from '../../services/adMakerService';
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 import { SelectionGrid, ImageModal } from '../../components/FeatureLayout';
@@ -217,7 +216,18 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setIsRefineOpen(false);
         try {
             const currentB64 = await urlToBase64(result);
-            const resB64 = await refineStudioImage(currentB64.base64, currentB64.mimeType, refineText, "Advertising Creative");
+            
+            const originalImageParam = mainImages.length > 0 ? { base64: mainImages[0].base64.base64, mimeType: mainImages[0].base64.mimeType } : undefined;
+            const originalPromptParam = `Product: ${productName}. Description: ${description}. Vibe: ${vibe === 'Custom' ? customVibe : vibe}. Aspect Ratio: ${aspectRatio}.`;
+
+            const resB64 = await refineAdCreative(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                auth.user?.basePlan || undefined,
+                originalImageParam,
+                originalPromptParam
+            );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
             setIsGenerating(false);
