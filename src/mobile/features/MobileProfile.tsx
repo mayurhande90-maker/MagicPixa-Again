@@ -557,7 +557,7 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 {/* 5. SETTINGS LIST */}
                 <div className="space-y-4 pt-2">
                     <button 
-                        onClick={auth.openPhoneVerification}
+                        onClick={() => auth.openPhoneVerification(user?.phoneNumber ? 'change' : 'link')}
                         className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"
                     >
                         <div className="flex items-center gap-5">

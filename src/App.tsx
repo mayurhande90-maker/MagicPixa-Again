@@ -127,6 +127,7 @@ function App() {
   const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showPhoneOnboardingModal, setShowPhoneOnboardingModal] = useState(false);
+  const [phoneOnboardingMode, setPhoneOnboardingMode] = useState<'link' | 'change'>('link');
   const [authError, setAuthError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -353,8 +354,9 @@ function App() {
     setActiveBrandKit,
     handleLogout,
     openAuthModal: () => setIsAuthModalOpen(true),
-    openPhoneVerification: () => {
+    openPhoneVerification: (mode = 'link') => {
         setHasSkippedPhone(false);
+        setPhoneOnboardingMode(mode);
         setShowPhoneOnboardingModal(true);
     },
     impersonateUser: user?.isAdmin ? (u) => { setImpersonatedUser(u); if(u) navigateTo('dashboard', 'dashboard'); } : undefined
@@ -377,6 +379,7 @@ function App() {
                 )}
                 {showPhoneOnboardingModal && !hasSkippedPhone && (
                     <PhoneOnboardingModal 
+                        mode={phoneOnboardingMode}
                         onComplete={() => setShowPhoneOnboardingModal(false)}
                         onSkip={() => {
                             setHasSkippedPhone(true);
@@ -461,6 +464,7 @@ function App() {
       )}
       {showPhoneOnboardingModal && !hasSkippedPhone && (
           <PhoneOnboardingModal 
+            mode={phoneOnboardingMode}
             onComplete={() => setShowPhoneOnboardingModal(false)}
             onSkip={() => {
                 setHasSkippedPhone(true);

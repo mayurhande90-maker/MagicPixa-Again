@@ -189,7 +189,7 @@ export interface AuthProps {
   setActiveBrandKit: (kit: BrandKit | null) => void;
   handleLogout: () => void;
   openAuthModal: () => void;
-  openPhoneVerification: () => void;
+  openPhoneVerification: (mode?: 'link' | 'change') => void;
   impersonateUser?: (user: User | null) => void;
 }
 
