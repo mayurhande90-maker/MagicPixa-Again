@@ -1,5 +1,8 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { GoogleIcon, MagicPixaLogo } from './icons';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import { auth } from '../firebase';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -14,6 +17,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Phone Auth State
+  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input'>('options');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
 
   // If a prop error is passed from the main app, it takes precedence.
   const error = propError || internalError;
@@ -25,6 +34,22 @@ const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [propError]);
 
+  useEffect(() => {
+    // Initialize reCAPTCHA verifier when component mounts
+    if (!(window as any).recaptchaVerifier && auth) {
+      (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'invisible',
+      });
+    }
+    
+    return () => {
+      // Cleanup recaptcha on unmount
+      if ((window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier.clear();
+        (window as any).recaptchaVerifier = undefined;
+      }
+    };
+  }, []);
 
   const handleGoogleClick = async () => {
     setInternalError(null);
@@ -37,6 +62,60 @@ const AuthModal: React.FC<AuthModalProps> = ({
       setInternalError(err.message || 'Failed to sign in with Google.');
       // Only set loading to false on an immediate error, as success causes a page redirect.
       setIsLoading(false); 
+    }
+  };
+
+  const handleSendCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneNumber) {
+      setInternalError('Please enter a valid phone number.');
+      return;
+    }
+    
+    setInternalError(null);
+    setIsLoading(true);
+    
+    try {
+      if (!auth) throw new Error("Auth not initialized");
+      const appVerifier = (window as any).recaptchaVerifier;
+      // Format phone number if it doesn't have a country code (assuming +1 for simplicity, but better to let user enter it)
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+      
+      const result = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
+      setConfirmationResult(result);
+      setAuthStep('code_input');
+    } catch (err: any) {
+      console.error(err);
+      setInternalError(err.message || 'Failed to send verification code.');
+      // Reset recaptcha on error
+      if ((window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier.render().then((widgetId: any) => {
+          (window as any).recaptchaVerifier.reset(widgetId);
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verificationCode || !confirmationResult) {
+      setInternalError('Please enter the verification code.');
+      return;
+    }
+    
+    setInternalError(null);
+    setIsLoading(true);
+    
+    try {
+      await confirmationResult.confirm(verificationCode);
+      // Success! The auth state listener in App.tsx will handle the rest and close the modal.
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setInternalError(err.message || 'Invalid verification code.');
+      setIsLoading(false);
     }
   };
 
@@ -65,10 +144,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 <MagicPixaLogo />
             </div>
           <h2 id="auth-modal-title" className="text-2xl font-bold text-[#1E1E1E] mb-2">
-            Sign In to Continue
+            {authStep === 'options' ? 'Sign In to Continue' : authStep === 'phone_input' ? 'Enter Phone Number' : 'Verify Phone'}
           </h2>
           <p className="text-[#5F6368] mb-6">
-            Access your projects and unlock all features.
+            {authStep === 'options' ? 'Access your projects and unlock all features.' : authStep === 'phone_input' ? 'We will send you a verification code.' : 'Enter the 6-digit code sent to your phone.'}
           </p>
         </div>
 
@@ -78,25 +157,125 @@ const AuthModal: React.FC<AuthModalProps> = ({
             </div>
         )}
 
-        <button
-          onClick={handleGoogleClick}
-          disabled={isLoading}
-          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? (
-            <svg className="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          ) : (
-            <>
-              <GoogleIcon className="w-6 h-6" />
-              <span>Sign In with Google</span>
-            </>
-          )}
-        </button>
+        {/* Hidden reCAPTCHA container */}
+        <div id="recaptcha-container"></div>
+
+        {authStep === 'options' && (
+          <div className="space-y-3">
+            <button
+              onClick={handleGoogleClick}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? (
+                <svg className="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>
+                  <GoogleIcon className="w-6 h-6" />
+                  <span>Sign In with Google</span>
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={() => { setAuthStep('phone_input'); setInternalError(null); }}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              <span>Continue with Phone</span>
+            </button>
+          </div>
+        )}
+
+        {authStep === 'phone_input' && (
+          <form onSubmit={handleSendCode} className="space-y-4">
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input
+                type="tel"
+                id="phone"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="+1 555 555 5555"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                disabled={isLoading}
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-2">Include your country code (e.g., +1 for US).</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setAuthStep('options'); setInternalError(null); }}
+                disabled={isLoading}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || !phoneNumber}
+                className="flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+              >
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : 'Send Code'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {authStep === 'code_input' && (
+          <form onSubmit={handleVerifyCode} className="space-y-4">
+            <div>
+              <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+              <input
+                type="text"
+                id="code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="123456"
+                maxLength={6}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-center text-xl tracking-widest"
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setAuthStep('phone_input'); setVerificationCode(''); setInternalError(null); }}
+                disabled={isLoading}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || verificationCode.length < 6}
+                className="flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+              >
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : 'Verify'}
+              </button>
+            </div>
+          </form>
+        )}
         
-        <p className="text-xs text-gray-500 mt-4 text-center">
+        <p className="text-xs text-gray-500 mt-6 text-center">
             By signing in, you agree to our Terms of Service.
         </p>
 
@@ -107,3 +286,4 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
 // FIX: Added missing default export.
 export default AuthModal;
+
