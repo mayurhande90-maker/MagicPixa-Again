@@ -23,6 +23,19 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
 
   useEffect(() => {
     // Initialize reCAPTCHA verifier when component mounts
@@ -60,6 +73,7 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
       const result = await auth.currentUser.linkWithPhoneNumber(formattedPhone, appVerifier);
       setConfirmationResult(result);
       setAuthStep('code_input');
+      setResendTimer(60); // Start 60s timer
     } catch (err: any) {
       console.error(err);
       setInternalError(getFriendlyErrorMessage(err));
@@ -248,6 +262,22 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                 disabled={isLoading}
                 autoFocus
               />
+            </div>
+            <div className="text-center mt-4">
+              {resendTimer > 0 ? (
+                <p className="text-sm text-gray-500">
+                  Didn't receive the code? Resend in <span className="font-semibold">{resendTimer}s</span>
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendCode}
+                  disabled={isLoading}
+                  className="text-sm text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+                >
+                  Resend Code
+                </button>
+              )}
             </div>
             <div className="flex gap-3">
               <button
