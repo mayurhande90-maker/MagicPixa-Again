@@ -30,6 +30,7 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 
           'avatar', 
+          'phoneNumber',
           'lastActive', 
           'brandKit', 
           'referralCode', 
