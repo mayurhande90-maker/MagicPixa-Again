@@ -109,7 +109,7 @@ export const Profile: React.FC<{ auth: AuthProps }> = ({ auth }) => {
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => auth.openPhoneVerification()}
+                                    onClick={() => auth.openPhoneVerification(user.phoneNumber ? 'change' : 'link')}
                                     className="px-6 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl font-bold hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm"
                                 >
                                     {user.phoneNumber ? 'Change' : 'Link Phone'}

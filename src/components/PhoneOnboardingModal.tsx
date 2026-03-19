@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MagicPixaLogo } from './icons';
+import { MagicPixaLogo, XIcon } from './icons';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import { auth } from '../firebase';
@@ -9,10 +9,11 @@ import { getFriendlyErrorMessage } from '../utils/errorHandling';
 interface PhoneOnboardingModalProps {
   onComplete: () => void;
   onSkip: () => void;
+  onClose: () => void;
   mode?: 'link' | 'change';
 }
 
-const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip, mode = 'link' }) => {
+const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip, onClose, mode = 'link' }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
   const [isCredentialInUse, setIsCredentialInUse] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -122,6 +123,13 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
       aria-modal="true"
     >
       <div className="relative bg-white w-full max-w-sm m-4 p-8 rounded-2xl shadow-xl border border-gray-200/80">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+          aria-label="Close"
+        >
+          <XIcon className="w-5 h-5" />
+        </button>
         
         <div className="text-center">
             <div className="flex justify-center mb-4">

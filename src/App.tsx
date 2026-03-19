@@ -385,6 +385,7 @@ function App() {
                             setHasSkippedPhone(true);
                             setShowPhoneOnboardingModal(false);
                         }}
+                        onClose={() => setShowPhoneOnboardingModal(false)}
                     />
                 )}
             </div>
@@ -470,6 +471,7 @@ function App() {
                 setHasSkippedPhone(true);
                 setShowPhoneOnboardingModal(false);
             }}
+            onClose={() => setShowPhoneOnboardingModal(false)}
           />
       )}
     </div>
