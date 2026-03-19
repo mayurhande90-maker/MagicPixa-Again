@@ -12,7 +12,8 @@ import {
     PixaHeadshotIcon, MagicWandIcon, CampaignStudioIcon,
     BuildingIcon,
     PixaBillingIcon,
-    TrashIcon
+    TrashIcon,
+    PhoneIcon
 } from '../../components/icons';
 import { getBadgeInfo } from '../../utils/badgeUtils';
 import { updateUserProfile, claimMilestoneBonus, getCreditHistory } from '../../firebase';
@@ -555,6 +556,31 @@ export const MobileProfile: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
                 {/* 5. SETTINGS LIST */}
                 <div className="space-y-4 pt-2">
+                    <button 
+                        onClick={auth.openPhoneVerification}
+                        className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="p-3 bg-green-50 text-green-600 rounded-2xl group-active:scale-90 transition-transform shadow-sm border border-green-100">
+                                <PhoneIcon className="w-6 h-6"/>
+                            </div>
+                            <div>
+                                <span className="text-base font-black text-gray-800 block leading-tight">
+                                    {user?.phoneNumber ? 'Change Phone Number' : 'Link Phone Number'}
+                                </span>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                    {user?.phoneNumber ? user.phoneNumber : 'Secure your account'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {user?.phoneNumber && (
+                                <span className="bg-green-100 text-green-700 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Verified</span>
+                            )}
+                            <ChevronRightIcon className="w-5 h-5 text-gray-300 group-active:translate-x-1 transition-transform" />
+                        </div>
+                    </button>
+
                     <button 
                         onClick={fetchHistory}
                         className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-[2.2rem] active:bg-gray-50 transition-all text-left group shadow-xl shadow-gray-200/20"

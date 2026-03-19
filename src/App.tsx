@@ -353,6 +353,10 @@ function App() {
     setActiveBrandKit,
     handleLogout,
     openAuthModal: () => setIsAuthModalOpen(true),
+    openPhoneVerification: () => {
+        setHasSkippedPhone(false);
+        setShowPhoneOnboardingModal(true);
+    },
     impersonateUser: user?.isAdmin ? (u) => { setImpersonatedUser(u); if(u) navigateTo('dashboard', 'dashboard'); } : undefined
   };
 

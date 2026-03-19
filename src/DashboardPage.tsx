@@ -41,6 +41,7 @@ const PixaTogether = lazy(() => import('./features/PixaTogether').then(module =>
 const PixaPhotoRestore = lazy(() => import('./features/PixaPhotoRestore').then(module => ({ default: module.PixaPhotoRestore })));
 const PixaHeadshotPro = lazy(() => import('./features/PixaHeadshotPro').then(module => ({ default: module.PixaHeadshotPro })));
 const CampaignStudio = lazy(() => import('./features/PixaPlanner').then(module => ({ default: module.PixaPlanner })));
+const Profile = lazy(() => import('./features/Profile').then(module => ({ default: module.Profile })));
 
 const PageLoader = () => (
     <div className="h-full w-full flex items-center justify-center min-h-[400px]">
@@ -172,12 +173,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 return null;
             case 'admin':
                 return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
+            case 'profile':
+                return <Profile auth={auth} />;
             default:
                 return null;
         }
     };
 
-    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'billing', 'admin'];
+    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'billing', 'admin', 'profile'];
     const isStandardView = standardViews.includes(activeView);
 
     return (

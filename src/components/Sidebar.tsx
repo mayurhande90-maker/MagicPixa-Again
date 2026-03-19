@@ -68,6 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, setUser, activeView, setActiveV
     { id: 'interior', label: 'Pixa Interior Design', icon: PixaInteriorIcon, disabled: false },
     { id: 'apparel', label: 'Pixa TryOn', icon: PixaTryOnIcon, disabled: false },
     { type: 'divider', label: 'Account' },
+    { id: 'profile', label: 'Profile Settings', icon: ShieldCheckIcon, disabled: false },
     { id: 'billing', label: 'Billing & Credits', icon: PixaBillingIcon, disabled: false },
     { id: 'support_center', label: 'Help & Support', icon: PixaSupportIcon, disabled: false },
   ];
