@@ -156,7 +156,7 @@ export const updateUserLastActive = async (uid: string) => {
     }
 };
 
-export const getOrCreateUserProfile = async (uid: string, name: string, email: string | null) => {
+export const getOrCreateUserProfile = async (uid: string, name: string, email: string | null, phoneNumber?: string | null) => {
     if (!db) return;
     const userRef = db.collection('users').doc(uid);
     const doc = await userRef.get();
@@ -174,6 +174,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
             uid: uid || '', 
             name: name || 'Creator',
             email: email || '',
+            phoneNumber: phoneNumber || null,
             avatar: initials, 
             credits: 50,
             totalCreditsAcquired: 50,
@@ -198,6 +199,7 @@ export const getOrCreateUserProfile = async (uid: string, name: string, email: s
     if (!userData.plan) updates.plan = 'Free';
     if (!userData.avatar) updates.avatar = initials;
     if (isSuperAdmin && userData.isAdmin !== true) updates.isAdmin = true;
+    if (phoneNumber && userData.phoneNumber !== phoneNumber) updates.phoneNumber = phoneNumber;
 
     if (Object.keys(updates).length > 0) {
         await userRef.update(updates);

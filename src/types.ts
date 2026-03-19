@@ -122,6 +122,7 @@ export interface User {
   uid: string;
   name: string;
   email: string;
+  phoneNumber?: string | null;
   avatar: string;
   credits: number;
   totalCreditsAcquired?: number;

@@ -9,6 +9,7 @@ import PricingPage from './PricingPage';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsConditionsPage from './TermsConditionsPage';
 import AuthModal from './components/AuthModal';
+import PhoneOnboardingModal from './components/PhoneOnboardingModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
 import ConfigurationError from './components/ConfigurationError';
@@ -125,6 +126,7 @@ function App() {
   const [pendingDestination, setPendingDestination] = useState<{ page: Page, view?: View } | null>(null);
   const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [showPhoneOnboardingModal, setShowPhoneOnboardingModal] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -151,6 +153,7 @@ function App() {
         setUser(null);
         setImpersonatedUser(null);
         setActiveBrandKit(null);
+        setShowPhoneOnboardingModal(false);
         navigateTo('home');
     }
   };
@@ -241,8 +244,23 @@ function App() {
       if (firebaseUser) {
         updateUserLastActive(firebaseUser.uid);
         subscribeToUserProfile(firebaseUser.uid, (profile) => {
-            if (profile) setUser(profile);
-            else getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'User', firebaseUser.email).then((newProfile) => setUser(newProfile as User));
+            if (profile) {
+                setUser(profile);
+                if (!profile.phoneNumber && !firebaseUser.phoneNumber) {
+                    setShowPhoneOnboardingModal(true);
+                } else if (firebaseUser.phoneNumber && !profile.phoneNumber) {
+                    // Sync phone number to profile if it exists on auth object but not in profile
+                    updateUserProfile(firebaseUser.uid, { phoneNumber: firebaseUser.phoneNumber });
+                }
+            }
+            else {
+                getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'User', firebaseUser.email, firebaseUser.phoneNumber).then((newProfile) => {
+                    setUser(newProfile as User);
+                    if (!newProfile?.phoneNumber) {
+                        setShowPhoneOnboardingModal(true);
+                    }
+                });
+            }
             setLoading(false);
         });
       } else {
@@ -257,6 +275,7 @@ function App() {
         setUser(null);
         setImpersonatedUser(null);
         setActiveBrandKit(null); 
+        setShowPhoneOnboardingModal(false);
         setLoading(false);
       }
     });
@@ -336,6 +355,9 @@ function App() {
                 {activeUser?.systemNotification && !activeUser.systemNotification.read && (
                     <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
                 )}
+                {showPhoneOnboardingModal && (
+                    <PhoneOnboardingModal onComplete={() => setShowPhoneOnboardingModal(false)} />
+                )}
             </div>
         );
     } else if (currentPage === 'home' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'about' || currentPage === 'pricing') {
@@ -389,6 +411,9 @@ function App() {
       )}
 
       {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
+      {showPhoneOnboardingModal && (
+          <PhoneOnboardingModal onComplete={() => setShowPhoneOnboardingModal(false)} />
+      )}
     </div>
   );
 }
