@@ -8,10 +8,12 @@ import { getFriendlyErrorMessage } from '../utils/errorHandling';
 
 interface PhoneOnboardingModalProps {
   onComplete: () => void;
+  onSkip: () => void;
 }
 
-const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete }) => {
+const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
+  const [isCredentialInUse, setIsCredentialInUse] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const [authStep, setAuthStep] = useState<'phone_input' | 'code_input'>('phone_input');
@@ -59,6 +61,9 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
     } catch (err: any) {
       console.error(err);
       setInternalError(getFriendlyErrorMessage(err));
+      if (err.code === 'auth/credential-already-in-use') {
+        setIsCredentialInUse(true);
+      }
       
       // Reset recaptcha on error
       if ((window as any).recaptchaVerifier) {
@@ -96,6 +101,18 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
     }
   };
 
+  const handleSwitchAccount = async () => {
+    setIsLoading(true);
+    try {
+      await auth?.signOut();
+      // Redirect to home and open auth modal with phone input
+      window.location.href = '/?auth_modal=open&step=phone_input';
+    } catch (err) {
+      console.error(err);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div 
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -118,11 +135,24 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
         </div>
 
         {internalError && (
-            <div className="flex items-start gap-3 bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-6 text-sm shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <span className="leading-relaxed">{internalError}</span>
+            <div className="flex flex-col gap-3 bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-6 text-sm shadow-sm">
+                <div className="flex items-start gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span className="leading-relaxed">{internalError}</span>
+                </div>
+                {isCredentialInUse && (
+                    <button
+                        onClick={handleSwitchAccount}
+                        className="mt-2 text-indigo-600 font-semibold hover:text-indigo-700 text-left flex items-center gap-1"
+                    >
+                        Sign in with this phone instead
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                )}
             </div>
         )}
 
@@ -171,9 +201,17 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
             </button>
             <button
               type="button"
-              onClick={() => auth?.signOut()}
+              onClick={onSkip}
               disabled={isLoading}
               className="w-full py-3 px-4 bg-white text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 flex justify-center items-center mt-2"
+            >
+              Skip for now
+            </button>
+            <button
+              type="button"
+              onClick={() => auth?.signOut()}
+              disabled={isLoading}
+              className="w-full py-2 px-4 bg-transparent text-gray-400 text-xs hover:text-gray-600 transition-colors disabled:opacity-50 flex justify-center items-center mt-4"
             >
               Sign Out
             </button>

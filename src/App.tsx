@@ -132,8 +132,24 @@ function App() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [showBanner, setShowBanner] = useState(true);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
+  const [hasSkippedPhone, setHasSkippedPhone] = useState(false);
+  const [authModalStep, setAuthModalStep] = useState<'initial' | 'phone_input'>('initial');
 
   const activeUser = impersonatedUser || user;
+
+  // Handle URL parameters for auth modal and phone onboarding
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth_modal') === 'open') {
+      setIsAuthModalOpen(true);
+      if (params.get('step') === 'phone_input') {
+        setAuthModalStep('phone_input');
+      }
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -355,8 +371,14 @@ function App() {
                 {activeUser?.systemNotification && !activeUser.systemNotification.read && (
                     <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
                 )}
-                {showPhoneOnboardingModal && (
-                    <PhoneOnboardingModal onComplete={() => setShowPhoneOnboardingModal(false)} />
+                {showPhoneOnboardingModal && !hasSkippedPhone && (
+                    <PhoneOnboardingModal 
+                        onComplete={() => setShowPhoneOnboardingModal(false)}
+                        onSkip={() => {
+                            setHasSkippedPhone(true);
+                            setShowPhoneOnboardingModal(false);
+                        }}
+                    />
                 )}
             </div>
         );
@@ -371,7 +393,18 @@ function App() {
                 {currentPage === 'pricing' && <PricingPage navigateTo={navigateTo} auth={authProps} appConfig={appConfig} />}
                 {currentPage === 'privacy' && <PrivacyPolicyPage navigateTo={navigateTo} auth={authProps} />}
                 {currentPage === 'terms' && <TermsConditionsPage navigateTo={navigateTo} auth={authProps} />}
-                {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
+                {isAuthModalOpen && (
+                    <AuthModal 
+                        isOpen={isAuthModalOpen}
+                        onClose={() => {
+                            setIsAuthModalOpen(false);
+                            setAuthModalStep('initial');
+                        }} 
+                        onGoogleSignIn={handleGoogleSignIn} 
+                        error={authError}
+                        initialStep={authModalStep}
+                    />
+                )}
             </div>
         );
     }
@@ -410,9 +443,26 @@ function App() {
         <DashboardPage key={activeUser?.uid} navigateTo={navigateTo} auth={authProps} activeView={currentView} setActiveView={handleSetActiveView} openEditProfileModal={() => {}} isConversationOpen={isConversationOpen} setIsConversationOpen={setIsConversationOpen} appConfig={appConfig} setAppConfig={setAppConfig as any} />
       )}
 
-      {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onGoogleSignIn={handleGoogleSignIn} error={authError} />}
-      {showPhoneOnboardingModal && (
-          <PhoneOnboardingModal onComplete={() => setShowPhoneOnboardingModal(false)} />
+      {isAuthModalOpen && (
+          <AuthModal 
+            isOpen={isAuthModalOpen}
+            onClose={() => {
+                setIsAuthModalOpen(false);
+                setAuthModalStep('initial');
+            }} 
+            onGoogleSignIn={handleGoogleSignIn} 
+            error={authError}
+            initialStep={authModalStep}
+          />
+      )}
+      {showPhoneOnboardingModal && !hasSkippedPhone && (
+          <PhoneOnboardingModal 
+            onComplete={() => setShowPhoneOnboardingModal(false)}
+            onSkip={() => {
+                setHasSkippedPhone(true);
+                setShowPhoneOnboardingModal(false);
+            }}
+          />
       )}
     </div>
   );

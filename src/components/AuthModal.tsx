@@ -7,21 +7,27 @@ import { COUNTRY_CODES } from '../utils/countryCodes';
 import { getFriendlyErrorMessage } from '../utils/errorHandling';
 
 interface AuthModalProps {
+  isOpen: boolean;
   onClose: () => void;
   onGoogleSignIn: () => Promise<void>;
   error?: ReactNode | null;
+  initialStep?: 'initial' | 'phone_input';
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
+  isOpen,
   onClose, 
   onGoogleSignIn,
   error: propError,
+  initialStep = 'initial',
 }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // Phone Auth State
-  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input'>('options');
+  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input'>(
+    initialStep === 'phone_input' ? 'phone_input' : 'options'
+  );
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
