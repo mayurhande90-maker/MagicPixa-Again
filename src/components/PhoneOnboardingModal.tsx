@@ -3,6 +3,7 @@ import { MagicPixaLogo } from './icons';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import { auth } from '../firebase';
+import { COUNTRY_CODES } from '../utils/countryCodes';
 
 interface PhoneOnboardingModalProps {
   onComplete: () => void;
@@ -13,6 +14,7 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
   const [isLoading, setIsLoading] = useState(false);
   
   const [authStep, setAuthStep] = useState<'phone_input' | 'code_input'>('phone_input');
+  const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
@@ -47,7 +49,8 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
     try {
       if (!auth || !auth.currentUser) throw new Error("User not logged in");
       const appVerifier = (window as any).recaptchaVerifier;
-      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+      const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+      const formattedPhone = `${countryCode}${cleanPhone}`;
       
       const result = await auth.currentUser.linkWithPhoneNumber(formattedPhone, appVerifier);
       setConfirmationResult(result);
@@ -84,7 +87,7 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
     try {
       const result = await confirmationResult.confirm(verificationCode);
       // Success! Phone is linked.
-      if (auth.currentUser) {
+      if (auth?.currentUser) {
           const { updateUserProfile } = await import('../firebase');
           await updateUserProfile(auth.currentUser.uid, { phoneNumber: result.user?.phoneNumber || phoneNumber });
       }
@@ -130,17 +133,29 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete 
           <form onSubmit={handleSendCode} className="space-y-4">
             <div>
               <label htmlFor="onboarding-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-              <input
-                type="tel"
-                id="onboarding-phone"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+1 555 555 5555"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                disabled={isLoading}
-                autoFocus
-              />
-              <p className="text-xs text-gray-500 mt-2">Include your country code (e.g., +1 for US).</p>
+              <div className="flex gap-2">
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-1/3 px-3 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
+                  disabled={isLoading}
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  id="onboarding-phone"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="555 555 5555"
+                  className="w-2/3 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  disabled={isLoading}
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">We will send a 6-digit verification code.</p>
             </div>
             <button
               type="submit"
