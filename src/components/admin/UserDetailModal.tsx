@@ -131,6 +131,10 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
                             <p className="text-xs text-gray-500 uppercase font-bold">Email</p>
                             <p className="text-sm font-medium text-gray-800 break-all">{user.email}</p>
                         </div>
+                        <div className="bg-gray-50 p-4 rounded-xl">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Phone</p>
+                            <p className="text-sm font-medium text-gray-800 break-all">{user.phoneNumber || <span className="text-gray-400 italic font-normal">Not provided</span>}</p>
+                        </div>
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
