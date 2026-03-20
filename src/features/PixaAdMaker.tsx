@@ -175,7 +175,7 @@ const BrandSelectionModal: React.FC<{
                                         } ${isActivating ? 'ring-2 ring-indigo-600' : ''}`}
                                     >
                                         <div className={`h-20 shrink-0 flex items-center justify-center p-2 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
-                                            {brand.logos?.primary ? (
+                                            {brand.logos.primary ? (
                                                 <img src={brand.logos.primary} className="max-w-[70%] max-h-[70%] object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300" alt="Logo" />
                                             ) : (
                                                 <span className="text-2xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>

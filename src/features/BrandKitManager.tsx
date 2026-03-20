@@ -1238,7 +1238,7 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                     brands.map((brand, idx) => (
                         <div key={brand.id || idx} onClick={() => handleSelectBrand(brand)} className={BrandKitManagerStyles.brandCard}>
                             <div className={BrandKitManagerStyles.brandCardHeader}>
-                                {brand.logos?.primary ? (<img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />) : (<span className={BrandKitManagerStyles.brandCardFallback}>{(brand.name || brand.companyName || '?').substring(0, 2)}</span>)}
+                                {brand.logos.primary ? (<img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />) : (<span className={BrandKitManagerStyles.brandCardFallback}>{(brand.name || brand.companyName || '?').substring(0, 2)}</span>)}
                                 {brand.id && (<button onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id!); }} className={BrandKitManagerStyles.deleteBtn}><TrashIcon className="w-4 h-4" /></button>)}
                             </div>
                             <div className={BrandKitManagerStyles.brandCardBody}>

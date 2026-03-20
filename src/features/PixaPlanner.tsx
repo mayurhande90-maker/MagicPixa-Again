@@ -75,7 +75,7 @@ const BrandSelectionGate: React.FC<{
 
                                     <div className="flex justify-between items-start">
                                         <div className="w-12 h-12 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
-                                            {brand.logos?.primary ? (
+                                            {brand.logos.primary ? (
                                                 <img src={brand.logos.primary} className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="text-sm font-black text-gray-300 uppercase">{brand.companyName ? brand.companyName.substring(0,2) : (brand.name || '??').substring(0,2)}</span>
