@@ -818,7 +818,7 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     console.log('[PixaPlanner] Rendering main planner UI for brand:', activeBrand.id);
 
     return (
-        <div className="p-[min(3.5vh,24px)] max-w-7xl mx-auto pb-32 animate-fadeIn relative">
+        <div className="h-full overflow-y-auto custom-scrollbar p-[min(3.5vh,24px)] max-w-7xl mx-auto pb-32 animate-fadeIn relative">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-[min(4vh,32px)] gap-4">
                 <div className="flex items-center gap-4">
