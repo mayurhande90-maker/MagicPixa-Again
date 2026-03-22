@@ -534,6 +534,12 @@ const MultiGalleryViewer: React.FC<{
 };
 
 export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
+    console.log('[PixaPlanner] Initializing component', { 
+        hasAuth: !!auth, 
+        hasUser: !!auth.user, 
+        hasAppConfig: !!appConfig,
+        activeBrand: auth.activeBrandKit?.id
+    });
     const [step, setStep] = useState<Step>('config');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -576,13 +582,19 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     // Fetch Brands if no active brand
     useEffect(() => {
+        console.log('[PixaPlanner] useEffect for brands check', { 
+            uid: auth.user?.uid, 
+            hasActiveBrand: !!activeBrand 
+        });
         if (auth.user?.uid && !activeBrand) {
+            console.log('[PixaPlanner] Fetching brands for user:', auth.user.uid);
             setIsLoadingBrands(true);
             getUserBrands(auth.user.uid).then(brands => {
+                console.log('[PixaPlanner] Brands fetched successfully:', brands.length);
                 setUserBrands(brands);
                 setIsLoadingBrands(false);
             }).catch(e => {
-                console.error("Failed to load brands", e);
+                console.error("[PixaPlanner] Failed to load brands", e);
                 setIsLoadingBrands(false);
             });
         }
@@ -788,6 +800,10 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     // --- BRAND SELECTION GATE ---
     if (!activeBrand) {
+        console.log('[PixaPlanner] No active brand, rendering BrandSelectionGate', { 
+            brandsCount: userBrands.length, 
+            isLoadingBrands 
+        });
         return (
             <BrandSelectionGate 
                 brands={userBrands} 
@@ -798,6 +814,8 @@ export const PixaPlanner: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             />
         );
     }
+
+    console.log('[PixaPlanner] Rendering main planner UI for brand:', activeBrand.id);
 
     return (
         <div className="p-[min(3.5vh,24px)] max-w-7xl mx-auto pb-32 animate-fadeIn relative">

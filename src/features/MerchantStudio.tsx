@@ -140,6 +140,12 @@ const BrandSelectionModal: React.FC<{
 };
 
 export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
+    console.log('[MerchantStudio] Initializing component', {
+        hasAuth: !!auth,
+        hasUser: !!auth.user,
+        hasAppConfig: !!appConfig,
+        activeBrand: auth.activeBrandKit?.id
+    });
     const [mode, setMode] = useState<'apparel' | 'product' | null>(null);
     const [mainImage, setMainImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [backImage, setBackImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -291,6 +297,8 @@ export const MerchantStudio: React.FC<{ auth: AuthProps; appConfig: AppConfig | 
     const isProductVibeIncomplete = mode === 'product' && !productVibe;
     
     const canGenerate = !!mainImage && !isLowCredits && !isModelRequired && !isAiParamsIncomplete && !isModelUploadIncomplete && !isProductVibeIncomplete;
+
+    console.log('[MerchantStudio] Rendering main UI', { mode, resultsCount: results.length });
 
     return (
         <>

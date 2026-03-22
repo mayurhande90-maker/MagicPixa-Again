@@ -237,7 +237,7 @@ export const generatePostImage = async (
     Post Focus: ${post.topic}
     Art Direction: ${post.visualBrief}
     Visual Concept: ${post.visualIdea}
-    Primary Color: ${brand.colors.primary}
+    Primary Color: ${brand.colors?.primary || 'N/A'}
     
     *** COMMERCIAL QUALITY PROTOCOL ***
     1. **Optics**: Render as if shot on a high-end camera (Phase One XF IQ4) or designed in high-end 3D (Cinema 4D) depending on the subject type.
@@ -247,7 +247,7 @@ export const generatePostImage = async (
        - If Real Estate: Straight vertical lines (architectural lens), HDR lighting.
        - If Fashion: Fabric drape, natural skin texture.
     3. **Material Fidelity**: Preserve the identity EXACTLY. Capture all text and logos from the reference image.
-    4. **Typography**: Integrate "${post.headline}" using ${brand.fonts.heading} IF appropriate for an ad.
+    4. **Typography**: Integrate "${post.headline}" using ${brand.fonts?.heading || 'sans-serif'} IF appropriate for an ad.
     
     *** COMPOSITION ***
     Apply the "Rule of Thirds".

@@ -123,7 +123,7 @@ const generateVariant = async (
     const brandDNA = brand ? `
     *** BRAND DNA (STRICT ADHERENCE) ***
     - Brand: '${brand.companyName || brand.name}'. Industry: ${brand.industry}.
-    - Tone: ${brand.toneOfVoice}. Primary Color: ${brand.colors.primary}.
+    - Tone: ${brand.toneOfVoice}. Primary Color: ${brand.colors?.primary || 'N/A'}.
     ` : "";
 
     const productionMandate = `

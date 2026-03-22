@@ -104,7 +104,7 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, activeBrand,
                     <>
                         <div className="relative w-6 h-6 rounded-full">
                             <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 border border-gray-100 flex items-center justify-center">
-                                {activeBrand.logos.primary ? (
+                                {activeBrand.logos?.primary ? (
                                     <img src={activeBrand.logos.primary} alt="Brand" className="w-full h-full object-cover" />
                                 ) : (
                                     <span className="text-[8px] font-bold text-gray-400">
@@ -168,7 +168,7 @@ export const BrandSwitcher: React.FC<BrandSwitcherProps> = ({ user, activeBrand,
                                         }`}
                                     >
                                         <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
-                                            {brand.logos.primary ? (
+                                            {brand.logos?.primary ? (
                                                 <img src={brand.logos.primary} className="w-full h-full object-cover" alt="" />
                                             ) : (
                                                 <span className="text-[9px] font-bold text-gray-400">

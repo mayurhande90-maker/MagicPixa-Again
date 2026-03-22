@@ -5,6 +5,7 @@ import Header from './components/Header';
 import { Billing } from './components/Billing';
 import { AdminPanel } from './components/AdminPanel';
 import { ReferralModal } from './components/ReferralModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { 
     FeatureLayout, 
     UploadPlaceholder, 
@@ -126,61 +127,138 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     }, [activeView]);
 
     const renderFeatureComponent = (viewId: View) => {
+        console.log(`[DashboardPage] Rendering feature: ${viewId}`);
         switch (viewId) {
             case 'home_dashboard':
             case 'dashboard':
-                return <DashboardHome 
-                        user={auth.user} 
-                        navigateTo={navigateTo} 
-                        setActiveView={handleViewChange} 
-                        appConfig={appConfig} 
-                        openReferralModal={() => setShowReferralModal(true)}
-                        />;
+                return (
+                    <ErrorBoundary name="Dashboard Home">
+                        <DashboardHome 
+                            user={auth.user} 
+                            navigateTo={navigateTo} 
+                            setActiveView={handleViewChange} 
+                            appConfig={appConfig} 
+                            openReferralModal={() => setShowReferralModal(true)}
+                        />
+                    </ErrorBoundary>
+                );
             case 'creations':
-                return <Creations auth={auth} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Creations">
+                        <Creations auth={auth} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'brand_manager':
-                return <BrandKitManager auth={auth} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Brand Kit Manager">
+                        <BrandKitManager auth={auth} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'campaign_studio':
-                return <CampaignStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Campaign Studio (PixaPlanner)">
+                        <CampaignStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'studio':
-                 return <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />;
+                return (
+                    <ErrorBoundary name="Magic Photo Studio">
+                        <MagicPhotoStudio auth={auth} navigateTo={navigateTo} appConfig={appConfig} />
+                    </ErrorBoundary>
+                );
             case 'brand_kit':
-                 return <MerchantStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Merchant Studio (Ecommerce Kit)">
+                        <MerchantStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'thumbnail_studio':
-                 return <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Thumbnail Studio">
+                        <ThumbnailStudio auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'brand_stylist':
-                 return <PixaAdMaker auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Pixa Ad Maker">
+                        <PixaAdMaker auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'soul':
-                 return <PixaTogether auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Pixa Together">
+                        <PixaTogether auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'colour':
-                 return <PixaPhotoRestore auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Pixa Photo Restore">
+                        <PixaPhotoRestore auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'interior':
-                 return <MagicInterior auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Magic Interior">
+                        <MagicInterior auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'apparel':
-                 return <MagicApparel auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Magic Apparel">
+                        <MagicApparel auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'caption':
-                 return <CaptionAI auth={auth} appConfig={appConfig} />;
+                return (
+                    <ErrorBoundary name="Caption AI">
+                        <CaptionAI auth={auth} appConfig={appConfig} />
+                    </ErrorBoundary>
+                );
             case 'headshot':
-                 return <PixaHeadshotPro auth={auth} appConfig={appConfig} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Pixa Headshot Pro">
+                        <PixaHeadshotPro auth={auth} appConfig={appConfig} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'daily_mission':
-                 return <DailyMissionStudio auth={auth} navigateTo={navigateTo} />;
+                return (
+                    <ErrorBoundary name="Daily Mission Studio">
+                        <DailyMissionStudio auth={auth} navigateTo={navigateTo} />
+                    </ErrorBoundary>
+                );
             case 'support_center':
-                 return <SupportCenter auth={auth} appConfig={appConfig} />;
+                return (
+                    <ErrorBoundary name="Support Center">
+                        <SupportCenter auth={auth} appConfig={appConfig} />
+                    </ErrorBoundary>
+                );
             case 'billing':
                 if (auth.user) {
-                    return <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={handleViewChange} />;
+                    return (
+                        <ErrorBoundary name="Billing">
+                            <Billing user={auth.user} setUser={auth.setUser} appConfig={appConfig} setActiveView={handleViewChange} />
+                        </ErrorBoundary>
+                    );
                 }
                 return null;
             case 'admin':
-                return <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />;
+                return (
+                    <ErrorBoundary name="Admin Panel">
+                        <AdminPanel auth={auth} appConfig={appConfig} onConfigUpdate={setAppConfig} />
+                    </ErrorBoundary>
+                );
             case 'profile':
-                return <Profile auth={auth} />;
+                return (
+                    <ErrorBoundary name="Profile">
+                        <Profile auth={auth} />
+                    </ErrorBoundary>
+                );
             default:
                 return null;
         }
     };
 
-    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'billing', 'admin', 'profile'];
+    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'brand_kit', 'billing', 'admin', 'profile'];
     const isStandardView = standardViews.includes(activeView);
 
     return (

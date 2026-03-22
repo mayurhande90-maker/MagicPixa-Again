@@ -167,7 +167,7 @@ export const editImageWithPrompt = async (
     const physicsAudit = await performPhysicsAudit(data, optimizedMime);
     const productionBlueprint = await performShotStrategy(physicsAudit, styleInstructions, brand);
 
-    const brandContext = brand ? `*** BRAND DNA: ${brand.companyName} | ${brand.toneOfVoice} | Primary: ${brand.colors.primary} ***` : "";
+    const brandContext = brand ? `*** BRAND DNA: ${brand.companyName} | ${brand.toneOfVoice} | Primary: ${brand.colors?.primary || 'N/A'} ***` : "";
 
     // 3. Final Production Prompt
     const prompt = `You are the Pixa Production Engine. Execute the following high-fidelity render:

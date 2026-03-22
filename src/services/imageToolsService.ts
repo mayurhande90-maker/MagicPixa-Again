@@ -38,7 +38,7 @@ const getBrandDNA = (brand?: BrandKit | null) => {
     *** BRAND IDENTITY OVERRIDE ***
     This image must align with the brand guidelines for '${brand.companyName || brand.name}'.
     Industry: ${brand.industry || 'General'}.
-    Brand Colors: Primary=${brand.colors.primary}, Accent=${brand.colors.accent}.
+    Brand Colors: Primary=${brand.colors?.primary || 'N/A'}, Accent=${brand.colors?.accent || 'N/A'}.
     Tone: ${brand.toneOfVoice || 'Professional'}.
     Instruction: Infuse the result with these brand colors in accents, clothing, or backgrounds.
     `;

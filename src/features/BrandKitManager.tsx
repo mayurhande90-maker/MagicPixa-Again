@@ -1238,12 +1238,12 @@ export const BrandKitManager: React.FC<{ auth: AuthProps; navigateTo: (page: Pag
                     brands.map((brand, idx) => (
                         <div key={brand.id || idx} onClick={() => handleSelectBrand(brand)} className={BrandKitManagerStyles.brandCard}>
                             <div className={BrandKitManagerStyles.brandCardHeader}>
-                                {brand.logos.primary ? (<img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />) : (<span className={BrandKitManagerStyles.brandCardFallback}>{(brand.name || brand.companyName || '?').substring(0, 2)}</span>)}
+                                {brand.logos?.primary ? (<img src={brand.logos.primary} className={BrandKitManagerStyles.brandCardLogo} alt="Logo" />) : (<span className={BrandKitManagerStyles.brandCardFallback}>{(brand.name || brand.companyName || '?').substring(0, 2)}</span>)}
                                 {brand.id && (<button onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id!); }} className={BrandKitManagerStyles.deleteBtn}><TrashIcon className="w-4 h-4" /></button>)}
                             </div>
                             <div className={BrandKitManagerStyles.brandCardBody}>
                                 <div><h3 className={BrandKitManagerStyles.brandCardTitle}>{brand.name || brand.companyName || 'Untitled Brand'}</h3><p className={BrandKitManagerStyles.brandCardMeta}>{brand.industry ? brand.industry.charAt(0).toUpperCase() + brand.industry.slice(1) : 'Physical'} • {brand.toneOfVoice || 'Professional'}</p></div>
-                                <div className={BrandKitManagerStyles.brandCardPalette}><div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.primary }}></div><div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.secondary }}></div><div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.accent }}></div></div>
+                                {brand.colors && <div className={BrandKitManagerStyles.brandCardPalette}><div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.primary }}></div><div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.secondary }}></div><div className={BrandKitManagerStyles.brandCardSwatch} style={{ background: brand.colors.accent }}></div></div>}
                             </div>
                         </div>
                     ))

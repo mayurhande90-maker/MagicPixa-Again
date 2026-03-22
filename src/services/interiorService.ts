@@ -65,7 +65,7 @@ export const generateInteriorDesign = async (
     *** BRAND IDENTITY OVERRIDE ***
     Client: '${brand.companyName || brand.name}'.
     Preferred Tone: ${brand.toneOfVoice || 'Professional'}.
-    Brand Palette: Primary=${brand.colors.primary}, Accent=${brand.colors.accent}.
+    Brand Palette: Primary=${brand.colors?.primary || 'N/A'}, Accent=${brand.colors?.accent || 'N/A'}.
     Instruction: Use the brand palette for furniture accents and textiles.
     ` : "";
 

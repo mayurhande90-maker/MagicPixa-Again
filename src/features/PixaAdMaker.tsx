@@ -175,7 +175,7 @@ const BrandSelectionModal: React.FC<{
                                         } ${isActivating ? 'ring-2 ring-indigo-600' : ''}`}
                                     >
                                         <div className={`h-20 shrink-0 flex items-center justify-center p-2 border-b transition-colors ${isActive ? 'bg-indigo-50/30 border-indigo-100' : 'bg-gray-50/30 border-gray-100 group-hover:bg-white'}`}>
-                                            {brand.logos.primary ? (
+                                            {brand.logos?.primary ? (
                                                 <img src={brand.logos.primary} className="max-w-[70%] max-h-[70%] object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300" alt="Logo" />
                                             ) : (
                                                 <span className="text-2xl font-black text-gray-300">{(brand.companyName || brand.name || '?').substring(0,2).toUpperCase()}</span>
@@ -732,7 +732,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden shrink-0">
-                                                        {auth.activeBrandKit.logos.primary ? (
+                                                        {auth.activeBrandKit.logos?.primary ? (
                                                             <img src={auth.activeBrandKit.logos.primary} className="w-full h-full object-contain p-1" alt="Logo" />
                                                         ) : (
                                                             <BrandKitIcon className="w-6 h-6 text-indigo-600" />
