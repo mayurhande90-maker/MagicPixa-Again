@@ -258,7 +258,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         }
     };
 
-    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'campaign_studio', 'brand_kit', 'billing', 'admin', 'profile'];
+    const standardViews: View[] = ['home_dashboard', 'dashboard', 'creations', 'brand_manager', 'billing', 'admin', 'profile'];
     const isStandardView = standardViews.includes(activeView);
 
     return (
