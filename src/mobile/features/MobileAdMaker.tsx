@@ -181,17 +181,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setIsGenerating(true);
         try {
             const resB64 = await generateAdCreative({
-                industry: industry.id,
-                mainImages: mainImages.map(img => img.base64),
-                logoImage: logo?.base64,
-                vibe: vibe === 'Custom' ? customVibe : vibe,
-                productName: productName,
-                description: description,
-                aspectRatio: aspectRatio as any,
-                modelSource: engineMode === 'subject' ? 'ai' : null,
-                modelParams: engineMode === 'subject' ? (modelParams as any) : undefined,
-                website,
-                contactNumber,
+                mainImages: mainImages.map(img => ({ base64: img.base64, mimeType: 'image/png' })),
+                logoImage: logo ? { base64: logo.base64, mimeType: 'image/png' } : null,
+                aspectRatio: aspectRatio as '1:1' | '4:3' | '16:9' | '9:16',
+                headline: productName,
                 ctaButton: ctaButton === 'None' ? '' : (ctaButton === 'Custom' ? customCta : ctaButton)
             }, auth.activeBrandKit);
             

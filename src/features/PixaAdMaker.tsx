@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { AuthProps, AppConfig, Page, View, BrandKit, IndustryType } from '../types';
-import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid, TextAreaField } from '../components/FeatureLayout';
+import { AuthProps, AppConfig, Page, View, BrandKit } from '../types';
+import { FeatureLayout, InputField, MilestoneSuccessModal, checkMilestone, SelectionGrid } from '../components/FeatureLayout';
 import { RefinementPanel } from '../components/RefinementPanel';
 import { 
-    MagicAdsIcon, UploadTrayIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, BuildingIcon, CubeIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, LockIcon, PencilIcon, UploadIcon, PlusIcon, InformationCircleIcon, LightningIcon, CollectionModeIcon, ApparelIcon, BrandKitIcon, UserIcon, SparklesIcon, ShieldCheckIcon, MagicWandIcon, PaperAirplaneIcon, RefreshIcon,
-    UsersIcon
+    MagicAdsIcon, XIcon, ArrowRightIcon, ArrowLeftIcon, CloudUploadIcon, CreditCoinIcon, CheckIcon, PlusCircleIcon, PlusIcon, BrandKitIcon, SparklesIcon, RefreshIcon
 } from '../components/icons';
-import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
@@ -20,84 +18,14 @@ import ToastNotification from '../components/ToastNotification';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
 
 // --- CONSTANTS ---
-const MODEL_TYPES = ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior Female', 'Senior Male', 'Kid Model'];
-const MODEL_REGIONS = ['Indian', 'South Asian', 'East Asian', 'Southeast Asian', 'Middle Eastern', 'African', 'European', 'American', 'Australian / Oceania'];
-const SKIN_TONES = ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'];
-const BODY_TYPES = ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size Model'];
-const COMPOSITION_TYPES = ['Single Model', 'Group Shot'];
-const SHOT_TYPES = ['Tight Close Shot', 'Close-Up Shot', 'Mid Shot', 'Wide Shot'];
-
-const INDUSTRY_PLACEHOLDERS: Record<string, string> = {
-    'ecommerce': "e.g. Organic lavender soap. Focus on artisanal texture and luxury packaging. Target: Eco-conscious gift shoppers.",
-    'realty': "e.g. Modern 3BHK penthouse with floor-to-ceiling glass. Highlight the sunset view and spacious balcony.",
-    'food': "e.g. Triple-stack wagyu burger with melted cheddar. Focus on the juice and steam. Use warm, rustic kitchen lighting.",
-    'saas': "e.g. Project management dashboard. Focus on the 'clean' interface and task completion charts. Minimalist tech vibe.",
-    'fmcg': "e.g. Eco-friendly laundry detergent pods. Highlight the dissolvable packaging and clean scent. Fresh laundry environment.",
-    'fashion': "e.g. Summer linen collection. Model in a sunny beach setting. Focus on fabric texture and natural lighting.",
-    'education': "e.g. Online MBA course. Professional student in a modern workspace. Focus on career growth and flexibility.",
-    'services': "e.g. Business consulting firm. Collaborative meeting room setting. Focus on trust, growth, and teamwork."
-};
-
-// --- HELPERS ---
-const MAP_KIT_TO_AD_INDUSTRY = (type?: IndustryType): any => {
-    switch (type) {
-        case 'physical': return 'ecommerce';
-        case 'digital': return 'saas';
-        case 'realty': return 'realty';
-        case 'fashion': return 'fashion';
-        case 'service': return 'services';
-        case 'food': return 'food';
-        case 'fmcg': return 'fmcg';
-        case 'education': return 'education';
-        default: return null;
-    }
-};
-
-const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string; base: string }> = {
-    'ecommerce': { label: 'E-Commerce', icon: EcommerceAdIcon, color: 'text-blue-600', bg: 'bg-blue-50/50', border: 'border-blue-200', base: 'blue' },
-    'fmcg': { label: 'FMCG / CPG', icon: FMCGIcon, color: 'text-green-600', bg: 'bg-green-50/50', border: 'border-green-200', base: 'green' },
-    'fashion': { label: 'Fashion', icon: ApparelIcon, color: 'text-pink-500', bg: 'bg-pink-50/50', border: 'border-pink-200', base: 'pink' },
-    'realty': { label: 'Real Estate', icon: RealtyAdIcon, color: 'text-purple-600', bg: 'bg-purple-50/50', border: 'border-purple-200', base: 'purple' },
-    'food': { label: 'Food & Dining', icon: FoodIcon, color: 'text-orange-600', bg: 'bg-orange-50/50', border: 'border-orange-200', base: 'orange' },
-    'saas': { label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'text-teal-600', bg: 'bg-teal-50/50', border: 'border-teal-200', base: 'teal' },
-    'education': { label: 'Education', icon: EducationAdIcon, color: 'text-amber-600', bg: 'bg-amber-50/50', border: 'border-amber-200', base: 'amber' },
-    'services': { label: 'Services', icon: ServicesAdIcon, color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-200', base: 'indigo' },
-};
-
-const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
-
-const SIMPLE_ARCHETYPES = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", CUSTOM_VIBE_KEY];
-
-const VIBE_MAP: Record<string, string[]> = {
-    'ecommerce': SIMPLE_ARCHETYPES,
-    'fmcg': SIMPLE_ARCHETYPES,
-    'fashion': SIMPLE_ARCHETYPES,
-    'realty': SIMPLE_ARCHETYPES,
-    'food': SIMPLE_ARCHETYPES,
-    'saas': SIMPLE_ARCHETYPES,
-    'education': SIMPLE_ARCHETYPES,
-    'services': SIMPLE_ARCHETYPES,
-};
-
-const IndustryCard: React.FC<{ 
-    title: string; 
-    desc: string; 
-    icon: React.ReactNode; 
-    onClick: () => void;
-    styles: { card: string; orb: string; icon: string; };
-}> = ({ title, desc, icon, onClick, styles }) => (
-    <button onClick={onClick} className={`${AdMakerStyles.modeCard} ${styles.card}`}>
-        <div className={`${AdMakerStyles.orb} ${styles.orb}`}></div>
-        <div className={`${AdMakerStyles.iconGlass} ${styles.icon}`}>{icon}</div>
-        <div className={AdMakerStyles.contentWrapper}>
-            <h3 className={AdMakerStyles.title}> {title} </h3>
-            <p className={AdMakerStyles.desc}> {desc} </p>
-        </div>
-        <div className={AdMakerStyles.actionBtn}>
-            <ArrowRightIcon className={AdMakerStyles.actionIcon}/>
-        </div>
-    </button>
-);
+const STYLE_VAULT_OPTIONS = [
+    { id: 'minimalist', label: 'Minimalist Studio', url: 'https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=500&auto=format&fit=crop' },
+    { id: 'neon', label: 'Neon Cyberpunk', url: 'https://images.unsplash.com/photo-1555861496-0666c8981751?q=80&w=500&auto=format&fit=crop' },
+    { id: 'natural', label: 'Natural Sunlight', url: 'https://images.unsplash.com/photo-1507676184212-d0330a15233c?q=80&w=500&auto=format&fit=crop' },
+    { id: 'luxury', label: 'Dark Luxury', url: 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?q=80&w=500&auto=format&fit=crop' },
+    { id: 'pop', label: 'Pop Art Color', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=500&auto=format&fit=crop' },
+    { id: 'nature', label: 'Organic Nature', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=500&auto=format&fit=crop' }
+];
 
 const BrandSelectionModal: React.FC<{
     isOpen: boolean;
@@ -257,34 +185,16 @@ const CompactUpload: React.FC<{
 };
 
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
-    const [industry, setIndustry] = useState<AdMakerInputs['industry'] | null>(null);
+    // --- STATE ---
     const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    
-    const [integrationMode, setIntegrationMode] = useState<'product' | 'subject' | null>(null);
-
-    const [vibe, setVibe] = useState('');
-    const [customVibe, setCustomVibe] = useState('');
+    const [selectedStyle, setSelectedStyle] = useState<string>('');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>(''); 
-    const [isCollectionMode, setIsCollectionMode] = useState(false);
-    
-    const [customTitle, setCustomTitle] = useState('');
-    const [contactNumber, setContactNumber] = useState('');
+    const [headline, setHeadline] = useState('');
     const [ctaButton, setCtaButton] = useState('');
     const [customCta, setCustomCta] = useState('');
 
-    const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
-    const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [modelParams, setModelParams] = useState<AdMakerInputs['modelParams']>({
-        modelType: '', region: '', skinTone: '', bodyType: '', composition: '', framing: ''
-    });
-
-    const [productName, setProductName] = useState('');
-    const [website, setWebsite] = useState('');
-    const [offer, setOffer] = useState('');
-    const [description, setDescription] = useState('');
-
+    // Results & Loading
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
@@ -307,27 +217,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const userCredits = auth.user?.credits || 0;
     const isLowCredits = userCredits < cost;
 
-    const brandIndustry = useMemo(() => auth.activeBrandKit ? MAP_KIT_TO_AD_INDUSTRY(auth.activeBrandKit.industry) : null, [auth.activeBrandKit]);
-    const isMismatch = auth.activeBrandKit && industry && brandIndustry !== industry;
-
-    const filteredVibes = useMemo(() => {
-        if (!industry) return [];
-        return VIBE_MAP[industry] || [];
-    }, [industry]);
-
-    useEffect(() => {
-        if (vibe && !filteredVibes.includes(vibe)) {
-            setVibe('');
-        }
-    }, [filteredVibes]);
-
     useEffect(() => {
         if (auth.activeBrandKit) {
             const kit = auth.activeBrandKit;
-            const mapped = MAP_KIT_TO_AD_INDUSTRY(kit.industry);
-            if (mapped) setIndustry(mapped);
-            setProductName(kit.companyName || kit.name || '');
-            setWebsite(kit.website || '');
             
             if (kit.logos.primary) {
                 urlToBase64(kit.logos.primary).then(res => {
@@ -336,8 +228,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }
 
             setMainImages([]);
-            setIsCollectionMode(false);
-            setIntegrationMode(null);
         }
     }, [auth.activeBrandKit]);
 
@@ -373,11 +263,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             }));
             
             if (multi) {
-                if (isCollectionMode) {
-                    setMainImages(prev => [...prev, ...processed].slice(0, 5));
-                } else {
-                    setMainImages(processed.slice(0, 1));
-                }
+                setMainImages(prev => [...prev, ...processed].slice(0, 5));
             }
             else setter(processed[0]);
         }
@@ -389,30 +275,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         if (existingIdx > -1) {
             setMainImages(prev => prev.filter((_, i) => i !== existingIdx));
         } else {
-            if (isCollectionMode) {
-                if (mainImages.length < 5) {
-                    try {
-                        const b64 = await urlToBase64(imgUrl);
-                        setMainImages(prev => [...prev, { url: imgUrl, base64: b64 }]);
-                    } catch (e) {
-                        console.error("Failed to load product", e);
-                    }
-                } else {
-                    setNotification({ msg: "Max 5 products allowed for collections.", type: 'info' });
-                }
-            } else {
-                try {
-                    const b64 = await urlToBase64(imgUrl);
-                    setMainImages([{ url: imgUrl, base64: b64 }]);
-                } catch (e) {
-                    console.error("Failed to load product", e);
-                }
+            try {
+                const b64 = await urlToBase64(imgUrl);
+                setMainImages([{ url: imgUrl, base64: b64 }]);
+            } catch (e) {
+                console.error("Failed to load product", e);
             }
         }
     };
 
     const handleGenerate = async () => {
-        if (!industry || mainImages.length === 0 || !auth.user || !description || !productName || !aspectRatio || !integrationMode) return;
+        if (!mainImages.length || !auth.user || !selectedStyle || !headline || !aspectRatio) return;
         if (isLowCredits) { alert("Insufficient credits."); return; }
 
         // PRODUCTION MANDATE: Check for selected API key when using pro models
@@ -429,13 +302,16 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
+            const styleOption = STYLE_VAULT_OPTIONS.find(s => s.id === selectedStyle);
+            const refImageB64 = styleOption ? await urlToBase64(styleOption.url) : undefined;
+
             const inputs: AdMakerInputs = {
-                industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
-                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, contactNumber, offer, description, aspectRatio,
-                modelSource: integrationMode === 'subject' ? modelSource : null, 
-                modelImage: integrationMode === 'subject' && modelSource === 'upload' ? modelImage?.base64 : null, 
-                modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined,
-                customTitle, ctaButton, customCta
+                mainImages: mainImages.map(i => ({ base64: i.base64.base64, mimeType: i.base64.mimeType })), 
+                logoImage: logoImage ? { base64: logoImage.base64.base64, mimeType: logoImage.base64.mimeType } : null, 
+                referenceImage: refImageB64 ? { base64: refImageB64.base64, mimeType: refImageB64.mimeType } : null,
+                aspectRatio: aspectRatio as '1:1' | '4:3' | '16:9' | '9:16',
+                headline, 
+                ctaButton: ctaButton === 'Custom' ? customCta : ctaButton
             };
             
             const resB64 = await generateAdCreative(inputs, auth.activeBrandKit, auth.user?.basePlan || undefined);
@@ -471,7 +347,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const currentB64 = await urlToBase64(resultImage);
             
             const originalImageParam = mainImages.length > 0 ? { base64: mainImages[0].base64.base64, mimeType: mainImages[0].base64.mimeType } : undefined;
-            const originalPromptParam = `Product: ${productName}. Description: ${description}. Vibe: ${vibe === CUSTOM_VIBE_KEY ? customVibe : vibe}. Aspect Ratio: ${aspectRatio}.`;
+            const originalPromptParam = `Headline: ${headline}. Style: ${selectedStyle}. Aspect Ratio: ${aspectRatio}.`;
 
             const res = await refineAdCreative(
                 currentB64.base64, 
@@ -503,10 +379,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleNewSession = () => {
-        setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
-        setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
-        setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null);
-        setCustomTitle(''); setContactNumber(''); setCtaButton(''); setCustomCta('');
+        setMainImages([]); setLogoImage(null); setResultImage(null);
+        setSelectedStyle(''); setHeadline(''); setAspectRatio('');
+        setCtaButton(''); setCustomCta(''); setIsRefineActive(false);
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -548,9 +423,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         }
     };
 
-    const canGenerate = !!industry && mainImages.length > 0 && !!description && !!productName && !!aspectRatio && !!integrationMode && !isLowCredits && (
-        integrationMode === 'product' ? true : (modelSource === 'ai' ? (!!modelParams?.modelType && !!modelParams?.region) : (!!modelImage))
-    );
+    const canGenerate = mainImages.length > 0 && !!selectedStyle && !!headline && !!aspectRatio && !isLowCredits;
 
     const ratioIcons = {
         '1:1': <div className="w-3.5 h-3.5 border-2 border-current rounded-sm shadow-sm"></div>,
@@ -592,15 +465,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 leftContent={
                     <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
                         <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
-                        {!industry ? (
-                            <div className="text-center opacity-50 select-none">
-                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <MagicAdsIcon className="w-10 h-10 text-blue-500" />
-                                </div>
-                                <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
-                                <p className="text-sm text-gray-300 mt-1">Select an industry to start.</p>
-                            </div>
-                        ) : mainImages.length === 0 ? (
+                        {mainImages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40 select-none">
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4">
                                     <CloudUploadIcon className="w-8 h-8" />
@@ -615,15 +480,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         <div className="inline-flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                             <span className="text-[9px] font-black text-white uppercase tracking-widest">
-                                                {integrationMode === 'product' ? 'Hero Product Locked' : integrationMode === 'subject' ? 'Subject Context Locked' : 'AI Layout Engine Active'}
+                                                Hero Product Locked
                                             </span>
                                         </div>
-                                        {integrationMode === 'subject' && (
-                                             <div className="inline-flex items-center gap-2 bg-indigo-600/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg animate-fadeIn">
-                                                <UsersIcon className="w-3 h-3 text-white"/>
-                                                <span className="text-[9px] font-black text-white uppercase tracking-widest">Identity Sync Active</span>
-                                             </div>
-                                        )}
                                     </div>
                                 </div>
 
@@ -658,17 +517,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         );
                                     })}
                                 </div>
-                                
-                                {integrationMode === 'subject' && modelSource === 'upload' && modelImage && (
-                                    <div className="mt-8 relative group animate-fadeIn">
-                                        <div className="w-32 h-32 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gray-100 ring-2 ring-indigo-500/20">
-                                            <img src={modelImage.url} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
-                                            Digital Twin Active
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -687,47 +535,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         </div>
                     ) : (
                         <div className={`${AdMakerStyles.formContainer} ${(loading || isRefining) ? 'opacity-50 pointer-events-none select-none grayscale-[0.2]' : ''}`}>
-                            {!industry ? (
-                                <div className={AdMakerStyles.modeGrid}>
-                                    {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
-                                        <IndustryCard 
-                                            key={key} 
-                                            title={conf.label} 
-                                            desc={`Engineered for ${conf.label} standards.`} 
-                                            icon={<conf.icon className="w-8 h-8"/>} 
-                                            onClick={() => setIndustry(key as any)}
-                                            styles={{ card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce }}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
                                 <>
-                                    <button onClick={handleNewSession} className={AdMakerStyles.backButton}>
-                                        <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
-                                    </button>
-
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-sm overflow-hidden shrink-0">
-                                                    {React.createElement(INDUSTRY_CONFIG[industry!].icon, { className: "w-6 h-6 text-blue-600" })}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Niche</p>
-                                                    <p className="text-sm font-black text-blue-900 truncate">
-                                                        {INDUSTRY_CONFIG[industry!].label}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={() => setIndustry(null)} 
-                                                className="p-2 bg-white text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm shrink-0"
-                                                title="Change Industry"
-                                            >
-                                                <RefreshIcon className="w-3.5 h-3.5"/>
-                                            </button>
-                                        </div>
-
                                         {auth.activeBrandKit ? (
                                             <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-fadeIn shadow-sm">
                                                 <div className="flex items-center gap-3">
@@ -770,302 +579,192 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                         )}
                                     </div>
 
-                                    {/* STEP 1: ENGINE MODE */}
+                                    {/* STEP 1: CORE ASSETS */}
                                     <div className="mb-8">
                                         <div className={AdMakerStyles.sectionHeader}>
                                             <span className={AdMakerStyles.stepBadge}>1</span>
-                                            <label className={AdMakerStyles.sectionTitle}>Ad Engine Mode</label>
+                                            <label className={AdMakerStyles.sectionTitle}>Core Assets</label>
                                         </div>
-                                        <div className={AdMakerStyles.engineGrid}>
-                                            <button 
-                                                onClick={() => setIntegrationMode('product')} 
-                                                className={`${AdMakerStyles.engineCard} ${integrationMode === 'product' ? AdMakerStyles.engineCardSelected : AdMakerStyles.engineCardInactive}`}
-                                            >
-                                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
-                                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
-                                                    <CubeIcon className="w-6 h-6" />
-                                                </div>
-                                                <h4 className={AdMakerStyles.engineTitle}>Product Ad</h4>
-                                                <p className={AdMakerStyles.engineDesc}>Studio Setup</p>
-                                                {integrationMode === 'product' && <div className={AdMakerStyles.engineCheckBadge}><CheckIcon className="w-3 h-3" /></div>}
-                                            </button>
-                                            <button 
-                                                onClick={() => setIntegrationMode('subject')} 
-                                                className={`${AdMakerStyles.engineCard} ${integrationMode === 'subject' ? AdMakerStyles.engineCardSelected : AdMakerStyles.engineCardInactive}`}
-                                            >
-                                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
-                                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
-                                                    <UsersIcon className="w-6 h-6" />
-                                                </div>
-                                                <h4 className={AdMakerStyles.engineTitle}>Model Ad</h4>
-                                                <p className={AdMakerStyles.engineDesc}>Human Context</p>
-                                                {integrationMode === 'subject' && <div className={AdMakerStyles.engineCheckBadge}><CheckIcon className="w-3 h-3" /></div>}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {isMismatch && (
-                                        <div className="mb-6 animate-[fadeInUp_0.4s_ease-out] relative group">
-                                            <div className="absolute inset-0 bg-amber-400/10 rounded-2xl blur-lg group-hover:bg-amber-400/20 transition-all"></div>
-                                            <div className="relative bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-4 items-start shadow-sm">
-                                                <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-                                                    <InformationCircleIcon className="w-5 h-5 animate-pulse" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Identity Guard: Context Conflict</p>
-                                                    <p className="text-[11px] font-medium text-amber-700 leading-relaxed">
-                                                        Your Brand Kit is optimized for <span className="font-black underline">{auth.activeBrandKit?.industry}</span>. 
-                                                        Generating a <span className="font-black underline">{industry}</span> ad may cause visual errors.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-6">
-                                        {!auth.activeBrandKit && (
-                                            <div className="animate-fadeIn">
-                                                <div className={AdMakerStyles.sectionHeader}>
-                                                    <span className={AdMakerStyles.stepBadge}>2</span>
-                                                    <label className={AdMakerStyles.sectionTitle}>Manual Identity Anchor</label>
-                                                </div>
-                                                <div className="mb-6">
-                                                    <div className="flex items-center gap-3">
-                                                        {logoImage ? (
-                                                            <div 
-                                                                className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected} !h-24 !w-24`}
-                                                                onClick={() => setLogoImage(null)}
-                                                            >
-                                                                <img src={logoImage.url} className={AdMakerStyles.shelfImage} />
-                                                                <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
-                                                            </div>
-                                                        ) : (
-                                                            <div 
-                                                                onClick={() => document.getElementById('logo-upload-ad')?.click()}
-                                                                className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} !h-24 !w-24 flex items-center justify-center`}
-                                                            >
-                                                                <div className={AdMakerStyles.shelfAdd}>
-                                                                    <PlusIcon className="w-5 h-5 text-gray-300"/>
-                                                                    <span className={AdMakerStyles.shelfAddText}>Logo</span>
+                                        
+                                        <div className="space-y-6">
+                                            {!auth.activeBrandKit && (
+                                                <div className="animate-fadeIn">
+                                                    <div className="mb-6">
+                                                        <div className="flex items-center gap-3">
+                                                            {logoImage ? (
+                                                                <div 
+                                                                    className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected} !h-24 !w-24`}
+                                                                    onClick={() => setLogoImage(null)}
+                                                                >
+                                                                    <img src={logoImage.url} className={AdMakerStyles.shelfImage} />
+                                                                    <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>
                                                                 </div>
+                                                            ) : (
+                                                                <div 
+                                                                    onClick={() => document.getElementById('logo-upload-ad')?.click()}
+                                                                    className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} !h-24 !w-24 flex items-center justify-center`}
+                                                                >
+                                                                    <div className={AdMakerStyles.shelfAdd}>
+                                                                        <PlusIcon className="w-5 h-5 text-gray-300"/>
+                                                                        <span className={AdMakerStyles.shelfAddText}>Logo</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1">
+                                                                <p className="text-[10px] text-gray-400 italic leading-tight">
+                                                                    {logoImage ? "Logo locked for generation. Click to remove." : "Upload a PNG logo to anchor your brand identity in the ad."}
+                                                                </p>
                                                             </div>
-                                                        )}
-                                                        <div className="flex-1">
-                                                            <p className="text-[10px] text-gray-400 italic leading-tight">
-                                                                {logoImage ? "Logo locked for generation. Click to remove." : "Upload a PNG logo to anchor your brand identity in the ad."}
-                                                            </p>
+                                                            <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
                                                         </div>
-                                                        <input id="logo-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogoImage)} />
                                                     </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
 
-                                        <div>
-                                            <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '2' : '3'}</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Campaign Mode</label>
-                                            </div>
-                                            
-                                            <div className="flex bg-gray-50 p-1 rounded-xl mb-3 border border-gray-100 w-fit">
-                                                <button onClick={() => { 
-                                                    setIsCollectionMode(false); 
-                                                    if (mainImages.length > 1) setMainImages(prev => prev.slice(0, 1));
-                                                }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Product</button>
-                                                <button onClick={() => { setIsCollectionMode(true); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Collection</button>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '3' : '4'}</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Product Inventory</label>
-                                            </div>
-                                            <div className={AdMakerStyles.shelfContainer}>
-                                                {auth.activeBrandKit?.products?.map((p) => {
-                                                    const isSelected = mainImages.some(img => img.url === p.imageUrl);
-                                                    return (
-                                                        <div 
-                                                            key={p.id} 
-                                                            className={`${AdMakerStyles.shelfCard} ${isSelected ? AdMakerStyles.shelfCardSelected : AdMakerStyles.shelfCardInactive}`}
-                                                            onClick={() => toggleProduct(p.imageUrl)}
-                                                        >
-                                                            <img src={p.imageUrl} className={AdMakerStyles.shelfImage} />
-                                                            {isSelected && <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
-                                                        </div>
-                                                    );
-                                                })}
-
-                                                {mainImages.filter(img => !auth.activeBrandKit?.products?.some(p => p.imageUrl === img.url)).map((img, idx) => (
-                                                    <div 
-                                                        key={`manual-${idx}`} 
-                                                        className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardSelected}`}
-                                                        onClick={() => setMainImages(prev => prev.filter(i => i.url !== img.url))}
-                                                    >
-                                                        <img src={img.url} className={AdMakerStyles.shelfImage} />
-                                                        <div className={AdMakerStyles.shelfCheck}><XIcon className="w-2.5 h-2.5"/></div>
-                                                    </div>
-                                                ))}
-
-                                                <div onClick={() => fileInputRef.current?.click()} className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`} title="Upload New Product Image">
-                                                    <div className={AdMakerStyles.shelfAdd}>
-                                                        <PlusIcon className="w-5 h-5 text-gray-300"/>
-                                                        <span className={AdMakerStyles.shelfAddText}>Upload</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {integrationMode === 'subject' && (
                                             <div>
                                                 <div className={AdMakerStyles.sectionHeader}>
-                                                    <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '4' : '5'}</span>
-                                                    <label className={AdMakerStyles.sectionTitle}>Talent Integration</label>
+                                                    <label className={AdMakerStyles.sectionTitle}>Product Image</label>
                                                 </div>
-                                                <div className={AdMakerStyles.modelSelectionGrid}>
-                                                    <button onClick={() => setModelSource('ai')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'ai' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
-                                                        <div className={`p-2 rounded-full ${modelSource === 'ai' ? 'bg-white text-indigo-600' : 'bg-gray-50 text-gray-400'}`}><SparklesIcon className="w-5 h-5"/></div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">AI Human</span>
-                                                    </button>
-                                                    <button onClick={() => setModelSource('upload')} className={`${AdMakerStyles.modelSelectionCard} ${modelSource === 'upload' ? AdMakerStyles.modelSelectionCardSelected : AdMakerStyles.modelSelectionCardInactive}`}>
-                                                        <div className={`p-2 rounded-full ${modelSource === 'upload' ? 'bg-white text-indigo-600' : 'bg-gray-50 text-gray-400'}`}><UserIcon className="w-5 h-5"/></div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Digital Twin</span>
-                                                    </button>
+                                                <div className={AdMakerStyles.shelfContainer}>
+                                                    {auth.activeBrandKit?.products?.map((p) => {
+                                                        const isSelected = mainImages.some(img => img.url === p.imageUrl);
+                                                        return (
+                                                            <div 
+                                                                key={p.id} 
+                                                                className={`${AdMakerStyles.shelfCard} ${isSelected ? AdMakerStyles.shelfCardSelected : AdMakerStyles.shelfCardInactive}`}
+                                                                onClick={() => toggleProduct(p.imageUrl)}
+                                                            >
+                                                                <img src={p.imageUrl} className={AdMakerStyles.shelfImage} alt={p.name} />
+                                                                {isSelected && <div className={AdMakerStyles.shelfCheck}><CheckIcon className="w-2.5 h-2.5 text-white"/></div>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    <div 
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        className={`${AdMakerStyles.shelfCard} ${AdMakerStyles.shelfCardInactive} flex items-center justify-center`}
+                                                    >
+                                                        <div className={AdMakerStyles.shelfAdd}>
+                                                            <PlusIcon className="w-5 h-5 text-gray-300"/>
+                                                            <span className={AdMakerStyles.shelfAddText}>Upload</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                
-                                                {modelSource === 'ai' && (
-                                                    <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-fadeIn">
-                                                        <select value={modelParams?.modelType} onChange={e => setModelParams({...modelParams!, modelType: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
-                                                            <option value="">Persona</option>{MODEL_TYPES.map(t => <option key={t}>{t}</option>)}
-                                                        </select>
-                                                        <select value={modelParams?.region} onChange={e => setModelParams({...modelParams!, region: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
-                                                            <option value="">Region</option>{MODEL_REGIONS.map(t => <option key={t}>{t}</option>)}
-                                                        </select>
-                                                        <select value={modelParams?.skinTone} onChange={e => setModelParams({...modelParams!, skinTone: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
-                                                            <option value="">Skin</option>{SKIN_TONES.map(t => <option key={t}>{t}</option>)}
-                                                        </select>
-                                                        <select value={modelParams?.bodyType} onChange={e => setModelParams({...modelParams!, bodyType: e.target.value})} className="p-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
-                                                            <option value="">Build</option>{BODY_TYPES.map(t => <option key={t}>{t}</option>)}
-                                                        </select>
-                                                    </div>
-                                                )}
-
-                                                {modelSource === 'upload' && (
-                                                    <div className="animate-fadeIn">
-                                                        <CompactUpload 
-                                                            label="Human Model / Founder" 
-                                                            subLabel="High-fidelity biometric template"
-                                                            image={modelImage} 
-                                                            onUpload={handleUpload(setModelImage)} 
-                                                            onClear={() => setModelImage(null)} 
-                                                            icon={<UserIcon className="w-6 h-6 text-blue-400"/>} 
-                                                            heightClass="h-40"
-                                                        />
-                                                        <p className="text-[9px] text-gray-400 mt-2 italic px-1">
-                                                            Pixa will anchor the subject's face and body exactly to the final ad.
-                                                        </p>
-                                                    </div>
-                                                )}
+                                                <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(null, true)} />
                                             </div>
-                                        )}
-
-                                        <div className="pt-4 border-t border-gray-100">
-                                            <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '5' : '6') : (auth.activeBrandKit ? '4' : '5') }</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Campaign Intelligence</label>
-                                            </div>
-                                            
-                                            <div className="space-y-4">
-                                                <InputField 
-                                                    label="Product Name (Mandatory)" 
-                                                    placeholder="e.g. Aura Chronograph, Zen Candle, etc." 
-                                                    value={productName} 
-                                                    onChange={(e: any) => setProductName(e.target.value)} 
-                                                />
-                                                <SelectionGrid 
-                                                    label="Visual Style" 
-                                                    options={filteredVibes} 
-                                                    value={vibe} 
-                                                    onChange={setVibe} 
-                                                />
-                                                {vibe === CUSTOM_VIBE_KEY && (
-                                                    <div className="animate-fadeIn -mt-2">
-                                                        <InputField placeholder="e.g. 90s Polaroid, neon midnight, bright spring..." value={customVibe} onChange={(e: any) => setCustomVibe(e.target.value)} />
-                                                    </div>
-                                                )}
-                                                <TextAreaField 
-                                                    label="What is this ad about? (Context)" 
-                                                    placeholder={industry ? INDUSTRY_PLACEHOLDERS[industry] : "e.g. 10 Secret features of the new iPhone 15 Pro. Focus on luxury and speed."} 
-                                                    value={description} 
-                                                    onChange={(e: any) => setDescription(e.target.value)} 
-                                                />
-                                                <div className="animate-fadeIn">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Custom Marketing Title (Optional)</label>
-                                                    <InputField 
-                                                        placeholder="Leave empty for AI Trendy Title..." 
-                                                        value={customTitle} 
-                                                        onChange={(e: any) => setCustomTitle(e.target.value)} 
-                                                    />
-                                                    <p className="text-[9px] text-gray-400 mt-1 italic">If empty, our AI will generate a high-CTR trendy title for you.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-gray-100">
-                                            <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Call to Action (Optional)</label>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <InputField 
-                                                        label="Contact Number"
-                                                        placeholder="e.g. +1 234 567 890" 
-                                                        value={contactNumber} 
-                                                        onChange={(e: any) => setContactNumber(e.target.value)} 
-                                                    />
-                                                    <InputField 
-                                                        label="Website"
-                                                        placeholder="e.g. www.yourbrand.com" 
-                                                        value={website} 
-                                                        onChange={(e: any) => setWebsite(e.target.value)} 
-                                                    />
-                                                </div>
-                                                <SelectionGrid 
-                                                    label="CTA Button" 
-                                                    options={['None', 'Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom']} 
-                                                    value={ctaButton || 'None'} 
-                                                    onChange={setCtaButton} 
-                                                />
-                                                {ctaButton === 'Custom' && (
-                                                    <div className="animate-fadeIn -mt-2">
-                                                        <InputField 
-                                                            placeholder="Enter custom CTA text..." 
-                                                            value={customCta} 
-                                                            onChange={(e: any) => setCustomCta(e.target.value)} 
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-gray-100 pb-20">
-                                            <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '7' : '8') : (auth.activeBrandKit ? '6' : '7') }</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
-                                            </div>
-                                            
-                                            <SelectionGrid 
-                                                label="Aspect Ratio" 
-                                                options={['1:1', '4:5', '9:16']} 
-                                                value={aspectRatio} 
-                                                onChange={(val: any) => setAspectRatio(val)} 
-                                                icons={ratioIcons}
-                                            />
                                         </div>
                                     </div>
+
+                                    {/* STEP 2: VISUAL STYLE */}
+                                    <div className="mb-8">
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>2</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Visual Style</label>
+                                        </div>
+                                        
+                                        <div className="mb-6">
+                                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Style Vault</label>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                {STYLE_VAULT_OPTIONS.map(style => (
+                                                    <div 
+                                                        key={style.id}
+                                                        onClick={() => setSelectedStyle(style.id)}
+                                                        className={`relative rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${selectedStyle === style.id ? 'border-indigo-600 ring-2 ring-indigo-600/20' : 'border-transparent hover:border-gray-300'}`}
+                                                    >
+                                                        <div className="aspect-square">
+                                                            <img src={style.url} alt={style.label} className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                                                            <p className="text-[10px] font-bold text-white text-center">{style.label}</p>
+                                                        </div>
+                                                        {selectedStyle === style.id && (
+                                                            <div className="absolute top-2 right-2 bg-indigo-600 rounded-full p-1">
+                                                                <CheckIcon className="w-3 h-3 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-6">
+                                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Aspect Ratio</label>
+                                            <div className="flex gap-3">
+                                                {[
+                                                    { id: '1:1', label: 'Square', icon: ratioIcons['1:1'] },
+                                                    { id: '4:5', label: 'Portrait', icon: ratioIcons['4:5'] },
+                                                    { id: '9:16', label: 'Story', icon: ratioIcons['9:16'] }
+                                                ].map(ratio => (
+                                                    <button
+                                                        key={ratio.id}
+                                                        onClick={() => setAspectRatio(ratio.id as any)}
+                                                        className={`flex-1 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${aspectRatio === ratio.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-500 hover:border-indigo-300'}`}
+                                                    >
+                                                        {ratio.icon}
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider">{ratio.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* STEP 3: MINIMAL COPY */}
+                                    <div className="mb-8">
+                                        <div className={AdMakerStyles.sectionHeader}>
+                                            <span className={AdMakerStyles.stepBadge}>3</span>
+                                            <label className={AdMakerStyles.sectionTitle}>Minimal Copy</label>
+                                        </div>
+                                        
+                                        <div className="space-y-4">
+                                            <InputField label="Headline (Max 5 words)" value={headline} onChange={setHeadline} placeholder="e.g. Summer Collection 2026" />
+                                            
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">Call to Action</label>
+                                                <select 
+                                                    value={ctaButton} 
+                                                    onChange={e => setCtaButton(e.target.value)}
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none appearance-none"
+                                                >
+                                                    <option value="">Select CTA</option>
+                                                    <option value="Shop Now">Shop Now</option>
+                                                    <option value="Learn More">Learn More</option>
+                                                    <option value="Buy Now">Buy Now</option>
+                                                    <option value="Discover">Discover</option>
+                                                    <option value="Custom">Custom...</option>
+                                                    <option value="None">None</option>
+                                                </select>
+                                            </div>
+                                            
+                                            {ctaButton === 'Custom' && (
+                                                <InputField label="Custom CTA" value={customCta} onChange={setCustomCta} placeholder="e.g. Get Started" />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100">
+                                        <button 
+                                            onClick={handleGenerate} 
+                                            disabled={!canGenerate || loading}
+                                            className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${canGenerate && !loading ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                        >
+                                            {loading ? (
+                                                <>
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <SparklesIcon className="w-5 h-5" />
+                                                    Generate Ad ({auth.user?.plan === 'free' ? '10' : '5'} Credits)
+                                                </>
+                                            )}
+                                        </button>
+                                        {!canGenerate && (
+                                            <p className="text-center text-[10px] text-gray-400 mt-3 font-medium">
+                                                {userCredits < (auth.user?.plan === 'free' ? 10 : 5) ? 'Insufficient credits' : 'Upload an image and fill required fields to generate'}
+                                            </p>
+                                        )}
+                                    </div>
                                 </>
-                            )}
                         </div>
                     )
                 }
