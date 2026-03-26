@@ -10,7 +10,7 @@ import {
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
-import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand } from '../firebase';
+import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand, getRandomVaultImage } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 import { RefundModal } from '../components/RefundModal';
@@ -260,7 +260,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [industry, setIndustry] = useState<AdMakerInputs['industry'] | null>(null);
     const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
-    const [referenceImage, setReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     const [integrationMode, setIntegrationMode] = useState<'product' | 'subject' | null>(null);
 
@@ -270,9 +269,6 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     
     const [customTitle, setCustomTitle] = useState('');
-    const [contactNumber, setContactNumber] = useState('');
-    const [ctaButton, setCtaButton] = useState('');
-    const [customCta, setCustomCta] = useState('');
 
     const [modelSource, setModelSource] = useState<'ai' | 'upload' | null>(null);
     const [modelImage, setModelImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -429,13 +425,27 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
+            // Fetch random reference image from Style Vault based on industry
+            let vaultRef = null;
+            if (industry) {
+                vaultRef = await getRandomVaultImage('admaker', industry);
+            }
+
             const inputs: AdMakerInputs = {
-                industry, mainImages: mainImages.map(i => i.base64), logoImage: logoImage?.base64, referenceImage: referenceImage?.base64,
-                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, productName, website, contactNumber, offer, description, aspectRatio,
+                industry, 
+                mainImages: mainImages.map(i => i.base64), 
+                logoImage: logoImage?.base64, 
+                referenceImage: vaultRef ? await urlToBase64(vaultRef.imageUrl) : null,
+                vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, 
+                productName, 
+                website, 
+                offer, 
+                description, 
+                aspectRatio,
                 modelSource: integrationMode === 'subject' ? modelSource : null, 
                 modelImage: integrationMode === 'subject' && modelSource === 'upload' ? modelImage?.base64 : null, 
                 modelParams: integrationMode === 'subject' && modelSource === 'ai' ? modelParams : undefined,
-                customTitle, ctaButton, customCta
+                customTitle
             };
             
             const resB64 = await generateAdCreative(inputs, auth.activeBrandKit, auth.user?.basePlan || undefined);
@@ -503,10 +513,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     };
 
     const handleNewSession = () => {
-        setIndustry(null); setMainImages([]); setLogoImage(null); setReferenceImage(null); setResultImage(null);
+        setIndustry(null); setMainImages([]); setLogoImage(null); setResultImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
         setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null);
-        setCustomTitle(''); setContactNumber(''); setCtaButton(''); setCustomCta('');
+        setCustomTitle('');
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -1011,47 +1021,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             </div>
                                         </div>
 
-                                        <div className="pt-4 border-t border-gray-100">
-                                            <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
-                                                <label className={AdMakerStyles.sectionTitle}>Call to Action (Optional)</label>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <InputField 
-                                                        label="Contact Number"
-                                                        placeholder="e.g. +1 234 567 890" 
-                                                        value={contactNumber} 
-                                                        onChange={(e: any) => setContactNumber(e.target.value)} 
-                                                    />
-                                                    <InputField 
-                                                        label="Website"
-                                                        placeholder="e.g. www.yourbrand.com" 
-                                                        value={website} 
-                                                        onChange={(e: any) => setWebsite(e.target.value)} 
-                                                    />
-                                                </div>
-                                                <SelectionGrid 
-                                                    label="CTA Button" 
-                                                    options={['None', 'Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom']} 
-                                                    value={ctaButton || 'None'} 
-                                                    onChange={setCtaButton} 
-                                                />
-                                                {ctaButton === 'Custom' && (
-                                                    <div className="animate-fadeIn -mt-2">
-                                                        <InputField 
-                                                            placeholder="Enter custom CTA text..." 
-                                                            value={customCta} 
-                                                            onChange={(e: any) => setCustomCta(e.target.value)} 
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
                                         <div className="pt-4 border-t border-gray-100 pb-20">
                                             <div className={AdMakerStyles.sectionHeader}>
-                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '7' : '8') : (auth.activeBrandKit ? '6' : '7') }</span>
+                                                <span className={AdMakerStyles.stepBadge}>{ integrationMode === 'subject' ? (auth.activeBrandKit ? '6' : '7') : (auth.activeBrandKit ? '5' : '6') }</span>
                                                 <label className={AdMakerStyles.sectionTitle}>Final Delivery</label>
                                             </div>
                                             

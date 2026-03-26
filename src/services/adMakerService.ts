@@ -12,7 +12,6 @@ export interface AdMakerInputs {
     vibe?: string;
     productName?: string;
     website?: string;
-    contactNumber?: string;
     offer?: string;
     description?: string;
     productSpecs?: string;
@@ -28,8 +27,6 @@ export interface AdMakerInputs {
         framing: string;
     };
     customTitle?: string;
-    ctaButton?: string;
-    customCta?: string;
 }
 
 const LAYOUT_BLUEPRINTS: Record<string, string> = {
@@ -102,9 +99,20 @@ interface CreativeBrief {
  * PHASE 0: THE TRENDY AI TITLE ENGINE
  * This engine generates viral, high-CTR ad headlines using the "Clickbait Success Formula".
  */
-const generateTrendyAdTitle = async (productName: string, description: string, industry: string, tone: string = 'Viral'): Promise<string> => {
-    const prompt = `You are a World-Class Ad Copywriter and Viral Growth Hacker.
+const generateTrendyAdTitle = async (
+    productImage: { base64: string; mimeType: string } | undefined,
+    productName: string, 
+    description: string, 
+    industry: string, 
+    tone: string = 'Viral'
+): Promise<string> => {
+    const parts: any[] = [{
+        text: `You are a World-Class Ad Copywriter and Viral Growth Hacker.
     Your task is to write a 2-5 word "Trendy AI Title" (Curiosity Gap Headline) for a high-performance ad.
+    
+    STEP 1: Scan the uploaded product image (if provided) to understand its visual identity, quality, and key features.
+    STEP 2: Consider the user-provided product name and ad context.
+    STEP 3: Generate a 2-5 word "Clickbait Success Formula" headline that creates a Curiosity Gap or highlights a massive benefit.
     
     *** BRAND DATA ***
     Product Name: "${productName}"
@@ -119,12 +127,22 @@ const generateTrendyAdTitle = async (productName: string, description: string, i
     4. **EMOTIONAL HOOK**: Identify one dominant emotion (Curiosity, Surprise, Fear, Authority, or Contrast).
     5. **NO GENERIC BUZZWORDS**: Avoid "Elevate", "Unleash", "Ultimate", "Best".
     
-    OUTPUT: Return ONLY the headline string. No quotes.`;
+    OUTPUT: Return ONLY the headline string. No quotes.`
+    }];
+
+    if (productImage) {
+        parts.push({
+            inlineData: {
+                data: productImage.base64,
+                mimeType: productImage.mimeType
+            }
+        });
+    }
 
     try {
         const response = await secureGenerateContent({
             model: 'gemini-3.1-pro-preview',
-            contents: { parts: [{ text: prompt }] },
+            contents: { parts },
             featureName: 'Trendy Ad Title Engine'
         });
         return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
@@ -144,8 +162,8 @@ const performAdIntelligence = async (
     const ai = getAiClient();
     
     // 0. TRENDY AI TITLE ENGINE (INITIAL PASS)
-    // We pass the product name and context to get a viral starting point.
-    const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateTrendyAdTitle(inputs.productName || '', inputs.description || '', inputs.industry || '', 'Viral');
+    // We pass the product image, name and context to get a viral starting point.
+    const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateTrendyAdTitle(inputs.mainImages[0], inputs.productName || '', inputs.description || '', inputs.industry || '', 'Viral');
 
     const lowResAssets = await Promise.all(
         inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
@@ -302,11 +320,9 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     *** THE CREATIVE COPY (FULL MARKETING SUITE) ***
     1. **HEADLINE (HERO SCALE)**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
     2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.strategicCopy.subheadline}" in a smaller, elegant font below the headline.
-    ${(inputs.website || inputs.contactNumber) ? `3. **UTILITY STACK (FOOTER SAFE-ZONE)**:
-       ${inputs.website ? `- **WEBSITE**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : ""}
-       ${inputs.contactNumber ? `- **CONTACT**: Render "${inputs.contactNumber}" near the website.` : ""}` : "3. **NO UTILITY STACK**: Do not render any website or contact information."}
-    4. **ACTION (CTA BUTTON)**: 
-       ${(inputs.ctaButton && inputs.ctaButton !== 'None') ? `Create a high-contrast, professional button with the text: "${inputs.ctaButton === 'Custom' ? inputs.customCta : inputs.ctaButton}".` : "Do not render a CTA button."}
+    ${inputs.website ? `3. **UTILITY STACK (FOOTER SAFE-ZONE)**:
+       - **WEBSITE**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : "3. **NO UTILITY STACK**: Do not render any website information."}
+    4. **NO CTA BUTTON**: Do not render any CTA buttons or contact numbers.
     
     OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
 

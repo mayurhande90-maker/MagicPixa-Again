@@ -19,7 +19,7 @@ import {
 } from '../../components/icons/adMakerIcons';
 import { fileToBase64, base64ToBlobUrl, downloadImage, urlToBase64 } from '../../utils/imageUtils';
 import { generateAdCreative, refineAdCreative } from '../../services/adMakerService';
-import { deductCredits, saveCreation, updateCreation } from '../../firebase';
+import { deductCredits, saveCreation, updateCreation, getRandomVaultImage } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 import { SelectionGrid, ImageModal } from '../../components/FeatureLayout';
 import { AdMakerStyles as styles } from '../../styles/features/PixaAdMaker.styles';
@@ -30,8 +30,7 @@ const AD_STEPS = [
     { id: 'logo', label: 'Logo' },
     { id: 'creative', label: 'Creative' },
     { id: 'format', label: 'Format' },
-    { id: 'copy', label: 'Copy' },
-    { id: 'cta', label: 'CTA' }
+    { id: 'copy', label: 'Copy' }
 ];
 
 const INDUSTRIES = [
@@ -55,7 +54,6 @@ const MODEL_PARAMS_STEPS = [
 ];
 
 const MOODS = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", "Custom"];
-const CTA_BUTTONS = ['None', 'Order Now', 'Call Now', 'Shop Now', 'Book Now', 'Learn More', 'Get Started', 'Visit Us', 'Custom'];
 
 const CustomRefineIcon = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
@@ -79,10 +77,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>('');
     const [productName, setProductName] = useState('');
     const [description, setDescription] = useState('');
-    const [website, setWebsite] = useState('');
-    const [contactNumber, setContactNumber] = useState('');
-    const [ctaButton, setCtaButton] = useState('None');
-    const [customCta, setCustomCta] = useState('');
+    const [customTitle, setCustomTitle] = useState('');
 
     const [result, setResult] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -180,6 +175,17 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         onGenerationStart();
         setIsGenerating(true);
         try {
+            // Get random reference image from Style Vault
+            const vaultRef = await getRandomVaultImage('pixa-admaker', industry.id);
+            let referenceImage = null;
+            if (vaultRef) {
+                const base64 = await urlToBase64(vaultRef.imageUrl);
+                referenceImage = {
+                    base64: base64.base64,
+                    mimeType: base64.mimeType
+                };
+            }
+
             const resB64 = await generateAdCreative({
                 industry: industry.id,
                 mainImages: mainImages.map(img => img.base64),
@@ -187,12 +193,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 vibe: vibe === 'Custom' ? customVibe : vibe,
                 productName: productName,
                 description: description,
+                customTitle,
                 aspectRatio: aspectRatio as any,
                 modelSource: engineMode === 'subject' ? 'ai' : null,
                 modelParams: engineMode === 'subject' ? (modelParams as any) : undefined,
-                website,
-                contactNumber,
-                ctaButton: ctaButton === 'None' ? '' : (ctaButton === 'Custom' ? customCta : ctaButton)
+                referenceImage
             }, auth.activeBrandKit);
             
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
@@ -243,8 +248,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     const handleReset = () => {
         setResult(null); setMainImages([]); setLogo(null); setIndustry(null); setEngineMode(null);
-        setVibe(''); setCustomVibe(''); setProductName(''); setDescription(''); 
-        setWebsite(''); setContactNumber(''); setCtaButton('None'); setCustomCta('');
+        setVibe(''); setCustomVibe(''); setProductName(''); setDescription(''); setCustomTitle('');
         setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
         setIsCollectionMode(false);
     };
@@ -349,26 +353,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 );
             case 'copy':
                 return (
-                    <div className="w-full px-6 flex flex-col gap-3 py-2">
-                        <input value={productName} onChange={e => setProductName(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Product Name..." />
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[15px] font-medium focus:border-indigo-500 outline-none shadow-inner h-20 resize-none" placeholder="The Hook / Context (e.g. Summer sale vibes)..." />
-                    </div>
-                );
-            case 'cta':
-                return (
                     <div className="w-full px-6 flex flex-col gap-3 py-2 overflow-y-auto no-scrollbar max-h-[160px]">
-                        <div className="flex gap-2">
-                            <input value={website} onChange={e => setWebsite(e.target.value)} className="flex-1 p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[11px] font-medium focus:border-indigo-500 outline-none shadow-inner" placeholder="Website (Optional)..." />
-                            <input value={contactNumber} onChange={e => setContactNumber(e.target.value)} className="flex-1 p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[11px] font-medium focus:border-indigo-500 outline-none shadow-inner" placeholder="Contact (Optional)..." />
-                        </div>
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                            {CTA_BUTTONS.map(btn => (
-                                <button key={btn} onClick={() => setCtaButton(btn)} className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${ctaButton === btn ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{btn}</button>
-                            ))}
-                        </div>
-                        {ctaButton === 'Custom' && (
-                            <input value={customCta} onChange={e => setCustomCta(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Custom CTA Text..." />
-                        )}
+                        <input value={productName} onChange={e => setProductName(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Product Name..." />
+                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-medium focus:border-indigo-500 outline-none shadow-inner h-20 resize-none" placeholder="The Hook / Context (e.g. Summer sale vibes)..." />
+                        <input value={customTitle} onChange={e => setCustomTitle(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Custom Marketing Title (Optional)..." />
                     </div>
                 );
             default: return null;
@@ -526,8 +514,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             (idx === 2 && !!logo) || 
                                             (idx === 3 && !!vibe) || 
                                             (idx === 4 && !!aspectRatio) ||
-                                            (idx === 5 && !!productName && description.length > 5) ||
-                                            (idx === 6 && (!!website || !!contactNumber || (ctaButton !== 'None' && ctaButton !== '')));
+                                            (idx === 5 && !!productName && description.length > 5);
                                         
                                         let displayLabel = "";
                                         let isNextCue = false;
@@ -560,14 +547,6 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 isNextCue = true;
                                             } else {
                                                 displayLabel = productName ? 'Ready' : "";
-                                            }
-                                        }
-                                        else if (idx === 6) {
-                                            if (currentStep === 5 && !!productName && description.length > 5) {
-                                                displayLabel = "NEXT";
-                                                isNextCue = true;
-                                            } else {
-                                                displayLabel = (website || contactNumber || ctaButton !== 'None') ? 'SET' : "";
                                             }
                                         }
 

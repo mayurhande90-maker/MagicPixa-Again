@@ -757,6 +757,18 @@ export const getVaultImages = async (featureId: string, subCategoryId?: string):
     }
 };
 
+export const getRandomVaultImage = async (featureId: string, subCategoryId?: string): Promise<VaultReference | null> => {
+    try {
+        const images = await getVaultImages(featureId, subCategoryId);
+        if (images.length === 0) return null;
+        const randomIndex = Math.floor(Math.random() * images.length);
+        return images[randomIndex];
+    } catch (e) {
+        console.warn("Random vault fetch error", e);
+        return null;
+    }
+};
+
 export const uploadVaultImage = async (adminUid: string, featureId: string, dataUri: string, subCategoryId?: string): Promise<string> => {
     if (!storage || !db) throw new Error("Init error");
     
