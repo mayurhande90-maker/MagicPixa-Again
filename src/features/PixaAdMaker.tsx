@@ -68,7 +68,7 @@ const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
 
 const SIMPLE_ARCHETYPES = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", CUSTOM_VIBE_KEY];
 
-type AdMakerPhase = 'industry_select' | 'upload' | 'mode_select' | 'scanning' | 'suggestions' | 'manual_config';
+type AdMakerPhase = 'industry_select' | 'upload' | 'scanning' | 'suggestions' | 'manual_config';
 
 const IndustryCard: React.FC<{ 
     title: string; 
@@ -576,7 +576,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const url = URL.createObjectURL(file);
             setUploadedImage({ url, base64: b64 });
             setMainImages([{ url, base64: b64 }]);
-            setPhase('mode_select');
+            setPhase('upload');
         }
     };
 
