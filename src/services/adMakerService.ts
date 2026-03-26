@@ -152,9 +152,9 @@ const generateTrendyAdTitle = async (
             },
             featureName: 'Trendy Ad Title Engine'
         });
-        return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
+        return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW ERA";
     } catch (e) {
-        return "UNCOMPROMISING QUALITY";
+        return "BEYOND THE ORDINARY";
     }
 };
 
@@ -242,7 +242,8 @@ const performAdIntelligence = async (
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                seed: Math.floor(Math.random() * 1000000)
             },
             featureName: 'Ad Intelligence Analysis'
         });
@@ -250,7 +251,7 @@ const performAdIntelligence = async (
     } catch (e) {
         return { 
             strategicCopy: { 
-                headline: inputs.productName ? `${inputs.productName} | THE NEW STANDARD` : `UNCOMPROMISING QUALITY`, 
+                headline: inputs.productName ? `${inputs.productName} | THE NEW ERA` : `BEYOND THE ORDINARY`, 
                 subheadline: `Experience the next generation of precision design.`, 
                 cta: "Discover More" 
             }, 
@@ -293,9 +294,20 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
 
     const prompt = `Act as a Master Art Director and Elite CGI Artist. Your goal is to create a high-fidelity, professional marketing masterpiece with a perfect Visual Hierarchy.
     
+    *** THE CREATIVE COPY (MANDATORY RENDER) ***
+    1. **HEADLINE (HERO SCALE)**: You MUST render the text "${inputs.customTitle || brief.strategicCopy.headline}" as a massive, high-impact headline using ${brand?.fonts.heading || 'Modern Serif'}.
+    2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.strategicCopy.subheadline}" in a smaller, elegant font directly below the headline.
+    ${inputs.website ? `3. **UTILITY STACK (FOOTER SAFE-ZONE)**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : "3. **NO UTILITY STACK**: Do not render any website information."}
+    
+    *** TEXT INTEGRATION RULES (HARDENED) ***
+    - **LEGIBILITY MANDATE**: The text MUST be perfectly readable. Use high-contrast colors (e.g., white text on dark areas, black text on light areas) or subtle drop shadows/glows to ensure the headline pops.
+    - **Z-AXIS PHYSICS**: Treat the text as a physical 3D object in the scene. It should have "Contact Shadows", "Ambient Occlusion", and interact with the "Global Illumination".
+    - **REFERENCE OVERRIDE**: Even if the 'STYLE REFERENCE' has no text, you MUST integrate the headline and subheadline into the composition.
+    - **SAFE ZONES**: Ensure all text stays within the Instagram/Social Media safe zones (middle 70% of the vertical space).
+    
     *** COMPOSITIONAL GOAL (MANDATORY) ***
     Create a 3D depth-of-field where the product is the primary light source and the text acts as a structural element of the environment. The composition must be "Platform-Aware" for Instagram.
-    ${optRef ? "Follow the lighting, composition, text placement, and design physics of the 'STYLE REFERENCE' exactly. Replicate the negative space usage 1:1." : ""}
+    ${optRef ? "Follow the lighting, composition, and design physics of the 'STYLE REFERENCE' exactly. Replicate the negative space usage 1:1. Use the reference's text placement if applicable, otherwise place text in a balanced, high-end editorial position." : ""}
     
     *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
     - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
@@ -339,13 +351,6 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     8. **BLENDING**: The product must look physically present in the scene, not "pasted".
     9. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
     10. **LAYOUT**: ${brief.suggestedLayout}
-
-    *** THE CREATIVE COPY (FULL MARKETING SUITE) ***
-    1. **HEADLINE (HERO SCALE)**: Render "${inputs.customTitle || brief.strategicCopy.headline}" using ${brand?.fonts.heading || 'Modern Serif'}.
-    2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.strategicCopy.subheadline}" in a smaller, elegant font below the headline.
-    ${inputs.website ? `3. **UTILITY STACK (FOOTER SAFE-ZONE)**:
-       - **WEBSITE**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : "3. **NO UTILITY STACK**: Do not render any website information."}
-    4. **NO CTA BUTTON**: Do not render any CTA buttons or contact numbers.
     
     OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
 
