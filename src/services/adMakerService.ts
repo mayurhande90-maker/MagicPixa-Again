@@ -166,15 +166,25 @@ const performAdIntelligence = async (
     const ai = getAiClient();
     
     // 0. TRENDY AI TITLE ENGINE (INITIAL PASS)
-    // We pass the product image, name and context to get a viral starting point.
     const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateTrendyAdTitle(inputs.mainImages[0], inputs.productName || '', inputs.description || '', inputs.industry || '', 'Viral');
 
-    const lowResAssets = await Promise.all(
-        inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512))
-    );
+    const lowResAssets = await Promise.all([
+        ...inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512)),
+        inputs.referenceImage ? optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType, 512) : Promise.resolve(null)
+    ]);
+
+    const [productAsset, referenceAsset] = lowResAssets;
 
     const prompt = `Act as a world-class CMO and Viral Trend Researcher. 
     Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
+    
+    *** THE VISUAL ANCHOR (MANDATORY) ***
+    You are provided with a 'STYLE REFERENCE'. 
+    Your PRIMARY TASK is to extract the following from the 'STYLE REFERENCE':
+    1. **TEXT PLACEMENT**: Exactly where is the headline, subheadline, and utility text located? (Top-left, centered, bottom-right, etc.)
+    2. **DESIGN PHYSICS**: How do shadows, light, and reflections interact with the environment?
+    3. **NEGATIVE SPACE**: How much empty space is used and where? 
+    4. **COMPOSITIONAL STYLE**: Is it a hero shot, a flat lay, or an environmental lifestyle shot?
     
     *** PRODUCT DATA ***
     Product Name: "${inputs.productName || 'N/A'}"
@@ -202,7 +212,8 @@ const performAdIntelligence = async (
     Selected Vibe: "${inputs.vibe || 'Modern'}"
     
     Your Task: Determine the absolute best layout for this ad. 
-    - The layout must be "Aspect-Aware" (e.g., vertical layouts for 9:16).
+    - The layout MUST be a 1:1 structural match to the 'STYLE REFERENCE' provided.
+    - Describe the layout in a way that the Production Engine can perfectly replicate the text placement and design physics of the reference.
     
     RETURN JSON ONLY:
     {
@@ -213,10 +224,12 @@ const performAdIntelligence = async (
         "detectedFinish": "Glossy | Matte | Metallic | Glass | Fabric",
         "suggestedTone": "Bold | Luxury | Witty | Urgent",
         "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" },
-        "suggestedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine describing exactly where to place products and text)"
+        "suggestedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine describing exactly where to place products and text, strictly following the STYLE REFERENCE)"
     }`;
 
-    const parts: any[] = lowResAssets.map((asset) => ({ text: `ASSET FOR AUDIT:`, inlineData: { data: asset.data, mimeType: asset.mimeType } }));
+    const parts: any[] = [];
+    if (productAsset) parts.push({ text: `ASSET FOR AUDIT:`, inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
+    if (referenceAsset) parts.push({ text: `STYLE REFERENCE:`, inlineData: { data: referenceAsset.data, mimeType: referenceAsset.mimeType } });
     parts.push({ text: prompt });
 
     try {
@@ -278,7 +291,7 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     *** COMPOSITIONAL GOAL (MANDATORY) ***
     Create a 3D depth-of-field where the product is the primary light source and the text acts as a structural element of the environment. The composition must be "Platform-Aware" for Instagram.
-    ${optRef ? "Follow the lighting, composition, and aesthetic of the 'STYLE REFERENCE' exactly." : ""}
+    ${optRef ? "Follow the lighting, composition, text placement, and design physics of the 'STYLE REFERENCE' exactly. Replicate the negative space usage 1:1." : ""}
     
     *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
     - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
