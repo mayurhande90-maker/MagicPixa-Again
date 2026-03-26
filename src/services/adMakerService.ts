@@ -101,13 +101,14 @@ const performAdStrategy = async (inputs: AdMakerInputs): Promise<CreativeBrief> 
     Your task is to develop a high-conversion creative brief for the product shown in the 'PRODUCT ASSET'.
     
     *** THE VISUAL AUDIT (CRITICAL) ***
-    1. Scan the 'PRODUCT ASSET' with extreme precision. Identify the exact product, color, and material.
-    2. If a 'STYLE REFERENCE' is provided, extract its text placement, lighting, and compositional physics.
+    1. Scan the 'PRODUCT ASSET' with extreme precision. Identify the exact product, color, material, and "Vibe".
+    2. If a 'STYLE REFERENCE' is provided, you MUST follow its composition, lighting, and text placement 1:1.
     
     *** THE VIRAL HEADLINE (MANDATORY) ***
-    1. Generate a 2-5 word "Curiosity Gap" headline. 
-    2. Anchor the headline to a visual detail from the image (e.g., "The Sleek Matte Finish").
-    3. Avoid generic buzzwords like "Elevate", "Ultimate", "Standard", "Quality".
+    1. Generate a 2-5 word "Curiosity Gap" headline that creates an immediate "Stop-the-Scroll" effect.
+    2. Use the "Viral Success Formula": [Unexpected Observation] + [Massive Benefit] or [Curiosity Gap].
+    3. Anchor the headline to a visual detail (e.g., "The Midnight Matte Finish" if the product is black/matte).
+    4. FORBIDDEN: "Elevate", "Ultimate", "Standard", "Quality", "Experience", "Next Generation".
     
     *** DATA CONTEXT ***
     Product: "${inputs.productName || 'N/A'}"
@@ -117,10 +118,10 @@ const performAdStrategy = async (inputs: AdMakerInputs): Promise<CreativeBrief> 
     
     RETURN JSON ONLY:
     {
-        "headline": "string (2-5 words, viral, curiosity-gap)",
+        "headline": "string (2-5 words, viral, high-CTR)",
         "subheadline": "string (elegant, contextual)",
         "cta": "string (short, action-oriented)",
-        "layout": "string (narrative description of product and text placement)",
+        "layout": "string (Detailed narrative for the visual engine describing exactly where to place text and products, strictly following the STYLE REFERENCE if provided)",
         "finish": "Glossy | Matte | Metallic | Glass | Fabric",
         "tone": "Bold | Luxury | Witty | Urgent",
         "colorPalette": "string",
@@ -136,7 +137,7 @@ const performAdStrategy = async (inputs: AdMakerInputs): Promise<CreativeBrief> 
 
     try {
         const response = await secureGenerateContent({
-            model: 'gemini-3.1-pro-preview',
+            model: 'gemini-3-flash-preview',
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
@@ -161,7 +162,9 @@ const performAdStrategy = async (inputs: AdMakerInputs): Promise<CreativeBrief> 
             },
             featureName: 'Ad Strategy Engine'
         });
-        return JSON.parse(response.text || "{}");
+        const result = JSON.parse(response.text || "{}");
+        console.log("AI Strategy Result:", result);
+        return result;
     } catch (e) {
         console.error("Strategy Engine failed, using fallbacks", e);
         const fallback = INDUSTRY_FALLBACKS[inputs.industry] || INDUSTRY_FALLBACKS.ecommerce;
@@ -208,14 +211,14 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     Create a 2K photorealistic marketing masterpiece with a perfect Visual Hierarchy.
     
     *** THE CREATIVE COPY (MANDATORY RENDER) ***
-    1. **HEADLINE (HERO SCALE)**: You MUST render the text "${inputs.customTitle || brief.headline}" as a massive, high-impact headline using ${brand?.fonts.heading || 'Modern Serif'}.
+    1. **HEADLINE (HERO SCALE)**: You MUST render the text "${inputs.customTitle || brief.headline}" as a massive, high-impact headline. This is the most important element.
     2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.subheadline}" in a smaller, elegant font directly below the headline.
     ${inputs.website ? `3. **UTILITY STACK**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : ""}
     
     *** TEXT INTEGRATION RULES (HARDENED) ***
-    - **LEGIBILITY**: The text MUST be perfectly readable. Use high-contrast colors (white on dark, black on light) or subtle drop shadows.
+    - **LEGIBILITY**: The text MUST be perfectly readable. Use high-contrast colors or subtle drop shadows.
     - **Z-AXIS PHYSICS**: Treat the text as a physical 3D object in the scene. It should have "Contact Shadows" and interact with the lighting.
-    - **REFERENCE OVERRIDE**: Even if the 'STYLE REFERENCE' has no text, you MUST integrate the headline into the composition.
+    - **REFERENCE OVERRIDE**: If a 'STYLE REFERENCE' is provided, you MUST mimic its lighting, camera angle, and background textures exactly, but you MUST still integrate the headline.
     
     *** PRODUCTION BLUEPRINT ***
     - **LAYOUT**: ${brief.layout}

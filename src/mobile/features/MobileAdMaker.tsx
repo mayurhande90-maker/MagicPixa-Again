@@ -185,7 +185,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     mimeType: customReference.base64.mimeType
                 };
             } else {
+                console.log("Fetching vault reference for:", industry.id);
                 const vaultRef = await getRandomVaultImage('brand_stylist', industry.id);
+                console.log("Vault reference found:", vaultRef ? "YES" : "NO");
                 if (vaultRef) {
                     const base64 = await urlToBase64(vaultRef.imageUrl);
                     referenceImage = {
