@@ -1,8 +1,13 @@
 
-import { Modality, Type, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { getAiClient, callWithRetry, secureGenerateContent } from "./geminiClient";
-import { resizeImage, urlToBase64, applyWatermark } from "../utils/imageUtils";
+import { resizeImage, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
+
+/**
+ * PIXA ADMAKER SERVICE v2.0 (REWRITTEN FROM SCRATCH)
+ * A high-performance, single-brain AI engine for viral ad creation.
+ */
 
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
@@ -29,32 +34,28 @@ export interface AdMakerInputs {
     customTitle?: string;
 }
 
-const LAYOUT_BLUEPRINTS: Record<string, string> = {
-    'Hero Focus': "The product is the undisputed hero, placed front and center. INSTAGRAM SAFE ZONE: Keep the top 15% and bottom 15% clear of text. The headline floats elegantly in the upper third safe-zone. PHYSICS: Ensure the product has a soft contact shadow on the surface.",
-    'Split Design': "A sophisticated vertical split. One side is dedicated to a clean product showcase, while the other houses the headline. INSTAGRAM SAFE ZONE: Ensure text is vertically centered to avoid platform overlays. DESIGN: Use a strict 50/50 split with a 1px divider line.",
-    'Bottom Strip': "A cinematic wide-angle approach. The product dominates the upper frame. INSTAGRAM SAFE ZONE: The semi-transparent information strip must be placed exactly above the bottom 15% UI area. PHYSICS: Use high-angle lighting to create long, dramatic shadows.",
-    'Social Proof': "An organic, trust-focused composition. The product is offset to one side. SAFE ZONE: Place the 'Review Bubble' in the upper safe-zone corner. DESIGN: Use a handwritten-style font for the review text to contrast with the brand typography.",
-    'Magazine Cover': "High-prestige editorial style. The product is large and centered. SAFE ZONE: Massive typography must be integrated into the middle 70% of the canvas to avoid UI cropping. DESIGN: Text should partially overlap the product for depth.",
-    'Minimalist Zen': "Extreme boutique minimalism. The product is small and placed in a corner. SAFE ZONE: The headline is a tiny, elegant serif in the opposite safe-zone corner. DESIGN: Use 80% negative space.",
-    'Feature Callout': "A technical, educational layout. The product is centered at a 60% scale. SAFE ZONE: Pointer lines and text must stay within the central 70% area. DRAFTING: Use 1px sharp vector lines with circular anchor points to point at product features.",
-    'Action Dynamic': "High-energy urgency. The product is tilted at a dynamic angle. SAFE ZONE: Bold italicized headline must be placed aggressively but within safe boundaries. PHYSICS: Add motion blur to the background to emphasize speed.",
-    'Contrast Grid': "A powerful 'Before & After' split. The canvas is divided 50/50. SAFE ZONE: Maintain vertical symmetry within the platform safe zones. DESIGN: Use high-contrast color grading between the two halves.",
-    'The Trio': "A depth-based collection showcase. One main hero item is front and center. SAFE ZONE: Keep the top and bottom clear for Instagram engagement buttons. PHYSICS: Use shallow depth-of-field (bokeh) for the background items.",
-    'Range Lineup': "Perfect symmetrical alignment. Products are arranged side-by-side. SAFE ZONE: Ensure the lineup is centered horizontally and vertically. PHYSICS: Ensure identical lighting and shadow angles for all products.",
-    'Hero & Variants': "Dynamic bokeh-based storytelling. Hero item in sharp focus. SAFE ZONE: Depth-based text must float in the middle safe-zone layer. PHYSICS: Use a 'Light Wrap' effect where the background glow bleeds into the product edges."
-};
+interface CreativeBrief {
+    headline: string;
+    subheadline: string;
+    cta: string;
+    layout: string;
+    finish: 'Glossy' | 'Matte' | 'Metallic' | 'Glass' | 'Fabric';
+    tone: 'Bold' | 'Luxury' | 'Witty' | 'Urgent';
+    colorPalette: string;
+    lightingMood: string;
+    compositionalStyle: string;
+    visualDirection: string;
+}
 
-const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
-    try {
-        const dataUri = `data:${mimeType};base64,${base64}`;
-        const resizedUri = await resizeImage(dataUri, width, 0.85);
-        const [header, data] = resizedUri.split(',');
-        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-        return { data, mimeType: newMime };
-    } catch (e) {
-        console.warn("Image optimization failed, using original", e);
-        return { data: base64, mimeType };
-    }
+const INDUSTRY_FALLBACKS: Record<string, { headline: string; subheadline: string }> = {
+    ecommerce: { headline: "THE NEW STANDARD", subheadline: "Uncompromising quality for your daily life." },
+    realty: { headline: "YOUR DREAM SPACE", subheadline: "Experience luxury living like never before." },
+    food: { headline: "PURE INDULGENCE", subheadline: "Taste the perfection in every single bite." },
+    saas: { headline: "WORK SMARTER", subheadline: "The next generation of productivity is here." },
+    fmcg: { headline: "FRESHNESS REDEFINED", subheadline: "Nature's best, delivered to your home." },
+    fashion: { headline: "STAY ICONIC", subheadline: "Timeless style for the modern individual." },
+    education: { headline: "MASTER YOUR FUTURE", subheadline: "Learn from the best, lead the rest." },
+    services: { headline: "TRUSTED EXPERTISE", subheadline: "Professional solutions for your business growth." }
 };
 
 const VIBE_PROMPTS: Record<string, string> = {
@@ -68,79 +69,70 @@ const VIBE_PROMPTS: Record<string, string> = {
     "Simple": "Extreme boutique minimalism, bold massive typography, extreme white space, ultra-minimalist focus. Typography: Elegant, light weights."
 };
 
-interface CreativeBrief {
-    strategicCopy: {
-        headline: string;
-        subheadline: string;
-        cta: string;
-    };
-    identityStrategy: {
-        weight: 'Primary' | 'Secondary' | 'Hidden' | 'Footnote';
-        reasoning: string;
-        placementRecommendation: string;
-        styling: string;
-    };
-    industryLogic: {
-        categoryBadgeText: string;
-        forbiddenKeywords: string[];
-    };
-    visualDirection: string;
-    detectedFinish: 'Glossy' | 'Matte' | 'Metallic' | 'Glass' | 'Fabric';
-    suggestedTone: 'Bold' | 'Luxury' | 'Witty' | 'Urgent';
-    trendAnalysis: {
-        colorPalette: string;
-        lightingMood: string;
-        compositionalStyle: string;
-    };
-    suggestedLayout: string;
-}
+/**
+ * UTILITY: Image Optimization
+ */
+const optimizeImage = async (base64: string, mimeType: string, width: number = 1280): Promise<{ data: string; mimeType: string }> => {
+    try {
+        const dataUri = `data:${mimeType};base64,${base64}`;
+        const resizedUri = await resizeImage(dataUri, width, 0.85);
+        const [header, data] = resizedUri.split(',');
+        const newMime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        return { data, mimeType: newMime };
+    } catch (e) {
+        console.warn("Image optimization failed, using original", e);
+        return { data: base64, mimeType };
+    }
+};
 
 /**
- * PHASE 0: THE TRENDY AI TITLE ENGINE
- * This engine generates viral, high-CTR ad headlines using the "Clickbait Success Formula".
+ * ENGINE 1: THE MASTER STRATEGY ENGINE (CMO + COPYWRITER)
+ * Consolidates research, visual audit, and headline generation into one step.
  */
-const generateTrendyAdTitle = async (
-    productImage: { base64: string; mimeType: string } | undefined,
-    productName: string, 
-    description: string, 
-    industry: string, 
-    tone: string = 'Viral'
-): Promise<string> => {
-    const parts: any[] = [{
-        text: `You are a World-Class Ad Copywriter and Viral Growth Hacker.
-    Your task is to write a 2-5 word "Trendy AI Title" (Curiosity Gap Headline) for a high-performance ad.
-    
-    STEP 1: Search the internet for the latest viral marketing trends, high-CTR headlines, and "Clickbait Success Formulas" for the year 2026, specifically for the "${industry}" industry.
-    STEP 2: Scan the uploaded product image (if provided) to understand its visual identity, quality, and key features.
-    STEP 3: Consider the user-provided product name and ad context.
-    STEP 4: Generate a 2-5 word "Clickbait Success Formula" headline that creates a Curiosity Gap or highlights a massive benefit, inspired by your research.
-    
-    *** BRAND DATA ***
-    Product Name: "${productName}"
-    Ad Context: "${description}"
-    Industry: "${industry}"
-    Marketing Tone: "${tone}"
-    
-    *** VIRAL GUIDELINES (CLICKBAIT SUCCESS FORMULA) ***
-    1. **CURIOSITY GAP**: Create a headline that makes people stop scrolling. Use the "Curiosity Gap" technique.
-    2. **BREVITY IS POWER**: Use 2 to 5 words maximum. No fluff.
-    3. **TRENDY AI STYLE**: Focus on high-impact, trendy, and performance-oriented language.
-    4. **EMOTIONAL HOOK**: Identify one dominant emotion (Curiosity, Surprise, Fear, Authority, or Contrast).
-    5. **NO GENERIC BUZZWORDS**: Avoid "Elevate", "Unleash", "Ultimate", "Best", "Standard", "Quality", "Experience", "Next Generation".
-    6. **VISUAL ANCHOR**: If you see a specific color, material, or feature in the image, try to anchor the headline to it (e.g., "The Sleek Matte Finish").
-    7. **VARIETY MANDATE**: Do not use the same headline twice. Be creative and unique.
-    
-    OUTPUT: Return ONLY the headline string. No quotes.`
-    }];
+const performAdStrategy = async (inputs: AdMakerInputs): Promise<CreativeBrief> => {
+    const lowResAssets = await Promise.all([
+        optimizeImage(inputs.mainImages[0].base64, inputs.mainImages[0].mimeType, 512),
+        inputs.referenceImage ? optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType, 512) : Promise.resolve(null)
+    ]);
 
-    if (productImage) {
-        parts.push({
-            inlineData: {
-                data: productImage.base64,
-                mimeType: productImage.mimeType
-            }
-        });
-    }
+    const [productAsset, referenceAsset] = lowResAssets;
+
+    const prompt = `Act as a world-class CMO and Viral Ad Copywriter. 
+    Your task is to develop a high-conversion creative brief for the product shown in the 'PRODUCT ASSET'.
+    
+    *** THE VISUAL AUDIT (CRITICAL) ***
+    1. Scan the 'PRODUCT ASSET' with extreme precision. Identify the exact product, color, and material.
+    2. If a 'STYLE REFERENCE' is provided, extract its text placement, lighting, and compositional physics.
+    
+    *** THE VIRAL HEADLINE (MANDATORY) ***
+    1. Generate a 2-5 word "Curiosity Gap" headline. 
+    2. Anchor the headline to a visual detail from the image (e.g., "The Sleek Matte Finish").
+    3. Avoid generic buzzwords like "Elevate", "Ultimate", "Standard", "Quality".
+    
+    *** DATA CONTEXT ***
+    Product: "${inputs.productName || 'N/A'}"
+    Description: "${inputs.description || 'N/A'}"
+    Industry: "${inputs.industry}"
+    Vibe: "${inputs.vibe || 'Modern'}"
+    
+    RETURN JSON ONLY:
+    {
+        "headline": "string (2-5 words, viral, curiosity-gap)",
+        "subheadline": "string (elegant, contextual)",
+        "cta": "string (short, action-oriented)",
+        "layout": "string (narrative description of product and text placement)",
+        "finish": "Glossy | Matte | Metallic | Glass | Fabric",
+        "tone": "Bold | Luxury | Witty | Urgent",
+        "colorPalette": "string",
+        "lightingMood": "string",
+        "compositionalStyle": "string",
+        "visualDirection": "string"
+    }`;
+
+    const parts: any[] = [];
+    parts.push({ text: `PRODUCT ASSET:`, inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
+    if (referenceAsset) parts.push({ text: `STYLE REFERENCE:`, inlineData: { data: referenceAsset.data, mimeType: referenceAsset.mimeType } });
+    parts.push({ text: prompt });
 
     try {
         const response = await secureGenerateContent({
@@ -148,133 +140,56 @@ const generateTrendyAdTitle = async (
             contents: { parts },
             config: {
                 tools: [{ googleSearch: {} }],
-                seed: Math.floor(Math.random() * 1000000)
-            },
-            featureName: 'Trendy Ad Title Engine'
-        });
-        return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW ERA";
-    } catch (e) {
-        return "BEYOND THE ORDINARY";
-    }
-};
-
-/**
- * PHASE 1: THE AD-INTELLIGENCE ENGINE (CMO + TREND RESEARCHER)
- * LOGIC UPGRADE: Consolidated Research & Viral Visual Audit
- */
-const performAdIntelligence = async (
-    inputs: AdMakerInputs, 
-    brand?: BrandKit | null
-): Promise<CreativeBrief> => {
-    const ai = getAiClient();
-    
-    // 0. TRENDY AI TITLE ENGINE (INITIAL PASS)
-    const initialHeadline = inputs.customTitle ? inputs.customTitle : await generateTrendyAdTitle(inputs.mainImages[0], inputs.productName || '', inputs.description || '', inputs.industry || '', 'Viral');
-
-    const lowResAssets = await Promise.all([
-        ...inputs.mainImages.slice(0, 1).map(img => optimizeImage(img.base64, img.mimeType, 512)),
-        inputs.referenceImage ? optimizeImage(inputs.referenceImage.base64, inputs.referenceImage.mimeType, 512) : Promise.resolve(null)
-    ]);
-
-    const [productAsset, referenceAsset] = lowResAssets;
-
-    const prompt = `Act as a world-class CMO and Viral Trend Researcher. 
-    Develop a high-conversion creative brief for the product shown in the 'ASSET FOR AUDIT'.
-    
-    *** THE VISUAL ANCHOR (MANDATORY) ***
-    You are provided with a 'STYLE REFERENCE'. 
-    Your PRIMARY TASK is to extract the following from the 'STYLE REFERENCE':
-    1. **TEXT PLACEMENT**: Exactly where is the headline, subheadline, and utility text located? (Top-left, centered, bottom-right, etc.)
-    2. **DESIGN PHYSICS**: How do shadows, light, and reflections interact with the environment?
-    3. **NEGATIVE SPACE**: How much empty space is used and where? 
-    4. **COMPOSITIONAL STYLE**: Is it a hero shot, a flat lay, or an environmental lifestyle shot?
-    
-    *** PRODUCT DATA ***
-    Product Name: "${inputs.productName || 'N/A'}"
-    Ad Context: "${inputs.description || 'N/A'}"
-    Industry: "${inputs.industry || 'N/A'}"
-    Initial Trendy Headline: "${initialHeadline}"
-    
-    *** TREND RESEARCH TASK (MARCH 2026) ***
-    1. Research high-performing viral ad trends for Industry: "${inputs.industry}" and Topic: "${inputs.description}".
-    2. Identify the "Clickbait Success Formula" currently working for this niche.
-    
-    *** VISUAL AUDIT (MANDATORY) ***
-    1. Scan the 'ASSET FOR AUDIT' with extreme precision. Identify the exact product, its color, material, and brand.
-    2. Identify the 'detectedFinish': Is the product Glossy, Matte, Metallic, Glass, or Fabric?
-    3. Suggest a 'suggestedTone': Based on the product and viral trends, which marketing tone fits best? (Bold, Luxury, Witty, or Urgent).
-    
-    *** HEADLINE REFINEMENT (THE VIRAL UPGRADE) ***
-    1. Review the 'Initial Trendy Headline': "${initialHeadline}".
-    2. If the initial headline is generic or repetitive, REWRITE it to be a 2-5 word Curiosity Gap headline.
-    3. Use the visual data from the audit (color, material, finish) to anchor the headline.
-    4. FORBIDDEN FALLBACKS: "THE NEW STANDARD", "UNCOMPROMISING QUALITY", "EXPERIENCE THE FUTURE".
-    
-    *** LAYOUT INTELLIGENCE (CRITICAL) ***
-    Number of Products: ${inputs.mainImages.length}
-    Selected Aspect Ratio: "${inputs.aspectRatio || '1:1'}"
-    Selected Vibe: "${inputs.vibe || 'Modern'}"
-    
-    Your Task: Determine the absolute best layout for this ad. 
-    - The layout MUST be a 1:1 structural match to the 'STYLE REFERENCE' provided.
-    - Describe the layout in a way that the Production Engine can perfectly replicate the text placement and design physics of the reference.
-    
-    RETURN JSON ONLY:
-    {
-        "strategicCopy": { "headline": "string (The final refined trendy headline)", "subheadline": "string", "cta": "string" },
-        "identityStrategy": { "weight": "Primary | Secondary", "reasoning": "string", "placementRecommendation": "string", "styling": "string" },
-        "industryLogic": { "categoryBadgeText": "string", "forbiddenKeywords": ["string"] },
-        "visualDirection": "string",
-        "detectedFinish": "Glossy | Matte | Metallic | Glass | Fabric",
-        "suggestedTone": "Bold | Luxury | Witty | Urgent",
-        "trendAnalysis": { "colorPalette": "string", "lightingMood": "string", "compositionalStyle": "string" },
-        "suggestedLayout": "string (A detailed, aspect-aware narrative instruction for the visual production engine describing exactly where to place products and text, strictly following the STYLE REFERENCE)"
-    }`;
-
-    const parts: any[] = [];
-    if (productAsset) parts.push({ text: `ASSET FOR AUDIT:`, inlineData: { data: productAsset.data, mimeType: productAsset.mimeType } });
-    if (referenceAsset) parts.push({ text: `STYLE REFERENCE:`, inlineData: { data: referenceAsset.data, mimeType: referenceAsset.mimeType } });
-    parts.push({ text: prompt });
-
-    try {
-        const response = await secureGenerateContent({
-            model: 'gemini-3.1-pro-preview', 
-            contents: { parts },
-            config: {
-                tools: [{ googleSearch: {} }],
                 responseMimeType: "application/json",
-                seed: Math.floor(Math.random() * 1000000)
+                seed: Math.floor(Math.random() * 1000000),
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        headline: { type: Type.STRING },
+                        subheadline: { type: Type.STRING },
+                        cta: { type: Type.STRING },
+                        layout: { type: Type.STRING },
+                        finish: { type: Type.STRING, enum: ['Glossy', 'Matte', 'Metallic', 'Glass', 'Fabric'] },
+                        tone: { type: Type.STRING, enum: ['Bold', 'Luxury', 'Witty', 'Urgent'] },
+                        colorPalette: { type: Type.STRING },
+                        lightingMood: { type: Type.STRING },
+                        compositionalStyle: { type: Type.STRING },
+                        visualDirection: { type: Type.STRING }
+                    },
+                    required: ['headline', 'subheadline', 'cta', 'layout', 'finish', 'tone', 'colorPalette', 'lightingMood', 'compositionalStyle', 'visualDirection']
+                }
             },
-            featureName: 'Ad Intelligence Analysis'
+            featureName: 'Ad Strategy Engine'
         });
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        return { 
-            strategicCopy: { 
-                headline: inputs.productName ? `${inputs.productName} | THE NEW ERA` : `BEYOND THE ORDINARY`, 
-                subheadline: `Experience the next generation of precision design.`, 
-                cta: "Discover More" 
-            }, 
-            identityStrategy: { weight: 'Secondary', reasoning: 'Standard hierarchy', placementRecommendation: 'Top Left', styling: 'Bold Modern' },
-            industryLogic: { categoryBadgeText: 'Premium Grade', forbiddenKeywords: [inputs.industry] },
-            visualDirection: "Clean commercial studio aesthetics.",
-            detectedFinish: 'Matte',
-            suggestedTone: 'Bold',
-            trendAnalysis: { colorPalette: "Modern & Balanced", lightingMood: "Professional Studio", compositionalStyle: "Hero Focus" },
-            suggestedLayout: "The product is the undisputed hero, placed front and center. INSTAGRAM SAFE ZONE: Keep the top 15% and bottom 15% clear of text. The headline floats elegantly in the upper third safe-zone. PHYSICS: Ensure the product has a soft contact shadow on the surface."
+        console.error("Strategy Engine failed, using fallbacks", e);
+        const fallback = INDUSTRY_FALLBACKS[inputs.industry] || INDUSTRY_FALLBACKS.ecommerce;
+        return {
+            headline: inputs.productName ? `${inputs.productName} | ${fallback.headline}` : fallback.headline,
+            subheadline: fallback.subheadline,
+            cta: "Discover More",
+            layout: "The product is centered as the hero. Text is placed in the upper third safe zone.",
+            finish: 'Matte',
+            tone: 'Bold',
+            colorPalette: "Modern & Balanced",
+            lightingMood: "Professional Studio",
+            compositionalStyle: "Hero Focus",
+            visualDirection: "Clean commercial studio aesthetics."
         };
     }
 };
 
 /**
- * PHASE 2: THE PRODUCTION ENGINE (Art Director + Visualizer)
+ * ENGINE 2: THE PRODUCTION ENGINE (ART DIRECTOR + VISUALIZER)
+ * Hardened prompt architecture to force text rendering and visual fidelity.
  */
 export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit | null, userPlan?: string): Promise<string> => {
-    const ai = getAiClient();
-    
-    // 1. Departmental Engines (Strategy + Prep)
-    const [brief, optimizedMains, optLogo, optModel, optRef] = await Promise.all([
-        performAdIntelligence(inputs, brand),
+    // 1. Run Strategy Engine
+    const brief = await performAdStrategy(inputs);
+
+    // 2. Optimize Assets
+    const [optimizedMains, optLogo, optModel, optRef] = await Promise.all([
         Promise.all(inputs.mainImages.map(img => optimizeImage(img.base64, img.mimeType, 1536))),
         inputs.logoImage ? optimizeImage(inputs.logoImage.base64, inputs.logoImage.mimeType, 1024) : Promise.resolve(null),
         (inputs.modelSource === 'upload' && inputs.modelImage) ? optimizeImage(inputs.modelImage.base64, inputs.modelImage.mimeType, 1536) : Promise.resolve(null),
@@ -282,77 +197,40 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     ]);
 
     const parts: any[] = [];
-    
-    // Add Primary Product Assets
     optimizedMains.forEach((opt, idx) => {
         parts.push({ text: `SACRED PRODUCT ASSET ${idx + 1}:` }, { inlineData: { data: opt.data, mimeType: opt.mimeType } });
     });
-    
     if (optLogo) parts.push({ text: "BRAND LOGO (SACRED):" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     if (optModel) parts.push({ text: "SUBJECT DIGITAL TWIN (SACRED):" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
     if (optRef) parts.push({ text: "STYLE REFERENCE (SACRED):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
 
-    const prompt = `Act as a Master Art Director and Elite CGI Artist. Your goal is to create a high-fidelity, professional marketing masterpiece with a perfect Visual Hierarchy.
+    const prompt = `Act as a Master Art Director and Elite CGI Artist. 
+    Create a 2K photorealistic marketing masterpiece with a perfect Visual Hierarchy.
     
     *** THE CREATIVE COPY (MANDATORY RENDER) ***
-    1. **HEADLINE (HERO SCALE)**: You MUST render the text "${inputs.customTitle || brief.strategicCopy.headline}" as a massive, high-impact headline using ${brand?.fonts.heading || 'Modern Serif'}.
-    2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.strategicCopy.subheadline}" in a smaller, elegant font directly below the headline.
-    ${inputs.website ? `3. **UTILITY STACK (FOOTER SAFE-ZONE)**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : "3. **NO UTILITY STACK**: Do not render any website information."}
+    1. **HEADLINE (HERO SCALE)**: You MUST render the text "${inputs.customTitle || brief.headline}" as a massive, high-impact headline using ${brand?.fonts.heading || 'Modern Serif'}.
+    2. **SUBHEADLINE (CONTEXTUAL)**: Render "${brief.subheadline}" in a smaller, elegant font directly below the headline.
+    ${inputs.website ? `3. **UTILITY STACK**: Render "${inputs.website}" in a tiny, clean technical font at the bottom.` : ""}
     
     *** TEXT INTEGRATION RULES (HARDENED) ***
-    - **LEGIBILITY MANDATE**: The text MUST be perfectly readable. Use high-contrast colors (e.g., white text on dark areas, black text on light areas) or subtle drop shadows/glows to ensure the headline pops.
-    - **Z-AXIS PHYSICS**: Treat the text as a physical 3D object in the scene. It should have "Contact Shadows", "Ambient Occlusion", and interact with the "Global Illumination".
-    - **REFERENCE OVERRIDE**: Even if the 'STYLE REFERENCE' has no text, you MUST integrate the headline and subheadline into the composition.
-    - **SAFE ZONES**: Ensure all text stays within the Instagram/Social Media safe zones (middle 70% of the vertical space).
+    - **LEGIBILITY**: The text MUST be perfectly readable. Use high-contrast colors (white on dark, black on light) or subtle drop shadows.
+    - **Z-AXIS PHYSICS**: Treat the text as a physical 3D object in the scene. It should have "Contact Shadows" and interact with the lighting.
+    - **REFERENCE OVERRIDE**: Even if the 'STYLE REFERENCE' has no text, you MUST integrate the headline into the composition.
     
-    *** COMPOSITIONAL GOAL (MANDATORY) ***
-    Create a 3D depth-of-field where the product is the primary light source and the text acts as a structural element of the environment. The composition must be "Platform-Aware" for Instagram.
-    ${optRef ? "Follow the lighting, composition, and design physics of the 'STYLE REFERENCE' exactly. Replicate the negative space usage 1:1. Use the reference's text placement if applicable, otherwise place text in a balanced, high-end editorial position." : ""}
+    *** PRODUCTION BLUEPRINT ***
+    - **LAYOUT**: ${brief.layout}
+    - **FINISH**: The product has a "${brief.finish}" finish. Apply realistic reflections and highlights.
+    - **TONE**: ${brief.tone}
+    - **LIGHTING**: ${brief.lightingMood}
+    - **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
     
-    *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
-    - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
-    - **LIGHTING MOOD**: ${brief.trendAnalysis.lightingMood}
-    - **COMPOSITIONAL STYLE**: ${brief.trendAnalysis.compositionalStyle}
-    - **VISUAL DIRECTION**: ${brief.visualDirection}
-    - **SUGGESTED LAYOUT**: ${brief.suggestedLayout}
-    
-    *** SWISS DESIGN ARCHITECTURE (MANDATORY) ***
-    1. **EDITORIAL TYPOGRAPHY**: Use high-contrast Editorial Serifs or Geometric Swiss Grotesks. Apply custom kerning (tracking-wide) for a luxury magazine look.
-    2. **MASSIVE SCALE CONTRAST**: The Headline must be bold and high-impact.
-    3. **NEGATIVE SPACE MANDATE**: Ensure at least 20% "breathing room" around every text element. No clutter.
-    4. **GRID ALIGNMENT**: Align all text elements to a strict invisible grid.
-    
-    *** IDENTITY ANCHOR v8.0 (SACRED ASSET PROTOCOL) ***
-    1. **PRODUCT INTEGRITY**: You are FORBIDDEN from altering the geometry, silhouette, or label typography of the 'SACRED PRODUCT ASSETS'. 
-    2. **BRAND FIDELITY**: The 'BRAND LOGO' must be rendered with pixel-perfect precision. 
-    ${optModel ? "3. **SUBJECT LOCK**: The person in the ad must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'." : ""}
-    ${inputs.modelSource === 'ai' ? `3. **TALENT SYNTHESIS**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'} with ${inputs.modelParams?.skinTone || 'Natural'} skin tone. Professional talent from a high-end agency.` : ""}
+    *** IDENTITY ANCHOR (SACRED ASSET PROTOCOL) ***
+    1. **PRODUCT INTEGRITY**: Do NOT alter the geometry or branding of the 'SACRED PRODUCT ASSETS'. 
+    2. **BRAND FIDELITY**: The 'BRAND LOGO' must be pixel-perfect. 
+    ${optModel ? "3. **SUBJECT LOCK**: The person must be a 1:1 biometric replica of the 'SUBJECT DIGITAL TWIN'." : ""}
+    ${inputs.modelSource === 'ai' ? `3. **TALENT**: Generate a ${inputs.modelParams?.modelType || 'Professional Model'} from ${inputs.modelParams?.region || 'Global'}.` : ""}
 
-    *** PRODUCTION DIRECTIVES (ELITE QUALITY) ***
-    1. **RAY-TRACED PHYSICS DIRECTIVES**:
-       - **CONTACT SHADOWS**: Mandatory soft, realistic shadows where the product touches any surface.
-       - **AMBIENT OCCLUSION**: Subtle darkening in crevices and contact points for depth.
-       - **LIGHT WRAP**: Background light must bleed slightly over product edges for environmental immersion.
-       - **REFLECTIVE GROUNDING**: If on a surface, apply a subtle, blurred reflection of the product.
-    2. **STRICT 12-COLUMN SWISS GRID**:
-       - Align all text elements to a strict invisible grid.
-       - **TYPOGRAPHY CONTRAST**: Use a massive "Display Serif" for the headline and a tiny "Technical Mono" for utility text (website/contact).
-       - **NEGATIVE SPACE**: Enforce a "20% Margin Rule"—no text can touch the edges of the product or canvas.
-    3. **MATERIAL FIDELITY**: The product has a "${brief.detectedFinish || 'Matte'}" finish. 
-       - If 'Glossy': Apply sharp, clear reflections of the studio environment.
-       - If 'Matte': Apply soft, diffused lighting with no sharp highlights.
-       - If 'Metallic': Apply high-contrast rim lighting and anisotropic specular highlights.
-       - If 'Glass': Apply realistic refraction, transparency, and caustic light patterns.
-       - If 'Fabric': Apply soft micro-shadows to highlight texture and weave.
-    4. **MARKETING TONE**: The ad must convey a "${brief.suggestedTone || 'Bold'}" tone. 
-    5. **ENVIRONMENTAL BLENDING**: Treat the text as a physical object in the scene. Apply "Contact Shadows", "Ambient Occlusion", and "Light Wrap" to the text elements so they look integrated into the studio lighting.
-    6. **Z-AXIS LAYERING**: Integrate text with depth—the product can slightly overlap the text, or the text can float behind foreground objects for a high-end editorial 3D look.
-    7. **LIGHTING**: Apply "Ray-Traced Global Illumination". Ensure realistic light bounce between the product and the environment.
-    8. **BLENDING**: The product must look physically present in the scene, not "pasted".
-    9. **VIBE**: ${VIBE_PROMPTS[inputs.vibe || ''] || "Professional commercial aesthetic."}
-    10. **LAYOUT**: ${brief.suggestedLayout}
-    
-    OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy, typographic perfection, and trend-relevance are your primary KPIs.`;
+    OUTPUT: A single 2K photorealistic marketing masterpiece. Accuracy and typographic perfection are your primary KPIs.`;
 
     parts.push({ text: prompt });
 
@@ -384,6 +262,9 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     } catch (e) { throw e; }
 };
 
+/**
+ * ENGINE 3: THE REFINEMENT ENGINE
+ */
 export const refineAdCreative = async (
     base64Result: string,
     mimeType: string,
@@ -392,22 +273,12 @@ export const refineAdCreative = async (
     originalImage?: { base64: string, mimeType: string },
     originalPrompt?: string
 ): Promise<string> => {
-    const ai = getAiClient();
     const optResult = await optimizeImage(base64Result, mimeType, 1536);
 
     let prompt = `You are an Elite Ad Retoucher. Modify the provided ad based on feedback: "${instruction}".
     1. **Preservation**: Maintain 98% of the original product identity and branding.
-    2. **Precision**: Only iterate on the requested areas.`;
-
-    if (originalPrompt) {
-        prompt += `\n\n*** ORIGINAL CONTEXT ***\nThis ad was originally generated with the concept: "${originalPrompt}". Keep this core concept intact while applying the new changes.`;
-    }
-
-    if (originalImage) {
-        prompt += `\n\n*** SACRED ASSET ANCHOR ***\nI have provided the ORIGINAL raw photo as the first image, and the CURRENT generated ad as the second image. You MUST use the first image as the absolute source of truth for the product's physical geometry, branding, and identity.`;
-    }
-
-    prompt += `\n\nOUTPUT: A single 4K photorealistic refined image.`;
+    2. **Precision**: Only iterate on the requested areas.
+    OUTPUT: A single 4K photorealistic refined image.`;
 
     const parts: any[] = [];
     if (originalImage) {
