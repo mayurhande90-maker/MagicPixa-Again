@@ -110,9 +110,10 @@ const generateTrendyAdTitle = async (
         text: `You are a World-Class Ad Copywriter and Viral Growth Hacker.
     Your task is to write a 2-5 word "Trendy AI Title" (Curiosity Gap Headline) for a high-performance ad.
     
-    STEP 1: Scan the uploaded product image (if provided) to understand its visual identity, quality, and key features.
-    STEP 2: Consider the user-provided product name and ad context.
-    STEP 3: Generate a 2-5 word "Clickbait Success Formula" headline that creates a Curiosity Gap or highlights a massive benefit.
+    STEP 1: Search the internet for the latest viral marketing trends, high-CTR headlines, and "Clickbait Success Formulas" for the year 2026, specifically for the "${industry}" industry.
+    STEP 2: Scan the uploaded product image (if provided) to understand its visual identity, quality, and key features.
+    STEP 3: Consider the user-provided product name and ad context.
+    STEP 4: Generate a 2-5 word "Clickbait Success Formula" headline that creates a Curiosity Gap or highlights a massive benefit, inspired by your research.
     
     *** BRAND DATA ***
     Product Name: "${productName}"
@@ -143,6 +144,9 @@ const generateTrendyAdTitle = async (
         const response = await secureGenerateContent({
             model: 'gemini-3.1-pro-preview',
             contents: { parts },
+            config: {
+                tools: [{ googleSearch: {} }]
+            },
             featureName: 'Trendy Ad Title Engine'
         });
         return response.text?.trim().replace(/^["']|["']$/g, '') || "THE NEW STANDARD";
@@ -268,11 +272,13 @@ export const generateAdCreative = async (inputs: AdMakerInputs, brand?: BrandKit
     
     if (optLogo) parts.push({ text: "BRAND LOGO (SACRED):" }, { inlineData: { data: optLogo.data, mimeType: optLogo.mimeType } });
     if (optModel) parts.push({ text: "SUBJECT DIGITAL TWIN (SACRED):" }, { inlineData: { data: optModel.data, mimeType: optModel.mimeType } });
+    if (optRef) parts.push({ text: "STYLE REFERENCE (SACRED):" }, { inlineData: { data: optRef.data, mimeType: optRef.mimeType } });
 
     const prompt = `Act as a Master Art Director and Elite CGI Artist. Your goal is to create a high-fidelity, professional marketing masterpiece with a perfect Visual Hierarchy.
     
     *** COMPOSITIONAL GOAL (MANDATORY) ***
     Create a 3D depth-of-field where the product is the primary light source and the text acts as a structural element of the environment. The composition must be "Platform-Aware" for Instagram.
+    ${optRef ? "Follow the lighting, composition, and aesthetic of the 'STYLE REFERENCE' exactly." : ""}
     
     *** PRODUCTION BLUEPRINT (MARCH 2026 TRENDS) ***
     - **COLOR PALETTE**: ${brief.trendAnalysis.colorPalette}
