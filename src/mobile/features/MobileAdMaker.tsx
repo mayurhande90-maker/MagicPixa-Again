@@ -28,6 +28,7 @@ const AD_STEPS = [
     { id: 'niche', label: 'Identity' },
     { id: 'engine', label: 'Engine' },
     { id: 'logo', label: 'Logo' },
+    { id: 'reference', label: 'Reference' },
     { id: 'creative', label: 'Creative' },
     { id: 'format', label: 'Format' },
     { id: 'copy', label: 'Copy' }
@@ -72,6 +73,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [isCollectionMode, setIsCollectionMode] = useState(false);
     const [mainImages, setMainImages] = useState<{ url: string; base64: any }[]>([]);
     const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
+    const [customReference, setCustomReference] = useState<{ url: string; base64: any } | null>(null);
     const [vibe, setVibe] = useState('');
     const [customVibe, setCustomVibe] = useState('');
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>('');
@@ -175,15 +177,22 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         onGenerationStart();
         setIsGenerating(true);
         try {
-            // Get random reference image from Style Vault
-            const vaultRef = await getRandomVaultImage('pixa-admaker', industry.id);
+            // Get random reference image from Style Vault if no custom reference is provided
             let referenceImage = null;
-            if (vaultRef) {
-                const base64 = await urlToBase64(vaultRef.imageUrl);
+            if (customReference) {
                 referenceImage = {
-                    base64: base64.base64,
-                    mimeType: base64.mimeType
+                    base64: customReference.base64.base64,
+                    mimeType: customReference.base64.mimeType
                 };
+            } else {
+                const vaultRef = await getRandomVaultImage('pixa-admaker', industry.id);
+                if (vaultRef) {
+                    const base64 = await urlToBase64(vaultRef.imageUrl);
+                    referenceImage = {
+                        base64: base64.base64,
+                        mimeType: base64.mimeType
+                    };
+                }
             }
 
             const resB64 = await generateAdCreative({
@@ -247,7 +256,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const handleReset = () => {
-        setResult(null); setMainImages([]); setLogo(null); setIndustry(null); setEngineMode(null);
+        setResult(null); setMainImages([]); setLogo(null); setCustomReference(null); setIndustry(null); setEngineMode(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setDescription(''); setCustomTitle('');
         setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
         setIsCollectionMode(false);
@@ -325,6 +334,16 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             {logo ? <CheckIcon className="w-6 h-6"/> : <UploadIcon className="w-6 h-6"/>}
                             <span className="text-[10px] font-black uppercase tracking-widest">{logo ? 'Logo Set' : 'Brand Logo (Optional)'}</span>
                         </div>
+                    </div>
+                );
+            case 'reference':
+                return (
+                    <div className="w-full px-6 py-2">
+                        <div onClick={() => document.getElementById('mobile-ref-upload')?.click()} className={`w-full h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${customReference ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+                            {customReference ? <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-white shadow-sm"><img src={customReference.url} className="w-full h-full object-cover" /></div> : <ImageIcon className="w-6 h-6"/>}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{customReference ? 'Reference Set' : 'Style Reference (Optional)'}</span>
+                        </div>
+                        <input id="mobile-ref-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload(setCustomReference)} />
                     </div>
                 );
             case 'creative':

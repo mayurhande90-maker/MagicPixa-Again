@@ -260,6 +260,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [industry, setIndustry] = useState<AdMakerInputs['industry'] | null>(null);
     const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [customReferenceImage, setCustomReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
     
     const [integrationMode, setIntegrationMode] = useState<'product' | 'subject' | null>(null);
 
@@ -425,9 +426,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         
         setLoading(true); setResultImage(null); setLastCreationId(null);
         try {
-            // Fetch random reference image from Style Vault based on industry
+            // Fetch random reference image from Style Vault based on industry if no custom reference is provided
             let vaultRef = null;
-            if (industry) {
+            if (industry && !customReferenceImage) {
                 vaultRef = await getRandomVaultImage('admaker', industry);
             }
 
@@ -435,7 +436,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 industry, 
                 mainImages: mainImages.map(i => i.base64), 
                 logoImage: logoImage?.base64, 
-                referenceImage: vaultRef ? await urlToBase64(vaultRef.imageUrl) : null,
+                referenceImage: customReferenceImage 
+                    ? { base64: customReferenceImage.base64.base64, mimeType: customReferenceImage.base64.mimeType }
+                    : (vaultRef ? await urlToBase64(vaultRef.imageUrl) : null),
                 vibe: vibe === CUSTOM_VIBE_KEY ? customVibe : vibe, 
                 productName, 
                 website, 
@@ -514,6 +517,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleNewSession = () => {
         setIndustry(null); setMainImages([]); setLogoImage(null); setResultImage(null);
+        setCustomReferenceImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
         setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null);
         setCustomTitle('');
@@ -923,6 +927,40 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                         <span className={AdMakerStyles.shelfAddText}>Upload</span>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className={AdMakerStyles.sectionHeader}>
+                                                <span className={AdMakerStyles.stepBadge}>{auth.activeBrandKit ? '4' : '5'}</span>
+                                                <label className={AdMakerStyles.sectionTitle}>Style & Layout Reference</label>
+                                            </div>
+                                            <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200 hover:border-indigo-300 transition-colors group">
+                                                {customReferenceImage ? (
+                                                    <div className="relative h-24 w-24 rounded-xl overflow-hidden shadow-md border-2 border-white group-hover:scale-105 transition-transform">
+                                                        <img src={customReferenceImage.url} className="w-full h-full object-cover" />
+                                                        <button 
+                                                            onClick={() => setCustomReferenceImage(null)}
+                                                            className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full hover:bg-red-500 transition-colors"
+                                                        >
+                                                            <XIcon className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div 
+                                                        onClick={() => document.getElementById('custom-ref-upload')?.click()}
+                                                        className="h-24 w-24 bg-white rounded-xl border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all"
+                                                    >
+                                                        <PlusIcon className="w-6 h-6 text-gray-300 mb-1" />
+                                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Upload Ref</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                                                        <span className="text-indigo-600 font-bold">PRO TIP:</span> Upload a reference image to clone its exact text placement, lighting, and design physics. If left empty, we'll use a high-performing image from our Style Vault.
+                                                    </p>
+                                                </div>
+                                                <input id="custom-ref-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload(setCustomReferenceImage)} />
                                             </div>
                                         </div>
 
