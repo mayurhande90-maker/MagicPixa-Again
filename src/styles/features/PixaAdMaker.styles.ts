@@ -89,4 +89,18 @@ export const AdMakerStyles = {
   languageButton: "flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wide border transition-all duration-200",
   langActive: "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200",
   langInactive: "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+
+  // Loaders & Analysis
+  analysisOverlay: "absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] rounded-3xl overflow-hidden flex items-center justify-center",
+  analysisBadge: "bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight",
+  scanLine: "absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30",
+  scanGradient: "absolute top-0 h-full w-48 bg-gradient-to-l from-[#4D7CFF]/30 to-transparent animate-[scan-horizontal_1.5s_linear_infinite] -translate-x-full z-20",
+
+  // Suggestion Grid
+  suggestionGrid: "grid grid-cols-1 gap-3 mb-6",
+  suggestionCard: "group relative p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-left overflow-hidden",
+  suggestionCardSelected: "border-indigo-600 bg-indigo-50/50 shadow-md",
+  suggestionCardInactive: "border-gray-100 bg-white hover:border-indigo-200",
+  suggestionTitle: "text-xs font-black text-gray-900 uppercase tracking-tight mb-1",
+  suggestionDesc: "text-[10px] text-gray-500 font-medium leading-tight",
 };

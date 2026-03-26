@@ -9,7 +9,7 @@ import {
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { fileToBase64, Base64File, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
-import { generateAdCreative, AdMakerInputs, refineAdCreative } from '../services/adMakerService';
+import { generateAdCreative, AdMakerInputs, refineAdCreative, analyzeProductForAdConcepts, AdConcept } from '../services/adMakerService';
 import { saveCreation, updateCreation, deductCredits, claimMilestoneBonus, getUserBrands, activateBrand, getRandomVaultImage } from '../firebase';
 import { ResultToolbar } from '../components/ResultToolbar';
 import { LoadingOverlay } from '../components/LoadingOverlay';
@@ -68,16 +68,7 @@ const CUSTOM_VIBE_KEY = "Custom / Describe Your Own";
 
 const SIMPLE_ARCHETYPES = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", CUSTOM_VIBE_KEY];
 
-const VIBE_MAP: Record<string, string[]> = {
-    'ecommerce': SIMPLE_ARCHETYPES,
-    'fmcg': SIMPLE_ARCHETYPES,
-    'fashion': SIMPLE_ARCHETYPES,
-    'realty': SIMPLE_ARCHETYPES,
-    'food': SIMPLE_ARCHETYPES,
-    'saas': SIMPLE_ARCHETYPES,
-    'education': SIMPLE_ARCHETYPES,
-    'services': SIMPLE_ARCHETYPES,
-};
+type AdMakerPhase = 'industry_select' | 'upload' | 'mode_select' | 'scanning' | 'suggestions' | 'manual_config';
 
 const IndustryCard: React.FC<{ 
     title: string; 
@@ -257,7 +248,12 @@ const CompactUpload: React.FC<{
 };
 
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
+    const [phase, setPhase] = useState<AdMakerPhase>('industry_select');
     const [industry, setIndustry] = useState<AdMakerInputs['industry'] | null>(null);
+    const [uploadedImage, setUploadedImage] = useState<{ url: string; base64: Base64File } | null>(null);
+    const [suggestedConcepts, setSuggestedConcepts] = useState<AdConcept[]>([]);
+    const [selectedConceptIndex, setSelectedConceptIndex] = useState<number | null>(null);
+    
     const [mainImages, setMainImages] = useState<{ url: string; base64: Base64File }[]>([]);
     const [logoImage, setLogoImage] = useState<{ url: string; base64: Base64File } | null>(null);
     const [customReferenceImage, setCustomReferenceImage] = useState<{ url: string; base64: Base64File } | null>(null);
@@ -309,7 +305,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const filteredVibes = useMemo(() => {
         if (!industry) return [];
-        return VIBE_MAP[industry] || [];
+        return SIMPLE_ARCHETYPES;
     }, [industry]);
 
     useEffect(() => {
@@ -522,7 +518,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         setCustomReferenceImage(null);
         setVibe(''); setCustomVibe(''); setProductName(''); setWebsite(''); setOffer(''); setDescription('');
         setModelSource(null); setModelImage(null); setIsRefineActive(false); setAspectRatio(''); setIntegrationMode(null);
-        setCustomTitle('');
+        setCustomTitle(''); setPhase('industry_select'); setUploadedImage(null); setSuggestedConcepts([]); setSelectedConceptIndex(null);
     };
 
     const handleEditorSave = async (newUrl: string) => { 
@@ -562,6 +558,52 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 console.error(error);
             }
         }
+    };
+
+    const handleIndustrySelect = (ind: AdMakerInputs['industry']) => {
+        setIndustry(ind);
+        setPhase('upload');
+    };
+
+    const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const b64 = await fileToBase64(file);
+            const url = URL.createObjectURL(file);
+            setUploadedImage({ url, base64: b64 });
+            setMainImages([{ url, base64: b64 }]);
+            setPhase('mode_select');
+        }
+    };
+
+    const handleModeSelect = async (mode: 'product' | 'subject') => {
+        setIntegrationMode(mode);
+        setPhase('scanning');
+        
+        try {
+            if (uploadedImage) {
+                const concepts = await analyzeProductForAdConcepts(
+                    uploadedImage.base64.base64,
+                    uploadedImage.base64.mimeType,
+                    mode === 'product' ? 'product' : 'model',
+                    auth.activeBrandKit
+                );
+                setSuggestedConcepts(concepts);
+                setPhase('suggestions');
+            }
+        } catch (error) {
+            console.error("Scan failed", error);
+            setPhase('manual_config');
+        }
+    };
+
+    const handleConceptSelect = (index: number) => {
+        setSelectedConceptIndex(index);
+        const concept = suggestedConcepts[index];
+        setCustomTitle(concept.title);
+        setDescription(concept.description);
+        // We can also pre-fill other fields if needed
+        setPhase('manual_config');
     };
 
     const canGenerate = !!industry && mainImages.length > 0 && !!description && !!productName && !!aspectRatio && !!integrationMode && !isLowCredits && (
@@ -606,9 +648,21 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 generateButtonStyle={{ className: "!bg-[#F9D230] !text-[#1A1A1E] shadow-lg shadow-yellow-500/30 border-none hover:scale-[1.02] hover:!bg-[#dfbc2b]", hideIcon: true, label: "Generate Ad" }}
                 scrollRef={scrollRef}
                 leftContent={
-                    <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden group mx-auto shadow-sm">
+                    <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden group mx-auto shadow-sm">
                         <LoadingOverlay isVisible={loading || isRefining} loadingText={loadingText} progress={progress} />
-                        {!industry ? (
+                        
+                        {phase === 'scanning' && (
+                            <div className={AdMakerStyles.analysisOverlay}>
+                                <div className={AdMakerStyles.scanLine}></div>
+                                <div className={AdMakerStyles.scanGradient}></div>
+                                <div className={AdMakerStyles.analysisBadge}>
+                                    <SparklesIcon className="w-5 h-5 text-blue-400" />
+                                    <span className="text-sm font-black uppercase tracking-widest">Deep Scanning Image...</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {!uploadedImage && !industry ? (
                             <div className="text-center opacity-50 select-none">
                                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <MagicAdsIcon className="w-10 h-10 text-blue-500" />
@@ -616,13 +670,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                 <h3 className="text-xl font-bold text-gray-300">Ad Canvas</h3>
                                 <p className="text-sm text-gray-300 mt-1">Select an industry to start.</p>
                             </div>
-                        ) : mainImages.length === 0 ? (
+                        ) : !uploadedImage ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40 select-none">
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4">
                                     <CloudUploadIcon className="w-8 h-8" />
                                 </div>
-                                <p className="text-lg font-bold text-gray-300">Awaiting Product Selection</p>
-                                <p className="text-xs text-gray-300 mt-1 uppercase tracking-widest font-black">Choose items from the shelf on the right</p>
+                                <p className="text-lg font-bold text-gray-300">Awaiting Product Upload</p>
+                                <p className="text-xs text-gray-300 mt-1 uppercase tracking-widest font-black">Upload your product image to begin scanning</p>
                             </div>
                         ) : (
                             <div className="relative w-full h-full flex flex-col items-center justify-center p-6">
@@ -634,57 +688,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                                 {integrationMode === 'product' ? 'Hero Product Locked' : integrationMode === 'subject' ? 'Subject Context Locked' : 'AI Layout Engine Active'}
                                             </span>
                                         </div>
-                                        {integrationMode === 'subject' && (
-                                             <div className="inline-flex items-center gap-2 bg-indigo-600/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg animate-fadeIn">
-                                                <UsersIcon className="w-3 h-3 text-white"/>
-                                                <span className="text-[9px] font-black text-white uppercase tracking-widest">Identity Sync Active</span>
-                                             </div>
-                                        )}
                                     </div>
                                 </div>
 
-                                <div className="relative w-full max-sm aspect-square flex items-center justify-center">
-                                    {mainImages.map((img, idx) => {
-                                        let transformStyle = '';
-                                        let zIndex = 10;
-                                        
-                                        if (mainImages.length === 1) {
-                                            transformStyle = 'rotate(0deg) scale(1.1)';
-                                            zIndex = 20;
-                                        } else if (mainImages.length === 2) {
-                                            transformStyle = idx === 0 ? 'rotate(-6deg) translateX(-15px)' : 'rotate(6deg) translateX(15px)';
-                                            zIndex = idx === 1 ? 20 : 10;
-                                        } else if (mainImages.length === 3) {
-                                            if (idx === 0) transformStyle = 'rotate(-12deg) translateX(-30px)';
-                                            else if (idx === 1) transformStyle = 'rotate(0deg) scale(1.05)';
-                                            else transformStyle = 'rotate(12deg) translateX(30px)';
-                                            zIndex = idx === 1 ? 30 : idx === 2 ? 20 : 10;
-                                        }
-
-                                        return (
-                                            <div 
-                                                key={img.url} 
-                                                className="absolute w-[70%] aspect-square transition-all duration-500 ease-out"
-                                                style={{ transform: transformStyle, zIndex }}
-                                            >
-                                                <div className="w-full h-full bg-white p-2 sm:p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden">
-                                                    <img src={img.url} className="w-full h-full object-contain" alt="Selected Product" />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                
-                                {integrationMode === 'subject' && modelSource === 'upload' && modelImage && (
-                                    <div className="mt-8 relative group animate-fadeIn">
-                                        <div className="w-32 h-32 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gray-100 ring-2 ring-indigo-500/20">
-                                            <img src={modelImage.url} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
-                                            Digital Twin Active
-                                        </div>
+                                <div className="relative w-full max-w-sm aspect-square flex items-center justify-center">
+                                    <div className="w-full h-full bg-white p-2 sm:p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden">
+                                        <img src={uploadedImage.url} className="w-full h-full object-contain" alt="Selected Product" />
                                     </div>
-                                )}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -703,7 +714,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         </div>
                     ) : (
                         <div className={`${AdMakerStyles.formContainer} ${(loading || isRefining) ? 'opacity-50 pointer-events-none select-none grayscale-[0.2]' : ''}`}>
-                            {!industry ? (
+                            {phase === 'industry_select' && (
                                 <div className={AdMakerStyles.modeGrid}>
                                     {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
                                         <IndustryCard 
@@ -711,15 +722,123 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                                             title={conf.label} 
                                             desc={`Engineered for ${conf.label} standards.`} 
                                             icon={<conf.icon className="w-8 h-8"/>} 
-                                            onClick={() => setIndustry(key as any)}
+                                            onClick={() => handleIndustrySelect(key as any)}
                                             styles={{ card: AdMakerStyles[`card${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce, orb: AdMakerStyles[`orb${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce, icon: AdMakerStyles[`icon${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce }}
                                         />
                                     ))}
                                 </div>
-                            ) : (
-                                <>
-                                    <button onClick={handleNewSession} className={AdMakerStyles.backButton}>
+                            )}
+
+                            {phase === 'upload' && (
+                                <div className="animate-fadeIn">
+                                    <button onClick={() => setPhase('industry_select')} className={AdMakerStyles.backButton}>
                                         <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
+                                    </button>
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-2xl font-black text-gray-900 mb-2">Upload Product Image</h3>
+                                        <p className="text-sm text-gray-500">We'll scan this image to suggest the best ad concepts.</p>
+                                    </div>
+                                    <div 
+                                        onClick={() => document.getElementById('main-upload-ad')?.click()}
+                                        className="w-full aspect-square max-w-sm mx-auto bg-gray-50 border-4 border-dashed border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all group"
+                                    >
+                                        <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center text-gray-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all mb-6">
+                                            <CloudUploadIcon className="w-10 h-10" />
+                                        </div>
+                                        <p className="text-lg font-black text-gray-900">Click to Upload</p>
+                                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">PNG, JPG or WEBP</p>
+                                        <input id="main-upload-ad" type="file" className="hidden" accept="image/*" onChange={handleMainImageUpload} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {phase === 'mode_select' && (
+                                <div className="animate-fadeIn">
+                                    <button onClick={() => setPhase('upload')} className={AdMakerStyles.backButton}>
+                                        <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Upload
+                                    </button>
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-2xl font-black text-gray-900 mb-2">Select Ad Mode</h3>
+                                        <p className="text-sm text-gray-500">How should we feature your product?</p>
+                                    </div>
+                                    <div className={AdMakerStyles.engineGrid}>
+                                        <button 
+                                            onClick={() => handleModeSelect('product')} 
+                                            className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
+                                        >
+                                            <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
+                                            <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
+                                                <CubeIcon className="w-8 h-8" />
+                                            </div>
+                                            <h4 className="text-lg font-black text-gray-900 mt-4">Product Ad</h4>
+                                            <p className="text-xs text-gray-500 font-medium">Clean studio setup</p>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleModeSelect('subject')} 
+                                            className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
+                                        >
+                                            <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
+                                            <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
+                                                <UsersIcon className="w-8 h-8" />
+                                            </div>
+                                            <h4 className="text-lg font-black text-gray-900 mt-4">Model Ad</h4>
+                                            <p className="text-xs text-gray-500 font-medium">Human lifestyle context</p>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {phase === 'scanning' && (
+                                <div className="h-full flex flex-col items-center justify-center text-center p-8 animate-pulse">
+                                    <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                                        <SparklesIcon className="w-12 h-12 text-indigo-600 animate-spin-slow" />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-gray-900 mb-2">Deep Scanning...</h3>
+                                    <p className="text-sm text-gray-500 max-w-xs">Analyzing product physics, lighting, and 2025 market trends.</p>
+                                </div>
+                            )}
+
+                            {phase === 'suggestions' && (
+                                <div className="animate-fadeIn">
+                                    <button onClick={() => setPhase('mode_select')} className={AdMakerStyles.backButton}>
+                                        <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Modes
+                                    </button>
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-black text-gray-900">AI Suggestions</h3>
+                                        <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">Select a concept to customize</p>
+                                    </div>
+                                    
+                                    <div className={AdMakerStyles.suggestionGrid}>
+                                        {suggestedConcepts.map((concept, idx) => (
+                                            <div 
+                                                key={idx}
+                                                onClick={() => handleConceptSelect(idx)}
+                                                className={`${AdMakerStyles.suggestionCard} ${AdMakerStyles.suggestionCardInactive}`}
+                                            >
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <h4 className={AdMakerStyles.suggestionTitle}>{concept.title}</h4>
+                                                    <div className="p-1 bg-indigo-50 rounded-md text-indigo-600">
+                                                        <SparklesIcon className="w-3 h-3" />
+                                                    </div>
+                                                </div>
+                                                <p className={AdMakerStyles.suggestionDesc}>{concept.description}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <button 
+                                        onClick={() => setPhase('manual_config')}
+                                        className="w-full py-4 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 font-black text-xs uppercase tracking-widest hover:border-indigo-400 hover:text-indigo-600 transition-all"
+                                    >
+                                        Skip to Manual Config
+                                    </button>
+                                </div>
+                            )}
+
+                            {phase === 'manual_config' && (
+                                <>
+                                    <button onClick={() => setPhase('suggestions')} className={AdMakerStyles.backButton}>
+                                        <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Suggestions
                                     </button>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">

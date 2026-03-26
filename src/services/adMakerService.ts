@@ -5,9 +5,15 @@ import { resizeImage, applyWatermark } from "../utils/imageUtils";
 import { BrandKit } from "../types";
 
 /**
- * PIXA ADMAKER SERVICE v2.0 (REWRITTEN FROM SCRATCH)
+ * PIXA ADMAKER SERVICE v3.0 (DEEP SCAN & SUGGEST ARCHITECTURE)
  * A high-performance, single-brain AI engine for viral ad creation.
  */
+
+export interface AdConcept {
+    title: string;
+    prompt: string;
+    description: string;
+}
 
 export interface AdMakerInputs {
     industry: 'ecommerce' | 'realty' | 'food' | 'saas' | 'fmcg' | 'fashion' | 'education' | 'services';
@@ -82,6 +88,73 @@ const optimizeImage = async (base64: string, mimeType: string, width: number = 1
     } catch (e) {
         console.warn("Image optimization failed, using original", e);
         return { data: base64, mimeType };
+    }
+};
+
+/**
+ * ENGINE: DEEP SCAN & TREND ANALYSIS
+ * Analyzes the product and searches for current design trends to generate 5 concepts.
+ */
+export const analyzeProductForAdConcepts = async (
+    base64ImageData: string,
+    mimeType: string,
+    mode: 'product' | 'model',
+    brand?: BrandKit | null
+): Promise<AdConcept[]> => {
+    try {
+        const { data, mimeType: optimizedMime } = await optimizeImage(base64ImageData, mimeType, 512);
+        
+        const systemInstruction = `You are a World-Class Creative Director and Trend Analyst. 
+        Your task is to analyze a product image and generate 5 high-converting ad concepts.
+        
+        1. **SCAN**: Identify the product, its material (glass, matte, metal), its size, and its 'physics' (how it interacts with light).
+        2. **TREND SEARCH**: Use Google Search to find current 2024-2025 design trends for this specific product category (e.g., 'minimalist skincare ads', 'vibrant fmcg social media trends').
+        3. **CONCEPTUALIZE**: Create 5 distinct concepts. Each must have:
+           - A 'Trendy Title': A short, punchy, catchy headline (e.g., "Glow Protocol", "Pure Essence", "Urban Edge").
+           - A 'Visual Prompt': A detailed description for an image generator.
+           - A 'Description': A brief explanation of the vibe and strategy.
+        
+        Return ONLY a JSON array of 5 objects: { "title": string, "prompt": string, "description": string }.`;
+
+        const response = await secureGenerateContent({
+            model: 'gemini-3-flash-preview',
+            contents: { 
+                parts: [
+                    { inlineData: { data, mimeType: optimizedMime } }, 
+                    { text: `Generate 5 ${mode === 'product' ? 'Product-only' : 'Model-interaction'} ad concepts for this product. Consider current design trends.` }
+                ] 
+            },
+            config: {
+                systemInstruction,
+                tools: [{ googleSearch: {} }],
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            title: { type: Type.STRING },
+                            prompt: { type: Type.STRING },
+                            description: { type: Type.STRING }
+                        },
+                        required: ["title", "prompt", "description"]
+                    }
+                }
+            },
+            featureName: 'AdMaker Deep Scan'
+        });
+
+        const concepts = JSON.parse(response.text || "[]");
+        return concepts.slice(0, 5);
+    } catch (e) {
+        console.error("AdMaker Deep Scan failed:", e);
+        return [
+            { title: "Minimalist Luxury", prompt: "Product on a clean marble pedestal with soft rim lighting, high-end studio background.", description: "Clean and sophisticated look." },
+            { title: "Natural Essence", prompt: "Product surrounded by organic elements like leaves and water droplets, soft morning sunlight.", description: "Fresh and organic vibe." },
+            { title: "Urban Dynamic", prompt: "Product in a vibrant city setting at night, neon lights reflecting on the surface.", description: "Energetic and modern feel." },
+            { title: "Modern Abstract", prompt: "Product with abstract geometric shapes and bold color blocking in the background.", description: "Artistic and eye-catching." },
+            { title: "Premium Studio", prompt: "Classic professional studio setup with high-contrast lighting and deep shadows.", description: "Timeless commercial quality." }
+        ];
     }
 };
 
