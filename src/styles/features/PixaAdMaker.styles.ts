@@ -96,11 +96,12 @@ export const AdMakerStyles = {
   scanLine: "absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30",
   scanGradient: "absolute top-0 h-full w-48 bg-gradient-to-l from-[#4D7CFF]/30 to-transparent animate-[scan-horizontal_1.5s_linear_infinite] -translate-x-full z-20",
 
-  // Suggestion Grid
-  suggestionGrid: "grid grid-cols-1 gap-3 mb-6",
-  suggestionCard: "group relative p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-left overflow-hidden",
-  suggestionCardSelected: "border-indigo-600 bg-indigo-50/50 shadow-md",
-  suggestionCardInactive: "border-gray-100 bg-white hover:border-indigo-200",
-  suggestionTitle: "text-xs font-black text-gray-900 uppercase tracking-tight mb-1",
-  suggestionDesc: "text-[10px] text-gray-500 font-medium leading-tight",
+  // Suggestion Grid (Pill Design)
+  suggestionGrid: "flex flex-col gap-3 mb-6",
+  suggestionCard: "group relative px-6 py-3.5 rounded-full border-2 transition-all duration-300 cursor-pointer text-left overflow-hidden flex items-center justify-between gap-4",
+  suggestionCardSelected: "border-indigo-500 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 shadow-lg shadow-indigo-500/10 scale-[1.02]",
+  suggestionCardInactive: "border-gray-100 bg-white hover:border-indigo-200 hover:shadow-md",
+  suggestionTitle: "text-[13px] font-black text-gray-900 uppercase tracking-tight shrink-0",
+  suggestionDesc: "text-[11px] text-gray-500 font-medium italic leading-tight line-clamp-1",
+  suggestionIcon: "w-5 h-5 text-indigo-500 shrink-0",
 };

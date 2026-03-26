@@ -38,6 +38,7 @@ export interface AdMakerInputs {
         framing: string;
     };
     customTitle?: string;
+    selectedConcept?: AdConcept;
 }
 
 interface CreativeBrief {
@@ -173,6 +174,12 @@ const performAdStrategy = async (inputs: AdMakerInputs): Promise<CreativeBrief> 
     const prompt = `Act as a world-class CMO and Viral Ad Copywriter. 
     Your task is to develop a high-conversion creative brief for the product shown in the 'PRODUCT ASSET'.
     
+    ${inputs.selectedConcept ? `*** SELECTED CONCEPT (MANDATORY) ***
+    You MUST use the following concept as the foundation for this ad:
+    Title: "${inputs.selectedConcept.title}"
+    Visual Direction: "${inputs.selectedConcept.prompt}"
+    Strategy: "${inputs.selectedConcept.description}"` : ''}
+
     *** THE VISUAL AUDIT (CRITICAL) ***
     1. Scan the 'PRODUCT ASSET' with extreme precision. Identify the exact product, color, material, and "Vibe".
     2. If a 'STYLE REFERENCE' is provided, you MUST follow its composition, lighting, and text placement 1:1.
