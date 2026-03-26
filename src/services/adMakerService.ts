@@ -126,7 +126,9 @@ const generateTrendyAdTitle = async (
     2. **BREVITY IS POWER**: Use 2 to 5 words maximum. No fluff.
     3. **TRENDY AI STYLE**: Focus on high-impact, trendy, and performance-oriented language.
     4. **EMOTIONAL HOOK**: Identify one dominant emotion (Curiosity, Surprise, Fear, Authority, or Contrast).
-    5. **NO GENERIC BUZZWORDS**: Avoid "Elevate", "Unleash", "Ultimate", "Best".
+    5. **NO GENERIC BUZZWORDS**: Avoid "Elevate", "Unleash", "Ultimate", "Best", "Standard", "Quality", "Experience", "Next Generation".
+    6. **VISUAL ANCHOR**: If you see a specific color, material, or feature in the image, try to anchor the headline to it (e.g., "The Sleek Matte Finish").
+    7. **VARIETY MANDATE**: Do not use the same headline twice. Be creative and unique.
     
     OUTPUT: Return ONLY the headline string. No quotes.`
     }];
@@ -145,7 +147,8 @@ const generateTrendyAdTitle = async (
             model: 'gemini-3.1-pro-preview',
             contents: { parts },
             config: {
-                tools: [{ googleSearch: {} }]
+                tools: [{ googleSearch: {} }],
+                seed: Math.floor(Math.random() * 1000000)
             },
             featureName: 'Trendy Ad Title Engine'
         });
@@ -203,8 +206,9 @@ const performAdIntelligence = async (
     
     *** HEADLINE REFINEMENT (THE VIRAL UPGRADE) ***
     1. Review the 'Initial Trendy Headline': "${initialHeadline}".
-    2. If the initial headline is generic, REWRITE it to be a 2-5 word Curiosity Gap headline.
-    3. Use the visual data from the audit to anchor the headline.
+    2. If the initial headline is generic or repetitive, REWRITE it to be a 2-5 word Curiosity Gap headline.
+    3. Use the visual data from the audit (color, material, finish) to anchor the headline.
+    4. FORBIDDEN FALLBACKS: "THE NEW STANDARD", "UNCOMPROMISING QUALITY", "EXPERIENCE THE FUTURE".
     
     *** LAYOUT INTELLIGENCE (CRITICAL) ***
     Number of Products: ${inputs.mainImages.length}

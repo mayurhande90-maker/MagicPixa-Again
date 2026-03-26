@@ -185,7 +185,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     mimeType: customReference.base64.mimeType
                 };
             } else {
-                const vaultRef = await getRandomVaultImage('pixa-admaker', industry.id);
+                const vaultRef = await getRandomVaultImage('brand_stylist', industry.id);
                 if (vaultRef) {
                     const base64 = await urlToBase64(vaultRef.imageUrl);
                     referenceImage = {

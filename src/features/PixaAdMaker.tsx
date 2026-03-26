@@ -429,7 +429,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             // Fetch random reference image from Style Vault based on industry if no custom reference is provided
             let vaultRef = null;
             if (industry && !customReferenceImage) {
-                vaultRef = await getRandomVaultImage('admaker', industry);
+                vaultRef = await getRandomVaultImage('brand_stylist', industry);
             }
 
             const inputs: AdMakerInputs = {
