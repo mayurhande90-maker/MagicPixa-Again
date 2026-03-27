@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
-import { FeatureLayout } from '../components/FeatureLayout';
+import { FeatureLayout, UploadPlaceholder } from '../components/FeatureLayout';
 import { 
-    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
+import { fileToBase64, base64ToBlobUrl } from '../utils/imageUtils';
 
 // --- CONSTANTS ---
 const INDUSTRY_CONFIG: Record<string, { label: string; icon: any }> = {
@@ -44,8 +45,23 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [phase, setPhase] = useState<AdMakerPhase>('industry_select');
     const [industry, setIndustry] = useState<string | null>(null);
     const [mode, setMode] = useState<'product' | 'model' | null>(null);
+    const [image, setImage] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const { base64, mimeType } = await fileToBase64(file);
+                const blobUrl = await base64ToBlobUrl(base64, mimeType);
+                setImage(blobUrl);
+            } catch (err) {
+                console.error("Upload failed:", err);
+            }
+        }
+    };
 
     const handleIndustrySelect = (ind: string) => {
         setIndustry(ind);
@@ -72,19 +88,44 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             resultImage={null}
             leftContent={
                 <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-                    <div className="text-center p-8">
-                        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 mx-auto">
-                            <MagicAdsIcon className="w-10 h-10" />
+                    {phase === 'mode_select' && !image ? (
+                        <UploadPlaceholder 
+                            label="Upload Product Image" 
+                            onClick={() => fileInputRef.current?.click()} 
+                            icon={<MagicAdsIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />}
+                        />
+                    ) : image ? (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                             <img src={image} className="max-w-full max-h-full object-contain rounded-2xl" />
+                             <button 
+                                onClick={() => setImage(null)}
+                                className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all"
+                             >
+                                <XIcon className="w-5 h-5" />
+                             </button>
                         </div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">Pixa AdMaker</h3>
-                        <p className="text-sm text-gray-500 max-w-xs mx-auto">
-                            Select your industry and ad mode to start creating professional advertisements.
-                        </p>
-                    </div>
+                    ) : (
+                        <div className="text-center p-8">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 mx-auto">
+                                <MagicAdsIcon className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-2">Pixa AdMaker</h3>
+                            <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                                Select your industry and ad mode to start creating professional advertisements.
+                            </p>
+                        </div>
+                    )}
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleImageUpload} 
+                        className="hidden" 
+                        accept="image/*" 
+                    />
                 </div>
             }
             rightContent={
-                <div className={AdMakerStyles.formContainer}>
+                <div className={`${AdMakerStyles.formContainer} ${phase === 'mode_select' && !image ? 'opacity-50 pointer-events-none grayscale-[0.5]' : ''}`}>
                     {phase === 'industry_select' && (
                         <div className="animate-fadeIn">
                             <div className="mb-6 px-4">
