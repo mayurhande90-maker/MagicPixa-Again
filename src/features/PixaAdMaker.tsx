@@ -138,7 +138,7 @@ Analyze this product image (identify the product, its material, category, and un
 Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
 Search for the best creative ads available in Google Search for this type of product.
 
-${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the product in lifestyle settings that resonate with the Indian market (e.g., modern Indian homes, vibrant cityscapes, or professional studio setups). Strictly avoid foreign or ambiguous models.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative product-only environments.'}
+${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the product in lifestyle settings that resonate with the Indian market (e.g., modern Indian homes, vibrant cityscapes, or professional studio setups). Strictly avoid foreign or ambiguous models. IMPORTANT: Explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") in the displayPrompt so the user knows who is being featured.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative product-only environments.'}
 
 Then, generate 5 highly creative and high-converting ad prompts for this product.
 Each suggestion should include:
@@ -477,7 +477,24 @@ The product from the image should be the central focus.` },
                 </div>
             }
             rightContent={
-                <div className={`${AdMakerStyles.formContainer} ${phase === 'mode_select' && !image ? 'opacity-50 pointer-events-none grayscale-[0.5]' : ''}`}>
+                <div className={`${AdMakerStyles.formContainer} ${(phase === 'mode_select' && !image) || isScanning || isGenerating || isRefining ? 'opacity-50 pointer-events-none grayscale-[0.5]' : ''}`}>
+                    {mode && (
+                        <div className="flex items-center gap-2 mb-4 animate-fadeIn">
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm flex items-center gap-2 ${
+                                mode === 'product' 
+                                ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                                : 'bg-purple-50 text-purple-600 border-purple-100'
+                            }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${mode === 'product' ? 'bg-blue-400' : 'bg-purple-400'}`}></div>
+                                {mode === 'product' ? 'Product Ad Mode' : 'Model Ad Mode'}
+                            </div>
+                            {(isScanning || isGenerating || isRefining) && (
+                                <div className="text-[10px] font-bold text-gray-400 animate-pulse uppercase tracking-widest">
+                                    Panel Locked
+                                </div>
+                            )}
+                        </div>
+                    )}
                     {phase === 'industry_select' && (
                         <div className="animate-fadeIn">
                             <div className="mb-6 px-4">
