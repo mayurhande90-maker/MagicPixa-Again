@@ -73,6 +73,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
     const [editingSuggestionIndex, setEditingSuggestionIndex] = useState<number | null>(null);
     const [editingSuggestionData, setEditingSuggestionData] = useState<{ headline: string; displayPrompt: string } | null>(null);
+    const [brandUrl, setBrandUrl] = useState<string>("");
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,6 +129,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
             const imageData = base64Image.split(',')[1];
 
+            const tools: any[] = [{ googleSearch: {} }];
+            if (brandUrl && brandUrl.trim()) {
+                tools.push({ urlContext: {} });
+            }
+
             const response = await ai.models.generateContent({
                 model: "gemini-3.1-pro-preview",
                 contents: [
@@ -135,6 +141,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         parts: [
                             { text: `You are Pixa AI, a world-class creative director and marketing expert. 
 Analyze this product image (identify the product, its material, category, and unique selling points).
+${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity.` : ''}
 Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
 Search for the best creative ads available in Google Search for this type of product.
 
@@ -152,7 +159,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
                     }
                 ],
                 config: {
-                    tools: [{ googleSearch: {} }]
+                    tools: tools
                 }
             });
 
@@ -349,6 +356,7 @@ The product from the image should be the central focus.` },
         setIsRefineActive(false);
         setEditingSuggestionIndex(null);
         setEditingSuggestionData(null);
+        setBrandUrl("");
     };
 
     const handleStartEdit = (e: React.MouseEvent, index: number) => {
@@ -535,10 +543,30 @@ The product from the image should be the central focus.` },
 
                             {!mode ? (
                                 <>
-                                    <div className="text-center mb-8">
+                                    <div className="text-center mb-6">
                                         <h3 className="text-2xl font-black text-gray-900 mb-2">Select Ad Mode</h3>
                                         <p className="text-sm text-gray-500">How should we feature your product?</p>
                                     </div>
+
+                                    <div className="mb-8 px-2">
+                                        <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2 block">Brand Website (Optional)</label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <SparklesIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
+                                            </div>
+                                            <input 
+                                                type="url"
+                                                value={brandUrl}
+                                                onChange={(e) => setBrandUrl(e.target.value)}
+                                                placeholder="https://yourbrand.com"
+                                                className="w-full bg-white border border-gray-200 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300"
+                                            />
+                                        </div>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-2 px-1">
+                                            Pixa AI will analyze your site for brand guidelines & voice.
+                                        </p>
+                                    </div>
+
                                     <div className={AdMakerStyles.engineGrid}>
                                         <button 
                                             onClick={() => handleModeSelect('product')} 
