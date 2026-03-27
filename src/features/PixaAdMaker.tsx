@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, UploadPlaceholder } from '../components/FeatureLayout';
 import { 
-    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon, CreditCoinIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon, CreditCoinIcon, GlobeIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
@@ -139,18 +139,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 contents: [
                     {
                         parts: [
-                            { text: `You are Pixa AI, a world-class creative director and marketing expert. 
+            { text: `You are Pixa AI, a world-class creative director and marketing expert. 
 Analyze this product image (identify the product, its material, category, and unique selling points).
 ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity.` : ''}
 Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
 Search for the best creative ads available in Google Search for this type of product.
 
-${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the product in lifestyle settings that resonate with the Indian market (e.g., modern Indian homes, vibrant cityscapes, or professional studio setups). Strictly avoid foreign or ambiguous models. IMPORTANT: Explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") in the displayPrompt so the user knows who is being featured.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative product-only environments.'}
+${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the product in lifestyle settings that resonate with the Indian market (e.g., modern Indian homes, vibrant cityscapes, or professional studio setups). Strictly avoid foreign or ambiguous models. MANDATORY: You MUST explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") as the primary subject in the displayPrompt. This is a strict requirement for Model Ad mode.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative product-only environments.'}
 
 Then, generate 5 highly creative and high-converting ad prompts for this product.
 Each suggestion should include:
-1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe (e.g., "A clean, minimalist studio setup with soft top-down lighting and a neutral grey background to make the product colors pop. The scene feels premium and modern.").
-2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, product placement, and professional photography details). This should be the "secret" prompt.
+1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe. For Model Ad mode, this MUST include a description of the Indian model character.
+2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, product placement, and professional photography details). This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model.
 3. A catchy marketing 'headline'.
 
 Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys. Do not include any other text or markdown formatting.` },
@@ -221,7 +221,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
                             { text: `Generate a highly professional, high-converting advertisement image for this product. 
 Concept: ${suggestion.detailedPrompt}
 Marketing Headline to include in the design: "${suggestion.headline}"
-${mode === 'model' ? 'STRICT REQUIREMENT: Use ONLY Indian models with clear Indian ethnicity and features. The models should look authentic and professional for the Indian market. Strictly forbid foreign, Caucasian, or ambiguous models.' : ''}
+${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male or female as per the scene) MUST be the primary subject interacting with the product. The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
 The product from the image should be the central focus.` },
                             { inlineData: { data: imageData, mimeType } }
@@ -552,7 +552,7 @@ The product from the image should be the central focus.` },
                                         <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2 block">Brand Website (Optional)</label>
                                         <div className="relative group">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <SparklesIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
+                                                <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
                                             </div>
                                             <input 
                                                 type="url"
