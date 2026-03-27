@@ -77,9 +77,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
         try {
             const apiKey = process.env.GEMINI_API_KEY;
-            if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+            if (!apiKey) {
+                alert("GEMINI_API_KEY is missing. Please check your environment variables.");
+                throw new Error("GEMINI_API_KEY is missing");
+            }
             
             const ai = new GoogleGenAI({ apiKey });
+            
+            // Extract mimeType and data from base64Image
+            const mimeTypeMatch = base64Image.match(/^data:([^;]+);base64,/);
+            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
+            const imageData = base64Image.split(',')[1];
+
             const response = await ai.models.generateContent({
                 model: "gemini-3.1-pro-preview",
                 contents: [
@@ -94,23 +103,32 @@ Each suggestion should include:
 1. A creative visual prompt for an AI image generator (describing the scene, lighting, and product placement).
 2. A catchy marketing headline/line.
 
-Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not include any other text.` },
-                            { inlineData: { data: base64Image.split(',')[1], mimeType: "image/jpeg" } }
+Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not include any other text or markdown formatting.` },
+                            { inlineData: { data: imageData, mimeType } }
                         ]
                     }
                 ],
                 config: {
-                    tools: [{ googleSearch: {} }],
-                    responseMimeType: "application/json"
+                    tools: [{ googleSearch: {} }]
                 }
             });
 
             const text = response.text;
             if (!text) throw new Error("AI response text is empty");
-            const data = JSON.parse(text);
-            setSuggestions(data);
-        } catch (error) {
+            
+            // Robust JSON parsing to handle potential markdown blocks or extra text
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            const jsonStr = jsonMatch ? jsonMatch[0] : text;
+            const data = JSON.parse(jsonStr);
+            
+            if (Array.isArray(data)) {
+                setSuggestions(data);
+            } else {
+                throw new Error("AI response is not a JSON array");
+            }
+        } catch (error: any) {
             console.error("Scan failed:", error);
+            alert(`Scan failed: ${error.message || "Unknown error"}`);
         } finally {
             setIsScanning(false);
         }
