@@ -2,15 +2,22 @@ import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, UploadPlaceholder } from '../components/FeatureLayout';
 import { 
-    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon, CreditCoinIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
-import { fileToBase64, base64ToBlobUrl } from '../utils/imageUtils';
+import { fileToBase64, base64ToBlobUrl, urlToBase64 } from '../utils/imageUtils';
 import { GoogleGenAI } from "@google/genai";
 import { ResultToolbar } from '../components/ResultToolbar';
 import { RefinementPanel } from '../components/RefinementPanel';
+import { LoadingOverlay } from '../components/LoadingOverlay';
+import { RefundModal } from '../components/RefundModal';
 import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
+import { refineStudioImage } from '../services/photoStudioService';
+import { processRefundRequest } from '../services/refundService';
+import ToastNotification from '../components/ToastNotification';
+import { saveCreation, updateCreation, deductCredits } from '../firebase';
+import { checkMilestone, MilestoneSuccessModal } from '../components/FeatureLayout';
 
 // --- CONSTANTS ---
 const INDUSTRY_CONFIG: Record<string, { label: string; icon: any }> = {
@@ -55,14 +62,36 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [suggestions, setSuggestions] = useState<{ headline: string; displayPrompt: string; detailedPrompt: string }[]>([]);
     const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [loadingText, setLoadingText] = useState("");
     const [resultImage, setResultImage] = useState<string | null>(null);
+    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'info' | 'error' } | null>(null);
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
+    const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
+
+    React.useEffect(() => { 
+        let interval: any; 
+        if (isGenerating || isRefining) { 
+            const steps = isRefining 
+                ? ["Analyzing ad structure...", "Refining visual hook...", "Polishing marketing elements...", "Finalizing production..."] 
+                : ["Pixa is analyzing industry trends...", "Pixa is enhancing product assets...", "Pixa is blending creative elements...", "Pixa is designing ad layout...", "Pixa is polishing..."]; 
+            let step = 0; 
+            setLoadingText(steps[0]); 
+            interval = setInterval(() => { 
+                step = (step + 1) % steps.length; 
+                setLoadingText(steps[step]); 
+            }, 5000); 
+        } 
+        return () => clearInterval(interval); 
+    }, [isGenerating, isRefining]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -109,7 +138,7 @@ Search for the best creative ads available in Google Search for this type of pro
 
 Then, generate 5 highly creative and high-converting ad prompts for this product.
 Each suggestion should include:
-1. A catchy 'displayPrompt' for the user to see. This should be 1-2 descriptive sentences explaining the visual concept and vibe (e.g., "A clean, minimalist studio setup with soft top-down lighting and a neutral grey background to make the product colors pop.").
+1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe (e.g., "A clean, minimalist studio setup with soft top-down lighting and a neutral grey background to make the product colors pop. The scene feels premium and modern.").
 2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, product placement, and professional photography details). This should be the "secret" prompt.
 3. A catchy marketing 'headline'.
 
@@ -138,7 +167,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
             }
         } catch (error: any) {
             console.error("Scan failed:", error);
-            alert(`Scan failed: ${error.message || "Unknown error"}`);
+            setNotification({ msg: `Scan failed: ${error.message || "Unknown error"}`, type: 'error' });
         } finally {
             setIsScanning(false);
         }
@@ -157,7 +186,11 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
     };
 
     const handleGenerateAd = async () => {
-        if (selectedSuggestion === null || !base64Image) return;
+        if (selectedSuggestion === null || !base64Image || !auth.user) return;
+        if (auth.user.credits < cost) {
+            setNotification({ msg: "Insufficient credits.", type: 'error' });
+            return;
+        }
         setIsGenerating(true);
         try {
             const apiKey = process.env.GEMINI_API_KEY;
@@ -199,67 +232,104 @@ The product from the image should be the central focus.` },
             if (generatedB64) {
                 const blobUrl = await base64ToBlobUrl(generatedB64, 'image/png');
                 setResultImage(blobUrl);
+                
+                const dataUri = `data:image/png;base64,${generatedB64}`;
+                const creationId = await saveCreation(auth.user.uid, dataUri, 'Pixa AdMaker');
+                setLastCreationId(creationId);
+
+                const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker');
+                if (updatedUser.lifetimeGenerations) {
+                    const bonus = checkMilestone(updatedUser.lifetimeGenerations);
+                    if (bonus !== false) setMilestoneBonus(bonus);
+                }
+                auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             } else {
                 throw new Error("No image generated by AI");
             }
         } catch (error: any) {
             console.error("Generation failed:", error);
-            alert(`Generation failed: ${error.message}`);
+            setNotification({ msg: `Generation failed: ${error.message}`, type: 'error' });
         } finally {
             setIsGenerating(false);
         }
     };
 
     const handleRefine = async (refineText: string) => {
-        if (!resultImage || !refineText.trim() || !base64Image) return;
+        if (!resultImage || !refineText.trim() || !base64Image || !auth.user) return;
+        const refineCost = 5;
+        if (auth.user.credits < refineCost) {
+            setNotification({ msg: "Insufficient credits for refinement.", type: 'error' });
+            return;
+        }
+
         setIsRefining(true);
         setIsRefineActive(false);
         try {
-            const apiKey = process.env.GEMINI_API_KEY;
-            if (!apiKey) throw new Error("API Key missing");
-            const ai = new GoogleGenAI({ apiKey });
+            const currentB64 = await urlToBase64(resultImage);
+            const originalMimeMatch = base64Image.match(/^data:([^;]+);base64,/);
+            const originalMime = originalMimeMatch ? originalMimeMatch[1] : "image/jpeg";
+            const originalData = base64Image.split(',')[1];
 
-            const mimeTypeMatch = base64Image.match(/^data:([^;]+);base64,/);
-            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
-            const imageData = base64Image.split(',')[1];
+            const res = await refineStudioImage(
+                currentB64.base64, 
+                currentB64.mimeType, 
+                refineText, 
+                "Professional Advertisement", 
+                auth.user?.basePlan || undefined,
+                { base64: originalData, mimeType: originalMime },
+                suggestions[selectedSuggestion || 0]?.detailedPrompt
+            );
 
-            const response = await ai.models.generateContent({
-                model: "gemini-3.1-flash-image-preview",
-                contents: [
-                    {
-                        parts: [
-                            { text: `Refine this advertisement based on the following feedback: "${refineText}". 
-Maintain the professional quality, product focus, and marketing headline. 
-Make the requested adjustments while keeping the overall ad-ready design.` },
-                            { inlineData: { data: imageData, mimeType } }
-                        ]
-                    }
-                ]
-            });
-
-            let generatedB64 = "";
-            const candidates = response.candidates;
-            if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
-                for (const part of candidates[0].content.parts) {
-                    if (part.inlineData) {
-                        generatedB64 = part.inlineData.data || "";
-                        break;
-                    }
-                }
-            }
-
-            if (generatedB64) {
-                const blobUrl = await base64ToBlobUrl(generatedB64, 'image/png');
-                setResultImage(blobUrl);
+            const blobUrl = await base64ToBlobUrl(res, 'image/png');
+            setResultImage(blobUrl);
+            
+            const dataUri = `data:image/png;base64,${res}`;
+            if (lastCreationId) {
+                await updateCreation(auth.user.uid, lastCreationId, dataUri);
             } else {
-                throw new Error("No image generated by AI");
+                const id = await saveCreation(auth.user.uid, dataUri, 'Pixa AdMaker (Refined)');
+                setLastCreationId(id);
             }
+
+            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa AdMaker Refinement');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            setNotification({ msg: "Ad Retoucher: Masterpiece updated!", type: 'success' });
         } catch (error: any) {
             console.error("Refinement failed:", error);
-            alert(`Refinement failed: ${error.message}`);
+            setNotification({ msg: `Refinement failed: ${error.message}`, type: 'error' });
         } finally {
             setIsRefining(false);
         }
+    };
+
+    const handleRefundRequest = async (reason: string) => { 
+        if (!auth.user || !resultImage) return; 
+        setIsRefunding(true); 
+        try { 
+            const res = await processRefundRequest(auth.user.uid, auth.user.email, cost, reason, "AdMaker Generation", lastCreationId || undefined); 
+            if (res.success) { 
+                if (res.type === 'refund') { 
+                    auth.setUser(prev => prev ? { ...prev, credits: prev.credits + cost } : null); 
+                    setResultImage(null); 
+                    setNotification({ msg: res.message, type: 'success' }); 
+                } else { 
+                    setNotification({ msg: res.message, type: 'info' }); 
+                } 
+            } 
+            setShowRefundModal(false); 
+        } catch (e: any) { 
+            alert("Refund processing failed: " + e.message); 
+        } finally { 
+            setIsRefunding(false); 
+        } 
+    };
+
+    const handleClaimBonus = async () => {
+        if (!auth.user || !milestoneBonus) return;
+        const { claimMilestoneBonus } = await import('../firebase');
+        const updatedUser = await claimMilestoneBonus(auth.user.uid, milestoneBonus);
+        auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+        setMilestoneBonus(undefined);
     };
 
     const handleNewProject = () => {
@@ -275,7 +345,8 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
     };
 
     return (
-        <FeatureLayout
+        <>
+            <FeatureLayout
             title="Pixa AdMaker"
             description="Create high-converting ads for your business in seconds."
             icon={<MagicAdsIcon className="w-[clamp(32px,5vh,56px)] h-[clamp(32px,5vh,56px)]"/>}
@@ -290,8 +361,7 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
                 <ResultToolbar 
                     onNew={handleNewProject} 
                     onRegen={handleGenerateAd} 
-                    onReport={() => alert("Reported")} 
-                    onEdit={() => setIsRefineActive(true)}
+                    onReport={() => setShowRefundModal(true)} 
                 />
             ) : null}
             canvasOverlay={
@@ -314,6 +384,7 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
             ) : null}
             leftContent={
                 <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                    <LoadingOverlay isVisible={isGenerating || isRefining} loadingText={loadingText} progress={progress} />
                     {phase === 'mode_select' && !image ? (
                         <UploadPlaceholder 
                             label="Upload Product Image" 
@@ -322,7 +393,9 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
                         />
                     ) : image ? (
                         <div className="relative w-full h-full flex items-center justify-center">
-                             <img src={image} className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md scale-105 grayscale-[0.2] brightness-75' : ''}`} />
+                             {!(isGenerating || isRefining) && (
+                                 <img src={image} className="max-w-full max-h-full object-contain rounded-2xl transition-all duration-700" />
+                             )}
                              
                              {isScanning && (
                                 <div className={AdMakerStyles.scanOverlay}>
@@ -332,21 +405,6 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
                                         <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
                                         <span className={AdMakerStyles.scanText}>Pixa Vision Scan</span>
                                     </div>
-                                </div>
-                             )}
-
-                             {(isGenerating || isRefining) && (
-                                <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] animate-fadeIn rounded-2xl overflow-hidden">
-                                    <div className="relative">
-                                        <div className="w-20 h-20 border-4 border-white/20 border-t-yellow-400 rounded-full animate-spin"></div>
-                                        <SparklesIcon className="absolute inset-0 m-auto w-8 h-8 text-yellow-400 animate-pulse" />
-                                    </div>
-                                    <div className="mt-6 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex flex-col items-center gap-1 shadow-2xl">
-                                        <span className="text-xs font-black text-white uppercase tracking-[0.2em] animate-pulse">Crafting Your Ad</span>
-                                        <span className="text-[10px] text-white/60 font-medium italic">Polishing every pixel...</span>
-                                    </div>
-                                    
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent shadow-[0_0_15px_#facc15] animate-[scan-v_2s_linear_infinite]"></div>
                                 </div>
                              )}
 
@@ -508,5 +566,9 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
                 </div>
             }
         />
+        {showRefundModal && <RefundModal onClose={() => setShowRefundModal(false)} onConfirm={handleRefundRequest} isProcessing={isRefunding} featureName="AdMaker" />}
+        {milestoneBonus !== undefined && <MilestoneSuccessModal bonus={milestoneBonus} onClaim={handleClaimBonus} onClose={() => setMilestoneBonus(undefined)} />}
+        {notification && <ToastNotification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
+    </>
     );
 };
