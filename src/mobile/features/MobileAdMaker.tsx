@@ -1,628 +1,122 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { AuthProps, AppConfig, View, BrandKit } from '../../types';
+import React, { useState } from 'react';
+import { AuthProps, AppConfig, View } from '../../types';
 import { 
-    MagicAdsIcon, UploadIcon, SparklesIcon, XIcon, CheckIcon, 
-    PaletteIcon, ChevronRightIcon, CreditCoinIcon, ArrowLeftIcon, 
-    LockIcon, CubeIcon, UsersIcon, CameraIcon, ImageIcon,
-    DownloadIcon, RegenerateIcon, PlusIcon, RefreshIcon,
-    BuildingIcon, ApparelIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon
 } from '../../components/icons';
-import { 
-    FoodIcon, 
-    SaaSRequestIcon, 
-    EcommerceAdIcon, 
-    FMCGIcon, 
-    RealtyAdIcon, 
-    EducationAdIcon, 
-    ServicesAdIcon 
-} from '../../components/icons/adMakerIcons';
-import { fileToBase64, base64ToBlobUrl, downloadImage, urlToBase64 } from '../../utils/imageUtils';
-import { generateAdCreative, refineAdCreative } from '../../services/adMakerService';
-import { deductCredits, saveCreation, updateCreation, getRandomVaultImage } from '../../firebase';
-import { MobileSheet } from '../components/MobileSheet';
-import { SelectionGrid, ImageModal } from '../../components/FeatureLayout';
-import { AdMakerStyles as styles } from '../../styles/features/PixaAdMaker.styles';
-
-const AD_STEPS = [
-    { id: 'niche', label: 'Identity' },
-    { id: 'engine', label: 'Engine' },
-    { id: 'logo', label: 'Logo' },
-    { id: 'reference', label: 'Reference' },
-    { id: 'creative', label: 'Creative' },
-    { id: 'format', label: 'Format' },
-    { id: 'copy', label: 'Copy' }
-];
+import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../../components/icons/adMakerIcons';
+import { AdMakerStyles } from '../../styles/features/PixaAdMaker.styles';
 
 const INDUSTRIES = [
-    { id: 'ecommerce', label: 'E-Commerce', icon: EcommerceAdIcon, color: 'bg-blue-500' },
-    { id: 'fmcg', label: 'FMCG / CPG', icon: FMCGIcon, color: 'bg-green-600' },
-    { id: 'fashion', label: 'Fashion', icon: ApparelIcon, color: 'bg-pink-500' },
-    { id: 'realty', label: 'Real Estate', icon: RealtyAdIcon, color: 'bg-purple-500' },
-    { id: 'food', label: 'Food & Dining', icon: FoodIcon, color: 'bg-orange-500' },
-    { id: 'saas', label: 'SaaS / Tech', icon: SaaSRequestIcon, color: 'bg-teal-500' },
-    { id: 'education', label: 'Education', icon: EducationAdIcon, color: 'bg-amber-500' },
-    { id: 'services', label: 'Services', icon: ServicesAdIcon, color: 'bg-indigo-600' },
+    { id: 'ecommerce', label: 'Ecommerce', icon: EcommerceAdIcon },
+    { id: 'fmcg', label: 'FMCG', icon: FMCGIcon },
+    { id: 'fashion', label: 'Fashion', icon: EcommerceAdIcon },
+    { id: 'realty', label: 'Real Estate', icon: RealtyAdIcon },
+    { id: 'food', label: 'Food and Dining', icon: FoodIcon },
+    { id: 'saas', label: 'SaaS/Tech', icon: SaaSRequestIcon },
+    { id: 'education', label: 'Education', icon: EducationAdIcon },
+    { id: 'services', label: 'Services', icon: ServicesAdIcon },
 ];
 
-const MODEL_PARAMS_STEPS = [
-    { id: 'modelType', label: 'Persona', options: ['Young Female', 'Young Male', 'Adult Female', 'Adult Male', 'Senior', 'Kid Model'] },
-    { id: 'region', label: 'Region', options: ['Indian', 'South Asian', 'East Asian', 'Middle Eastern', 'African', 'European', 'American'] },
-    { id: 'skinTone', label: 'Skin', options: ['Fair Tone', 'Wheatish Tone', 'Dusky Tone'] },
-    { id: 'bodyType', label: 'Build', options: ['Slim Build', 'Average Build', 'Athletic Build', 'Plus Size'] },
-    { id: 'composition', label: 'Layout', options: ['Single Model', 'Group Shot'] },
-    { id: 'framing', label: 'Shot', options: ['Tight Close', 'Close-Up', 'Mid Shot', 'Wide Shot'] }
-];
+type AdMakerPhase = 'industry_select' | 'mode_select';
 
-const MOODS = ["Luxury", "Modern", "Natural", "Moody", "Bright", "Colorful", "Studio", "Simple", "Custom"];
-
-const CustomRefineIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path fill="currentColor" d="M14 1.5a.5.5 0 0 0-1 0V2h-.5a.5.5 0 0 0 0 1h.5v.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1H14v-.5Zm-10 2a.5.5 0 0 0-1 0V4h-.5a.5.5 0 0 0 0 1H3v.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 1 0V5h.5a.5.5 0 0 0 0-1H4v-.5Zm9 8a.5.5 0 0 1-.5.5H12v.5a.5.5 0 0 1-1 0V12h-.5a.5.5 0 0 1 0-1h.5v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 .5.5ZM8.73 4.563a1.914 1.914 0 0 1 2.707 2.708l-.48.48L8.25 5.042l.48-.48ZM7.543 5.75l2.707 2.707l-5.983 5.983a1.914 1.914 0 0 1-2.707-2.707L7.543 5.75Z"/>
-    </svg>
-);
-
-export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; setActiveTab: (tab: View) => void }> = ({ auth, appConfig, onGenerationStart, setActiveTab }) => {
-    // --- STATE ---
-    const [currentStep, setCurrentStep] = useState(0);
-    const [industry, setIndustry] = useState<any>(null);
-    const [engineMode, setEngineMode] = useState<'product' | 'subject' | null>(null);
-    const [modelStepIdx, setModelStepIdx] = useState(0);
-    const [modelParams, setModelParams] = useState<Record<string, string>>({});
-    
-    const [isCollectionMode, setIsCollectionMode] = useState(false);
-    const [mainImages, setMainImages] = useState<{ url: string; base64: any }[]>([]);
-    const [logo, setLogo] = useState<{ url: string; base64: any } | null>(null);
-    const [customReference, setCustomReference] = useState<{ url: string; base64: any } | null>(null);
-    const [vibe, setVibe] = useState('');
-    const [customVibe, setCustomVibe] = useState('');
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '9:16' | ''>('');
-    const [productName, setProductName] = useState('');
-    const [description, setDescription] = useState('');
-    const [customTitle, setCustomTitle] = useState('');
-
-    const [result, setResult] = useState<string | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [progressPercent, setProgressPercent] = useState(0);
-    const [loadingText, setLoadingText] = useState("Initializing...");
-    const [lastCreationId, setLastCreationId] = useState<string | null>(null);
-    const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
-    const [isRefineOpen, setIsRefineOpen] = useState(false);
-    const [refineText, setRefineText] = useState('');
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const logoInputRef = useRef<HTMLInputElement>(null);
+export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; onGenerationStart: () => void; setActiveTab: (tab: View) => void }> = ({ auth, appConfig }) => {
+    const [phase, setPhase] = useState<AdMakerPhase>('industry_select');
+    const [industry, setIndustry] = useState<string | null>(null);
+    const [mode, setMode] = useState<'product' | 'model' | null>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
-    const refineCost = 5;
-    const userCredits = auth.user?.credits || 0;
-    const isLowCredits = userCredits < cost;
 
-    // --- LOGIC ---
-
-    const isStepAccessible = (idx: number): boolean => {
-        if (idx === 0) return true;
-        if (idx === 1) return !!industry && mainImages.length > 0;
-        if (idx === 2) {
-            if (engineMode === 'product') return true;
-            return Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
-        }
-        if (idx === 3) return isStepAccessible(2) && !!engineMode;
-        if (idx === 4) return !!vibe;
-        if (idx === 5) return !!aspectRatio;
-        if (idx === 6) return productName.length > 0 && description.length > 5;
-        return false;
+    const handleIndustrySelect = (id: string) => {
+        setIndustry(id);
+        setPhase('mode_select');
     };
 
-    const isStrategyComplete = useMemo(() => {
-        const base = !!industry && !!engineMode && mainImages.length > 0 && !!vibe && !!aspectRatio && !!productName && description.length > 5;
-        if (engineMode === 'subject') {
-            return base && Object.keys(modelParams).length === MODEL_PARAMS_STEPS.length;
-        }
-        return base;
-    }, [industry, engineMode, modelParams, mainImages, vibe, aspectRatio, productName, description]);
-
-    useEffect(() => {
-        let interval: any;
-        if (isGenerating) {
-            setProgressPercent(0);
-            const steps = [
-                "CMO Researching 2025 Market Trends...",
-                "Art Direction: Architecting visual hierarchy...",
-                "Optical Audit: Locking product identity...",
-                "VFX Architect: Rigging ray-traced physics...",
-                "Finalizing: Exporting high-fidelity ad..."
-            ];
-            let step = 0;
-            setLoadingText(steps[0]);
-            interval = setInterval(() => {
-                step = (step + 1) % steps.length;
-                setLoadingText(steps[step]);
-                setProgressPercent(prev => {
-                    if (prev >= 98) return prev;
-                    return Math.min(prev + (Math.random() * 5), 98);
-                });
-            }, 1800);
-        }
-        return () => clearInterval(interval);
-    }, [isGenerating]);
-
-    const handleUpload = (setter: any) => async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            const assets = await Promise.all(files.map(async file => {
-                const base64 = await fileToBase64(file);
-                return { url: URL.createObjectURL(file), base64 };
-            }));
-            
-            if (setter === 'mainImages') {
-                if (isCollectionMode) {
-                    setMainImages(prev => [...prev, ...assets].slice(0, 5));
-                } else {
-                    setMainImages([assets[0]]);
-                }
-                if (industry) setTimeout(() => setCurrentStep(1), 600);
-            } else if (setter === setLogo) {
-                setLogo(assets[0]);
-                setTimeout(() => setCurrentStep(3), 600);
-            }
-        }
-        e.target.value = '';
-    };
-
-    const handleGenerate = async () => {
-        if (mainImages.length === 0 || !isStrategyComplete || !auth.user || isGenerating) return;
-        if (isLowCredits) return;
-
-        onGenerationStart();
-        setIsGenerating(true);
-        try {
-            // Get random reference image from Style Vault if no custom reference is provided
-            let referenceImage = null;
-            if (customReference) {
-                referenceImage = {
-                    base64: customReference.base64.base64,
-                    mimeType: customReference.base64.mimeType
-                };
-            } else {
-                console.log("Fetching vault reference for:", industry.id);
-                const vaultRef = await getRandomVaultImage('brand_stylist', industry.id);
-                console.log("Vault reference found:", vaultRef ? "YES" : "NO");
-                if (vaultRef) {
-                    const base64 = await urlToBase64(vaultRef.imageUrl);
-                    referenceImage = {
-                        base64: base64.base64,
-                        mimeType: base64.mimeType
-                    };
-                }
-            }
-
-            const resB64 = await generateAdCreative({
-                industry: industry.id,
-                mainImages: mainImages.map(img => img.base64),
-                logoImage: logo?.base64,
-                vibe: vibe === 'Custom' ? customVibe : vibe,
-                productName: productName,
-                description: description,
-                customTitle,
-                aspectRatio: aspectRatio as any,
-                modelSource: engineMode === 'subject' ? 'ai' : null,
-                modelParams: engineMode === 'subject' ? (modelParams as any) : undefined,
-                referenceImage
-            }, auth.activeBrandKit);
-            
-            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
-            setResult(blobUrl);
-            setIsGenerating(false);
-
-            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa AdMaker (Mobile)');
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa AdMaker');
-            setLastCreationId(id);
-        } catch (e) {
-            console.error(e);
-            alert("Ad design failed. Please check your inputs.");
-            setIsGenerating(false);
-        }
-    };
-
-    const handleRefine = async () => {
-        if (!result || !refineText.trim() || !auth.user || isGenerating) return;
-        setIsGenerating(true);
-        setIsRefineOpen(false);
-        try {
-            const currentB64 = await urlToBase64(result);
-            
-            const originalImageParam = mainImages.length > 0 ? { base64: mainImages[0].base64.base64, mimeType: mainImages[0].base64.mimeType } : undefined;
-            const originalPromptParam = `Product: ${productName}. Description: ${description}. Vibe: ${vibe === 'Custom' ? customVibe : vibe}. Aspect Ratio: ${aspectRatio}.`;
-
-            const resB64 = await refineAdCreative(
-                currentB64.base64, 
-                currentB64.mimeType, 
-                refineText, 
-                auth.user?.basePlan || undefined,
-                originalImageParam,
-                originalPromptParam
-            );
-            const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
-            setResult(blobUrl);
-            setIsGenerating(false);
-            if (lastCreationId) await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
-            const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
-            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            setRefineText('');
-        } catch (e) {
-            alert("Refinement failed.");
-            setIsGenerating(false);
-        }
-    };
-
-    const handleReset = () => {
-        setResult(null); setMainImages([]); setLogo(null); setCustomReference(null); setIndustry(null); setEngineMode(null);
-        setVibe(''); setCustomVibe(''); setProductName(''); setDescription(''); setCustomTitle('');
-        setCurrentStep(0); setModelParams({}); setModelStepIdx(0); setAspectRatio('');
-        setIsCollectionMode(false);
-    };
-
-    const renderStepContent = () => {
-        const step = AD_STEPS[currentStep].id;
-        switch (step) {
-            case 'niche':
-                return (
-                    <div className="w-full flex flex-col gap-4 py-2">
-                        <div className="flex gap-3 overflow-x-auto no-scrollbar px-6">
-                            {INDUSTRIES.map(ind => (
-                                <button key={ind.id} onClick={() => { 
-                                    setIndustry(ind); 
-                                    if(mainImages.length > 0) setTimeout(() => setCurrentStep(1), 600); 
-                                }} className={`shrink-0 w-24 h-24 rounded-3xl border flex flex-col items-center justify-center gap-1.5 transition-all ${industry?.id === ind.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
-                                    <ind.icon className="w-6 h-6" />
-                                    <span className="text-[9px] font-black uppercase tracking-tight">{ind.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                );
-            case 'engine':
-                if (engineMode === 'subject' && modelStepIdx < MODEL_PARAMS_STEPS.length) {
-                    const activeParam = MODEL_PARAMS_STEPS[modelStepIdx];
-                    return (
-                        <div key={activeParam.id} className="w-full animate-swipe-in">
-                            <div className="px-6 flex items-center justify-between mb-2">
-                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{activeParam.label}</span>
-                                <button onClick={() => setEngineMode(null)} className="text-[8px] font-bold text-gray-400 uppercase">Back to Type</button>
-                            </div>
-                            <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-2">
-                                {activeParam.options.map(opt => (
-                                    <button key={opt} onClick={() => {
-                                        setModelParams(prev => ({ ...prev, [activeParam.id]: opt }));
-                                        if (modelStepIdx < MODEL_PARAMS_STEPS.length - 1) {
-                                            setTimeout(() => setModelStepIdx(prev => prev + 1), 600);
-                                        }
-                                        else {
-                                            setTimeout(() => setCurrentStep(2), 600);
-                                        }
-                                    }} className={`shrink-0 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${modelParams[activeParam.id] === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{opt}</button>
-                                ))}
-                            </div>
-                        </div>
-                    );
-                }
-                return (
-                    <div className="w-full flex flex-col gap-3 px-6 py-2">
-                        <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full">
-                            <button onClick={() => { 
-                                setIsCollectionMode(false); 
-                                if (mainImages.length > 1) setMainImages(prev => prev.slice(0, 1));
-                            }} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Single Product</button>
-                            <button onClick={() => { setIsCollectionMode(true); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${isCollectionMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Collection</button>
-                        </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => { setEngineMode('product'); setTimeout(() => setCurrentStep(2), 600); }} className={`flex-1 h-24 rounded-[1.5rem] border-2 flex flex-col items-center justify-center gap-1.5 transition-all ${engineMode === 'product' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
-                                <CubeIcon className="w-5 h-5 text-blue-500"/>
-                                <span className="text-[9px] font-black uppercase tracking-widest">Product Ad</span>
-                            </button>
-                            <button onClick={() => { setEngineMode('subject'); setModelStepIdx(0); }} className={`flex-1 h-24 rounded-[1.5rem] border-2 flex flex-col items-center justify-center gap-1.5 transition-all ${engineMode === 'subject' ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
-                                <UsersIcon className="w-5 h-5 text-purple-500"/>
-                                <span className="text-[9px] font-black uppercase tracking-widest">Model Ad</span>
-                            </button>
-                        </div>
-                    </div>
-                );
-            case 'logo':
-                return (
-                    <div className="w-full px-6 py-2">
-                        <div onClick={() => logoInputRef.current?.click()} className={`w-full h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${logo ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                            {logo ? <CheckIcon className="w-6 h-6"/> : <UploadIcon className="w-6 h-6"/>}
-                            <span className="text-[10px] font-black uppercase tracking-widest">{logo ? 'Logo Set' : 'Brand Logo (Optional)'}</span>
-                        </div>
-                    </div>
-                );
-            case 'reference':
-                return (
-                    <div className="w-full px-6 py-2">
-                        <div onClick={() => document.getElementById('mobile-ref-upload')?.click()} className={`w-full h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${customReference ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                            {customReference ? <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-white shadow-sm"><img src={customReference.url} className="w-full h-full object-cover" /></div> : <ImageIcon className="w-6 h-6"/>}
-                            <span className="text-[10px] font-black uppercase tracking-widest">{customReference ? 'Reference Set' : 'Style Reference (Optional)'}</span>
-                        </div>
-                        <input id="mobile-ref-upload" type="file" className="hidden" accept="image/*" onChange={handleUpload(setCustomReference)} />
-                    </div>
-                );
-            case 'creative':
-                return (
-                    <div className="w-full flex flex-col gap-4 px-6 py-2">
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                            {MOODS.map(m => (
-                                <button key={m} onClick={() => { setVibe(m); if(m !== 'Custom') setTimeout(() => setCurrentStep(4), 600); }} className={`shrink-0 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border transition-all ${vibe === m ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>{m}</button>
-                            ))}
-                        </div>
-                        {vibe === 'Custom' && (
-                            <input value={customVibe} onChange={e => setCustomVibe(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Describe your vibe (e.g. Retro Neon)..." />
-                        )}
-                    </div>
-                );
-            case 'format':
-                return (
-                    <div className="w-full flex gap-4 justify-center px-6 py-2">
-                        {(['1:1', '4:5', '9:16'] as const).map(ratio => (
-                            <button key={ratio} onClick={() => { setAspectRatio(ratio); setTimeout(() => setCurrentStep(5), 600); }} className={`flex-1 h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${aspectRatio === ratio ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>
-                                <div className={`border-2 border-current rounded-sm ${ratio === '1:1' ? 'w-4 h-4' : ratio === '4:5' ? 'w-4 h-5' : 'w-3 h-6'}`}></div>
-                                <span className="text-[10px] font-black">{ratio}</span>
-                            </button>
-                        ))}
-                    </div>
-                );
-            case 'copy':
-                return (
-                    <div className="w-full px-6 flex flex-col gap-3 py-2 overflow-y-auto no-scrollbar max-h-[160px]">
-                        <input value={productName} onChange={e => setProductName(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Product Name..." />
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-medium focus:border-indigo-500 outline-none shadow-inner h-20 resize-none" placeholder="The Hook / Context (e.g. Summer sale vibes)..." />
-                        <input value={customTitle} onChange={e => setCustomTitle(e.target.value)} className="w-full p-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-[13px] font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Custom Marketing Title (Optional)..." />
-                    </div>
-                );
-            default: return null;
-        }
+    const handleModeSelect = (m: 'product' | 'model') => {
+        setMode(m);
+        console.log("Selected Industry:", industry, "Selected Mode:", m);
     };
 
     return (
-        <div className="h-full flex flex-col bg-white overflow-hidden relative">
-            {/* 1. Header */}
-            <div className="flex-none flex flex-col bg-white z-50">
-                <div className="pt-4 pb-1 flex justify-center items-center gap-2">
-                    <MagicAdsIcon className="w-5 h-5 text-black shrink-0" />
-                    <span className="text-sm font-black uppercase tracking-tighter text-black">Pixa AdMaker</span>
+        <div className="h-full flex flex-col bg-white overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <MagicAdsIcon className="w-5 h-5 text-indigo-600" />
+                    <span className="text-sm font-black uppercase tracking-tight">Pixa AdMaker</span>
                 </div>
-                <div className="px-6 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        {!isGenerating && (
-                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-fadeIn shadow-sm">
-                                <CreditCoinIcon className="w-4 h-4 text-indigo-600" />
-                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">{cost} Credits</span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {result && !isGenerating ? (
-                            <button onClick={() => downloadImage(result, 'ad-creative.png')} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 animate-fadeIn"><DownloadIcon className="w-5 h-5" /></button>
-                        ) : !result && (
-                            <button onClick={handleGenerate} disabled={!isStrategyComplete || isGenerating || isLowCredits} className={`px-10 py-3 rounded-full font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl ${!isStrategyComplete || isGenerating || isLowCredits ? 'bg-gray-100 text-gray-400 grayscale cursor-not-allowed' : 'bg-[#F9D230] text-[#1A1A1E] shadow-yellow-500/30 scale-105 animate-cta-pulse'}`}>
-                                {isGenerating ? 'Drafting...' : 'Generate'}
-                            </button>
-                        )}
-                    </div>
+                <div className="bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                    <span className="text-[10px] font-black text-indigo-600 uppercase">{cost} Credits</span>
                 </div>
             </div>
 
-            {/* 2. Stage */}
-            <div className="relative flex-grow w-full flex items-center justify-center p-6 overflow-hidden pb-10">
-                <div className="w-full h-full rounded-[2.5rem] overflow-hidden transition-all duration-700 flex items-center justify-center relative bg-gray-50 shadow-inner">
-                    <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
-                        {isGenerating ? null : result ? (
-                            <img src={result} onClick={() => !isGenerating && setIsFullScreenOpen(true)} className={`max-w-full max-h-full object-contain cursor-zoom-in transition-all duration-1000 ${isGenerating ? 'blur-xl grayscale opacity-30' : 'animate-materialize'}`} />
-                        ) : (
-                            <div className="relative w-full h-full p-4 flex flex-col items-center justify-center animate-fadeIn">
-                                {mainImages.length > 0 ? (
-                                    <div className="relative w-72 h-72 animate-fadeIn flex flex-col items-center justify-center">
-                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 to-transparent blur-3xl opacity-60"></div>
-                                        <div className="relative p-8 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/60 shadow-2xl flex items-center justify-center overflow-hidden">
-                                            {isCollectionMode ? (
-                                                <div className="grid grid-cols-2 gap-2 w-full h-full">
-                                                    {mainImages.map((img, i) => (
-                                                        <div key={i} className="relative aspect-square">
-                                                            <img src={img.url} className="w-full h-full object-contain" />
-                                                            <button onClick={(e) => { e.stopPropagation(); setMainImages(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg">
-                                                                <XIcon className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    {mainImages.length < 5 && (
-                                                        <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-square bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 active:scale-95 transition-all">
-                                                            <PlusIcon className="w-6 h-6" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <img src={mainImages[0].url} className="max-w-full max-h-full object-contain" />
-                                            )}
-                                        </div>
-                                        {logo && (
-                                            <div className="absolute top-0 left-0 w-14 h-14 bg-white rounded-2xl shadow-xl p-2.5 border border-indigo-100 z-20 animate-fadeIn">
-                                                <img src={logo.url} className="w-full h-full object-contain" />
-                                            </div>
-                                        )}
-                                        <div className="mt-8 flex flex-col items-center gap-2">
-                                            <div className="px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 shadow-lg">
-                                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                                                <span className="text-[8px] font-black text-white uppercase tracking-widest">Asset Sync Active</span>
-                                            </div>
-                                        </div>
+            <div className="flex-1 overflow-y-auto p-6">
+                {phase === 'industry_select' && (
+                    <div className="animate-fadeIn">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-black text-gray-900">Select Industry</h3>
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">Choose your business category</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {INDUSTRIES.map((ind) => (
+                                <button 
+                                    key={ind.id} 
+                                    onClick={() => handleIndustrySelect(ind.id)}
+                                    className={`${AdMakerStyles.modeCard} ${AdMakerStyles[`card${ind.id.charAt(0).toUpperCase() + ind.id.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.cardEcommerce} !h-32`}
+                                >
+                                    <div className={`${AdMakerStyles.orb} ${AdMakerStyles[`orb${ind.id.charAt(0).toUpperCase() + ind.id.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.orbEcommerce}`}></div>
+                                    <div className={`${AdMakerStyles.iconGlass} ${AdMakerStyles[`icon${ind.id.charAt(0).toUpperCase() + ind.id.slice(1)}` as keyof typeof AdMakerStyles] as string || AdMakerStyles.iconEcommerce}`}>
+                                        <ind.icon className="w-6 h-6" />
                                     </div>
-                                ) : (
-                                    <div onClick={() => fileInputRef.current?.click()} className="text-center group">
-                                        <div className="w-20 h-20 bg-white rounded-[1.8rem] flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
-                                            <MagicAdsIcon className="w-8 h-8 text-indigo-400" />
-                                        </div>
-                                        <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Product</h3>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">Pixa Vision will audit lighting</p>
+                                    <div className={AdMakerStyles.contentWrapper}>
+                                        <h3 className="text-[12px] font-black text-gray-900 leading-none mb-1">{ind.label}</h3>
+                                        <p className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Optimized</p>
                                     </div>
-                                )}
-                            </div>
-                        )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
-                        {mainImages.length > 0 && !result && !isGenerating && (
+                {phase === 'mode_select' && (
+                    <div className="animate-fadeIn">
+                        <button onClick={() => setPhase('industry_select')} className={AdMakerStyles.backButton}>
+                            <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
+                        </button>
+                        <div className="mb-8">
+                            <h3 className="text-2xl font-black text-gray-900 mb-2">Select Ad Mode</h3>
+                            <p className="text-sm text-gray-500">How should we feature your product?</p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
                             <button 
-                                onClick={handleReset}
-                                className="absolute top-4 right-4 z-[60] bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/50 flex items-center gap-1.5 active:scale-95 transition-all"
+                                onClick={() => handleModeSelect('product')} 
+                                className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-40`}
                             >
-                                <RefreshIcon className="w-3.5 h-3.5 text-gray-700" />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">Reset</span>
+                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
+                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
+                                    <CubeIcon className="w-8 h-8" />
+                                </div>
+                                <h4 className="text-lg font-black text-gray-900 mt-4">Product Ad</h4>
+                                <p className="text-xs text-gray-500 font-medium">Clean studio setup</p>
                             </button>
-                        )}
-
-                        {isGenerating && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center animate-fadeIn px-10">
-                                <div className="bg-black/60 backdrop-blur-xl px-6 py-8 rounded-[3rem] border border-white/20 shadow-2xl w-full max-w-[230px] flex flex-col items-center gap-6 animate-breathe">
-                                    <div className="relative w-20 h-20 flex items-center justify-center">
-                                        <svg className="w-full h-full transform -rotate-90">
-                                          <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-white/10" strokeDasharray={226.2} strokeDashoffset={226.2 - (226.2 * (progressPercent / 100))} strokeLinecap="round" />
-                                        </svg>
-                                        <div className="absolute text-xs font-black text-white">{Math.round(progressPercent)}%</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] opacity-80">Neural Core</span>
-                                        <div className="h-px w-8 bg-indigo-500/50 mx-auto my-3" />
-                                        <span className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest animate-pulse leading-relaxed">{loadingText}</span>
-                                    </div>
+                            <button 
+                                onClick={() => handleModeSelect('model')} 
+                                className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-40`}
+                            >
+                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
+                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
+                                    <UsersIcon className="w-8 h-8" />
                                 </div>
-                            </div>
-                        )}
+                                <h4 className="text-lg font-black text-gray-900 mt-4">Model Ad</h4>
+                                <p className="text-xs text-gray-500 font-medium">Human lifestyle context</p>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
-
-            {/* 3. Controller (Step Wizard) */}
-            <div className="flex-none bg-white border-t border-gray-100">
-                <div className={`transition-all duration-300 ${isGenerating ? 'pointer-events-none opacity-40 grayscale' : ''}`}>
-                    {result ? (
-                        <div className="p-6 animate-fadeIn flex flex-col gap-4">
-                            <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><CustomRefineIcon className="w-5 h-5" /> Refine image</button>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
-                                    <PlusIcon className="w-4 h-4" /> New Project
-                                </button>
-                                <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm">
-                                    <RegenerateIcon className="w-4 h-4" /> Regenerate
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className={`flex flex-col transition-all duration-700 ${industry ? 'opacity-100 translate-y-0' : 'opacity-100 translate-y-0'}`}>
-                            <div className="h-[160px] flex items-center relative overflow-hidden">
-                                {AD_STEPS.map((step, idx) => (
-                                    <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
-                                        {renderStepContent()}
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="px-4 pt-4 pb-6 border-t border-gray-100 bg-white">
-                                <div className="flex items-center justify-between gap-1">
-                                    {AD_STEPS.map((step, idx) => {
-                                        const isActive = currentStep === idx;
-                                        const isAccessible = isStepAccessible(idx);
-                                        const isFilled = 
-                                            (idx === 0 && !!industry && mainImages.length > 0) || 
-                                            (idx === 1 && !!engineMode) || 
-                                            (idx === 2 && !!logo) || 
-                                            (idx === 3 && !!vibe) || 
-                                            (idx === 4 && !!aspectRatio) ||
-                                            (idx === 5 && !!productName && description.length > 5);
-                                        
-                                        let displayLabel = "";
-                                        let isNextCue = false;
-
-                                        if (idx === 0) displayLabel = industry?.label || "";
-                                        else if (idx === 1) displayLabel = engineMode === 'product' ? 'Product' : engineMode === 'subject' ? 'Model' : "";
-                                        else if (idx === 2) {
-                                            if (logo) displayLabel = "SET";
-                                            else if (currentStep > 2) displayLabel = "NOT SET";
-                                        }
-                                        else if (idx === 3) {
-                                            if (currentStep === 2 && isStepAccessible(2)) {
-                                                displayLabel = "NEXT";
-                                                isNextCue = true;
-                                            } else {
-                                                displayLabel = vibe || "";
-                                            }
-                                        }
-                                        else if (idx === 4) {
-                                            if (currentStep === 3 && !!vibe) {
-                                                displayLabel = "NEXT";
-                                                isNextCue = true;
-                                            } else {
-                                                displayLabel = aspectRatio || "";
-                                            }
-                                        }
-                                        else if (idx === 5) {
-                                            if (currentStep === 4 && !!aspectRatio) {
-                                                displayLabel = "NEXT";
-                                                isNextCue = true;
-                                            } else {
-                                                displayLabel = productName ? 'Ready' : "";
-                                            }
-                                        }
-
-                                        return (
-                                            <button key={step.id} onClick={() => isAccessible && setCurrentStep(idx)} disabled={!isAccessible} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all">
-                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
-                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : 'bg-gray-100'}`} />
-                                                <span className={`text-[7px] font-black h-3 transition-opacity truncate w-full text-center px-1 uppercase tracking-tighter ${displayLabel ? 'opacity-100' : 'opacity-0'} ${isNextCue ? 'animate-next-pulse text-indigo-500' : (logo && idx === 2) ? 'text-green-500' : (idx === 2 && currentStep > 2) ? 'text-red-400' : 'text-indigo-500'}`}>
-                                                    {displayLabel}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* FULL SCREEN IMAGE MODAL */}
-            {isFullScreenOpen && result && (
-                <ImageModal 
-                    imageUrl={result} 
-                    onClose={() => setIsFullScreenOpen(false)}
-                    onDownload={() => downloadImage(result, 'admaker-creation.png')}
-                />
-            )}
-
-            <MobileSheet isOpen={isRefineOpen} onClose={() => setIsRefineOpen(false)} title={<div className="flex items-center gap-3"><span>Ad Refinement</span><div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 shrink-0"><CreditCoinIcon className="w-2.5 h-2.5 text-indigo-600" /><span className="text-[9px] font-black text-indigo-900 uppercase tracking-widest">{refineCost} Credits</span></div></div>}>
-                <div className="space-y-6 pb-6">
-                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Change the headline text to 'New Arrivals', make the logo slightly bigger..." />
-                    <button onClick={handleRefine} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
-                </div>
-            </MobileSheet>
-
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" multiple={isCollectionMode} onChange={handleUpload('mainImages')} />
-            <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setLogo)} />
-
-            <style>{`
-                @keyframes materialize { 0% { filter: grayscale(1) contrast(2) brightness(0.5) blur(15px); opacity: 0; transform: scale(0.95); } 100% { filter: grayscale(0) contrast(1) brightness(1) blur(0px); opacity: 1; transform: scale(1); } }
-                .animate-materialize { animation: materialize 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-                @keyframes breathe { 0%, 100% { transform: scale(1); border-color: rgba(255, 255, 255, 0.2); } 50% { transform: scale(1.02); border-color: rgba(255, 255, 255, 0.5); } }
-                .animate-breathe { animation: breathe 4s ease-in-out infinite; }
-                @keyframes cta-pulse { 0%, 100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 210, 48, 0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(249, 210, 48, 0); } }
-                .animate-cta-pulse { animation: cta-pulse 2s ease-in-out infinite; }
-                @keyframes next-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.1); } }
-                .animate-next-pulse { animation: next-pulse 1.5s ease-in-out infinite; }
-                @keyframes swipe-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-                .animate-swipe-in { animation: swipe-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
         </div>
     );
 };
 
 export default MobileAdMaker;
+
