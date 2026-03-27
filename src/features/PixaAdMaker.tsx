@@ -2,12 +2,15 @@ import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, UploadPlaceholder } from '../components/FeatureLayout';
 import { 
-    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
 import { fileToBase64, base64ToBlobUrl } from '../utils/imageUtils';
 import { GoogleGenAI } from "@google/genai";
+import { ResultToolbar } from '../components/ResultToolbar';
+import { RefinementPanel } from '../components/RefinementPanel';
+import { useSimulatedProgress } from '../hooks/useSimulatedProgress';
 
 // --- CONSTANTS ---
 const INDUSTRY_CONFIG: Record<string, { label: string; icon: any }> = {
@@ -49,8 +52,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [image, setImage] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
-    const [suggestions, setSuggestions] = useState<{prompt: string, headline: string}[]>([]);
+    const [suggestions, setSuggestions] = useState<{ headline: string; displayPrompt: string; detailedPrompt: string }[]>([]);
     const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [resultImage, setResultImage] = useState<string | null>(null);
+    const [isRefineActive, setIsRefineActive] = useState(false);
+    const [isRefining, setIsRefining] = useState(false);
+
+    const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
@@ -97,12 +106,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 Analyze this product image (identify the product, its material, category, and unique selling points).
 Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
 Search for the best creative ads available in Google Search for this type of product.
+
 Then, generate 5 highly creative and high-converting ad prompts for this product.
 Each suggestion should include:
-1. A creative visual prompt for an AI image generator (describing the scene, lighting, and product placement).
-2. A catchy marketing headline/line.
+1. A short, catchy 'displayPrompt' for the user to see (e.g., "Minimalist Studio Setup", "Urban Lifestyle Vibe").
+2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, product placement, and professional photography details). This should be the "secret" prompt.
+3. A catchy marketing 'headline'.
 
-Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not include any other text or markdown formatting.` },
+Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys. Do not include any other text or markdown formatting.` },
                             { inlineData: { data: imageData, mimeType } }
                         ]
                     }
@@ -140,9 +151,127 @@ Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not 
 
     const handleModeSelect = (m: 'product' | 'model') => {
         setMode(m);
-        if (m === 'product') {
+        if (m === 'product' || m === 'model') {
             performPixaVisionScan();
         }
+    };
+
+    const handleGenerateAd = async () => {
+        if (selectedSuggestion === null || !base64Image) return;
+        setIsGenerating(true);
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API Key missing");
+            const ai = new GoogleGenAI({ apiKey });
+            
+            const suggestion = suggestions[selectedSuggestion];
+            const mimeTypeMatch = base64Image.match(/^data:([^;]+);base64,/);
+            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
+            const imageData = base64Image.split(',')[1];
+
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash-image",
+                contents: [
+                    {
+                        parts: [
+                            { text: `Generate a highly professional, high-converting advertisement image for this product. 
+Concept: ${suggestion.detailedPrompt}
+Marketing Headline to include in the design: "${suggestion.headline}"
+The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
+The product from the image should be the central focus.` },
+                            { inlineData: { data: imageData, mimeType } }
+                        ]
+                    }
+                ]
+            });
+
+            let generatedB64 = "";
+            const candidates = response.candidates;
+            if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
+                for (const part of candidates[0].content.parts) {
+                    if (part.inlineData) {
+                        generatedB64 = part.inlineData.data || "";
+                        break;
+                    }
+                }
+            }
+
+            if (generatedB64) {
+                const blobUrl = await base64ToBlobUrl(generatedB64, 'image/png');
+                setResultImage(blobUrl);
+            } else {
+                throw new Error("No image generated by AI");
+            }
+        } catch (error: any) {
+            console.error("Generation failed:", error);
+            alert(`Generation failed: ${error.message}`);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleRefine = async (refineText: string) => {
+        if (!resultImage || !refineText.trim() || !base64Image) return;
+        setIsRefining(true);
+        setIsRefineActive(false);
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API Key missing");
+            const ai = new GoogleGenAI({ apiKey });
+
+            const mimeTypeMatch = base64Image.match(/^data:([^;]+);base64,/);
+            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
+            const imageData = base64Image.split(',')[1];
+
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash-image",
+                contents: [
+                    {
+                        parts: [
+                            { text: `Refine this advertisement based on the following feedback: "${refineText}". 
+Maintain the professional quality, product focus, and marketing headline. 
+Make the requested adjustments while keeping the overall ad-ready design.` },
+                            { inlineData: { data: imageData, mimeType } }
+                        ]
+                    }
+                ]
+            });
+
+            let generatedB64 = "";
+            const candidates = response.candidates;
+            if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
+                for (const part of candidates[0].content.parts) {
+                    if (part.inlineData) {
+                        generatedB64 = part.inlineData.data || "";
+                        break;
+                    }
+                }
+            }
+
+            if (generatedB64) {
+                const blobUrl = await base64ToBlobUrl(generatedB64, 'image/png');
+                setResultImage(blobUrl);
+            } else {
+                throw new Error("No image generated by AI");
+            }
+        } catch (error: any) {
+            console.error("Refinement failed:", error);
+            alert(`Refinement failed: ${error.message}`);
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
+    const handleNewProject = () => {
+        setPhase('industry_select');
+        setIndustry(null);
+        setMode(null);
+        setImage(null);
+        setBase64Image(null);
+        setSuggestions([]);
+        setSelectedSuggestion(null);
+        setResultImage(null);
+        setIsRefineActive(false);
     };
 
     return (
@@ -153,10 +282,36 @@ Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not 
             rawIcon={true}
             creditCost={cost}
             hideGenerateButton={true}
-            onGenerate={() => {}}
-            isGenerating={false}
-            canGenerate={false}
-            resultImage={null}
+            onGenerate={handleGenerateAd}
+            isGenerating={isGenerating || isRefining}
+            canGenerate={selectedSuggestion !== null && !!image}
+            resultImage={resultImage}
+            resultOverlay={resultImage ? (
+                <ResultToolbar 
+                    onNew={handleNewProject} 
+                    onRegen={handleGenerateAd} 
+                    onReport={() => alert("Reported")} 
+                    onEdit={() => setIsRefineActive(true)}
+                />
+            ) : null}
+            canvasOverlay={
+                <RefinementPanel 
+                    isActive={isRefineActive && !!resultImage} 
+                    isRefining={isRefining} 
+                    onClose={() => setIsRefineActive(false)} 
+                    onRefine={handleRefine} 
+                    refineCost={5} 
+                />
+            }
+            customActionButtons={resultImage ? (
+                <button 
+                    onClick={() => setIsRefineActive(!isRefineActive)}
+                    className={`bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-4 py-2.5 rounded-xl transition-all border border-white/10 shadow-lg text-sm font-medium flex items-center gap-2 group whitespace-nowrap ${isRefineActive ? 'ring-2 ring-yellow-400' : ''}`}
+                >
+                    <PencilIcon className="w-4 h-4" />
+                    <span>Make Changes</span>
+                </button>
+            ) : null}
             leftContent={
                 <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                     {phase === 'mode_select' && !image ? (
@@ -167,14 +322,18 @@ Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not 
                         />
                     ) : image ? (
                         <div className="relative w-full h-full flex items-center justify-center">
-                             <img src={image} className="max-w-full max-h-full object-contain rounded-2xl" />
+                             <img src={image} className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${isGenerating ? 'blur-sm scale-105' : ''}`} />
                              {isScanning && (
                                 <div className={AdMakerStyles.scanOverlay}>
                                     <div className={AdMakerStyles.scanLine}></div>
-                                    <span className={AdMakerStyles.scanText}>Pixa Vision Scan</span>
+                                    <div className={AdMakerStyles.scanGradient}></div>
+                                    <div className={AdMakerStyles.analysisBadge}>
+                                        <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
+                                        <span className={AdMakerStyles.scanText}>Pixa Vision Scan</span>
+                                    </div>
                                 </div>
                              )}
-                             {!isScanning && (
+                             {!isScanning && !isGenerating && (
                                 <button 
                                     onClick={() => { setImage(null); setBase64Image(null); setSuggestions([]); setMode(null); }}
                                     className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all z-30"
@@ -296,20 +455,17 @@ Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not 
                                                     >
                                                         <div className={`${AdMakerStyles.suggestionGradientBorder} ${selectedSuggestion === i ? AdMakerStyles.suggestionGradientBorderActive : ''}`}></div>
                                                         <span className={AdMakerStyles.suggestionHeadline}>{s.headline}</span>
-                                                        <p className={AdMakerStyles.suggestionText}>"{s.prompt}"</p>
+                                                        <p className={AdMakerStyles.suggestionText}>"{s.displayPrompt}"</p>
                                                     </div>
                                                 ))}
                                             </div>
                                             
                                             <div className="pt-6 mt-auto">
                                                 <button 
-                                                    disabled={selectedSuggestion === null}
+                                                    disabled={selectedSuggestion === null || isGenerating}
                                                     className={AdMakerStyles.generateButton}
-                                                    onClick={() => {
-                                                        console.log("Generating with:", suggestions[selectedSuggestion!]);
-                                                    }}
+                                                    onClick={handleGenerateAd}
                                                 >
-                                                    <SparklesIcon className="w-5 h-5" />
                                                     Generate Ad
                                                 </button>
                                                 <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest mt-3">

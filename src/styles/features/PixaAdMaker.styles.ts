@@ -62,9 +62,11 @@ export const AdMakerStyles = {
   engineIconModel: "text-purple-600",
 
   // Scan Animation
-  scanOverlay: "absolute inset-0 bg-indigo-600/10 backdrop-blur-[1px] flex flex-col items-center justify-center z-20 overflow-hidden rounded-2xl",
-  scanLine: "absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_15px_rgba(79,70,229,0.8)] z-30 animate-scanLine",
-  scanText: "text-white font-black text-xl tracking-tighter uppercase drop-shadow-md animate-pulse",
+  scanOverlay: "absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] rounded-3xl overflow-hidden flex items-center justify-center",
+  analysisBadge: "bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl border border-white/10 z-40 animate-bounce-slight",
+  scanLine: "absolute top-0 h-full w-[3px] bg-[#4D7CFF] shadow-[0_0_20px_#4D7CFF] animate-[scan-horizontal_1.5s_linear_infinite] z-30",
+  scanGradient: "absolute top-0 h-full w-48 bg-gradient-to-l from-[#4D7CFF]/30 to-transparent animate-[scan-horizontal_1.5s_linear_infinite] -translate-x-full z-20",
+  scanText: "text-xs font-bold tracking-widest uppercase",
   
   // AI Suggestions
   suggestionContainer: "space-y-3 mt-4 animate-fadeIn",
@@ -76,5 +78,5 @@ export const AdMakerStyles = {
   suggestionHeadline: "text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1 block",
 
   // Generate Button
-  generateButton: "w-full py-4 rounded-2xl bg-indigo-600 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 mt-auto flex items-center justify-center gap-2",
+  generateButton: "w-full py-4 rounded-2xl bg-[#F9D230] text-[#1A1A1E] font-black text-sm uppercase tracking-widest shadow-lg shadow-yellow-500/30 hover:scale-[1.02] hover:bg-[#dfbc2b] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 mt-auto flex items-center justify-center gap-2 border-none",
 };
