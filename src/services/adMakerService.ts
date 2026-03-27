@@ -26,7 +26,13 @@ export interface AdConcept {
     copywriting: string;
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAI() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("GEMINI_API_KEY is missing from environment. Please ensure it is set in the platform settings.");
+    }
+    return new GoogleGenAI({ apiKey });
+}
 
 export async function analyzeProductForAdConcepts(
     imageBase64: string,

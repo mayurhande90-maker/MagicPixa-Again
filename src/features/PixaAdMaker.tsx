@@ -78,8 +78,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         try {
             const apiKey = process.env.GEMINI_API_KEY;
             if (!apiKey) {
-                alert("GEMINI_API_KEY is missing. Please check your environment variables.");
-                throw new Error("GEMINI_API_KEY is missing");
+                throw new Error("GEMINI_API_KEY is missing from environment. Please ensure it is set in the platform settings.");
             }
             
             const ai = new GoogleGenAI({ apiKey });
