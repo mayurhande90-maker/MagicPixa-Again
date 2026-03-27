@@ -53,6 +53,7 @@ export const AdMakerStyles = {
   engineGrid: "grid grid-cols-2 gap-4 mb-8",
   engineCard: "group relative w-full h-[clamp(110px,16vh,140px)] rounded-[1.8rem] overflow-hidden border-2 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer text-left flex flex-col justify-end p-5",
   engineCardInactive: "bg-white border-gray-100 hover:border-indigo-200 hover:shadow-lg opacity-80 hover:opacity-100",
+  engineCardActive: "bg-indigo-50/50 border-indigo-500 shadow-lg ring-2 ring-indigo-500/20",
   
   engineOrb: "absolute w-24 h-24 rounded-full blur-2xl transition-all duration-500 -top-8 -right-8 pointer-events-none opacity-0 group-hover:opacity-100",
   engineOrbProduct: "bg-blue-400/20 opacity-100",

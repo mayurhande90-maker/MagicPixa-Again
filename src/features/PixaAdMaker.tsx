@@ -138,6 +138,8 @@ Analyze this product image (identify the product, its material, category, and un
 Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
 Search for the best creative ads available in Google Search for this type of product.
 
+${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the product in lifestyle settings that resonate with the Indian market (e.g., modern Indian homes, vibrant cityscapes, or professional studio setups). Strictly avoid foreign or ambiguous models.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative product-only environments.'}
+
 Then, generate 5 highly creative and high-converting ad prompts for this product.
 Each suggestion should include:
 1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe (e.g., "A clean, minimalist studio setup with soft top-down lighting and a neutral grey background to make the product colors pop. The scene feels premium and modern.").
@@ -212,6 +214,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
                             { text: `Generate a highly professional, high-converting advertisement image for this product. 
 Concept: ${suggestion.detailedPrompt}
 Marketing Headline to include in the design: "${suggestion.headline}"
+${mode === 'model' ? 'STRICT REQUIREMENT: Use ONLY Indian models with clear Indian ethnicity and features. The models should look authentic and professional for the Indian market. Strictly forbid foreign, Caucasian, or ambiguous models.' : ''}
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
 The product from the image should be the central focus.` },
                             { inlineData: { data: imageData, mimeType } }
@@ -522,7 +525,7 @@ The product from the image should be the central focus.` },
                                     <div className={AdMakerStyles.engineGrid}>
                                         <button 
                                             onClick={() => handleModeSelect('product')} 
-                                            className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
+                                            className={`${AdMakerStyles.engineCard} ${mode === 'product' ? AdMakerStyles.engineCardActive : AdMakerStyles.engineCardInactive} !h-48`}
                                         >
                                             <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
                                             <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
@@ -533,14 +536,14 @@ The product from the image should be the central focus.` },
                                         </button>
                                         <button 
                                             onClick={() => handleModeSelect('model')} 
-                                            className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
+                                            className={`${AdMakerStyles.engineCard} ${mode === 'model' ? AdMakerStyles.engineCardActive : AdMakerStyles.engineCardInactive} !h-48`}
                                         >
                                             <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
                                             <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
                                                 <UsersIcon className="w-8 h-8" />
                                             </div>
                                             <h4 className="text-lg font-black text-gray-900 mt-4">Model Ad</h4>
-                                            <p className="text-xs text-gray-500 font-medium">Human lifestyle context</p>
+                                            <p className="text-xs text-gray-500 font-medium">Indian lifestyle context</p>
                                         </button>
                                     </div>
                                 </>
