@@ -2,11 +2,12 @@ import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, UploadPlaceholder } from '../components/FeatureLayout';
 import { 
-    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
 import { fileToBase64, base64ToBlobUrl } from '../utils/imageUtils';
+import { GoogleGenAI } from "@google/genai";
 
 // --- CONSTANTS ---
 const INDUSTRY_CONFIG: Record<string, { label: string; icon: any }> = {
@@ -46,6 +47,10 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [industry, setIndustry] = useState<string | null>(null);
     const [mode, setMode] = useState<'product' | 'model' | null>(null);
     const [image, setImage] = useState<string | null>(null);
+    const [base64Image, setBase64Image] = useState<string | null>(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const [suggestions, setSuggestions] = useState<{prompt: string, headline: string}[]>([]);
+    const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
@@ -57,9 +62,57 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 const { base64, mimeType } = await fileToBase64(file);
                 const blobUrl = await base64ToBlobUrl(base64, mimeType);
                 setImage(blobUrl);
+                setBase64Image(`data:${mimeType};base64,${base64}`);
             } catch (err) {
                 console.error("Upload failed:", err);
             }
+        }
+    };
+
+    const performPixaVisionScan = async () => {
+        if (!base64Image) return;
+        setIsScanning(true);
+        setSuggestions([]);
+        setSelectedSuggestion(null);
+
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+            
+            const ai = new GoogleGenAI({ apiKey });
+            const response = await ai.models.generateContent({
+                model: "gemini-3.1-pro-preview",
+                contents: [
+                    {
+                        parts: [
+                            { text: `You are Pixa AI, a world-class creative director and marketing expert. 
+Analyze this product image (identify the product, its material, category, and unique selling points).
+Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
+Search for the best creative ads available in Google Search for this type of product.
+Then, generate 5 highly creative and high-converting ad prompts for this product.
+Each suggestion should include:
+1. A creative visual prompt for an AI image generator (describing the scene, lighting, and product placement).
+2. A catchy marketing headline/line.
+
+Output ONLY a JSON array of 5 objects with 'prompt' and 'headline' keys. Do not include any other text.` },
+                            { inlineData: { data: base64Image.split(',')[1], mimeType: "image/jpeg" } }
+                        ]
+                    }
+                ],
+                config: {
+                    tools: [{ googleSearch: {} }],
+                    responseMimeType: "application/json"
+                }
+            });
+
+            const text = response.text;
+            if (!text) throw new Error("AI response text is empty");
+            const data = JSON.parse(text);
+            setSuggestions(data);
+        } catch (error) {
+            console.error("Scan failed:", error);
+        } finally {
+            setIsScanning(false);
         }
     };
 
@@ -70,8 +123,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
     const handleModeSelect = (m: 'product' | 'model') => {
         setMode(m);
-        // Stop here as per user request: "Do this first then i will tell what to add inside."
-        console.log("Selected Industry:", industry, "Selected Mode:", m);
+        if (m === 'product') {
+            performPixaVisionScan();
+        }
     };
 
     return (
@@ -97,12 +151,20 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     ) : image ? (
                         <div className="relative w-full h-full flex items-center justify-center">
                              <img src={image} className="max-w-full max-h-full object-contain rounded-2xl" />
-                             <button 
-                                onClick={() => setImage(null)}
-                                className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all"
-                             >
-                                <XIcon className="w-5 h-5" />
-                             </button>
+                             {isScanning && (
+                                <div className={AdMakerStyles.scanOverlay}>
+                                    <div className={AdMakerStyles.scanLine}></div>
+                                    <span className={AdMakerStyles.scanText}>Pixa Vision Scan</span>
+                                </div>
+                             )}
+                             {!isScanning && (
+                                <button 
+                                    onClick={() => { setImage(null); setBase64Image(null); setSuggestions([]); setMode(null); }}
+                                    className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all z-30"
+                                >
+                                    <XIcon className="w-5 h-5" />
+                                </button>
+                             )}
                         </div>
                     ) : (
                         <div className="text-center p-8">
@@ -151,38 +213,106 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                     )}
 
                     {phase === 'mode_select' && (
-                        <div className="animate-fadeIn">
-                            <button onClick={() => setPhase('industry_select')} className={AdMakerStyles.backButton}>
+                        <div className="animate-fadeIn flex flex-col h-full">
+                            <button 
+                                onClick={() => { 
+                                    setPhase('industry_select'); 
+                                    setMode(null); 
+                                    setSuggestions([]); 
+                                    setSelectedSuggestion(null);
+                                }} 
+                                className={AdMakerStyles.backButton}
+                            >
                                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
                             </button>
-                            <div className="text-center mb-8">
-                                <h3 className="text-2xl font-black text-gray-900 mb-2">Select Ad Mode</h3>
-                                <p className="text-sm text-gray-500">How should we feature your product?</p>
-                            </div>
-                            <div className={AdMakerStyles.engineGrid}>
-                                <button 
-                                    onClick={() => handleModeSelect('product')} 
-                                    className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
-                                >
-                                    <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
-                                    <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
-                                        <CubeIcon className="w-8 h-8" />
+
+                            {!mode ? (
+                                <>
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-2xl font-black text-gray-900 mb-2">Select Ad Mode</h3>
+                                        <p className="text-sm text-gray-500">How should we feature your product?</p>
                                     </div>
-                                    <h4 className="text-lg font-black text-gray-900 mt-4">Product Ad</h4>
-                                    <p className="text-xs text-gray-500 font-medium">Clean studio setup</p>
-                                </button>
-                                <button 
-                                    onClick={() => handleModeSelect('model')} 
-                                    className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
-                                >
-                                    <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
-                                    <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
-                                        <UsersIcon className="w-8 h-8" />
+                                    <div className={AdMakerStyles.engineGrid}>
+                                        <button 
+                                            onClick={() => handleModeSelect('product')} 
+                                            className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
+                                        >
+                                            <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
+                                            <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
+                                                <CubeIcon className="w-8 h-8" />
+                                            </div>
+                                            <h4 className="text-lg font-black text-gray-900 mt-4">Product Ad</h4>
+                                            <p className="text-xs text-gray-500 font-medium">Clean studio setup</p>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleModeSelect('model')} 
+                                            className={`${AdMakerStyles.engineCard} ${AdMakerStyles.engineCardInactive} !h-48`}
+                                        >
+                                            <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
+                                            <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
+                                                <UsersIcon className="w-8 h-8" />
+                                            </div>
+                                            <h4 className="text-lg font-black text-gray-900 mt-4">Model Ad</h4>
+                                            <p className="text-xs text-gray-500 font-medium">Human lifestyle context</p>
+                                        </button>
                                     </div>
-                                    <h4 className="text-lg font-black text-gray-900 mt-4">Model Ad</h4>
-                                    <p className="text-xs text-gray-500 font-medium">Human lifestyle context</p>
-                                </button>
-                            </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col overflow-hidden">
+                                    {isScanning ? (
+                                        <div className="flex-1 flex items-center justify-center flex-col gap-4">
+                                            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="text-sm font-bold text-indigo-600 animate-pulse">Pixa AI is analyzing your product...</p>
+                                        </div>
+                                    ) : suggestions.length > 0 ? (
+                                        <div className="flex-1 flex flex-col overflow-hidden">
+                                            <div className="mb-4">
+                                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Pixa AI Suggestions</h4>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Select a creative concept</p>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                                {suggestions.map((s, i) => (
+                                                    <div 
+                                                        key={i}
+                                                        onClick={() => setSelectedSuggestion(i)}
+                                                        className={`${AdMakerStyles.suggestionCapsule} ${selectedSuggestion === i ? AdMakerStyles.suggestionCapsuleActive : ''}`}
+                                                    >
+                                                        <div className={`${AdMakerStyles.suggestionGradientBorder} ${selectedSuggestion === i ? AdMakerStyles.suggestionGradientBorderActive : ''}`}></div>
+                                                        <span className={AdMakerStyles.suggestionHeadline}>{s.headline}</span>
+                                                        <p className={AdMakerStyles.suggestionText}>"{s.prompt}"</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            <div className="pt-6 mt-auto">
+                                                <button 
+                                                    disabled={selectedSuggestion === null}
+                                                    className={AdMakerStyles.generateButton}
+                                                    onClick={() => {
+                                                        console.log("Generating with:", suggestions[selectedSuggestion!]);
+                                                    }}
+                                                >
+                                                    <SparklesIcon className="w-5 h-5" />
+                                                    Generate Ad
+                                                </button>
+                                                <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest mt-3">
+                                                    Cost: {cost} Credits
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex items-center justify-center flex-col gap-4">
+                                            <p className="text-sm font-bold text-gray-400">Something went wrong. Please try again.</p>
+                                            <button 
+                                                onClick={() => performPixaVisionScan()}
+                                                className="text-indigo-600 font-bold text-xs uppercase tracking-widest hover:underline"
+                                            >
+                                                Retry Scan
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

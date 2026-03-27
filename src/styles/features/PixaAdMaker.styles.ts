@@ -60,4 +60,21 @@ export const AdMakerStyles = {
   engineIconBox: "absolute top-4 left-4 w-10 h-10 rounded-xl bg-white/40 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 transition-transform duration-500 group-hover:scale-110",
   engineIconProduct: "text-blue-600",
   engineIconModel: "text-purple-600",
+
+  // Scan Animation
+  scanOverlay: "absolute inset-0 bg-indigo-600/10 backdrop-blur-[1px] flex flex-col items-center justify-center z-20 overflow-hidden rounded-2xl",
+  scanLine: "absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_15px_rgba(79,70,229,0.8)] z-30 animate-scanLine",
+  scanText: "text-white font-black text-xl tracking-tighter uppercase drop-shadow-md animate-pulse",
+  
+  // AI Suggestions
+  suggestionContainer: "space-y-3 mt-4 animate-fadeIn",
+  suggestionCapsule: "group relative p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-indigo-50/30 transition-all duration-300 cursor-pointer overflow-hidden",
+  suggestionCapsuleActive: "!border-indigo-500 !bg-indigo-50/50 shadow-md",
+  suggestionGradientBorder: "absolute inset-0 rounded-2xl p-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10",
+  suggestionGradientBorderActive: "opacity-100",
+  suggestionText: "text-sm font-medium text-gray-700 italic leading-relaxed",
+  suggestionHeadline: "text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1 block",
+
+  // Generate Button
+  generateButton: "w-full py-4 rounded-2xl bg-indigo-600 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 mt-auto flex items-center justify-center gap-2",
 };
