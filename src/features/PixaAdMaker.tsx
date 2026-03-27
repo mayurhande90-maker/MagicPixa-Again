@@ -109,7 +109,7 @@ Search for the best creative ads available in Google Search for this type of pro
 
 Then, generate 5 highly creative and high-converting ad prompts for this product.
 Each suggestion should include:
-1. A short, catchy 'displayPrompt' for the user to see (e.g., "Minimalist Studio Setup", "Urban Lifestyle Vibe").
+1. A catchy 'displayPrompt' for the user to see. This should be 1-2 descriptive sentences explaining the visual concept and vibe (e.g., "A clean, minimalist studio setup with soft top-down lighting and a neutral grey background to make the product colors pop.").
 2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, product placement, and professional photography details). This should be the "secret" prompt.
 3. A catchy marketing 'headline'.
 
@@ -170,7 +170,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
             const imageData = base64Image.split(',')[1];
 
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-image",
+                model: "gemini-3.1-flash-image-preview",
                 contents: [
                     {
                         parts: [
@@ -224,7 +224,7 @@ The product from the image should be the central focus.` },
             const imageData = base64Image.split(',')[1];
 
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-image",
+                model: "gemini-3.1-flash-image-preview",
                 contents: [
                     {
                         parts: [
@@ -322,7 +322,8 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
                         />
                     ) : image ? (
                         <div className="relative w-full h-full flex items-center justify-center">
-                             <img src={image} className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${isGenerating ? 'blur-sm scale-105' : ''}`} />
+                             <img src={image} className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md scale-105 grayscale-[0.2] brightness-75' : ''}`} />
+                             
                              {isScanning && (
                                 <div className={AdMakerStyles.scanOverlay}>
                                     <div className={AdMakerStyles.scanLine}></div>
@@ -333,7 +334,23 @@ Make the requested adjustments while keeping the overall ad-ready design.` },
                                     </div>
                                 </div>
                              )}
-                             {!isScanning && !isGenerating && (
+
+                             {(isGenerating || isRefining) && (
+                                <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] animate-fadeIn rounded-2xl overflow-hidden">
+                                    <div className="relative">
+                                        <div className="w-20 h-20 border-4 border-white/20 border-t-yellow-400 rounded-full animate-spin"></div>
+                                        <SparklesIcon className="absolute inset-0 m-auto w-8 h-8 text-yellow-400 animate-pulse" />
+                                    </div>
+                                    <div className="mt-6 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex flex-col items-center gap-1 shadow-2xl">
+                                        <span className="text-xs font-black text-white uppercase tracking-[0.2em] animate-pulse">Crafting Your Ad</span>
+                                        <span className="text-[10px] text-white/60 font-medium italic">Polishing every pixel...</span>
+                                    </div>
+                                    
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent shadow-[0_0_15px_#facc15] animate-[scan-v_2s_linear_infinite]"></div>
+                                </div>
+                             )}
+
+                             {!isScanning && !isGenerating && !isRefining && (
                                 <button 
                                     onClick={() => { setImage(null); setBase64Image(null); setSuggestions([]); setMode(null); }}
                                     className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all z-30"
