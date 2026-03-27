@@ -20,15 +20,15 @@ import { saveCreation, updateCreation, deductCredits } from '../firebase';
 import { checkMilestone, MilestoneSuccessModal } from '../components/FeatureLayout';
 
 // --- CONSTANTS ---
-const INDUSTRY_CONFIG: Record<string, { label: string; icon: any }> = {
-    'ecommerce': { label: 'Ecommerce', icon: EcommerceAdIcon },
-    'fmcg': { label: 'FMCG', icon: FMCGIcon },
-    'fashion': { label: 'Fashion', icon: EcommerceAdIcon }, // Using Ecommerce icon as fallback if Fashion icon not in adMakerIcons
-    'realty': { label: 'Real Estate', icon: RealtyAdIcon },
-    'food': { label: 'Food and Dining', icon: FoodIcon },
-    'saas': { label: 'SaaS/Tech', icon: SaaSRequestIcon },
-    'education': { label: 'Education', icon: EducationAdIcon },
-    'services': { label: 'Services', icon: ServicesAdIcon },
+const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; isPhysical: boolean }> = {
+    'ecommerce': { label: 'Ecommerce', icon: EcommerceAdIcon, isPhysical: true },
+    'fmcg': { label: 'FMCG', icon: FMCGIcon, isPhysical: true },
+    'fashion': { label: 'Fashion', icon: EcommerceAdIcon, isPhysical: true },
+    'realty': { label: 'Real Estate', icon: RealtyAdIcon, isPhysical: true },
+    'food': { label: 'Food and Dining', icon: FoodIcon, isPhysical: true },
+    'saas': { label: 'SaaS/Tech', icon: SaaSRequestIcon, isPhysical: false },
+    'education': { label: 'Education', icon: EducationAdIcon, isPhysical: false },
+    'services': { label: 'Services', icon: ServicesAdIcon, isPhysical: false },
 };
 
 type AdMakerPhase = 'industry_select' | 'mode_select';
@@ -134,23 +134,41 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 tools.push({ urlContext: {} });
             }
 
+            const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
+            const industryLabel = industry ? INDUSTRY_CONFIG[industry]?.label : 'General';
+
+            const creativeBriefs: Record<string, string> = {
+                'ecommerce': 'Focus on high-end studio lighting, clean backgrounds, and premium textures. Make the product look tactile and high-quality.',
+                'fashion': 'Focus on style, elegance, and mood. Use editorial lighting and trendy backgrounds.',
+                'fmcg': 'Focus on vibrancy, freshness, and energy. Use bright colors and action cues like splashes or fresh ingredients.',
+                'realty': 'Focus on aspiration, space, and lifestyle. Use wide-angle shots, warm natural sunlight, and inviting atmospheres.',
+                'food': 'Focus on appetite appeal. Use warm lighting, macro shots, and sensory cues like steam or glistening textures.',
+                'saas': 'Focus on modern tech and productivity. Treat the uploaded image as a software screenshot and place it inside a sleek device mockup (like a MacBook or iPhone) in a professional high-tech office.',
+                'education': 'Focus on learning and growth. Treat the uploaded image as a logo and place it on a screen or banner in a bright, modern classroom or campus setting.',
+                'services': 'Focus on trust and professionalism. Treat the uploaded image as a logo and place it on a branded uniform, a professional service vehicle, or a clean office environment.'
+            };
+
+            const brief = industry ? creativeBriefs[industry] : 'Create a professional and high-converting advertisement.';
+
             const response = await ai.models.generateContent({
                 model: "gemini-3.1-pro-preview",
                 contents: [
                     {
                         parts: [
             { text: `You are Pixa AI, a world-class creative director and marketing expert. 
-Analyze this product image (identify the product, its material, category, and unique selling points).
+Analyze this ${isPhysical ? 'product' : 'logo/screenshot'} image (identify the ${isPhysical ? 'product' : 'brand/software'}, its ${isPhysical ? 'material' : 'purpose'}, category, and unique selling points).
 ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity.` : ''}
-Use Google Search to find current trends and successful ad campaigns for similar products in the ${industry} industry.
-Search for the best creative ads available in Google Search for this type of product.
+Use Google Search to find current trends and successful ad campaigns for similar ${isPhysical ? 'products' : 'services'} in the ${industryLabel} industry.
 
-${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the product in lifestyle settings that resonate with the Indian market (e.g., modern Indian homes, vibrant cityscapes, or professional studio setups). Strictly avoid foreign or ambiguous models. MANDATORY: You MUST explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") as the primary subject in the displayPrompt. This is a strict requirement for Model Ad mode.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative product-only environments.'}
+CREATIVE BRIEF FOR THIS INDUSTRY:
+${brief}
 
-Then, generate 5 highly creative and high-converting ad prompts for this product.
+${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the subject in lifestyle settings that resonate with the Indian market. Strictly avoid foreign or ambiguous models. MANDATORY: You MUST explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") as the primary subject in the displayPrompt. This is a strict requirement for Model Ad mode.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative environments.'}
+
+Then, generate 5 highly creative and high-converting ad prompts for this ${isPhysical ? 'product' : 'brand'}.
 Each suggestion should include:
 1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe. For Model Ad mode, this MUST include a description of the Indian model character.
-2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, product placement, and professional photography details). This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model.
+2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, placement, and professional photography details). This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model.
 3. A catchy marketing 'headline'.
 
 Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys. Do not include any other text or markdown formatting.` },
@@ -213,17 +231,19 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
             const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
             const imageData = base64Image.split(',')[1];
 
+            const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
+
             const response = await ai.models.generateContent({
                 model: "gemini-3.1-flash-image-preview",
                 contents: [
                     {
                         parts: [
-                            { text: `Generate a highly professional, high-converting advertisement image for this product. 
+                            { text: `Generate a highly professional, high-converting advertisement image for this ${isPhysical ? 'product' : 'brand'}. 
 Concept: ${suggestion.detailedPrompt}
 Marketing Headline to include in the design: "${suggestion.headline}"
-${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male or female as per the scene) MUST be the primary subject interacting with the product. The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
+${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male or female as per the scene) MUST be the primary subject interacting with the scene. The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
-The product from the image should be the central focus.` },
+The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the central focus.` },
                             { inlineData: { data: imageData, mimeType } }
                         ]
                     }
@@ -433,7 +453,7 @@ The product from the image should be the central focus.` },
                     <LoadingOverlay isVisible={isGenerating || isRefining} loadingText={loadingText} progress={progress} />
                     {phase === 'mode_select' && !image ? (
                         <UploadPlaceholder 
-                            label="Upload Product Image" 
+                            label={industry && !INDUSTRY_CONFIG[industry].isPhysical ? "Upload Logo or Screenshot" : "Upload Product Image"} 
                             onClick={() => fileInputRef.current?.click()} 
                             icon={<MagicAdsIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />}
                         />
