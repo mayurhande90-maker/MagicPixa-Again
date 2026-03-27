@@ -71,6 +71,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [isRefineActive, setIsRefineActive] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
     const [milestoneBonus, setMilestoneBonus] = useState<number | undefined>(undefined);
+    const [editingSuggestionIndex, setEditingSuggestionIndex] = useState<number | null>(null);
+    const [editingSuggestionData, setEditingSuggestionData] = useState<{ headline: string; displayPrompt: string } | null>(null);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -342,6 +344,39 @@ The product from the image should be the central focus.` },
         setSelectedSuggestion(null);
         setResultImage(null);
         setIsRefineActive(false);
+        setEditingSuggestionIndex(null);
+        setEditingSuggestionData(null);
+    };
+
+    const handleStartEdit = (e: React.MouseEvent, index: number) => {
+        e.stopPropagation();
+        setEditingSuggestionIndex(index);
+        setEditingSuggestionData({
+            headline: suggestions[index].headline,
+            displayPrompt: suggestions[index].displayPrompt
+        });
+    };
+
+    const handleSaveEdit = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (editingSuggestionIndex !== null && editingSuggestionData) {
+            const newSuggestions = [...suggestions];
+            newSuggestions[editingSuggestionIndex] = {
+                ...newSuggestions[editingSuggestionIndex],
+                headline: editingSuggestionData.headline,
+                displayPrompt: editingSuggestionData.displayPrompt
+            };
+            setSuggestions(newSuggestions);
+            setEditingSuggestionIndex(null);
+            setEditingSuggestionData(null);
+            setNotification({ msg: "Suggestion updated!", type: 'success' });
+        }
+    };
+
+    const handleCancelEdit = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingSuggestionIndex(null);
+        setEditingSuggestionData(null);
     };
 
     return (
@@ -393,9 +428,10 @@ The product from the image should be the central focus.` },
                         />
                     ) : image ? (
                         <div className="relative w-full h-full flex items-center justify-center">
-                             {!(isGenerating || isRefining) && (
-                                 <img src={image} className="max-w-full max-h-full object-contain rounded-2xl transition-all duration-700" />
-                             )}
+                             <img 
+                                src={image} 
+                                className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md grayscale-[0.2] brightness-75 scale-105' : ''}`} 
+                             />
                              
                              {isScanning && (
                                 <div className={AdMakerStyles.scanOverlay}>
@@ -521,16 +557,67 @@ The product from the image should be the central focus.` },
                                                 <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Pixa AI Suggestions</h4>
                                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Select a creative concept</p>
                                             </div>
-                                            <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                             <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                                                 {suggestions.map((s, i) => (
                                                     <div 
                                                         key={i}
-                                                        onClick={() => setSelectedSuggestion(i)}
-                                                        className={`${AdMakerStyles.suggestionCapsule} ${selectedSuggestion === i ? AdMakerStyles.suggestionCapsuleActive : ''}`}
+                                                        onClick={() => editingSuggestionIndex === null && setSelectedSuggestion(i)}
+                                                        className={`${AdMakerStyles.suggestionCapsule} ${selectedSuggestion === i ? AdMakerStyles.suggestionCapsuleActive : ''} ${editingSuggestionIndex === i ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : ''}`}
                                                     >
                                                         <div className={`${AdMakerStyles.suggestionGradientBorder} ${selectedSuggestion === i ? AdMakerStyles.suggestionGradientBorderActive : ''}`}></div>
-                                                        <span className={AdMakerStyles.suggestionHeadline}>{s.headline}</span>
-                                                        <p className={AdMakerStyles.suggestionText}>"{s.displayPrompt}"</p>
+                                                        
+                                                        {editingSuggestionIndex === i ? (
+                                                            <div className="space-y-3 p-1" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Headline</label>
+                                                                    <input 
+                                                                        type="text"
+                                                                        value={editingSuggestionData?.headline || ''}
+                                                                        onChange={(e) => setEditingSuggestionData(prev => prev ? {...prev, headline: e.target.value} : null)}
+                                                                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 ring-indigo-500/20"
+                                                                        placeholder="Enter headline..."
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Visual Prompt</label>
+                                                                    <textarea 
+                                                                        value={editingSuggestionData?.displayPrompt || ''}
+                                                                        onChange={(e) => setEditingSuggestionData(prev => prev ? {...prev, displayPrompt: e.target.value} : null)}
+                                                                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 ring-indigo-500/20 resize-none"
+                                                                        rows={3}
+                                                                        placeholder="Describe the visual..."
+                                                                    />
+                                                                </div>
+                                                                <div className="flex gap-2 pt-1">
+                                                                    <button 
+                                                                        onClick={handleSaveEdit}
+                                                                        className="flex-1 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                                                                    >
+                                                                        Save
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={handleCancelEdit}
+                                                                        className="flex-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <div className="flex justify-between items-start gap-2">
+                                                                    <span className={AdMakerStyles.suggestionHeadline}>{s.headline}</span>
+                                                                    <button 
+                                                                        onClick={(e) => handleStartEdit(e, i)}
+                                                                        className="p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-all"
+                                                                        title="Edit Suggestion"
+                                                                    >
+                                                                        <PencilIcon className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                                <p className={AdMakerStyles.suggestionText}>"{s.displayPrompt}"</p>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
