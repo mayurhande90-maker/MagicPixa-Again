@@ -142,9 +142,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [editingSuggestionIndex, setEditingSuggestionIndex] = useState<number | null>(null);
     const [editingSuggestionData, setEditingSuggestionData] = useState<{ headline: string; displayPrompt: string } | null>(null);
     const [brandUrl, setBrandUrl] = useState<string>("");
+    const [includeCta, setIncludeCta] = useState<boolean>(true);
+    const [brandLogo, setBrandLogo] = useState<string | null>(null);
+    const [isFetchingLogo, setIsFetchingLogo] = useState(false);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
 
@@ -227,7 +231,9 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                         parts: [
             { text: `You are Pixa AI, a world-class creative director and marketing expert. 
 Analyze this ${isPhysical ? 'product' : 'logo/screenshot'} image (identify the ${isPhysical ? 'product' : 'brand/software'}, its ${isPhysical ? 'material' : 'purpose'}, category, and unique selling points).
-${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity.` : ''}
+${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity. 
+MANDATORY: Identify the official brand name and the primary website URL or social handle that should be used as a Call to Action (CTA). 
+ALSO: Try to find the direct URL of the brand's official logo (preferably a high-quality PNG or SVG).` : ''}
 Use Google Search to find current trends and successful ad campaigns for similar ${isPhysical ? 'products' : 'services'} in the ${industryLabel} industry.
 
 CREATIVE BRIEF FOR THIS INDUSTRY:
@@ -248,7 +254,10 @@ Each suggestion should include:
 2. A very detailed 'detailedPrompt' for an AI image generator (describing the scene, lighting, placement, and professional photography details). This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model.
 3. A catchy marketing 'headline'.
 
-Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys. Do not include any other text or markdown formatting.` },
+Output ONLY a JSON object with:
+- 'suggestions': an array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys.
+- 'brandInfo': an object with 'brandName', 'ctaUrl' (the exact URL to use), and 'logoUrl' (if found).
+Do not include any other text or markdown formatting.` },
                             { inlineData: { data: imageData, mimeType } }
                         ]
                     }
@@ -262,14 +271,38 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
             if (!text) throw new Error("AI response text is empty");
             
             // Robust JSON parsing to handle potential markdown blocks or extra text
-            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
             const jsonStr = jsonMatch ? jsonMatch[0] : text;
             const data = JSON.parse(jsonStr);
             
-            if (Array.isArray(data)) {
-                setSuggestions(data);
+            if (data.suggestions && Array.isArray(data.suggestions)) {
+                setSuggestions(data.suggestions);
+                
+                // Auto-fetch logo if found and not already set manually
+                if (data.brandInfo?.logoUrl && !brandLogo) {
+                    setIsFetchingLogo(true);
+                    try {
+                        // Attempt to fetch and convert to base64 (might be blocked by CORS)
+                        const response = await fetch(data.brandInfo.logoUrl, { mode: 'no-cors' });
+                        // 'no-cors' won't allow reading the body, so this is tricky without a proxy.
+                        // For now, we'll try a standard fetch and fallback to just setting the URL 
+                        // if the user's browser allows it (e.g. same-origin or CORS enabled).
+                        const res = await fetch(data.brandInfo.logoUrl);
+                        const blob = await res.blob();
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            setBrandLogo(reader.result as string);
+                            setIsFetchingLogo(false);
+                        };
+                        reader.readAsDataURL(blob);
+                    } catch (e) {
+                        console.error("Logo fetch failed (likely CORS):", e);
+                        // If fetch fails, we don't set the logo, user can upload manually.
+                        setIsFetchingLogo(false);
+                    }
+                }
             } else {
-                throw new Error("AI response is not a JSON array");
+                throw new Error("AI response format is incorrect");
             }
         } catch (error: any) {
             console.error("Scan failed:", error);
@@ -329,23 +362,39 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
             const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
             const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
 
-            const response = await ai.models.generateContent({
-                model: "gemini-3.1-flash-image-preview",
-                contents: [
-                    {
-                        parts: [
-                            { text: `Generate a highly professional, high-converting advertisement image for this ${isPhysical ? 'product' : 'brand'}. 
+            const contents: any[] = [
+                {
+                    parts: [
+                        { text: `Generate a highly professional, high-converting advertisement image for this ${isPhysical ? 'product' : 'brand'}. 
 Concept: ${suggestion.detailedPrompt}
 Visual Style: ${styleLabel}
 Ad Format: ${selectedFormat} aspect ratio.
 Marketing Headline to include in the design: "${suggestion.headline}"
 ${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male or female as per the scene) MUST be the primary subject interacting with the scene. The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
+
+${includeCta && brandUrl ? `CALL TO ACTION (CTA): Include the official brand website "${brandUrl}" or a relevant social handle clearly but elegantly in the design. 
+HARD NEGATIVE: NEVER use generic placeholders like 'www.website.com' or 'yourbrand.com'. ONLY use the provided URL.` : 'HARD NEGATIVE: DO NOT include any website URLs, social handles, or generic CTA text in the design.'}
+
+${brandLogo ? `BRAND LOGO: I have provided the brand's official logo as an additional image. Integrate it naturally and professionally into the ad design (e.g., in a corner, on a branded element, or as a watermark as appropriate for a high-end ad).` : ''}
+
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
-The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the central focus.` },
-                            { inlineData: { data: imageData, mimeType } }
-                        ]
-                    }
-                ],
+The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should be the central focus.` },
+                        { inlineData: { data: imageData, mimeType } }
+                    ]
+                }
+            ];
+
+            // Add logo if available
+            if (brandLogo) {
+                const logoMimeMatch = brandLogo.match(/^data:([^;]+);base64,/);
+                const logoMime = logoMimeMatch ? logoMimeMatch[1] : "image/png";
+                const logoData = brandLogo.split(',')[1];
+                contents[0].parts.push({ inlineData: { data: logoData, mimeType: logoMime } });
+            }
+
+            const response = await ai.models.generateContent({
+                model: "gemini-3.1-flash-image-preview",
+                contents: contents,
                 config: {
                     imageConfig: {
                         aspectRatio: selectedFormat as any
@@ -746,7 +795,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the c
 
                                     <div className="mb-8 px-2">
                                         <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2 block">Brand Website (Optional)</label>
-                                        <div className="relative group">
+                                        <div className="relative group mb-3">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                 <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
                                             </div>
@@ -758,7 +807,54 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the c
                                                 className="w-full bg-white border border-gray-200 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300"
                                             />
                                         </div>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-2 px-1">
+
+                                        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl mb-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Include CTA in Design</span>
+                                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Show website/handle in ad</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setIncludeCta(!includeCta)}
+                                                className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${includeCta ? 'left-6' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block">Brand Logo (Optional)</label>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => logoInputRef.current?.click()}>
+                                                    {brandLogo ? (
+                                                        <img src={brandLogo} className="w-full h-full object-contain" alt="Logo" />
+                                                    ) : (
+                                                        <PlusIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
+                                                    )}
+                                                    {isFetchingLogo && (
+                                                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                                            <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
+                                                        {brandLogo ? "Logo detected/uploaded" : "Pixa will auto-fetch or you can upload"}
+                                                    </p>
+                                                    {brandLogo && (
+                                                        <button onClick={() => setBrandLogo(null)} className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-1 hover:underline">Remove Logo</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <input type="file" ref={logoInputRef} onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const { base64, mimeType } = await fileToBase64(file);
+                                                    setBrandLogo(`data:${mimeType};base64,${base64}`);
+                                                }
+                                            }} className="hidden" accept="image/*" />
+                                        </div>
+
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-4 px-1">
                                             Pixa AI will analyze your site for brand guidelines & voice.
                                         </p>
                                     </div>
