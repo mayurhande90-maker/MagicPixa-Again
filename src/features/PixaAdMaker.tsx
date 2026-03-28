@@ -91,9 +91,9 @@ const INDUSTRY_STYLES: Record<string, { id: string; label: string; icon: string 
 };
 
 const AD_FORMATS = [
-    { id: '1:1', label: 'Square (Feed)', desc: 'Instagram/Facebook', icon: '📱' },
-    { id: '9:16', label: 'Portrait (Story)', desc: 'Reels/Stories/TikTok', icon: '🤳' },
-    { id: '16:9', label: 'Landscape (Web)', desc: 'Website/YouTube', icon: '💻' },
+    { id: '1:1', label: 'Square', desc: 'Feed (1:1)', icon: <div className="w-6 h-6 border-2 border-current rounded-sm" /> },
+    { id: '9:16', label: 'Vertical', desc: 'Story (9:16)', icon: <div className="w-4 h-7 border-2 border-current rounded-sm" /> },
+    { id: '16:9', label: 'Web', desc: 'Banner (16:9)', icon: <div className="w-8 h-4 border-2 border-current rounded-sm" /> },
 ];
 
 type AdMakerPhase = 'industry_select' | 'style_format_select' | 'mode_select';
@@ -122,7 +122,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [industry, setIndustry] = useState<string | null>(null);
     const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
     const [customStyleText, setCustomStyleText] = useState<string>("");
-    const [selectedFormat, setSelectedFormat] = useState<string>('1:1');
+    const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
     const [mode, setMode] = useState<'product' | 'model' | null>(null);
     const [image, setImage] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
@@ -285,7 +285,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
     };
 
     const handleStyleFormatNext = () => {
-        if (selectedStyle) {
+        if (selectedStyle && selectedFormat) {
             setPhase('mode_select');
         }
     };
@@ -719,7 +719,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the c
 
                             <button
                                 onClick={handleStyleFormatNext}
-                                disabled={!selectedStyle || (selectedStyle === 'custom' && !customStyleText.trim())}
+                                disabled={!selectedStyle || !selectedFormat || (selectedStyle === 'custom' && !customStyleText.trim())}
                                 className={AdMakerStyles.generateButton}
                             >
                                 Next Step
