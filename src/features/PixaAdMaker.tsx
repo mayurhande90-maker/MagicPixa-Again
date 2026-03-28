@@ -1015,8 +1015,8 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                             disabled={!mode || isScanning || isGenerating}
                                             className={`${AdMakerStyles.generateButton} ${(!mode || isScanning || isGenerating) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] shadow-xl shadow-indigo-500/20'}`}
                                         >
-                                            {(isScanning || isGenerating) ? (base64ReferenceImage ? 'Generating Ad...' : 'Analyzing Brand...') : (base64ReferenceImage ? 'Generate Ad' : 'Generate AI Suggestions')}
-                                            <ArrowRightIcon className="w-4 h-4" />
+                                            {(isScanning || isGenerating) ? (base64ReferenceImage ? 'Generating Ad' : 'Analyzing Brand...') : (base64ReferenceImage ? 'Generate Ad' : 'Generate AI Suggestions')}
+                                            {!base64ReferenceImage && <ArrowRightIcon className="w-4 h-4" />}
                                         </button>
                                         {!mode && (
                                             <p className="text-[8px] text-center text-gray-400 font-bold uppercase tracking-widest mt-3 animate-pulse">
