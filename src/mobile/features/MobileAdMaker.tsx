@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AuthProps, AppConfig, View } from '../../types';
 import { 
     MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, 
-    DownloadIcon, RegenerateIcon, CreditCoinIcon, RefreshIcon, LockIcon, GlobeIcon, ImageIcon, CameraIcon
+    DownloadIcon, RegenerateIcon, CreditCoinIcon, RefreshIcon, LockIcon, GlobeIcon, ImageIcon, CameraIcon,
+    PencilIcon
 } from '../../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../../styles/features/PixaAdMaker.styles';
@@ -104,7 +105,8 @@ const AD_STEPS = [
     { id: 'format', label: 'Format' },
     { id: 'language', label: 'Language' },
     { id: 'mode', label: 'Mode' },
-    { id: 'config', label: 'Config' }
+    { id: 'config', label: 'Config' },
+    { id: 'ai_suggestion', label: 'AI Suggestion' }
 ];
 
 // Custom Refine Icon
@@ -137,6 +139,13 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [includeCta, setIncludeCta] = useState(true);
     const [isRefineOpen, setIsRefineOpen] = useState(false);
     const [refineText, setRefineText] = useState('');
+    const [isSuggestionTrayOpen, setIsSuggestionTrayOpen] = useState(false);
+    const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+    const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+    const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editValue, setEditValue] = useState('');
+    const [fetchedLogo, setFetchedLogo] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
@@ -144,15 +153,22 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const isStepAccessible = (idx: number): boolean => {
+        if (!image) return false;
         if (idx === 0) return true;
+        
+        // Industry is mandatory for all steps after 0
+        if (!selections.industry) return false;
+        
         const prevStep = AD_STEPS[idx - 1];
         if (!prevStep) return false;
-        return !!selections[prevStep.id] || prevStep.id === 'config';
+        
+        // Allow moving forward if previous step is filled or is optional (config)
+        return !!selections[prevStep.id] || prevStep.id === 'config' || prevStep.id === 'ai_suggestion';
     };
 
     const isStrategyComplete = useMemo(() => {
-        return !!image && !!selections.industry && !!selections.style && !!selections.format && !!selections.language && !!selections.mode;
-    }, [image, selections]);
+        return !!image && !!selections.industry && !!selections.style && !!selections.format && !!selections.language && !!selections.mode && !!selectedSuggestion;
+    }, [image, selections, selectedSuggestion]);
 
     useEffect(() => {
         let interval: any;
@@ -186,6 +202,21 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         return () => clearInterval(interval);
     }, [isGenerating, isScanning]);
 
+    useEffect(() => {
+        if (brandUrl && brandUrl.includes('.')) {
+            try {
+                const domain = brandUrl.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0];
+                if (domain) {
+                    setFetchedLogo(`https://logo.clearbit.com/${domain}`);
+                }
+            } catch (e) {
+                setFetchedLogo(null);
+            }
+        } else {
+            setFetchedLogo(null);
+        }
+    }, [brandUrl]);
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
@@ -215,7 +246,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
 
         onGenerationStart();
-        setIsScanning(true);
+        setIsGenerating(true); // Start animation immediately
 
         try {
             const apiKey = process.env.GEMINI_API_KEY;
@@ -223,52 +254,23 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const ai = new GoogleGenAI({ apiKey });
 
             const industry = selections.industry;
-            const isPhysical = INDUSTRY_CONFIG[industry]?.isPhysical;
             const styleLabel = INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
             const languageConfig = LANGUAGES.find(l => l.id === selections.language) || LANGUAGES[0];
-            const formatLabel = AD_FORMATS.find(f => f.id === selections.format)?.label || 'Square';
 
-            // 1. Scan & Suggestion Phase (Internal)
-            const scanPrompt = `
-                Analyze this image of a ${isPhysical ? 'product' : 'brand logo'}.
-                The industry is ${INDUSTRY_CONFIG[industry].label}.
-                The user wants a "${styleLabel}" style ad in ${formatLabel} format.
-                Language: ${languageConfig.label}.
-                Mode: ${selections.mode === 'model' ? 'Model Ad (Feature Indian models)' : 'Product Ad (Clean studio/lifestyle)'}.
-
-                Generate 1 highly creative and high-converting ad concept.
-                Include:
-                1. 'detailedPrompt': A very detailed description for an AI image generator to create this ad.
-                2. 'headline': A catchy marketing headline in ${languageConfig.label}.
-
-                Output ONLY a JSON object with 'detailedPrompt' and 'headline'.
-            `;
-
-            const scanResponse = await ai.models.generateContent({
-                model: "gemini-3.1-pro-preview",
-                contents: [
-                    { parts: [{ text: scanPrompt }, { inlineData: { data: image.base64, mimeType: image.mimeType } }] }
-                ]
-            });
-
-            const responseText = scanResponse.text || "";
-            const scanData = JSON.parse(responseText.match(/\{[\s\S]*\}/)?.[0] || "{}");
-            if (!scanData.detailedPrompt) throw new Error("Failed to generate ad concept");
-
-            setIsScanning(false);
-            setIsGenerating(true);
-
-            // 2. Generation Phase
+            // Generation Phase
             const genPrompt = `
-                Generate a professional high-converting ad image.
-                Concept: ${scanData.detailedPrompt}
-                Headline to include: "${scanData.headline}"
+                Generate a professional high-converting ad image based on this specific AI suggestion: "${selectedSuggestion}".
+                
+                Context:
+                Industry: ${INDUSTRY_CONFIG[industry].label}
                 Style: ${styleLabel}
                 Format: ${selections.format}
                 Language: ${languageConfig.label}
                 ${selections.mode === 'model' ? 'MANDATORY: The scene MUST feature professional Indian models with clear Indian ethnicity and features.' : ''}
-                ${includeCta && brandUrl ? `Include CTA: ${brandUrl}` : 'DO NOT include any URLs.'}
-                ${includeLogo ? 'Integrate the brand logo from the original image naturally.' : ''}
+                ${brandUrl ? `Fetch brand logo and style from website: ${brandUrl}` : ''}
+                
+                DO NOT include any Call to Action (CTA) buttons or text in the image.
+                Integrate the product/logo from the original image naturally.
             `;
 
             const genResponse = await ai.models.generateContent({
@@ -309,8 +311,52 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         } catch (e: any) {
             console.error("AdMaker Error:", e);
             alert("Generation failed. Please try again.");
-            setIsScanning(false);
             setIsGenerating(false);
+        }
+    };
+
+    const generateAISuggestions = async () => {
+        if (!image || !selections.industry || !selections.style || isGeneratingSuggestions) return;
+        setIsGeneratingSuggestions(true);
+        setIsSuggestionTrayOpen(true);
+
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API Key missing");
+            const ai = new GoogleGenAI({ apiKey });
+
+            const industry = selections.industry;
+            const styleLabel = INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
+            const languageConfig = LANGUAGES.find(l => l.id === selections.language) || LANGUAGES[0];
+
+            const prompt = `
+                Generate 5 high-converting ad concept suggestions for a ${INDUSTRY_CONFIG[industry].label} product.
+                Style: ${styleLabel}
+                Language: ${languageConfig.label}
+                
+                Each suggestion should be a concise 1-2 sentence description of an ad scene and headline.
+                Output ONLY a JSON array of 5 strings.
+            `;
+
+            const response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: [{ parts: [{ text: prompt }, { inlineData: { data: image.base64, mimeType: image.mimeType } }] }],
+                config: { responseMimeType: "application/json" }
+            });
+
+            const suggestions = JSON.parse(response.text || "[]");
+            setAiSuggestions(suggestions);
+        } catch (e) {
+            console.error("Failed to generate suggestions:", e);
+            setAiSuggestions([
+                "A premium minimalist showcase of the product with soft studio lighting.",
+                "Lifestyle shot featuring the product in a modern Indian home setting.",
+                "Dynamic action shot emphasizing the product's durability and speed.",
+                "Elegant flat-lay arrangement with organic elements and soft textures.",
+                "Bold editorial style ad with high contrast and vibrant brand colors."
+            ]);
+        } finally {
+            setIsGeneratingSuggestions(false);
         }
     };
 
@@ -464,11 +510,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     {result ? (
                         <div className="p-6 animate-fadeIn flex flex-col gap-4">
                             <button onClick={() => setIsRefineOpen(true)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <CustomRefineIcon className="w-5 h-5" /> Refine Ad
+                                <CustomRefineIcon className="w-5 h-5" /> Make Changes
                             </button>
                             <div className="grid grid-cols-2 gap-3 w-full">
                                 <button onClick={handleReset} className="py-4 bg-gray-50 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2 active:bg-gray-100 transition-all">
-                                    <PlusIcon className="w-4 h-4" /> New Ad
+                                    <PlusIcon className="w-4 h-4" /> New Project
                                 </button>
                                 <button onClick={handleGenerate} className="py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 flex items-center justify-center gap-2 shadow-sm">
                                     <RegenerateIcon className="w-4 h-4" /> Regenerate
@@ -482,17 +528,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 {AD_STEPS.map((step, idx) => (
                                     <div key={step.id} className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 ${currentStep === idx ? 'opacity-100 translate-x-0' : currentStep > idx ? 'opacity-0 -translate-x-full' : 'opacity-0 translate-x-full'}`}>
                                         {step.id === 'industry' ? (
-                                            <div className="w-full h-full overflow-y-auto px-6 py-4 flex flex-col gap-2 custom-scrollbar">
+                                            <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2">
                                                 {Object.entries(INDUSTRY_CONFIG).map(([id, cfg]) => (
                                                     <button 
                                                         key={id} 
                                                         onClick={() => handleSelectOption('industry', id)}
-                                                        className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${selections.industry === id ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-gray-100'}`}
+                                                        className={`shrink-0 flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all min-w-[100px] ${selections.industry === id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white border-gray-100 text-gray-600 shadow-sm'}`}
                                                     >
-                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selections.industry === id ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400'}`}>
-                                                            <cfg.icon className="w-5 h-5" />
-                                                        </div>
-                                                        <span className={`text-xs font-black uppercase tracking-wider ${selections.industry === id ? 'text-indigo-900' : 'text-gray-600'}`}>{cfg.label}</span>
+                                                        <cfg.icon className={`w-6 h-6 ${selections.industry === id ? 'text-white' : 'text-indigo-600'}`} />
+                                                        <span className={`text-[10px] font-black uppercase tracking-wider`}>{cfg.label}</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -535,14 +579,36 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             </div>
                                         ) : step.id === 'config' ? (
                                             <div className="w-full px-6 py-2 flex flex-col gap-3">
-                                                <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                    <GlobeIcon className="w-4 h-4 text-gray-400" />
-                                                    <input type="text" value={brandUrl} onChange={e => setBrandUrl(e.target.value)} placeholder="Brand URL (Optional)" className="bg-transparent text-xs font-bold outline-none flex-1" />
+                                                <div className="flex items-center gap-2 bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-inner">
+                                                    <GlobeIcon className="w-5 h-5 text-indigo-500" />
+                                                    <input 
+                                                        type="text" 
+                                                        value={brandUrl} 
+                                                        onChange={e => setBrandUrl(e.target.value)} 
+                                                        placeholder="Website URL (Optional)" 
+                                                        className="bg-transparent text-sm font-bold outline-none flex-1 placeholder:text-gray-300" 
+                                                    />
+                                                    {fetchedLogo && (
+                                                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 overflow-hidden flex items-center justify-center p-1">
+                                                            <img src={fetchedLogo} alt="Logo" className="w-full h-full object-contain" onError={() => setFetchedLogo(null)} />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => setIncludeLogo(!includeLogo)} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${includeLogo ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-gray-100 text-gray-400'}`}>Include Logo</button>
-                                                    <button onClick={() => setIncludeCta(!includeCta)} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${includeCta ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-gray-100 text-gray-400'}`}>Include CTA</button>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">
+                                                    We'll fetch your brand logo & style from the URL
+                                                </p>
+                                            </div>
+                                        ) : step.id === 'ai_suggestion' ? (
+                                            <div className="w-full px-6 py-2 flex flex-col items-center justify-center gap-4">
+                                                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
+                                                    <SparklesIcon className="w-8 h-8 text-indigo-600" />
                                                 </div>
+                                                <button 
+                                                    onClick={generateAISuggestions}
+                                                    className="px-8 py-3 bg-indigo-600 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                                                >
+                                                    Open Suggestions
+                                                </button>
                                             </div>
                                         ) : null}
                                     </div>
@@ -555,8 +621,18 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = !!selections[step.id] || step.id === 'config';
+                                        const isFilled = !!selections[step.id] || step.id === 'config' || step.id === 'ai_suggestion';
                                         
+                                        let label = step.label;
+                                        if (step.id === 'industry' && selections.industry) label = INDUSTRY_CONFIG[selections.industry].label;
+                                        if (step.id === 'style' && selections.style) label = INDUSTRY_STYLES[selections.industry]?.find(s => s.id === selections.style)?.label || step.label;
+                                        if (step.id === 'format' && selections.format) label = AD_FORMATS.find(f => f.id === selections.format)?.label || step.label;
+                                        if (step.id === 'language' && selections.language) label = LANGUAGES.find(l => l.id === selections.language)?.label || step.label;
+                                        if (step.id === 'mode' && selections.mode) label = selections.mode === 'model' ? 'Model' : 'Product';
+                                        if (step.id === 'ai_suggestion' && selectedSuggestion) label = "Selected";
+
+                                        const isFlashing = currentStep === AD_STEPS.findIndex(s => s.id === 'config') && step.id === 'ai_suggestion';
+
                                         return (
                                             <button 
                                                 key={step.id} 
@@ -564,8 +640,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 disabled={!isAccessible}
                                                 className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}
                                             >
-                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-all truncate w-full text-center px-1 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'}`}>{step.label}</span>
-                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'}`}></div>
+                                                <span className={`text-[7px] font-black uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'} ${isFlashing ? 'animate-pulse text-indigo-500' : ''}`}>
+                                                    {label}
+                                                </span>
+                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'} ${isFlashing ? 'animate-pulse bg-indigo-400' : ''}`}></div>
                                             </button>
                                         );
                                     })}
@@ -575,6 +653,100 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     )}
                 </div>
             </div>
+
+            {/* AI Suggestion Tray */}
+            <MobileSheet 
+                isOpen={isSuggestionTrayOpen} 
+                onClose={() => setIsSuggestionTrayOpen(false)} 
+                title="AI Ad Suggestions"
+            >
+                <div className="relative flex flex-col h-full max-h-[70vh]">
+                    <div className="absolute top-0 right-0 flex gap-2 -mt-12">
+                        <button onClick={() => setIsSuggestionTrayOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-500 active:scale-90 transition-all">
+                            <XIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto py-4 space-y-3 no-scrollbar">
+                        {isGeneratingSuggestions ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Generating Ideas...</p>
+                            </div>
+                        ) : (
+                            aiSuggestions.map((suggestion, idx) => (
+                                <div key={idx} className="relative group">
+                                    {editingIndex === idx ? (
+                                        <div className="w-full p-4 bg-white rounded-2xl border-2 border-indigo-500 shadow-lg animate-fadeIn">
+                                            <textarea 
+                                                value={editValue} 
+                                                onChange={e => setEditValue(e.target.value)}
+                                                className="w-full bg-transparent text-sm font-bold outline-none h-20 resize-none"
+                                                autoFocus
+                                            />
+                                            <div className="flex justify-end gap-2 mt-2">
+                                                <button 
+                                                    onClick={() => setEditingIndex(null)}
+                                                    className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-400"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newSuggestions = [...aiSuggestions];
+                                                        newSuggestions[idx] = editValue;
+                                                        setAiSuggestions(newSuggestions);
+                                                        setSelectedSuggestion(editValue);
+                                                        setEditingIndex(null);
+                                                    }}
+                                                    className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                                >
+                                                    Save
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={() => setSelectedSuggestion(suggestion)}
+                                            className={`w-full p-5 pr-12 rounded-2xl text-left text-sm font-bold transition-all border ${selectedSuggestion === suggestion ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl scale-[1.02]' : 'bg-gray-50 text-gray-600 border-gray-100 active:bg-gray-100'}`}
+                                        >
+                                            <div className="flex justify-between items-start gap-3">
+                                                <span className="flex-1 leading-relaxed">{suggestion}</span>
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedSuggestion === suggestion ? 'border-white bg-white/20' : 'border-gray-300'}`}>
+                                                    {selectedSuggestion === suggestion && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingIndex(idx);
+                                                    setEditValue(suggestion);
+                                                }}
+                                                className={`absolute top-4 right-4 p-2 rounded-full transition-all ${selectedSuggestion === suggestion ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-gray-300 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                                            >
+                                                <PencilIcon className="w-4 h-4" />
+                                            </button>
+                                        </button>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="pt-4 pb-6 flex flex-col gap-3">
+                        <button 
+                            onClick={() => {
+                                setIsSuggestionTrayOpen(false);
+                                setCurrentStep(AD_STEPS.findIndex(s => s.id === 'ai_suggestion'));
+                            }}
+                            disabled={!selectedSuggestion}
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${!selectedSuggestion ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20 active:scale-95'}`}
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </MobileSheet>
 
             {isFullScreenOpen && result && (
                 <ImageModal 
