@@ -40,7 +40,7 @@ export const AdMakerStyles = {
   
   // Content Layout
   contentWrapper: "absolute inset-0 flex flex-col justify-end p-4 z-10",
-  title: "text-[13px] font-black text-gray-900 tracking-tight leading-none mb-0.5",
+  title: "text-[18px] font-black text-gray-900 tracking-tight leading-none mb-1",
   desc: "text-[8px] font-bold text-gray-500 uppercase tracking-widest",
 
   // Action Indicator

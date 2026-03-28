@@ -1208,7 +1208,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                         </div>
                                     </div>
 
-                                    <div className="pt-6 mt-auto flex flex-col gap-3">
+                                    <div className="pt-6 mt-auto">
                                         <button
                                             onClick={performPixaVisionScan}
                                             disabled={(!mode && !base64ReferenceImage) || isScanning || isGenerating}
@@ -1216,13 +1216,6 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                         >
                                             {(isScanning || isGenerating) ? (base64ReferenceImage ? 'Generating Ad' : 'Analyzing Brand...') : (base64ReferenceImage ? 'Generate Ad' : 'Generate AI Suggestions')}
                                             {!base64ReferenceImage && <ArrowRightIcon className="w-4 h-4" />}
-                                        </button>
-                                        <button 
-                                            onClick={handleBack}
-                                            disabled={isScanning || isGenerating}
-                                            className="w-full py-3 rounded-xl border-2 border-gray-100 text-gray-400 font-bold text-xs uppercase tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Style
                                         </button>
                                         {!mode && !base64ReferenceImage && (
                                             <p className="text-[8px] text-center text-gray-400 font-bold uppercase tracking-widest mt-3 animate-pulse">
@@ -1309,20 +1302,13 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 ))}
                                             </div>
                                             
-                                            <div className="pt-6 mt-auto flex flex-col gap-3">
+                                            <div className="pt-6 mt-auto">
                                                 <button 
                                                     disabled={selectedSuggestion === null || isGenerating}
                                                     className={AdMakerStyles.generateButton}
                                                     onClick={handleGenerateAd}
                                                 >
                                                     Generate Ad
-                                                </button>
-                                                <button 
-                                                    onClick={handleBack}
-                                                    disabled={isGenerating}
-                                                    className="w-full py-3 rounded-xl border-2 border-gray-100 text-gray-400 font-bold text-xs uppercase tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all flex items-center justify-center gap-2"
-                                                >
-                                                    <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Style
                                                 </button>
                                                 <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest mt-3">
                                                     Cost: {cost} Credits
