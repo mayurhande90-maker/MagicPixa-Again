@@ -131,7 +131,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
     const [customStyleText, setCustomStyleText] = useState<string>("");
     const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
-    const [selectedLanguage, setSelectedLanguage] = useState<string>('english');
+    const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
     const [mode, setMode] = useState<'product' | 'model' | null>(null);
     const [image, setImage] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
@@ -581,7 +581,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         setEditingSuggestionIndex(null);
         setEditingSuggestionData(null);
         setBrandUrl("");
-        setSelectedLanguage('english');
+        setSelectedLanguage(null);
     };
 
     const handleStartEdit = (e: React.MouseEvent, index: number) => {
@@ -845,7 +845,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
 
                             <button
                                 onClick={handleStyleFormatNext}
-                                disabled={!selectedStyle || !selectedFormat || (selectedStyle === 'custom' && !customStyleText.trim())}
+                                disabled={!selectedStyle || !selectedFormat || !selectedLanguage || (selectedStyle === 'custom' && !customStyleText.trim())}
                                 className={AdMakerStyles.generateButton}
                             >
                                 Next Step
