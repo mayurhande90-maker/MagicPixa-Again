@@ -129,11 +129,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
 
     // Tray Navigation
     const [currentStep, setCurrentStep] = useState(0);
-    const [selections, setSelections] = useState<Record<string, string>>({
-        format: '1:1',
-        language: 'english',
-        mode: 'product'
-    });
+    const [selections, setSelections] = useState<Record<string, string>>({});
     const [brandUrl, setBrandUrl] = useState('');
     const [includeLogo, setIncludeLogo] = useState(true);
     const [includeCta, setIncludeCta] = useState(true);
@@ -394,7 +390,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const handleReset = () => {
         setImage(null);
         setResult(null);
-        setSelections({ format: '1:1', language: 'english', mode: 'product' });
+        setSelections({});
         setCurrentStep(0);
         setLastCreationId(null);
     };
