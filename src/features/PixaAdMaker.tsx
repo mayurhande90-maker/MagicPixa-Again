@@ -337,9 +337,6 @@ Do not include any other text or markdown formatting.` },
 
     const handleModeSelect = (m: 'product' | 'model') => {
         setMode(m);
-        if (m === 'product' || m === 'model') {
-            performPixaVisionScan();
-        }
     };
 
     const handleGenerateAd = async () => {
@@ -675,8 +672,22 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                             )}
                         </div>
                     )}
+                    {resultImage && (
+                        <div className="flex justify-center mb-6">
+                            <div className="px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center gap-2 shadow-sm animate-pulse">
+                                <MagicAdsIcon className="w-3 h-3 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Pixa Studio</span>
+                            </div>
+                        </div>
+                    )}
                     {phase === 'industry_select' && (
                         <div className="animate-fadeIn">
+                            <div className="flex justify-center mb-6">
+                                <div className="px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center gap-2 shadow-sm animate-pulse">
+                                    <FlagIcon className="w-3 h-3 text-indigo-600" />
+                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Industry Selection</span>
+                                </div>
+                            </div>
                             <div className="mb-6 px-4">
                                 <h3 className="text-xl font-black text-gray-900">Select Industry</h3>
                                 <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">Choose your business category</p>
@@ -701,6 +712,12 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
 
                     {phase === 'style_format_select' && (
                         <div className="space-y-6 animate-fadeIn p-4 overflow-y-auto max-h-full custom-scrollbar">
+                            <div className="flex justify-center mb-2">
+                                <div className="px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center gap-2 shadow-sm animate-pulse">
+                                    <PencilIcon className="w-3 h-3 text-indigo-600" />
+                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Visual Style & Format</span>
+                                </div>
+                            </div>
                             <button 
                                 onClick={handleBack} 
                                 className={AdMakerStyles.backButton}
@@ -787,15 +804,28 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                             </button>
 
                             {!mode ? (
-                                <>
-                                    <div className="text-center mb-6">
-                                        <h3 className="text-2xl font-black text-gray-900 mb-2">Select Ad Mode</h3>
-                                        <p className="text-sm text-gray-500">How should we feature your product?</p>
+                                <div className="space-y-10 pb-8">
+                                    <div className="flex justify-center mb-2">
+                                        <div className="px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center gap-2 shadow-sm animate-pulse">
+                                            <SparklesIcon className="w-3 h-3 text-indigo-600" />
+                                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Smart Brand Analysis</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-center mb-2">
+                                        <h3 className="text-2xl font-black text-gray-900 mb-1">Final Configuration</h3>
+                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Personalize your brand ad</p>
                                     </div>
 
-                                    <div className="mb-8 px-2">
-                                        <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2 block">Brand Website (Optional)</label>
-                                        <div className="relative group mb-3">
+                                    {/* Step 01: Brand Website */}
+                                    <section className="px-2">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 border border-indigo-100 shadow-sm">01</div>
+                                            <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em] flex items-center gap-2">
+                                                <GlobeIcon className="w-3.5 h-3.5 text-indigo-500" />
+                                                Brand Website (Optional)
+                                            </h3>
+                                        </div>
+                                        <div className="relative group">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                 <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
                                             </div>
@@ -804,86 +834,133 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 value={brandUrl}
                                                 onChange={(e) => setBrandUrl(e.target.value)}
                                                 placeholder="https://yourbrand.com"
-                                                className="w-full bg-white border border-gray-200 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300"
+                                                className="w-full bg-white border border-gray-200 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300 shadow-sm"
                                             />
                                         </div>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-2 px-1">
+                                            AI will analyze your site for guidelines & voice.
+                                        </p>
+                                    </section>
 
-                                        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl mb-4">
+                                    {/* Step 02: Include CTA */}
+                                    <section className="px-2">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 border border-indigo-100 shadow-sm">02</div>
+                                            <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em] flex items-center gap-2">
+                                                <SparklesIcon className="w-3.5 h-3.5 text-indigo-500" />
+                                                Include CTA in Design
+                                            </h3>
+                                        </div>
+                                        <div className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 ${includeCta ? 'bg-indigo-50/50 border-indigo-200 shadow-md' : 'bg-white border-gray-100'}`}>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Include CTA in Design</span>
-                                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Show website/handle in ad</span>
+                                                <span className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Brand Overlay</span>
+                                                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">Show website/handle in ad</span>
                                             </div>
                                             <button 
                                                 onClick={() => setIncludeCta(!includeCta)}
-                                                className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${includeCta ? 'bg-indigo-600' : 'bg-gray-200'}`}
                                             >
-                                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${includeCta ? 'left-6' : 'left-1'}`}></div>
+                                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${includeCta ? 'left-7' : 'left-1'}`}></div>
                                             </button>
                                         </div>
+                                    </section>
 
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block">Brand Logo (Optional)</label>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => logoInputRef.current?.click()}>
-                                                    {brandLogo ? (
-                                                        <img src={brandLogo} className="w-full h-full object-contain" alt="Logo" />
-                                                    ) : (
-                                                        <PlusIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
-                                                    )}
-                                                    {isFetchingLogo && (
-                                                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                                                            <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
-                                                        {brandLogo ? "Logo detected/uploaded" : "Pixa will auto-fetch or you can upload"}
-                                                    </p>
-                                                    {brandLogo && (
-                                                        <button onClick={() => setBrandLogo(null)} className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-1 hover:underline">Remove Logo</button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <input type="file" ref={logoInputRef} onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const { base64, mimeType } = await fileToBase64(file);
-                                                    setBrandLogo(`data:${mimeType};base64,${base64}`);
-                                                }
-                                            }} className="hidden" accept="image/*" />
+                                    {/* Step 03: Brand Logo */}
+                                    <section className="px-2">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 border border-indigo-100 shadow-sm">03</div>
+                                            <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em] flex items-center gap-2">
+                                                <FlagIcon className="w-3.5 h-3.5 text-indigo-500" />
+                                                Brand Logo (Optional)
+                                            </h3>
                                         </div>
-
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-4 px-1">
-                                            Pixa AI will analyze your site for brand guidelines & voice.
-                                        </p>
-                                    </div>
-
-                                    <div className={AdMakerStyles.engineGrid}>
-                                        <button 
-                                            onClick={() => handleModeSelect('product')} 
-                                            className={`${AdMakerStyles.engineCard} ${mode === 'product' ? AdMakerStyles.engineCardActive : AdMakerStyles.engineCardInactive} !h-48`}
-                                        >
-                                            <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
-                                            <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
-                                                <CubeIcon className="w-8 h-8" />
+                                        <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                                            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => logoInputRef.current?.click()}>
+                                                {brandLogo ? (
+                                                    <img src={brandLogo} className="w-full h-full object-contain p-1" alt="Logo" />
+                                                ) : (
+                                                    <PlusIcon className="w-5 h-5 text-gray-400 group-hover:text-indigo-500" />
+                                                )}
+                                                {isFetchingLogo && (
+                                                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                                        <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <h4 className="text-lg font-black text-gray-900 mt-4">Product Ad</h4>
-                                            <p className="text-xs text-gray-500 font-medium">Clean studio setup</p>
-                                        </button>
-                                        <button 
-                                            onClick={() => handleModeSelect('model')} 
-                                            className={`${AdMakerStyles.engineCard} ${mode === 'model' ? AdMakerStyles.engineCardActive : AdMakerStyles.engineCardInactive} !h-48`}
-                                        >
-                                            <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
-                                            <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
-                                                <UsersIcon className="w-8 h-8" />
+                                            <div className="flex-1">
+                                                <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest leading-tight mb-1">
+                                                    {brandLogo ? "Logo Ready" : "Auto-fetch or Upload"}
+                                                </p>
+                                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">
+                                                    Will be integrated into the design
+                                                </p>
+                                                {brandLogo && (
+                                                    <button onClick={() => setBrandLogo(null)} className="text-[9px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline flex items-center gap-1">
+                                                        <XIcon className="w-3 h-3" /> Remove
+                                                    </button>
+                                                )}
                                             </div>
-                                            <h4 className="text-lg font-black text-gray-900 mt-4">Model Ad</h4>
-                                            <p className="text-xs text-gray-500 font-medium">Indian lifestyle context</p>
+                                        </div>
+                                        <input type="file" ref={logoInputRef} onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                const { base64, mimeType } = await fileToBase64(file);
+                                                setBrandLogo(`data:${mimeType};base64,${base64}`);
+                                            }
+                                        }} className="hidden" accept="image/*" />
+                                    </section>
+
+                                    {/* Step 04: Ad Strategy */}
+                                    <section className="px-2">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 border border-indigo-100 shadow-sm">04</div>
+                                            <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em] flex items-center gap-2">
+                                                <MagicAdsIcon className="w-3.5 h-3.5 text-indigo-500" />
+                                                Ad Strategy
+                                            </h3>
+                                        </div>
+                                        <div className={AdMakerStyles.engineGrid}>
+                                            <button 
+                                                onClick={() => handleModeSelect('product')} 
+                                                className={`${AdMakerStyles.engineCard} ${mode === 'product' ? AdMakerStyles.engineCardActive : AdMakerStyles.engineCardInactive} !h-44`}
+                                            >
+                                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbProduct}`}></div>
+                                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconProduct}`}>
+                                                    <CubeIcon className="w-7 h-7" />
+                                                </div>
+                                                <h4 className="text-base font-black text-gray-900 mt-4">Product Ad</h4>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Studio Setup</p>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleModeSelect('model')} 
+                                                className={`${AdMakerStyles.engineCard} ${mode === 'model' ? AdMakerStyles.engineCardActive : AdMakerStyles.engineCardInactive} !h-44`}
+                                            >
+                                                <div className={`${AdMakerStyles.engineOrb} ${AdMakerStyles.engineOrbModel}`}></div>
+                                                <div className={`${AdMakerStyles.engineIconBox} ${AdMakerStyles.engineIconModel}`}>
+                                                    <UsersIcon className="w-7 h-7" />
+                                                </div>
+                                                <h4 className="text-base font-black text-gray-900 mt-4">Model Ad</h4>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Indian Lifestyle</p>
+                                            </button>
+                                        </div>
+                                    </section>
+
+                                    <div className="pt-4">
+                                        <button
+                                            onClick={performPixaVisionScan}
+                                            disabled={!mode || isScanning}
+                                            className={`${AdMakerStyles.generateButton} ${!mode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] shadow-xl shadow-indigo-500/20'}`}
+                                        >
+                                            {isScanning ? 'Analyzing Brand...' : 'Generate AI Suggestions'}
+                                            <ArrowRightIcon className="w-4 h-4" />
                                         </button>
+                                        {!mode && (
+                                            <p className="text-[8px] text-center text-gray-400 font-bold uppercase tracking-widest mt-3 animate-pulse">
+                                                Please select an Ad Strategy to proceed
+                                            </p>
+                                        )}
                                     </div>
-                                </>
+                                </div>
                             ) : (
                                 <div className="flex-1 flex flex-col overflow-hidden">
                                     {isScanning ? (
@@ -893,6 +970,12 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                         </div>
                                     ) : suggestions.length > 0 ? (
                                         <div className="flex-1 flex flex-col overflow-hidden">
+                                            <div className="flex justify-center mb-4">
+                                                <div className="px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 flex items-center gap-2 shadow-sm animate-pulse">
+                                                    <SparklesIcon className="w-3 h-3 text-indigo-600" />
+                                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">AI Ad Generator</span>
+                                                </div>
+                                            </div>
                                             <div className="mb-4">
                                                 <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Pixa AI Suggestions</h4>
                                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Select a creative concept</p>

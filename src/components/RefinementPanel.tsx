@@ -46,6 +46,12 @@ export const RefinementPanel: React.FC<RefinementPanelProps> = ({
             className="bg-gray-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-4 animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] pointer-events-auto w-full max-w-lg mx-auto"
             onClick={(e) => e.stopPropagation()}
         >
+            <div className="flex justify-center mt-2">
+                <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-2 shadow-sm animate-pulse">
+                    <SparklesIcon className="w-3 h-3 text-yellow-400" />
+                    <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Refinement Panel</span>
+                </div>
+            </div>
             <div className="flex items-center justify-between px-3 pt-2">
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
