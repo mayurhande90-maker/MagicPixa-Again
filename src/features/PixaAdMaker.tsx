@@ -127,6 +127,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [image, setImage] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
+    const [scanError, setScanError] = useState(false);
     const [suggestions, setSuggestions] = useState<{ headline: string; displayPrompt: string; detailedPrompt: string }[]>([]);
     const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -185,6 +186,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const performPixaVisionScan = async () => {
         if (!base64Image) return;
         setIsScanning(true);
+        setScanError(false);
         setSuggestions([]);
         setSelectedSuggestion(null);
 
@@ -306,6 +308,7 @@ Do not include any other text or markdown formatting.` },
             }
         } catch (error: any) {
             console.error("Scan failed:", error);
+            setScanError(true);
             setNotification({ msg: `Scan failed: ${error.message || "Unknown error"}`, type: 'error' });
         } finally {
             setIsScanning(false);
@@ -787,7 +790,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Styles
                             </button>
 
-                            {!mode ? (
+                            {(!isScanning && suggestions.length === 0 && !scanError) ? (
                                 <div className="pb-8 relative">
                                     {/* Vertical Timeline Line */}
                                     <div className="absolute left-[21px] top-[140px] bottom-[100px] w-0.5 bg-gradient-to-b from-indigo-500/50 via-indigo-200 to-transparent rounded-full hidden sm:block"></div>
@@ -808,7 +811,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 </div>
                                                 <div className="relative group">
                                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                        <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
+                                                        <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" strokeWidth={2.5} />
                                                     </div>
                                                     <input 
                                                         type="url"
@@ -839,7 +842,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                             onClick={() => setIncludeCta(!includeCta)}
                                                             className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-200'}`}
                                                         >
-                                                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${includeCta ? 'left-5.5' : 'left-0.5'}`}></div>
+                                                            <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${includeCta ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                         </button>
                                                     </div>
 
@@ -1025,7 +1028,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 </p>
                                             </div>
                                         </div>
-                                    ) : (
+                                    ) : scanError ? (
                                         <div className="flex-1 flex items-center justify-center flex-col gap-4">
                                             <p className="text-sm font-bold text-gray-400">Something went wrong. Please try again.</p>
                                             <button 
@@ -1033,6 +1036,16 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 className="text-indigo-600 font-bold text-xs uppercase tracking-widest hover:underline"
                                             >
                                                 Retry Scan
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex items-center justify-center flex-col gap-4">
+                                            <p className="text-sm font-bold text-gray-400">Pixa AI is ready to analyze your product.</p>
+                                            <button 
+                                                onClick={() => setMode(null)}
+                                                className="text-indigo-600 font-bold text-xs uppercase tracking-widest hover:underline"
+                                            >
+                                                Change Ad Strategy
                                             </button>
                                         </div>
                                     )}
