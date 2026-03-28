@@ -91,9 +91,9 @@ const INDUSTRY_STYLES: Record<string, { id: string; label: string; icon: string 
 };
 
 const AD_FORMATS = [
-    { id: '1:1', label: 'Square', desc: 'Feed (1:1)', icon: <div className="w-6 h-6 border-2 border-current rounded-sm" /> },
-    { id: '9:16', label: 'Vertical', desc: 'Story (9:16)', icon: <div className="w-4 h-7 border-2 border-current rounded-sm" /> },
-    { id: '16:9', label: 'Web', desc: 'Banner (16:9)', icon: <div className="w-8 h-4 border-2 border-current rounded-sm" /> },
+    { id: '1:1', label: 'Square', desc: 'Feed (1:1)', icon: <div className="w-6 h-6 border-2 border-indigo-500 rounded-sm" /> },
+    { id: '9:16', label: 'Vertical', desc: 'Story (9:16)', icon: <div className="w-4 h-7 border-2 border-indigo-500 rounded-sm" /> },
+    { id: '16:9', label: 'Web', desc: 'Banner (16:9)', icon: <div className="w-8 h-4 border-2 border-indigo-500 rounded-sm" /> },
 ];
 
 type AdMakerPhase = 'industry_select' | 'style_format_select' | 'mode_select';
