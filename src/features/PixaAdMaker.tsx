@@ -31,7 +31,72 @@ const INDUSTRY_CONFIG: Record<string, { label: string; icon: any; isPhysical: bo
     'services': { label: 'Services', icon: ServicesAdIcon, isPhysical: false },
 };
 
-type AdMakerPhase = 'industry_select' | 'mode_select';
+const INDUSTRY_STYLES: Record<string, { id: string; label: string; icon: string }[]> = {
+    'ecommerce': [
+        { id: 'clean_studio', label: 'Clean Studio', icon: '⚪' },
+        { id: 'outdoor_street', label: 'Outdoor/Street', icon: '🌳' },
+        { id: 'luxury_premium', label: 'Luxury/Premium', icon: '✨' },
+        { id: 'vintage_retro', label: 'Vintage/Retro', icon: '🎞️' },
+        { id: 'minimalist', label: 'Minimalist', icon: '🔍' },
+    ],
+    'fmcg': [
+        { id: 'bright_colorful', label: 'Bright & Colorful', icon: '🌈' },
+        { id: 'fresh_natural', label: 'Fresh & Natural', icon: '🍃' },
+        { id: 'home_kitchen', label: 'Home/Kitchen', icon: '🏠' },
+        { id: 'energetic_action', label: 'Energetic/Action', icon: '⚡' },
+        { id: 'modern_sleek', label: 'Modern/Sleek', icon: '💎' },
+    ],
+    'realty': [
+        { id: 'modern_sleek', label: 'Modern/Sleek', icon: '🏢' },
+        { id: 'cozy_warm', label: 'Cozy/Warm', icon: '🛋️' },
+        { id: 'luxury_grand', label: 'Luxury/Grand', icon: '🏰' },
+        { id: 'nature_green', label: 'Nature/Green', icon: '🌳' },
+        { id: 'sunset_evening', label: 'Sunset/Evening', icon: '🌇' },
+    ],
+    'food': [
+        { id: 'rustic_wooden', label: 'Rustic/Wooden', icon: '🪵' },
+        { id: 'modern_clean', label: 'Modern/Clean', icon: '🍽️' },
+        { id: 'moody_elegant', label: 'Moody/Elegant', icon: '🕯️' },
+        { id: 'fresh_healthy', label: 'Fresh/Healthy', icon: '🥗' },
+        { id: 'casual_cafe', label: 'Casual/Cafe', icon: '☕' },
+    ],
+    'saas': [
+        { id: 'high_tech_neon', label: 'High-Tech/Neon', icon: '💻' },
+        { id: 'professional_office', label: 'Professional Office', icon: '👔' },
+        { id: 'creative_startup', label: 'Creative/Startup', icon: '🎨' },
+        { id: 'clean_minimalist', label: 'Clean/Minimalist', icon: '⚪' },
+        { id: 'sleek_dark_mode', label: 'Sleek Dark Mode', icon: '🌑' },
+    ],
+    'education': [
+        { id: 'academic_classic', label: 'Academic/Classic', icon: '📚' },
+        { id: 'modern_digital', label: 'Modern/Digital', icon: '💻' },
+        { id: 'campus_outdoor', label: 'Campus/Outdoor', icon: '🏫' },
+        { id: 'focus_minimal', label: 'Focus/Minimal', icon: '🎯' },
+        { id: 'inspirational', label: 'Inspirational', icon: '🌟' },
+    ],
+    'services': [
+        { id: 'trust_professional', label: 'Trust/Professional', icon: '🤝' },
+        { id: 'action_onsite', label: 'Action/On-site', icon: '🛠️' },
+        { id: 'friendly_warm', label: 'Friendly/Warm', icon: '😊' },
+        { id: 'sleek_office', label: 'Sleek/Office', icon: '🏢' },
+        { id: 'industrial_strong', label: 'Industrial/Strong', icon: '🏗️' },
+    ],
+    'fashion': [
+        { id: 'editorial', label: 'Editorial', icon: '📸' },
+        { id: 'street_urban', label: 'Street/Urban', icon: '🏙️' },
+        { id: 'minimalist', label: 'Minimalist', icon: '⚪' },
+        { id: 'vintage_film', label: 'Vintage/Film', icon: '🎞️' },
+        { id: 'luxury_glamour', label: 'Luxury/Glamour', icon: '💎' },
+    ]
+};
+
+const AD_FORMATS = [
+    { id: '1:1', label: 'Square (Feed)', desc: 'Instagram/Facebook', icon: '📱' },
+    { id: '9:16', label: 'Portrait (Story)', desc: 'Reels/Stories/TikTok', icon: '🤳' },
+    { id: '16:9', label: 'Landscape (Web)', desc: 'Website/YouTube', icon: '💻' },
+];
+
+type AdMakerPhase = 'industry_select' | 'style_format_select' | 'mode_select';
 
 const IndustryCard: React.FC<{ 
     title: string; 
@@ -55,6 +120,9 @@ const IndustryCard: React.FC<{
 export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | null; navigateTo: (page: Page, view?: View) => void }> = ({ auth, appConfig, navigateTo }) => {
     const [phase, setPhase] = useState<AdMakerPhase>('industry_select');
     const [industry, setIndustry] = useState<string | null>(null);
+    const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+    const [customStyleText, setCustomStyleText] = useState<string>("");
+    const [selectedFormat, setSelectedFormat] = useState<string>('1:1');
     const [mode, setMode] = useState<'product' | 'model' | null>(null);
     const [image, setImage] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
@@ -136,6 +204,8 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
             const industryLabel = industry ? INDUSTRY_CONFIG[industry]?.label : 'General';
+            const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
+            const formatLabel = AD_FORMATS.find(f => f.id === selectedFormat)?.label || 'Square';
 
             const creativeBriefs: Record<string, string> = {
                 'ecommerce': 'Focus on high-end studio lighting, clean backgrounds, and premium textures. Make the product look tactile and high-quality.',
@@ -162,6 +232,13 @@ Use Google Search to find current trends and successful ad campaigns for similar
 
 CREATIVE BRIEF FOR THIS INDUSTRY:
 ${brief}
+
+VISUAL STYLE & MOOD:
+The user has requested a "${styleLabel}" style. 
+${selectedStyle === 'custom' ? `DEEP ANALYSIS OF CUSTOM STYLE: Analyze the user's requested style "${customStyleText}" and incorporate its specific visual cues (lighting, texture, color palette, and mood) into your suggestions.` : `Incorporate the essence of "${styleLabel}" into the visual concepts.`}
+
+AD FORMAT:
+The ad is intended for a ${formatLabel} (${selectedFormat}) aspect ratio. Ensure the visual compositions you suggest work perfectly for this format.
 
 ${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the subject in lifestyle settings that resonate with the Indian market. Strictly avoid foreign or ambiguous models. MANDATORY: You MUST explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") as the primary subject in the displayPrompt. This is a strict requirement for Model Ad mode.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative environments.'}
 
@@ -204,7 +281,25 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
 
     const handleIndustrySelect = (ind: string) => {
         setIndustry(ind);
-        setPhase('mode_select');
+        setPhase('style_format_select');
+    };
+
+    const handleStyleFormatNext = () => {
+        if (selectedStyle) {
+            setPhase('mode_select');
+        }
+    };
+
+    const handleBack = () => {
+        if (phase === 'mode_select') {
+            setPhase('style_format_select');
+            setMode(null);
+            setSuggestions([]);
+            setSelectedSuggestion(null);
+        } else if (phase === 'style_format_select') {
+            setPhase('industry_select');
+            setIndustry(null);
+        }
     };
 
     const handleModeSelect = (m: 'product' | 'model') => {
@@ -232,6 +327,7 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
             const imageData = base64Image.split(',')[1];
 
             const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
+            const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
 
             const response = await ai.models.generateContent({
                 model: "gemini-3.1-flash-image-preview",
@@ -240,6 +336,8 @@ Output ONLY a JSON array of 5 objects with 'headline', 'displayPrompt', and 'det
                         parts: [
                             { text: `Generate a highly professional, high-converting advertisement image for this ${isPhysical ? 'product' : 'brand'}. 
 Concept: ${suggestion.detailedPrompt}
+Visual Style: ${styleLabel}
+Ad Format: ${selectedFormat} aspect ratio.
 Marketing Headline to include in the design: "${suggestion.headline}"
 ${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male or female as per the scene) MUST be the primary subject interacting with the scene. The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
@@ -247,7 +345,12 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the c
                             { inlineData: { data: imageData, mimeType } }
                         ]
                     }
-                ]
+                ],
+                config: {
+                    imageConfig: {
+                        aspectRatio: selectedFormat as any
+                    }
+                }
             });
 
             let generatedB64 = "";
@@ -547,18 +650,91 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the image should be the c
                         </div>
                     )}
 
-                    {phase === 'mode_select' && (
-                        <div className="animate-fadeIn flex flex-col h-full">
+                    {phase === 'style_format_select' && (
+                        <div className="space-y-6 animate-fadeIn p-4 overflow-y-auto max-h-full custom-scrollbar">
                             <button 
-                                onClick={() => { 
-                                    setPhase('industry_select'); 
-                                    setMode(null); 
-                                    setSuggestions([]); 
-                                    setSelectedSuggestion(null);
-                                }} 
+                                onClick={handleBack} 
                                 className={AdMakerStyles.backButton}
                             >
                                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
+                            </button>
+
+                            <div>
+                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <SparklesIcon className="w-3 h-3 text-indigo-500" />
+                                    Choose Visual Style
+                                </h3>
+                                <div className="grid grid-cols-3 gap-3 mb-6">
+                                    {industry && INDUSTRY_STYLES[industry]?.map((style) => (
+                                        <div
+                                            key={style.id}
+                                            onClick={() => setSelectedStyle(style.id)}
+                                            className={`group relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedStyle === style.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                        >
+                                            <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">{style.icon}</span>
+                                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tight">{style.label}</span>
+                                        </div>
+                                    ))}
+                                    <div
+                                        onClick={() => setSelectedStyle('custom')}
+                                        className={`group relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedStyle === 'custom' ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                    >
+                                        <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">🎨</span>
+                                        <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tight">Custom</span>
+                                    </div>
+                                </div>
+
+                                {selectedStyle === 'custom' && (
+                                    <div className="animate-fadeIn">
+                                        <textarea
+                                            placeholder="Describe your custom mood (e.g., 90s Retro, Cyberpunk, Rainy Night)..."
+                                            className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-300 text-sm font-medium text-gray-700 placeholder:text-gray-300 bg-white mt-2"
+                                            value={customStyleText}
+                                            onChange={(e) => setCustomStyleText(e.target.value)}
+                                            rows={3}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <GlobeIcon className="w-3 h-3 text-indigo-500" />
+                                    Select Ad Format
+                                </h3>
+                                <div className="flex gap-3 mb-8">
+                                    {AD_FORMATS.map((format) => (
+                                        <div
+                                            key={format.id}
+                                            onClick={() => setSelectedFormat(format.id)}
+                                            className={`flex-1 group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedFormat === format.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                        >
+                                            <span className="text-xl mb-1">{format.icon}</span>
+                                            <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">{format.label}</span>
+                                            <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{format.desc}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleStyleFormatNext}
+                                disabled={!selectedStyle || (selectedStyle === 'custom' && !customStyleText.trim())}
+                                className={AdMakerStyles.generateButton}
+                            >
+                                Next Step
+                                <ArrowRightIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+
+                    {phase === 'mode_select' && (
+                        <div className="animate-fadeIn flex flex-col h-full overflow-y-auto custom-scrollbar p-4">
+                            <button 
+                                onClick={handleBack} 
+                                className={AdMakerStyles.backButton}
+                            >
+                                <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Styles
                             </button>
 
                             {!mode ? (
