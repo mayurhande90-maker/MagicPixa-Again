@@ -132,6 +132,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [selections, setSelections] = useState<Record<string, string>>({});
     const [customStyle, setCustomStyle] = useState('');
     const [brandUrl, setBrandUrl] = useState('');
+    const [urlError, setUrlError] = useState(false);
     const [includeLogo, setIncludeLogo] = useState(true);
     const [includeCta, setIncludeCta] = useState(true);
     const [isRefineOpen, setIsRefineOpen] = useState(false);
@@ -148,6 +149,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
     const refineCost = 5;
     const isLowCredits = (auth.user?.credits || 0) < cost;
+
+    const validateUrl = (url: string) => {
+        if (!url) {
+            setUrlError(false);
+            return;
+        }
+        const pattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
+        setUrlError(!pattern.test(url));
+    };
 
     const isStepAccessible = (idx: number): boolean => {
         // Step 0 (Industry) is always accessible to start
@@ -169,7 +179,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         // Style is filled if either a preset is selected or custom style is provided
         const prevIsFilled = prevStep.id === 'style' 
             ? (!!selections.style || !!customStyle)
-            : (!!selections[prevStep.id] || prevStep.id === 'config' || prevStep.id === 'ai_suggestion');
+            : prevStep.id === 'config' 
+                ? !urlError 
+                : (!!selections[prevStep.id] || prevStep.id === 'ai_suggestion');
 
         return prevIsFilled;
     };
@@ -403,6 +415,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setResult(null);
         setSelections({});
         setCustomStyle('');
+        setBrandUrl('');
+        setUrlError(false);
+        setSelectedSuggestion(null);
+        setAiSuggestions([]);
+        setFetchedLogo(null);
         setCurrentStep(0);
         setLastCreationId(null);
     };
@@ -466,7 +483,17 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         ) : image ? (
                             <img src={image.url} className={`max-w-[85%] max-h-[85%] object-contain animate-fadeIn transition-all`} />
                         ) : (
-                            <div onClick={() => fileInputRef.current?.click()} className="text-center group active:scale-95 transition-all">
+                            <div 
+                                onClick={() => {
+                                    if (currentStep === 0) {
+                                        fileInputRef.current?.click();
+                                    } else {
+                                        alert("Image must be uploaded in the first step (Industry).");
+                                        setCurrentStep(0);
+                                    }
+                                }} 
+                                className="text-center group active:scale-95 transition-all"
+                            >
                                 <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
                                     <MagicAdsIcon className="w-10 h-10 text-indigo-50" />
                                 </div>
@@ -612,24 +639,33 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                             </div>
                                         ) : step.id === 'config' ? (
                                             <div className="w-full px-6 py-2 flex flex-col gap-3">
-                                                <div className="flex items-center gap-2 bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-inner">
-                                                    <GlobeIcon className="w-5 h-5 text-indigo-500" />
+                                                <div className={`flex items-center gap-2 bg-gray-50 p-4 rounded-2xl border transition-all shadow-inner ${urlError ? 'border-red-500 bg-red-50' : 'border-gray-100'}`}>
+                                                    <GlobeIcon className={`w-5 h-5 ${urlError ? 'text-red-500' : 'text-indigo-500'}`} />
                                                     <input 
                                                         type="text" 
                                                         value={brandUrl} 
-                                                        onChange={e => setBrandUrl(e.target.value)} 
+                                                        onChange={e => {
+                                                            setBrandUrl(e.target.value);
+                                                            validateUrl(e.target.value);
+                                                        }} 
                                                         placeholder="Website URL (Optional)" 
                                                         className="bg-transparent text-sm font-bold outline-none flex-1 placeholder:text-gray-300" 
                                                     />
-                                                    {fetchedLogo && (
+                                                    {fetchedLogo && !urlError && (
                                                         <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 overflow-hidden flex items-center justify-center p-1">
                                                             <img src={fetchedLogo} alt="Logo" className="w-full h-full object-contain" onError={() => setFetchedLogo(null)} />
                                                         </div>
                                                     )}
                                                 </div>
-                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">
-                                                    We'll fetch your brand logo & style from the URL
-                                                </p>
+                                                {urlError ? (
+                                                    <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest text-center animate-shake">
+                                                        Please enter a valid URL (e.g. www.example.com)
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">
+                                                        We'll fetch your brand logo & style from the URL
+                                                    </p>
+                                                )}
                                             </div>
                                         ) : step.id === 'ai_suggestion' ? (
                                             <div className="w-full px-6 py-2 flex flex-col items-center justify-center gap-4">
@@ -651,7 +687,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (step.id === 'config' ? !!brandUrl : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : !!selections[step.id]);
+                                        const isFilled = (step.id === 'config' ? (!!brandUrl && !urlError) : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : !!selections[step.id]);
                                         
                                         let selectionLabel = "";
                                         if (step.id === 'industry' && selections.industry) selectionLabel = INDUSTRY_CONFIG[selections.industry].label;
@@ -659,7 +695,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         if (step.id === 'format' && selections.format) selectionLabel = AD_FORMATS.find(f => f.id === selections.format)?.label || "";
                                         if (step.id === 'language' && selections.language) selectionLabel = LANGUAGES.find(l => l.id === selections.language)?.label || "";
                                         if (step.id === 'mode' && selections.mode) selectionLabel = selections.mode === 'model' ? 'Model' : 'Product';
-                                        if (step.id === 'config' && brandUrl) selectionLabel = "Set";
+                                        if (step.id === 'config' && brandUrl && !urlError) selectionLabel = "Set";
                                         if (step.id === 'ai_suggestion' && selectedSuggestion) selectionLabel = "Selected";
 
                                         const isFlashing = currentStep === AD_STEPS.findIndex(s => s.id === 'config') && step.id === 'ai_suggestion';
@@ -709,15 +745,23 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 isOpen={isSuggestionTrayOpen} 
                 onClose={() => setIsSuggestionTrayOpen(false)} 
                 title="AI Ad Suggestions"
-            >
-                <div className="relative flex flex-col h-full max-h-[70vh]">
-                    <div className="absolute top-0 right-0 flex gap-2 -mt-12">
-                        <button onClick={() => setIsSuggestionTrayOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-500 active:scale-90 transition-all">
-                            <XIcon className="w-5 h-5" />
+                footer={
+                    <div className="pb-8">
+                        <button 
+                            onClick={() => {
+                                setIsSuggestionTrayOpen(false);
+                                setCurrentStep(AD_STEPS.findIndex(s => s.id === 'ai_suggestion'));
+                            }}
+                            disabled={!selectedSuggestion || isGeneratingSuggestions}
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${(!selectedSuggestion || isGeneratingSuggestions) ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20 active:scale-95'}`}
+                        >
+                            Done
                         </button>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto py-4 space-y-3 no-scrollbar">
+                }
+            >
+                <div className="flex flex-col">
+                    <div className="py-4 space-y-3 no-scrollbar">
                         {isGeneratingSuggestions ? (
                             <div className="flex flex-col items-center justify-center py-12 gap-4">
                                 <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
@@ -782,19 +826,6 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             ))
                         )}
                     </div>
-
-                    <div className="pt-4 pb-8 flex flex-col gap-3 bg-white z-10">
-                        <button 
-                            onClick={() => {
-                                setIsSuggestionTrayOpen(false);
-                                setCurrentStep(AD_STEPS.findIndex(s => s.id === 'ai_suggestion'));
-                            }}
-                            disabled={!selectedSuggestion || isGeneratingSuggestions}
-                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${(!selectedSuggestion || isGeneratingSuggestions) ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20 active:scale-95'}`}
-                        >
-                            Done
-                        </button>
-                    </div>
                 </div>
             </MobileSheet>
 
@@ -810,16 +841,33 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 isOpen={isRefineOpen} 
                 onClose={() => setIsRefineOpen(false)} 
                 title="Refine Ad Design"
+                footer={
+                    <div className="pb-6">
+                        <button 
+                            onClick={() => handleRefine(refineText)} 
+                            disabled={!refineText.trim() || isGenerating} 
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}
+                        >
+                            Apply Changes
+                        </button>
+                    </div>
+                }
             >
-                <div className="space-y-6 pb-6">
-                    <textarea value={refineText} onChange={e => setRefineText(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" placeholder="e.g. Make the text more bold and move the logo to bottom right..." />
-                    <button onClick={() => handleRefine(refineText)} disabled={!refineText.trim() || isGenerating} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 ${!refineText.trim() || isGenerating ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'}`}>Apply Changes</button>
+                <div className="pb-6">
+                    <textarea 
+                        value={refineText} 
+                        onChange={e => setRefineText(e.target.value)} 
+                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none h-32" 
+                        placeholder="e.g. Make the text more bold and move the logo to bottom right..." 
+                    />
                 </div>
             </MobileSheet>
             
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
             
             <style>{`
+                @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+                .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
                 @keyframes neural-scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
                 .animate-neural-scan { animation: neural-scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
                 @keyframes grain { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-1%, -1%); } 30% { transform: translate(-2%, 2%); } 50% { transform: translate(1%, -2%); } 70% { transform: translate(-1%, 1%); } 90% { transform: translate(2%, 0); } }

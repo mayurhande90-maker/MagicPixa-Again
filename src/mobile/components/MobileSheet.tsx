@@ -7,9 +7,10 @@ interface MobileSheetProps {
     onClose: () => void;
     title: React.ReactNode;
     children: React.ReactNode;
+    footer?: React.ReactNode;
 }
 
-export const MobileSheet: React.FC<MobileSheetProps> = ({ isOpen, onClose, title, children }) => {
+export const MobileSheet: React.FC<MobileSheetProps> = ({ isOpen, onClose, title, children, footer }) => {
     const [translateY, setTranslateY] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const touchStartY = useRef(0);
@@ -104,6 +105,13 @@ export const MobileSheet: React.FC<MobileSheetProps> = ({ isOpen, onClose, title
                 <div className={`overflow-y-auto max-h-[60vh] no-scrollbar ${isDragging ? 'pointer-events-none' : ''}`}>
                     {children}
                 </div>
+
+                {/* Optional Footer (Sticky) */}
+                {footer && (
+                    <div className="mt-auto pt-4 border-t border-gray-50">
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>,
         document.body
