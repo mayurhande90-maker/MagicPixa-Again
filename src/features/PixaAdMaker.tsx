@@ -238,7 +238,7 @@ ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this
 MANDATORY: Identify the official brand name and the primary website URL or social handle that should be used as a Call to Action (CTA). 
 ALSO: Try to find the direct URL of the brand's official logo (preferably a high-quality PNG or SVG).` : ''}
 ${base64ReferenceImage ? `CRITICAL: The user has provided a REFERENCE IMAGE. Analyze this reference image's layout, composition, color palette, lighting, and overall vibe. Your goal is to "Visual Reverse Engineer" this style and replicate it for the current ${isPhysical ? 'product' : 'brand'}. Ensure the text placement, subject positioning, and graphic style in your suggestions are heavily inspired by this reference image.` : ''}
-Use Google Search to find current trends and successful ad campaigns for similar ${isPhysical ? 'products' : 'services'} in the ${industryLabel} industry. ${isGraphicEditorial ? 'Also search for "trendy graphic design ads 2026" and "editorial ad layouts" to incorporate the latest visual design patterns.' : ''}
+${base64ReferenceImage ? '' : `Use Google Search to find current trends and successful ad campaigns for similar ${isPhysical ? 'products' : 'services'} in the ${industryLabel} industry. ${isGraphicEditorial ? 'Also search for "trendy graphic design ads 2026" and "editorial ad layouts" to incorporate the latest visual design patterns.' : ''}`}
 
 CREATIVE BRIEF FOR THIS INDUSTRY:
 ${brief}
@@ -252,14 +252,14 @@ The ad is intended for a ${formatLabel} (${selectedFormat}) aspect ratio. Ensure
 
 ${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the subject in lifestyle settings that resonate with the Indian market. Strictly avoid foreign or ambiguous models. MANDATORY: You MUST explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") as the primary subject in the displayPrompt. This is a strict requirement for Model Ad mode.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative environments.'}
 
-Then, generate 5 highly creative and high-converting ad prompts for this ${isPhysical ? 'product' : 'brand'}.
+Then, generate ${base64ReferenceImage ? '1' : '5'} highly creative and high-converting ad prompt${base64ReferenceImage ? '' : 's'} for this ${isPhysical ? 'product' : 'brand'}.
 Each suggestion should include:
 1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe. For Model Ad mode, this MUST include a description of the Indian model character.
 2. A very detailed 'detailedPrompt' for an AI image generator. ${isGraphicEditorial ? 'For this style, describe a high-end graphic design layout, specifying typography, grid structure, design elements, and brand-centric accents instead of photographic details. Focus on layout composition, color theory, and graphic elements.' : 'Describing the scene, lighting, placement, and professional photography details.'} This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model.
 3. A catchy marketing 'headline'.
 
 Output ONLY a JSON object with:
-- 'suggestions': an array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys.
+- 'suggestions': an array of ${base64ReferenceImage ? '1' : '5'} object${base64ReferenceImage ? '' : 's'} with 'headline', 'displayPrompt', and 'detailedPrompt' keys.
 - 'brandInfo': an object with 'brandName', 'ctaUrl' (the exact URL to use), and 'logoUrl' (if found).
 Do not include any other text or markdown formatting.` },
                 { inlineData: { data: imageData, mimeType } }
@@ -292,6 +292,12 @@ Do not include any other text or markdown formatting.` },
             if (data.suggestions && Array.isArray(data.suggestions)) {
                 setSuggestions(data.suggestions);
                 
+                // DIRECT GENERATION FLOW
+                if (base64ReferenceImage && data.suggestions.length > 0) {
+                    setSelectedSuggestion(0);
+                    await executeAdGeneration(data.suggestions[0]);
+                }
+
                 // Auto-fetch logo if found and not already set manually
                 if (data.brandInfo?.logoUrl && !brandLogo) {
                     setIsFetchingLogo(true);
@@ -354,8 +360,8 @@ Do not include any other text or markdown formatting.` },
         setMode(m);
     };
 
-    const handleGenerateAd = async () => {
-        if (selectedSuggestion === null || !base64Image || !auth.user) return;
+    const executeAdGeneration = async (suggestion: { headline: string; detailedPrompt: string }) => {
+        if (!base64Image || !auth.user) return;
         if (auth.user.credits < cost) {
             setNotification({ msg: "Insufficient credits.", type: 'error' });
             return;
@@ -366,7 +372,6 @@ Do not include any other text or markdown formatting.` },
             if (!apiKey) throw new Error("API Key missing");
             const ai = new GoogleGenAI({ apiKey });
             
-            const suggestion = suggestions[selectedSuggestion];
             const mimeTypeMatch = base64Image.match(/^data:([^;]+);base64,/);
             const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
             const imageData = base64Image.split(',')[1];
@@ -448,6 +453,11 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    const handleGenerateAd = async () => {
+        if (selectedSuggestion === null) return;
+        await executeAdGeneration(suggestions[selectedSuggestion]);
     };
 
     const handleRefine = async (refineText: string) => {
@@ -802,7 +812,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Styles
                             </button>
 
-                            {(!isScanning && suggestions.length === 0 && !scanError) ? (
+                            {(!isScanning && (suggestions.length === 0 || base64ReferenceImage) && !scanError) ? (
                                 <div className="pb-8 relative">
                                     {/* Vertical Timeline Line */}
                                     <div className="absolute left-[21px] top-[140px] bottom-[100px] w-0.5 bg-gradient-to-b from-indigo-500/50 via-indigo-200 to-transparent rounded-full hidden sm:block"></div>
@@ -945,10 +955,10 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                     className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer text-center ${referenceImage ? 'bg-indigo-50/30 border-indigo-500/50' : 'bg-white/40 border-gray-200 hover:border-indigo-300 hover:bg-white/60'}`}
                                                 >
                                                     {referenceImage ? (
-                                                        <div className="relative w-full h-32 rounded-xl overflow-hidden">
-                                                            <img src={referenceImage} className="w-full h-full object-cover" alt="Reference" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Change Image</span>
+                                                        <div className="relative w-full h-64 rounded-xl overflow-hidden bg-gray-50/50">
+                                                            <img src={referenceImage} className="w-full h-full object-contain" alt="Reference" />
+                                                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <span className="text-[10px] font-black text-white uppercase tracking-widest bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">Change Image</span>
                                                             </div>
                                                             <button 
                                                                 onClick={(e) => {
@@ -956,9 +966,9 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                     setReferenceImage(null);
                                                                     setBase64ReferenceImage(null);
                                                                 }}
-                                                                className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+                                                                className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all hover:scale-110"
                                                             >
-                                                                <XIcon className="w-3.5 h-3.5 text-red-500" />
+                                                                <XIcon className="w-4 h-4 text-red-500" />
                                                             </button>
                                                         </div>
                                                     ) : (
@@ -992,10 +1002,10 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                     <div className="pt-10 pl-0 sm:pl-12">
                                         <button
                                             onClick={performPixaVisionScan}
-                                            disabled={!mode || isScanning}
-                                            className={`${AdMakerStyles.generateButton} ${!mode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] shadow-xl shadow-indigo-500/20'}`}
+                                            disabled={!mode || isScanning || isGenerating}
+                                            className={`${AdMakerStyles.generateButton} ${(!mode || isScanning || isGenerating) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] shadow-xl shadow-indigo-500/20'}`}
                                         >
-                                            {isScanning ? 'Analyzing Brand...' : 'Generate AI Suggestions'}
+                                            {(isScanning || isGenerating) ? (base64ReferenceImage ? 'Generating Ad...' : 'Analyzing Brand...') : (base64ReferenceImage ? 'Generate Ad' : 'Generate AI Suggestions')}
                                             <ArrowRightIcon className="w-4 h-4" />
                                         </button>
                                         {!mode && (
