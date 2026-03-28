@@ -153,14 +153,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const isStepAccessible = (idx: number): boolean => {
-        if (!image) return false;
-        if (idx === 0) return true;
+        if (!image || !selections.industry) {
+            return idx === 0;
+        }
         
         // Industry is mandatory for all steps after 0
-        if (!selections.industry) return false;
+        if (idx > 0 && !selections.industry) return false;
         
         const prevStep = AD_STEPS[idx - 1];
-        if (!prevStep) return false;
+        if (!prevStep) return true;
         
         // Allow moving forward if previous step is filled or is optional (config)
         return !!selections[prevStep.id] || prevStep.id === 'config' || prevStep.id === 'ai_suggestion';
@@ -603,12 +604,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
                                                     <SparklesIcon className="w-8 h-8 text-indigo-600" />
                                                 </div>
-                                                <button 
-                                                    onClick={generateAISuggestions}
-                                                    className="px-8 py-3 bg-indigo-600 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                                                >
-                                                    Open Suggestions
-                                                </button>
+                                                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest text-center">
+                                                    {selectedSuggestion ? "Suggestion Selected" : "AI is ready to suggest ad concepts"}
+                                                </p>
                                             </div>
                                         ) : null}
                                     </div>
@@ -616,34 +614,53 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                             </div>
 
                             {/* Step Navigator */}
-                            <div className="px-4 pt-4 pb-6 border-t border-gray-100 bg-white">
+                            <div className="px-4 pt-4 pb-6 border-t border-indigo-100 bg-indigo-50/30">
                                 <div className="flex items-center justify-between gap-1">
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = !!selections[step.id] || step.id === 'config' || step.id === 'ai_suggestion';
+                                        const isFilled = (step.id === 'config' ? !!brandUrl : step.id === 'ai_suggestion' ? !!selectedSuggestion : !!selections[step.id]);
                                         
-                                        let label = step.label;
-                                        if (step.id === 'industry' && selections.industry) label = INDUSTRY_CONFIG[selections.industry].label;
-                                        if (step.id === 'style' && selections.style) label = INDUSTRY_STYLES[selections.industry]?.find(s => s.id === selections.style)?.label || step.label;
-                                        if (step.id === 'format' && selections.format) label = AD_FORMATS.find(f => f.id === selections.format)?.label || step.label;
-                                        if (step.id === 'language' && selections.language) label = LANGUAGES.find(l => l.id === selections.language)?.label || step.label;
-                                        if (step.id === 'mode' && selections.mode) label = selections.mode === 'model' ? 'Model' : 'Product';
-                                        if (step.id === 'ai_suggestion' && selectedSuggestion) label = "Selected";
+                                        let selectionLabel = "";
+                                        if (step.id === 'industry' && selections.industry) selectionLabel = INDUSTRY_CONFIG[selections.industry].label;
+                                        if (step.id === 'style' && selections.style) selectionLabel = INDUSTRY_STYLES[selections.industry]?.find(s => s.id === selections.style)?.label || "";
+                                        if (step.id === 'format' && selections.format) selectionLabel = AD_FORMATS.find(f => f.id === selections.format)?.label || "";
+                                        if (step.id === 'language' && selections.language) selectionLabel = LANGUAGES.find(l => l.id === selections.language)?.label || "";
+                                        if (step.id === 'mode' && selections.mode) selectionLabel = selections.mode === 'model' ? 'Model' : 'Product';
+                                        if (step.id === 'ai_suggestion' && selectedSuggestion) selectionLabel = "Selected";
 
                                         const isFlashing = currentStep === AD_STEPS.findIndex(s => s.id === 'config') && step.id === 'ai_suggestion';
 
                                         return (
                                             <button 
                                                 key={step.id} 
-                                                onClick={() => isAccessible && setCurrentStep(idx)} 
+                                                onClick={() => {
+                                                    if (isAccessible) {
+                                                        setCurrentStep(idx);
+                                                        if (step.id === 'ai_suggestion') {
+                                                            if (aiSuggestions.length === 0) {
+                                                                generateAISuggestions();
+                                                            } else {
+                                                                setIsSuggestionTrayOpen(true);
+                                                            }
+                                                        }
+                                                    }
+                                                }} 
                                                 disabled={!isAccessible}
-                                                className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}
+                                                className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-all ${isAccessible ? 'active:scale-95' : 'cursor-not-allowed'}`}
                                             >
-                                                <span className={`text-[7px] font-black uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 ${isActive ? 'text-indigo-600' : isAccessible ? 'text-gray-400' : 'text-gray-300'} ${isFlashing ? 'animate-pulse text-indigo-500' : ''}`}>
-                                                    {label}
+                                                {/* Title on Top */}
+                                                <span className={`text-[7px] font-black uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 ${isActive || isFilled ? 'text-indigo-600' : isAccessible ? 'text-indigo-400' : 'text-gray-300'}`}>
+                                                    {step.label}
                                                 </span>
-                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isFilled ? 'bg-indigo-200' : isAccessible ? 'bg-gray-200' : 'bg-gray-100'} ${isFlashing ? 'animate-pulse bg-indigo-400' : ''}`}></div>
+
+                                                {/* Purple Bar */}
+                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive || isFilled ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isAccessible ? 'bg-indigo-200' : 'bg-gray-100'} ${isFlashing ? 'animate-pulse bg-indigo-400' : ''}`}></div>
+
+                                                {/* Selection Label on Bottom */}
+                                                <span className={`text-[6px] font-bold uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 min-h-[8px] ${isActive || isFilled ? 'text-indigo-600' : 'text-gray-300'} ${isFlashing ? 'animate-pulse text-indigo-500' : ''}`}>
+                                                    {isFlashing ? 'NEXT' : selectionLabel}
+                                                </span>
                                             </button>
                                         );
                                     })}
