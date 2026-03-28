@@ -130,6 +130,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     // Tray Navigation
     const [currentStep, setCurrentStep] = useState(0);
     const [selections, setSelections] = useState<Record<string, string>>({});
+    const [customStyle, setCustomStyle] = useState('');
     const [brandUrl, setBrandUrl] = useState('');
     const [includeLogo, setIncludeLogo] = useState(true);
     const [includeCta, setIncludeCta] = useState(true);
@@ -149,8 +150,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const isStepAccessible = (idx: number): boolean => {
-        // Step 0 (Industry) is always accessible to start, but cannot move forward without image
+        // Step 0 (Industry) is always accessible to start
         if (idx === 0) return true;
+        
+        // Always allow clicking on previous steps
+        if (idx <= currentStep) return true;
         
         // Cannot move to any step beyond 0 without an image
         if (!image) return false;
@@ -162,12 +166,17 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         if (!prevStep) return true;
         
         // Allow moving forward if previous step is filled or is optional (config)
-        return !!selections[prevStep.id] || prevStep.id === 'config' || prevStep.id === 'ai_suggestion';
+        // Style is filled if either a preset is selected or custom style is provided
+        const prevIsFilled = prevStep.id === 'style' 
+            ? (!!selections.style || !!customStyle)
+            : (!!selections[prevStep.id] || prevStep.id === 'config' || prevStep.id === 'ai_suggestion');
+
+        return prevIsFilled;
     };
 
     const isStrategyComplete = useMemo(() => {
-        return !!image && !!selections.industry && !!selections.style && !!selections.format && !!selections.language && !!selections.mode && !!selectedSuggestion;
-    }, [image, selections, selectedSuggestion]);
+        return !!image && !!selections.industry && (!!selections.style || !!customStyle) && !!selections.format && !!selections.language && !!selections.mode && !!selectedSuggestion;
+    }, [image, selections, customStyle, selectedSuggestion]);
 
     useEffect(() => {
         let interval: any;
@@ -253,7 +262,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const ai = new GoogleGenAI({ apiKey });
 
             const industry = selections.industry;
-            const styleLabel = INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
+            const styleLabel = customStyle || INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
             const languageConfig = LANGUAGES.find(l => l.id === selections.language) || LANGUAGES[0];
 
             // Generation Phase
@@ -315,7 +324,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const generateAISuggestions = async () => {
-        if (!image || !selections.industry || !selections.style || isGeneratingSuggestions) return;
+        if (!image || !selections.industry || (!selections.style && !customStyle) || isGeneratingSuggestions) return;
         setIsGeneratingSuggestions(true);
         setIsSuggestionTrayOpen(true);
 
@@ -325,7 +334,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const ai = new GoogleGenAI({ apiKey });
 
             const industry = selections.industry;
-            const styleLabel = INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
+            const styleLabel = customStyle || INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
             const languageConfig = LANGUAGES.find(l => l.id === selections.language) || LANGUAGES[0];
 
             const prompt = `
@@ -393,6 +402,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setImage(null);
         setResult(null);
         setSelections({});
+        setCustomStyle('');
         setCurrentStep(0);
         setLastCreationId(null);
     };
@@ -460,7 +470,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-100 group-hover:scale-110 transition-transform">
                                     <MagicAdsIcon className="w-10 h-10 text-indigo-50" />
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 tracking-tight">Upload Product/Logo</h3>
+                                <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                                    {selections.industry && !INDUSTRY_CONFIG[selections.industry].isPhysical ? 'Upload Screenshot/Logo' : 'Upload Product'}
+                                </h3>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Tap to browse</p>
                             </div>
                         )}
@@ -540,12 +552,34 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 ))}
                                             </div>
                                         ) : step.id === 'style' ? (
-                                            <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2">
-                                                {selections.industry ? INDUSTRY_STYLES[selections.industry].map(s => (
-                                                    <button key={s.id} onClick={() => handleSelectOption('style', s.id)} className={`shrink-0 px-6 py-4 rounded-2xl text-xs font-bold border transition-all ${selections.style === s.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}>
-                                                        <span className="mr-2">{s.icon}</span> {s.label}
-                                                    </button>
-                                                )) : <p className="text-center w-full text-xs text-gray-400 font-bold uppercase tracking-widest">Select Industry First</p>}
+                                            <div className="w-full flex flex-col gap-3 px-6 py-2">
+                                                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                                                    {selections.industry ? INDUSTRY_STYLES[selections.industry].map(s => (
+                                                        <button 
+                                                            key={s.id} 
+                                                            onClick={() => {
+                                                                handleSelectOption('style', s.id);
+                                                                setCustomStyle('');
+                                                            }} 
+                                                            className={`shrink-0 px-6 py-4 rounded-2xl text-xs font-bold border transition-all ${selections.style === s.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                                                        >
+                                                            <span className="mr-2">{s.icon}</span> {s.label}
+                                                        </button>
+                                                    )) : <p className="text-center w-full text-xs text-gray-400 font-bold uppercase tracking-widest">Select Industry First</p>}
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-inner">
+                                                    <PencilIcon className="w-4 h-4 text-indigo-500" />
+                                                    <input 
+                                                        type="text" 
+                                                        value={customStyle} 
+                                                        onChange={e => {
+                                                            setCustomStyle(e.target.value);
+                                                            setSelections(prev => ({ ...prev, style: '' }));
+                                                        }} 
+                                                        placeholder="Or type custom style (e.g. Cyberpunk, Minimalist...)" 
+                                                        className="bg-transparent text-[11px] font-bold outline-none flex-1 placeholder:text-gray-300" 
+                                                    />
+                                                </div>
                                             </div>
                                         ) : step.id === 'format' ? (
                                             <div className="w-full flex gap-3 overflow-x-auto no-scrollbar px-6 py-2">
@@ -617,11 +651,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (step.id === 'config' ? !!brandUrl : step.id === 'ai_suggestion' ? !!selectedSuggestion : !!selections[step.id]);
+                                        const isFilled = (step.id === 'config' ? !!brandUrl : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : !!selections[step.id]);
                                         
                                         let selectionLabel = "";
                                         if (step.id === 'industry' && selections.industry) selectionLabel = INDUSTRY_CONFIG[selections.industry].label;
-                                        if (step.id === 'style' && selections.style) selectionLabel = INDUSTRY_STYLES[selections.industry]?.find(s => s.id === selections.style)?.label || "";
+                                        if (step.id === 'style') selectionLabel = customStyle || INDUSTRY_STYLES[selections.industry]?.find(s => s.id === selections.style)?.label || "";
                                         if (step.id === 'format' && selections.format) selectionLabel = AD_FORMATS.find(f => f.id === selections.format)?.label || "";
                                         if (step.id === 'language' && selections.language) selectionLabel = LANGUAGES.find(l => l.id === selections.language)?.label || "";
                                         if (step.id === 'mode' && selections.mode) selectionLabel = selections.mode === 'model' ? 'Model' : 'Product';
