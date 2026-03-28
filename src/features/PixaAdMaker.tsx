@@ -192,7 +192,20 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
                 setBrandUrl(auth.activeBrandKit.website);
             }
             if (auth.activeBrandKit.logos?.primary && !brandLogo) {
-                setBrandLogo(auth.activeBrandKit.logos.primary);
+                const logoUrl = auth.activeBrandKit.logos.primary;
+                if (logoUrl.startsWith('data:')) {
+                    setBrandLogo(logoUrl);
+                } else {
+                    setIsFetchingLogo(true);
+                    urlToBase64(logoUrl).then(res => {
+                        setBrandLogo(`data:${res.mimeType};base64,${res.base64}`);
+                    }).catch(err => {
+                        console.error("Failed to fetch brand logo from Brand Kit:", err);
+                        setBrandLogo(null);
+                    }).finally(() => {
+                        setIsFetchingLogo(false);
+                    });
+                }
             }
         }
     }, [auth.activeBrandKit]);
@@ -452,7 +465,7 @@ ${base64ReferenceImage ? 'REFERENCE STYLE: I have provided a reference image. Re
 ${includeCta && brandUrl ? `CALL TO ACTION (CTA): Include the official brand website "${brandUrl}" or a relevant social handle clearly but elegantly in the design. 
 HARD NEGATIVE: NEVER use generic placeholders like 'www.website.com' or 'yourbrand.com'. ONLY use the provided URL.` : 'HARD NEGATIVE: DO NOT include any website URLs, social handles, or generic CTA text in the design.'}
 
-${logoToUse ? `BRAND LOGO: I have provided the brand's official logo as an additional image. Integrate it naturally and professionally into the ad design (e.g., in a corner, on a branded element, or as a watermark as appropriate for a high-end ad).` : ''}
+${logoToUse && logoToUse.startsWith('data:') ? `BRAND LOGO: I have provided the brand's official logo as an additional image. Integrate it naturally and professionally into the ad design (e.g., in a corner, on a branded element, or as a watermark as appropriate for a high-end ad).` : ''}
 
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
 The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should be the central focus.` },
@@ -466,12 +479,14 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                 contents[0].parts.push({ inlineData: { data: base64ReferenceImage, mimeType: 'image/jpeg' } });
             }
 
-            // Add logo if available
-            if (logoToUse) {
+            // Add logo if available and in correct format
+            if (logoToUse && logoToUse.startsWith('data:')) {
                 const logoMimeMatch = logoToUse.match(/^data:([^;]+);base64,/);
                 const logoMime = logoMimeMatch ? logoMimeMatch[1] : "image/png";
                 const logoData = logoToUse.split(',')[1];
-                contents[0].parts.push({ inlineData: { data: logoData, mimeType: logoMime } });
+                if (logoData) {
+                    contents[0].parts.push({ inlineData: { data: logoData, mimeType: logoMime } });
+                }
             }
 
             const response = await ai.models.generateContent({
@@ -616,7 +631,22 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         setEditingSuggestionIndex(null);
         setEditingSuggestionData(null);
         setBrandUrl(auth.activeBrandKit?.website || "");
-        setBrandLogo(auth.activeBrandKit?.logos?.primary || null);
+        
+        // Manual sync for new project to ensure base64 conversion
+        const logoUrl = auth.activeBrandKit?.logos?.primary;
+        if (logoUrl) {
+            if (logoUrl.startsWith('data:')) {
+                setBrandLogo(logoUrl);
+            } else {
+                setIsFetchingLogo(true);
+                urlToBase64(logoUrl).then(res => {
+                    setBrandLogo(`data:${res.mimeType};base64,${res.base64}`);
+                }).catch(() => setBrandLogo(null)).finally(() => setIsFetchingLogo(false));
+            }
+        } else {
+            setBrandLogo(null);
+        }
+
         setSelectedLanguage(null);
     };
 
