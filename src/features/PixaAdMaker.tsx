@@ -237,7 +237,10 @@ Analyze this ${isPhysical ? 'product' : 'logo/screenshot'} image (identify the $
 ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity. 
 MANDATORY: Identify the official brand name and the primary website URL or social handle that should be used as a Call to Action (CTA). 
 ALSO: Try to find the direct URL of the brand's official logo (preferably a high-quality PNG or SVG).` : ''}
-${base64ReferenceImage ? `CRITICAL: The user has provided a REFERENCE IMAGE. Analyze this reference image's layout, composition, color palette, lighting, and overall vibe. Your goal is to "Visual Reverse Engineer" this style and replicate it for the current ${isPhysical ? 'product' : 'brand'}. Ensure the text placement, subject positioning, and graphic style in your suggestions are heavily inspired by this reference image.` : ''}
+${base64ReferenceImage ? `CRITICAL: The user has provided a REFERENCE IMAGE. Analyze this reference image's layout, composition, color palette, lighting, and overall vibe. 
+MANDATORY MODEL ANALYSIS: Check if the reference image contains a human model. If so, your suggestion MUST replicate the model's pose, interaction with the product, and placement in the scene. 
+INDIAN ETHNICITY OVERRIDE: Regardless of the model's ethnicity in the reference image, your suggestions MUST feature an INDIAN model with authentic features and styling. If a model is present in the reference, treat this as a "Model Ad" regardless of the user's mode selection.
+Your goal is to "Visual Reverse Engineer" this style and replicate it for the current ${isPhysical ? 'product' : 'brand'}. Ensure the text placement, subject positioning, and graphic style in your suggestions are heavily inspired by this reference image.` : ''}
 ${base64ReferenceImage ? '' : `Use Google Search to find current trends and successful ad campaigns for similar ${isPhysical ? 'products' : 'services'} in the ${industryLabel} industry. ${isGraphicEditorial ? 'Also search for "trendy graphic design ads 2026" and "editorial ad layouts" to incorporate the latest visual design patterns.' : ''}`}
 
 CREATIVE BRIEF FOR THIS INDUSTRY:
@@ -387,7 +390,9 @@ Concept: ${suggestion.detailedPrompt}
 Visual Style: ${styleLabel}
 Ad Format: ${selectedFormat} aspect ratio.
 Marketing Headline to include in the design: "${suggestion.headline}"
-${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male or female as per the scene) MUST be the primary subject interacting with the scene. The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
+${mode === 'model' || base64ReferenceImage ? 'MANDATORY REQUIREMENT: If the scene includes a person (as requested in the concept or inspired by the reference image), they MUST be a professional Indian model (male or female as per the scene). The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
+
+${base64ReferenceImage ? 'REFERENCE STYLE: I have provided a reference image. Replicate its layout, composition, lighting, and vibe. If it contains a model, match the pose and interaction but ensure the model is Indian.' : ''}
 
 ${includeCta && brandUrl ? `CALL TO ACTION (CTA): Include the official brand website "${brandUrl}" or a relevant social handle clearly but elegantly in the design. 
 HARD NEGATIVE: NEVER use generic placeholders like 'www.website.com' or 'yourbrand.com'. ONLY use the provided URL.` : 'HARD NEGATIVE: DO NOT include any website URLs, social handles, or generic CTA text in the design.'}
@@ -400,6 +405,11 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                     ]
                 }
             ];
+
+            // Add reference image if available
+            if (base64ReferenceImage) {
+                contents[0].parts.push({ inlineData: { data: base64ReferenceImage, mimeType: 'image/jpeg' } });
+            }
 
             // Add logo if available
             if (logoToUse) {
