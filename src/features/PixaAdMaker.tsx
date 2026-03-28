@@ -723,7 +723,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                 </button>
             ) : null}
             leftContent={
-                <div className="relative h-full w-full flex flex-col p-3 sm:p-6 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="relative h-full w-full flex flex-col p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                     <LoadingOverlay isVisible={isGenerating || isRefining} loadingText={loadingText} progress={progress} />
                     
                     <div className="flex-1 w-full flex items-center justify-center relative overflow-hidden">
@@ -739,11 +739,11 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                             <div className="relative w-full h-full flex items-center justify-center">
                                 <img 
                                     src={image} 
-                                    className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${isScanning || isGenerating || isRefining ? 'scale-110 blur-sm opacity-50' : ''}`} 
+                                    className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md grayscale-[0.2] brightness-75 scale-105' : ''}`} 
                                     referrerPolicy="no-referrer"
                                 />
                                 
-                                {(isScanning || isGenerating || isRefining) && (
+                                {isScanning && (
                                     <div className={AdMakerStyles.scanOverlay}>
                                         <div className={AdMakerStyles.scanLine}></div>
                                         <div className={AdMakerStyles.scanGradient}></div>
@@ -805,7 +805,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 setIsScanning(false);
                                             }
                                         }}
-                                        className={`flex-shrink-0 w-16 sm:w-20 group relative aspect-square rounded-xl border-2 overflow-hidden transition-all duration-300 snap-start ${selectedProductId === product.id ? 'border-indigo-500 ring-4 ring-indigo-500/10 scale-95 shadow-inner' : 'border-gray-100 hover:border-indigo-200 bg-gray-50'}`}
+                                        className={`flex-shrink-0 w-20 group relative aspect-square rounded-xl border-2 overflow-hidden transition-all duration-300 snap-start ${selectedProductId === product.id ? 'border-indigo-500 ring-4 ring-indigo-500/10 scale-95 shadow-inner' : 'border-gray-100 hover:border-indigo-200 bg-gray-50'}`}
                                     >
                                         <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={product.name} referrerPolicy="no-referrer" />
                                         {selectedProductId === product.id && (
@@ -905,7 +905,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                     <SparklesIcon className="w-3 h-3 text-indigo-500" />
                                     Choose Visual Style
                                 </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+                                <div className="grid grid-cols-3 gap-3 mb-6">
                                     {industry && INDUSTRY_STYLES[industry]?.map((style) => (
                                         <div
                                             key={style.id}
@@ -943,7 +943,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                     <GlobeIcon className="w-3 h-3 text-indigo-500" />
                                     Select Language
                                 </h3>
-                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
+                                <div className="grid grid-cols-5 gap-2 mb-6">
                                     {LANGUAGES.map((lang) => (
                                         <div
                                             key={lang.id}
@@ -963,12 +963,12 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                     <ImageIcon className="w-3 h-3 text-indigo-500" />
                                     Select Ad Format
                                 </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+                                <div className="flex gap-3 mb-8">
                                     {AD_FORMATS.map((format) => (
                                         <div
                                             key={format.id}
                                             onClick={() => setSelectedFormat(format.id)}
-                                            className={`group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedFormat === format.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                            className={`flex-1 group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedFormat === format.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
                                         >
                                             <span className="text-xl mb-1">{format.icon}</span>
                                             <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">{format.label}</span>
@@ -1278,7 +1278,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                     <span className={AdMakerStyles.suggestionHeadline}>{s.headline}</span>
                                                                     <button 
                                                                         onClick={(e) => handleStartEdit(e, i)}
-                                                                        className="p-2.5 sm:p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-all"
+                                                                        className="p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-all"
                                                                         title="Edit Suggestion"
                                                                     >
                                                                         <PencilIcon className="w-3.5 h-3.5" />
