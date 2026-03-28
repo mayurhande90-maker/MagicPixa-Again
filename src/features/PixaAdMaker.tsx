@@ -157,6 +157,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [referenceImage, setReferenceImage] = useState<string | null>(null);
     const [base64ReferenceImage, setBase64ReferenceImage] = useState<string | null>(null);
     const [isFetchingLogo, setIsFetchingLogo] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +165,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const referenceInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
+    const isIndustryMismatch = auth.activeBrandKit?.industry && industry && auth.activeBrandKit.industry !== industry;
 
     React.useEffect(() => { 
         let interval: any; 
@@ -648,6 +650,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         }
 
         setSelectedLanguage(null);
+        setSelectedProductId(null);
     };
 
     const handleStartEdit = (e: React.MouseEvent, index: number) => {
@@ -720,90 +723,106 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                 </button>
             ) : null}
             leftContent={
-                <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="relative h-full w-full flex flex-col p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                     <LoadingOverlay isVisible={isGenerating || isRefining} loadingText={loadingText} progress={progress} />
-                    {phase === 'mode_select' && !image ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center">
-                            <UploadPlaceholder 
-                                label={industry && !INDUSTRY_CONFIG[industry].isPhysical ? "Upload Logo or Screenshot" : "Upload Product Image"} 
-                                onClick={() => fileInputRef.current?.click()} 
-                                icon={<MagicAdsIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />}
-                            />
-
-                            {auth.activeBrandKit?.products && auth.activeBrandKit.products.length > 0 && (
-                                <div className="mt-8 w-full max-w-md animate-fadeIn">
-                                    <div className="flex items-center gap-3 mb-4 px-2">
-                                        <div className="h-px flex-1 bg-gray-100"></div>
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Or Select from Inventory</span>
-                                        <div className="h-px flex-1 bg-gray-100"></div>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-3 max-h-[280px] overflow-y-auto p-2 custom-scrollbar">
-                                        {auth.activeBrandKit.products.map((product) => (
-                                            <button
-                                                key={product.id}
-                                                onClick={async () => {
-                                                    setIsScanning(true);
-                                                    try {
-                                                        const { base64, mimeType } = await urlToBase64(product.imageUrl);
-                                                        const blobUrl = await base64ToBlobUrl(base64, mimeType);
-                                                        setImage(blobUrl);
-                                                        setBase64Image(`data:${mimeType};base64,${base64}`);
-                                                    } catch (err) {
-                                                        setNotification({ msg: "Failed to load product from inventory.", type: 'error' });
-                                                    } finally {
-                                                        setIsScanning(false);
-                                                    }
-                                                }}
-                                                className="group relative aspect-square rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-indigo-500 transition-all bg-gray-50 flex items-center justify-center shadow-sm hover:shadow-md"
-                                            >
-                                                <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={product.name} referrerPolicy="no-referrer" />
-                                                <div className="absolute inset-0 bg-indigo-600/0 group-hover:bg-indigo-600/20 transition-all flex items-end p-2">
-                                                    <span className="text-[8px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity truncate w-full bg-black/60 px-2 py-1 rounded-lg backdrop-blur-md">{product.name}</span>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : image ? (
-                        <div className="relative w-full h-full flex items-center justify-center">
-                             <img 
-                                src={image} 
-                                className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md grayscale-[0.2] brightness-75 scale-105' : ''}`} 
-                             />
-                             
-                             {isScanning && (
-                                <div className={AdMakerStyles.scanOverlay}>
-                                    <div className={AdMakerStyles.scanLine}></div>
-                                    <div className={AdMakerStyles.scanGradient}></div>
-                                    <div className={AdMakerStyles.analysisBadge}>
-                                        <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
-                                        <span className={AdMakerStyles.scanText}>Pixa Vision Scan</span>
-                                    </div>
-                                </div>
-                             )}
-
-                             {!isScanning && !isGenerating && !isRefining && (
-                                <button 
-                                    onClick={() => { setImage(null); setBase64Image(null); setSuggestions([]); setMode(null); }}
-                                    className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all z-30"
-                                >
-                                    <XIcon className="w-5 h-5" />
-                                </button>
-                             )}
-                        </div>
-                    ) : (
-                        <div className="text-center p-8">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 mx-auto">
-                                <MagicAdsIcon className="w-10 h-10" />
+                    
+                    <div className="flex-1 w-full flex items-center justify-center relative overflow-hidden">
+                        {phase === 'mode_select' && !image ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center">
+                                <UploadPlaceholder 
+                                    label={industry && !INDUSTRY_CONFIG[industry].isPhysical ? "Upload Logo or Screenshot" : "Upload Product Image"} 
+                                    onClick={() => fileInputRef.current?.click()} 
+                                    icon={<MagicAdsIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />}
+                                />
                             </div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-2">Pixa AdMaker</h3>
-                            <p className="text-sm text-gray-500 max-w-xs mx-auto">
-                                Select your industry and ad mode to start creating professional advertisements.
-                            </p>
+                        ) : image ? (
+                            <div className="relative w-full h-full flex items-center justify-center">
+                                <img 
+                                    src={image} 
+                                    className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md grayscale-[0.2] brightness-75 scale-105' : ''}`} 
+                                    referrerPolicy="no-referrer"
+                                />
+                                
+                                {isScanning && (
+                                    <div className={AdMakerStyles.scanOverlay}>
+                                        <div className={AdMakerStyles.scanLine}></div>
+                                        <div className={AdMakerStyles.scanGradient}></div>
+                                        <div className={AdMakerStyles.analysisBadge}>
+                                            <div className="w-2 h-2 bg-[#6EFACC] rounded-full animate-ping"></div>
+                                            <span className={AdMakerStyles.scanText}>Pixa Vision Scan</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!isScanning && !isGenerating && !isRefining && (
+                                    <button 
+                                        onClick={() => { setImage(null); setBase64Image(null); setSuggestions([]); setMode(null); setSelectedProductId(null); }}
+                                        className="absolute top-4 right-4 bg-white/80 hover:bg-white text-red-500 p-2 rounded-full shadow-md backdrop-blur-sm transition-all z-30"
+                                    >
+                                        <XIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-center p-8">
+                                <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 mx-auto">
+                                    <MagicAdsIcon className="w-10 h-10" />
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 mb-2">Pixa AdMaker</h3>
+                                <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                                    Select your industry and ad mode to start creating professional advertisements.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Horizontal Inventory Strip */}
+                    {phase === 'mode_select' && auth.activeBrandKit?.products && auth.activeBrandKit.products.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-100 animate-fadeInUp">
+                            <div className="flex items-center justify-between mb-3 px-2">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Brand Inventory</span>
+                                <span className="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">{auth.activeBrandKit.products.length} Products</span>
+                            </div>
+                            <div className="flex gap-3 overflow-x-auto pb-2 px-2 custom-scrollbar snap-x">
+                                {auth.activeBrandKit.products.map((product) => (
+                                    <button
+                                        key={product.id}
+                                        onClick={async () => {
+                                            if (isScanning || isGenerating || isRefining) return;
+                                            setSelectedProductId(product.id);
+                                            setIsScanning(true);
+                                            try {
+                                                const { base64, mimeType } = await urlToBase64(product.imageUrl);
+                                                const blobUrl = await base64ToBlobUrl(base64, mimeType);
+                                                setImage(blobUrl);
+                                                setBase64Image(`data:${mimeType};base64,${base64}`);
+                                                setSuggestions([]);
+                                                setSelectedSuggestion(null);
+                                            } catch (err) {
+                                                setNotification({ msg: "Failed to load product from inventory.", type: 'error' });
+                                            } finally {
+                                                setIsScanning(false);
+                                            }
+                                        }}
+                                        className={`flex-shrink-0 w-20 group relative aspect-square rounded-xl border-2 overflow-hidden transition-all duration-300 snap-start ${selectedProductId === product.id ? 'border-indigo-500 ring-4 ring-indigo-500/10 scale-95 shadow-inner' : 'border-gray-100 hover:border-indigo-200 bg-gray-50'}`}
+                                    >
+                                        <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={product.name} referrerPolicy="no-referrer" />
+                                        {selectedProductId === product.id && (
+                                            <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center">
+                                                <div className="bg-indigo-600 text-white p-1 rounded-full shadow-lg">
+                                                    <SparklesIcon className="w-3 h-3" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm py-1 px-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <p className="text-[7px] font-black text-white uppercase tracking-tighter truncate">{product.name}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
+
                     <input 
                         type="file" 
                         ref={fileInputRef} 
@@ -815,6 +834,17 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
             }
             rightContent={
                 <div className={`${AdMakerStyles.formContainer} ${(phase === 'mode_select' && !image) || isScanning || isGenerating || isRefining ? 'opacity-50 pointer-events-none grayscale-[0.5]' : ''}`}>
+                    {isIndustryMismatch && (
+                        <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-fadeIn">
+                            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                <FlagIcon className="w-4 h-4 text-amber-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-tight">Industry Mismatch Detected</p>
+                                <p className="text-[9px] text-amber-600 font-bold mt-0.5">Your brand "{auth.activeBrandKit?.companyName}" is set to {auth.activeBrandKit?.industry}. Pixa generation might be less accurate for {industry}.</p>
+                            </div>
+                        </div>
+                    )}
                     {mode && (
                         <div className="flex items-center gap-2 mb-4 animate-fadeIn">
                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm flex items-center gap-2 ${
