@@ -149,12 +149,14 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const isLowCredits = (auth.user?.credits || 0) < cost;
 
     const isStepAccessible = (idx: number): boolean => {
-        if (!image || !selections.industry) {
-            return idx === 0;
-        }
+        // Step 0 (Industry) is always accessible to start, but cannot move forward without image
+        if (idx === 0) return true;
+        
+        // Cannot move to any step beyond 0 without an image
+        if (!image) return false;
         
         // Industry is mandatory for all steps after 0
-        if (idx > 0 && !selections.industry) return false;
+        if (!selections.industry) return false;
         
         const prevStep = AD_STEPS[idx - 1];
         if (!prevStep) return true;
@@ -623,6 +625,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         if (step.id === 'format' && selections.format) selectionLabel = AD_FORMATS.find(f => f.id === selections.format)?.label || "";
                                         if (step.id === 'language' && selections.language) selectionLabel = LANGUAGES.find(l => l.id === selections.language)?.label || "";
                                         if (step.id === 'mode' && selections.mode) selectionLabel = selections.mode === 'model' ? 'Model' : 'Product';
+                                        if (step.id === 'config' && brandUrl) selectionLabel = "Set";
                                         if (step.id === 'ai_suggestion' && selectedSuggestion) selectionLabel = "Selected";
 
                                         const isFlashing = currentStep === AD_STEPS.findIndex(s => s.id === 'config') && step.id === 'ai_suggestion';
@@ -654,7 +657,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive || isFilled ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isAccessible ? 'bg-indigo-200' : 'bg-gray-100'} ${isFlashing ? 'animate-pulse bg-indigo-400' : ''}`}></div>
 
                                                 {/* Selection Label on Bottom */}
-                                                <span className={`text-[6px] font-bold uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 min-h-[8px] ${isActive || isFilled ? 'text-indigo-600' : 'text-gray-300'} ${isFlashing ? 'animate-pulse text-indigo-500' : ''}`}>
+                                                <span className={`font-bold uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 min-h-[10px] ${isActive || isFilled ? 'text-indigo-600' : 'text-gray-300'} ${isFlashing ? 'animate-pulse text-indigo-500 text-[9px]' : 'text-[6px]'}`}>
                                                     {isFlashing ? 'NEXT' : selectionLabel}
                                                 </span>
                                             </button>
@@ -746,14 +749,14 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                         )}
                     </div>
 
-                    <div className="pt-4 pb-6 flex flex-col gap-3">
+                    <div className="pt-4 pb-8 flex flex-col gap-3 bg-white z-10">
                         <button 
                             onClick={() => {
                                 setIsSuggestionTrayOpen(false);
                                 setCurrentStep(AD_STEPS.findIndex(s => s.id === 'ai_suggestion'));
                             }}
-                            disabled={!selectedSuggestion}
-                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${!selectedSuggestion ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20 active:scale-95'}`}
+                            disabled={!selectedSuggestion || isGeneratingSuggestions}
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${(!selectedSuggestion || isGeneratingSuggestions) ? 'bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-500/20 active:scale-95'}`}
                         >
                             Done
                         </button>
