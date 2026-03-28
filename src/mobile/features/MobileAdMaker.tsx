@@ -160,30 +160,28 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     };
 
     const isStepAccessible = (idx: number): boolean => {
-        // Step 0 (Industry) is always accessible to start
-        if (idx === 0) return true;
-        
-        // Always allow clicking on previous steps
+        // Always allow backward navigation or current step
         if (idx <= currentStep) return true;
         
-        // Cannot move to any step beyond 0 without an image
-        if (!image) return false;
+        // Allow ONLY the next step if the current step is filled
+        if (idx === currentStep + 1) {
+            const currentStepData = AD_STEPS[currentStep];
+            if (!currentStepData) return false;
+            
+            const isFilled = currentStepData.id === 'industry' 
+                ? (!!selections.industry && !!image) 
+                : currentStepData.id === 'config' 
+                    ? (!!brandUrl && !urlError) 
+                    : currentStepData.id === 'ai_suggestion' 
+                        ? !!selectedSuggestion 
+                        : currentStepData.id === 'style' 
+                            ? (!!selections.style || !!customStyle) 
+                            : !!selections[currentStepData.id];
+            
+            return isFilled;
+        }
         
-        // Industry is mandatory for all steps after 0
-        if (!selections.industry) return false;
-        
-        const prevStep = AD_STEPS[idx - 1];
-        if (!prevStep) return true;
-        
-        // Allow moving forward if previous step is filled or is optional (config)
-        // Style is filled if either a preset is selected or custom style is provided
-        const prevIsFilled = prevStep.id === 'style' 
-            ? (!!selections.style || !!customStyle)
-            : prevStep.id === 'config' 
-                ? !urlError 
-                : (!!selections[prevStep.id] || prevStep.id === 'ai_suggestion');
-
-        return prevIsFilled;
+        return false;
     };
 
     const isStrategyComplete = useMemo(() => {
@@ -244,6 +242,13 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             setImage({ url: URL.createObjectURL(file), base64, mimeType });
             setResult(null);
             setLastCreationId(null);
+
+            // Auto-progress from step 0 (Industry) if industry is already selected
+            if (currentStep === 0 && selections.industry) {
+                setTimeout(() => {
+                    setCurrentStep(1);
+                }, 150);
+            }
         }
     };
 
@@ -691,7 +696,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (step.id === 'config' ? (!!brandUrl && !urlError) : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : !!selections[step.id]);
+                                        const isFilled = (step.id === 'industry' ? (!!selections.industry && !!image) : step.id === 'config' ? (!!brandUrl && !urlError) : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : !!selections[step.id]);
                                         
                                         let selectionLabel = "";
                                         if (step.id === 'industry' && selections.industry) selectionLabel = INDUSTRY_CONFIG[selections.industry].label;
@@ -702,7 +707,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         if (step.id === 'config' && brandUrl && !urlError) selectionLabel = "Set";
                                         if (step.id === 'ai_suggestion' && selectedSuggestion) selectionLabel = "Selected";
 
-                                        const isFlashing = currentStep === AD_STEPS.findIndex(s => s.id === 'config') && step.id === 'ai_suggestion';
+                                        const isFlashing = idx === currentStep + 1 && isAccessible;
 
                                         return (
                                             <button 
