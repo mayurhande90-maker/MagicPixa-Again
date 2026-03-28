@@ -693,6 +693,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
             rawIcon={true}
             creditCost={cost}
             hideGenerateButton={true}
+            disableScroll={true}
             onGenerate={handleGenerateAd}
             isGenerating={isGenerating || isRefining}
             canGenerate={selectedSuggestion !== null && !!image}
@@ -723,7 +724,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                 </button>
             ) : null}
             leftContent={
-                <div className="relative h-full w-full flex flex-col p-3 sm:p-6 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="relative h-full w-full flex flex-col p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                     <LoadingOverlay isVisible={isGenerating || isRefining} loadingText={loadingText} progress={progress} />
                     
                     <div className="flex-1 w-full flex items-center justify-center relative overflow-hidden">
@@ -739,11 +740,11 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                             <div className="relative w-full h-full flex items-center justify-center">
                                 <img 
                                     src={image} 
-                                    className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${isScanning || isGenerating || isRefining ? 'scale-110 blur-sm opacity-50' : ''}`} 
+                                    className={`max-w-full max-h-full object-contain rounded-2xl transition-all duration-700 ${(isGenerating || isRefining) ? 'blur-md grayscale-[0.2] brightness-75 scale-105' : ''}`} 
                                     referrerPolicy="no-referrer"
                                 />
                                 
-                                {(isScanning || isGenerating || isRefining) && (
+                                {isScanning && (
                                     <div className={AdMakerStyles.scanOverlay}>
                                         <div className={AdMakerStyles.scanLine}></div>
                                         <div className={AdMakerStyles.scanGradient}></div>
@@ -805,7 +806,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 setIsScanning(false);
                                             }
                                         }}
-                                        className={`flex-shrink-0 w-16 sm:w-20 group relative aspect-square rounded-xl border-2 overflow-hidden transition-all duration-300 snap-start ${selectedProductId === product.id ? 'border-indigo-500 ring-4 ring-indigo-500/10 scale-95 shadow-inner' : 'border-gray-100 hover:border-indigo-200 bg-gray-50'}`}
+                                        className={`flex-shrink-0 w-20 group relative aspect-square rounded-xl border-2 overflow-hidden transition-all duration-300 snap-start ${selectedProductId === product.id ? 'border-indigo-500 ring-4 ring-indigo-500/10 scale-95 shadow-inner' : 'border-gray-100 hover:border-indigo-200 bg-gray-50'}`}
                                     >
                                         <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={product.name} referrerPolicy="no-referrer" />
                                         {selectedProductId === product.id && (
@@ -868,12 +869,12 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                         </div>
                     )}
                     {phase === 'industry_select' && (
-                        <div className="animate-fadeIn">
-                            <div className="mb-6 px-4">
+                        <div className="animate-fadeIn flex flex-col h-full">
+                            <div className="mb-6 px-4 flex-none">
                                 <h3 className="text-xl font-black text-gray-900">Select Industry</h3>
                                 <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">Choose your business category</p>
                             </div>
-                            <div className={AdMakerStyles.modeGrid}>
+                            <div className={`${AdMakerStyles.modeGrid} flex-1 overflow-y-auto custom-scrollbar`}>
                                 {Object.entries(INDUSTRY_CONFIG).map(([key, conf]) => (
                                     <IndustryCard 
                                         key={key} 
@@ -892,312 +893,322 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                     )}
 
                     {phase === 'style_format_select' && (
-                        <div className="space-y-6 animate-fadeIn p-4 overflow-y-auto max-h-full custom-scrollbar">
-                            <button 
-                                onClick={handleBack} 
-                                className={AdMakerStyles.backButton}
-                            >
-                                <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
-                            </button>
+                        <div className="animate-fadeIn flex flex-col h-full p-4">
+                            <div className="flex-none mb-4">
+                                <button 
+                                    onClick={handleBack} 
+                                    className={AdMakerStyles.backButton}
+                                >
+                                    <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Industries
+                                </button>
+                            </div>
 
-                            <div>
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <SparklesIcon className="w-3 h-3 text-indigo-500" />
-                                    Choose Visual Style
-                                </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-                                    {industry && INDUSTRY_STYLES[industry]?.map((style) => (
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2">
+                                <div>
+                                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <SparklesIcon className="w-3 h-3 text-indigo-500" />
+                                        Choose Visual Style
+                                    </h3>
+                                    <div className="grid grid-cols-3 gap-3 mb-6">
+                                        {industry && INDUSTRY_STYLES[industry]?.map((style) => (
+                                            <div
+                                                key={style.id}
+                                                onClick={() => setSelectedStyle(style.id)}
+                                                className={`group relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedStyle === style.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                            >
+                                                <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">{style.icon}</span>
+                                                <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tight">{style.label}</span>
+                                            </div>
+                                        ))}
                                         <div
-                                            key={style.id}
-                                            onClick={() => setSelectedStyle(style.id)}
-                                            className={`group relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedStyle === style.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                            onClick={() => setSelectedStyle('custom')}
+                                            className={`group relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedStyle === 'custom' ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
                                         >
-                                            <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">{style.icon}</span>
-                                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tight">{style.label}</span>
+                                            <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">🎨</span>
+                                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tight">Custom</span>
                                         </div>
-                                    ))}
-                                    <div
-                                        onClick={() => setSelectedStyle('custom')}
-                                        className={`group relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedStyle === 'custom' ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
-                                    >
-                                        <span className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">🎨</span>
-                                        <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tight">Custom</span>
+                                    </div>
+
+                                    {selectedStyle === 'custom' && (
+                                        <div className="animate-fadeIn">
+                                            <textarea
+                                                placeholder="Describe your custom mood (e.g., 90s Retro, Cyberpunk, Rainy Night)..."
+                                                className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-300 text-sm font-medium text-gray-700 placeholder:text-gray-300 bg-white mt-2"
+                                                value={customStyleText}
+                                                onChange={(e) => setCustomStyleText(e.target.value)}
+                                                rows={3}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <GlobeIcon className="w-3 h-3 text-indigo-500" />
+                                        Select Language
+                                    </h3>
+                                    <div className="grid grid-cols-5 gap-2 mb-6">
+                                        {LANGUAGES.map((lang) => (
+                                            <div
+                                                key={lang.id}
+                                                onClick={() => setSelectedLanguage(lang.id)}
+                                                className={`group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedLanguage === lang.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                            >
+                                                <span className="text-xl mb-1 group-hover:scale-110 transition-transform">{lang.icon}</span>
+                                                <span className="text-[8px] font-black text-gray-900 uppercase tracking-tight leading-tight">{lang.label}</span>
+                                                <span className="text-[6px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{lang.desc}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {selectedStyle === 'custom' && (
-                                    <div className="animate-fadeIn">
-                                        <textarea
-                                            placeholder="Describe your custom mood (e.g., 90s Retro, Cyberpunk, Rainy Night)..."
-                                            className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-300 text-sm font-medium text-gray-700 placeholder:text-gray-300 bg-white mt-2"
-                                            value={customStyleText}
-                                            onChange={(e) => setCustomStyleText(e.target.value)}
-                                            rows={3}
-                                        />
+                                <div>
+                                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <ImageIcon className="w-3 h-3 text-indigo-500" />
+                                        Select Ad Format
+                                    </h3>
+                                    <div className="flex gap-3 mb-8">
+                                        {AD_FORMATS.map((format) => (
+                                            <div
+                                                key={format.id}
+                                                onClick={() => setSelectedFormat(format.id)}
+                                                className={`flex-1 group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedFormat === format.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                            >
+                                                <span className="text-xl mb-1">{format.icon}</span>
+                                                <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">{format.label}</span>
+                                                <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{format.desc}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <GlobeIcon className="w-3 h-3 text-indigo-500" />
-                                    Select Language
-                                </h3>
-                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
-                                    {LANGUAGES.map((lang) => (
-                                        <div
-                                            key={lang.id}
-                                            onClick={() => setSelectedLanguage(lang.id)}
-                                            className={`group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedLanguage === lang.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
-                                        >
-                                            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">{lang.icon}</span>
-                                            <span className="text-[8px] font-black text-gray-900 uppercase tracking-tight leading-tight">{lang.label}</span>
-                                            <span className="text-[6px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{lang.desc}</span>
-                                        </div>
-                                    ))}
                                 </div>
                             </div>
 
-                            <div>
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <ImageIcon className="w-3 h-3 text-indigo-500" />
-                                    Select Ad Format
-                                </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-                                    {AD_FORMATS.map((format) => (
-                                        <div
-                                            key={format.id}
-                                            onClick={() => setSelectedFormat(format.id)}
-                                            className={`group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedFormat === format.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
-                                        >
-                                            <span className="text-xl mb-1">{format.icon}</span>
-                                            <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">{format.label}</span>
-                                            <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{format.desc}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="pt-4">
+                                <button
+                                    onClick={handleStyleFormatNext}
+                                    disabled={!selectedStyle || !selectedFormat || !selectedLanguage || (selectedStyle === 'custom' && !customStyleText.trim())}
+                                    className={AdMakerStyles.generateButton}
+                                >
+                                    Next Step
+                                    <ArrowRightIcon className="w-4 h-4" />
+                                </button>
                             </div>
-
-                            <button
-                                onClick={handleStyleFormatNext}
-                                disabled={!selectedStyle || !selectedFormat || !selectedLanguage || (selectedStyle === 'custom' && !customStyleText.trim())}
-                                className={AdMakerStyles.generateButton}
-                            >
-                                Next Step
-                                <ArrowRightIcon className="w-4 h-4" />
-                            </button>
                         </div>
                     )}
 
                     {phase === 'mode_select' && (
-                        <div className="animate-fadeIn flex flex-col h-full overflow-y-auto custom-scrollbar p-4">
-                            <button 
-                                onClick={handleBack} 
-                                disabled={isScanning || isGenerating}
-                                className={`${AdMakerStyles.backButton} ${(isScanning || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                                <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Styles
-                            </button>
+                        <div className="animate-fadeIn flex flex-col h-full p-4">
+                            <div className="flex-none mb-4">
+                                <button 
+                                    onClick={handleBack} 
+                                    disabled={isScanning || isGenerating}
+                                    className={`${AdMakerStyles.backButton} ${(isScanning || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Styles
+                                </button>
+                            </div>
 
                             {((!isScanning || base64ReferenceImage) && (suggestions.length === 0 || base64ReferenceImage) && !scanError) ? (
-                                <div className="pb-8 relative">
-                                    {/* Vertical Timeline Line */}
-                                    <div className="absolute left-[21px] top-[140px] bottom-[100px] w-0.5 bg-gradient-to-b from-indigo-500/50 via-indigo-200 to-transparent rounded-full hidden sm:block"></div>
+                                <div className="flex-1 flex flex-col overflow-hidden relative">
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                                        {/* Vertical Timeline Line */}
+                                        <div className="absolute left-[21px] top-[140px] bottom-[100px] w-0.5 bg-gradient-to-b from-indigo-500/50 via-indigo-200 to-transparent rounded-full hidden sm:block"></div>
 
-                                    <div className="text-center mb-10">
-                                        <h3 className="text-2xl font-black text-gray-900 mb-1">Final Configuration</h3>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">Refine your brand identity</p>
-                                    </div>
+                                        <div className="text-center mb-10">
+                                            <h3 className="text-2xl font-black text-gray-900 mb-1">Final Configuration</h3>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">Refine your brand identity</p>
+                                        </div>
 
-                                    <div className="space-y-12 relative">
-                                        {/* Step 01: Brand Website */}
-                                        <section className="relative pl-0 sm:pl-12">
-                                            <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">01</div>
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Brand Website</h3>
-                                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
-                                                </div>
-                                                <div className="relative group">
-                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                        <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" strokeWidth={2.5} />
-                                                    </div>
-                                                    <input 
-                                                        type="url"
-                                                        value={brandUrl}
-                                                        onChange={(e) => setBrandUrl(e.target.value)}
-                                                        disabled={isScanning || isGenerating}
-                                                        placeholder="https://yourbrand.com"
-                                                        className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-2xl pl-11 pr-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </section>
-
-                                        {/* Step 02: Reference Style */}
-                                        <section className="relative pl-0 sm:pl-12">
-                                            <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">02</div>
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Reference Style</h3>
-                                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
-                                                </div>
-                                                <div 
-                                                    onClick={() => !(isScanning || isGenerating) && referenceInputRef.current?.click()}
-                                                    className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer text-center ${referenceImage ? 'bg-indigo-50/30 border-indigo-500/50' : 'bg-white/40 border-gray-200 hover:border-indigo-300 hover:bg-white/60'} ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}
-                                                >
-                                                    {referenceImage ? (
-                                                        <div className="relative w-full h-64 rounded-xl overflow-hidden bg-gray-50/50">
-                                                            <img src={referenceImage} className="w-full h-full object-contain" alt="Reference" />
-                                                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <span className="text-[10px] font-black text-white uppercase tracking-widest bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">Change Image</span>
-                                                            </div>
-                                                            <button 
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setReferenceImage(null);
-                                                                    setBase64ReferenceImage(null);
-                                                                }}
-                                                                disabled={isScanning || isGenerating}
-                                                                className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all hover:scale-110 disabled:opacity-50"
-                                                            >
-                                                                <XIcon className="w-4 h-4 text-red-500" />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                                <ImageIcon className="w-5 h-5 text-indigo-500" />
-                                                            </div>
-                                                            <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Upload Reference Ad</span>
-                                                            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter mt-1">We'll replicate the layout & vibe</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <input 
-                                                    type="file" 
-                                                    ref={referenceInputRef} 
-                                                    onChange={async (e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            const { base64, mimeType } = await fileToBase64(file);
-                                                            setReferenceImage(`data:${mimeType};base64,${base64}`);
-                                                            setBase64ReferenceImage(base64);
-                                                        }
-                                                    }} 
-                                                    className="hidden" 
-                                                    accept="image/*" 
-                                                />
-                                            </div>
-                                        </section>
-
-                                        {/* Step 03: Brand Identity & CTA */}
-                                        <section className="relative pl-0 sm:pl-12">
-                                            <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">03</div>
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Brand Identity</h3>
-                                                </div>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {/* CTA Toggle */}
-                                                    <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${includeCta ? 'bg-indigo-50/30 border-indigo-200/50 shadow-sm' : 'bg-white/40 border-gray-100/60'} ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}>
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Include CTA Overlay</span>
-                                                            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter mt-0.5">Show URL/Handle in design</span>
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => setIncludeCta(!includeCta)}
-                                                            disabled={isScanning || isGenerating}
-                                                            className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-200'} disabled:opacity-50`}
-                                                        >
-                                                            <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${includeCta ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Logo Section */}
-                                                    <div className={`bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-gray-100/60 flex items-center gap-4 ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}>
-                                                        <div className="w-14 h-14 rounded-xl border border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white/50 group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => !(isScanning || isGenerating) && logoInputRef.current?.click()}>
-                                                            {brandLogo ? (
-                                                                <img src={brandLogo} className="w-full h-full object-contain p-1.5" alt="Logo" />
-                                                            ) : (
-                                                                <PlusIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
-                                                            )}
-                                                            {isFetchingLogo && (
-                                                                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                                                                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Brand Logo</span>
-                                                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
-                                                            </div>
-                                                            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">
-                                                                {brandLogo ? "Logo ready for integration" : "Auto-fetch or upload logo"}
-                                                            </p>
-                                                            {brandLogo && (
-                                                                <button 
-                                                                    onClick={() => setBrandLogo(null)} 
-                                                                    disabled={isScanning || isGenerating}
-                                                                    className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline flex items-center gap-1 disabled:opacity-50"
-                                                                >
-                                                                    <XIcon className="w-2.5 h-2.5" /> Remove
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <input type="file" ref={logoInputRef} onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const { base64, mimeType } = await fileToBase64(file);
-                                                    setBrandLogo(`data:${mimeType};base64,${base64}`);
-                                                }
-                                            }} className="hidden" accept="image/*" />
-                                        </section>
-
-                                        {/* Step 04: Ad Strategy */}
-                                        {!base64ReferenceImage && (
+                                        <div className="space-y-12 relative pb-10">
+                                            {/* Step 01: Brand Website */}
                                             <section className="relative pl-0 sm:pl-12">
-                                                <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">04</div>
+                                                <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">01</div>
                                                 <div className="flex flex-col gap-4">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Ad Strategy</h3>
+                                                        <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Brand Website</h3>
+                                                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <button 
-                                                            onClick={() => handleModeSelect('product')} 
+                                                    <div className="relative group">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                            <GlobeIcon className="h-4 w-4 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" strokeWidth={2.5} />
+                                                        </div>
+                                                        <input 
+                                                            type="url"
+                                                            value={brandUrl}
+                                                            onChange={(e) => setBrandUrl(e.target.value)}
                                                             disabled={isScanning || isGenerating}
-                                                            className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'product' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
-                                                        >
-                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${mode === 'product' ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
-                                                                <CubeIcon className="w-5 h-5" />
-                                                            </div>
-                                                            <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Product Ad</h4>
-                                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter mt-1">Studio Setup</p>
-                                                            {mode === 'product' && <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleModeSelect('model')} 
-                                                            disabled={isScanning || isGenerating}
-                                                            className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'model' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
-                                                        >
-                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${mode === 'model' ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
-                                                                <UsersIcon className="w-5 h-5" />
-                                                            </div>
-                                                            <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Model Ad</h4>
-                                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter mt-1">Indian Lifestyle</p>
-                                                            {mode === 'model' && <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
-                                                        </button>
+                                                            placeholder="https://yourbrand.com"
+                                                            className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-2xl pl-11 pr-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        />
                                                     </div>
                                                 </div>
                                             </section>
-                                        )}
+
+                                            {/* Step 02: Reference Style */}
+                                            <section className="relative pl-0 sm:pl-12">
+                                                <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">02</div>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Reference Style</h3>
+                                                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
+                                                    </div>
+                                                    <div 
+                                                        onClick={() => !(isScanning || isGenerating) && referenceInputRef.current?.click()}
+                                                        className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer text-center ${referenceImage ? 'bg-indigo-50/30 border-indigo-500/50' : 'bg-white/40 border-gray-200 hover:border-indigo-300 hover:bg-white/60'} ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}
+                                                    >
+                                                        {referenceImage ? (
+                                                            <div className="relative w-full h-64 rounded-xl overflow-hidden bg-gray-50/50">
+                                                                <img src={referenceImage} className="w-full h-full object-contain" alt="Reference" />
+                                                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">Change Image</span>
+                                                                </div>
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setReferenceImage(null);
+                                                                        setBase64ReferenceImage(null);
+                                                                    }}
+                                                                    disabled={isScanning || isGenerating}
+                                                                    className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all hover:scale-110 disabled:opacity-50"
+                                                                >
+                                                                    <XIcon className="w-4 h-4 text-red-500" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                                    <ImageIcon className="w-5 h-5 text-indigo-500" />
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Upload Reference Ad</span>
+                                                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter mt-1">We'll replicate the layout & vibe</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <input 
+                                                        type="file" 
+                                                        ref={referenceInputRef} 
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                const { base64, mimeType } = await fileToBase64(file);
+                                                                setReferenceImage(`data:${mimeType};base64,${base64}`);
+                                                                setBase64ReferenceImage(base64);
+                                                            }
+                                                        }} 
+                                                        className="hidden" 
+                                                        accept="image/*" 
+                                                    />
+                                                </div>
+                                            </section>
+
+                                            {/* Step 03: Brand Identity & CTA */}
+                                            <section className="relative pl-0 sm:pl-12">
+                                                <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">03</div>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Brand Identity</h3>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {/* CTA Toggle */}
+                                                        <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${includeCta ? 'bg-indigo-50/30 border-indigo-200/50 shadow-sm' : 'bg-white/40 border-gray-100/60'} ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Include CTA Overlay</span>
+                                                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter mt-0.5">Show URL/Handle in design</span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => setIncludeCta(!includeCta)}
+                                                                disabled={isScanning || isGenerating}
+                                                                className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-200'} disabled:opacity-50`}
+                                                            >
+                                                                <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${includeCta ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Logo Section */}
+                                                        <div className={`bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-gray-100/60 flex items-center gap-4 ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}>
+                                                            <div className="w-14 h-14 rounded-xl border border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white/50 group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => !(isScanning || isGenerating) && logoInputRef.current?.click()}>
+                                                                {brandLogo ? (
+                                                                    <img src={brandLogo} className="w-full h-full object-contain p-1.5" alt="Logo" />
+                                                                ) : (
+                                                                    <PlusIcon className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
+                                                                )}
+                                                                {isFetchingLogo && (
+                                                                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                                                        <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Brand Logo</span>
+                                                                    <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
+                                                                </div>
+                                                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">
+                                                                    {brandLogo ? "Logo ready for integration" : "Auto-fetch or upload logo"}
+                                                                </p>
+                                                                {brandLogo && (
+                                                                    <button 
+                                                                        onClick={() => setBrandLogo(null)} 
+                                                                        disabled={isScanning || isGenerating}
+                                                                        className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline flex items-center gap-1 disabled:opacity-50"
+                                                                    >
+                                                                        <XIcon className="w-2.5 h-2.5" /> Remove
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <input type="file" ref={logoInputRef} onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const { base64, mimeType } = await fileToBase64(file);
+                                                        setBrandLogo(`data:${mimeType};base64,${base64}`);
+                                                    }
+                                                }} className="hidden" accept="image/*" />
+                                            </section>
+
+                                            {/* Step 04: Ad Strategy */}
+                                            {!base64ReferenceImage && (
+                                                <section className="relative pl-0 sm:pl-12">
+                                                    <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">04</div>
+                                                    <div className="flex flex-col gap-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Ad Strategy</h3>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <button 
+                                                                onClick={() => handleModeSelect('product')} 
+                                                                disabled={isScanning || isGenerating}
+                                                                className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'product' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                            >
+                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${mode === 'product' ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
+                                                                    <CubeIcon className="w-5 h-5" />
+                                                                </div>
+                                                                <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Product Ad</h4>
+                                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter mt-1">Studio Setup</p>
+                                                                {mode === 'product' && <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleModeSelect('model')} 
+                                                                disabled={isScanning || isGenerating}
+                                                                className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'model' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                            >
+                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${mode === 'model' ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
+                                                                    <UsersIcon className="w-5 h-5" />
+                                                                </div>
+                                                                <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Model Ad</h4>
+                                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter mt-1">Indian Lifestyle</p>
+                                                                {mode === 'model' && <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </section>
+                                            )}
+                                        </div>
                                     </div>
 
-                                    <div className="pt-10 pl-0 sm:pl-12">
+                                    <div className="pt-6 mt-auto">
                                         <button
                                             onClick={performPixaVisionScan}
                                             disabled={(!mode && !base64ReferenceImage) || isScanning || isGenerating}
@@ -1278,7 +1289,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                     <span className={AdMakerStyles.suggestionHeadline}>{s.headline}</span>
                                                                     <button 
                                                                         onClick={(e) => handleStartEdit(e, i)}
-                                                                        className="p-2.5 sm:p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-all"
+                                                                        className="p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-all"
                                                                         title="Edit Suggestion"
                                                                     >
                                                                         <PencilIcon className="w-3.5 h-3.5" />
