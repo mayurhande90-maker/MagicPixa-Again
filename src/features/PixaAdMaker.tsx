@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AuthProps, AppConfig, Page, View } from '../types';
 import { FeatureLayout, UploadPlaceholder } from '../components/FeatureLayout';
 import { 
-    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon, CreditCoinIcon, GlobeIcon
+    MagicAdsIcon, ArrowRightIcon, ArrowLeftIcon, CubeIcon, UsersIcon, XIcon, SparklesIcon, PlusIcon, FlagIcon, PencilIcon, CreditCoinIcon, GlobeIcon, ImageIcon
 } from '../components/icons';
 import { FoodIcon, SaaSRequestIcon, EcommerceAdIcon, FMCGIcon, RealtyAdIcon, EducationAdIcon, ServicesAdIcon } from '../components/icons/adMakerIcons';
 import { AdMakerStyles } from '../styles/features/PixaAdMaker.styles';
@@ -145,11 +145,14 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [brandUrl, setBrandUrl] = useState<string>("");
     const [includeCta, setIncludeCta] = useState<boolean>(true);
     const [brandLogo, setBrandLogo] = useState<string | null>(null);
+    const [referenceImage, setReferenceImage] = useState<string | null>(null);
+    const [base64ReferenceImage, setBase64ReferenceImage] = useState<string | null>(null);
     const [isFetchingLogo, setIsFetchingLogo] = useState(false);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
+    const referenceInputRef = useRef<HTMLInputElement>(null);
 
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
 
@@ -228,16 +231,13 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             const brief = industry ? creativeBriefs[industry] : 'Create a professional and high-converting advertisement.';
 
-            const response = await ai.models.generateContent({
-                model: "gemini-3.1-pro-preview",
-                contents: [
-                    {
-                        parts: [
-            { text: `You are Pixa AI, a world-class creative director and marketing expert. 
+            const parts: any[] = [
+                { text: `You are Pixa AI, a world-class creative director and marketing expert. 
 Analyze this ${isPhysical ? 'product' : 'logo/screenshot'} image (identify the ${isPhysical ? 'product' : 'brand/software'}, its ${isPhysical ? 'material' : 'purpose'}, category, and unique selling points).
 ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity. 
 MANDATORY: Identify the official brand name and the primary website URL or social handle that should be used as a Call to Action (CTA). 
 ALSO: Try to find the direct URL of the brand's official logo (preferably a high-quality PNG or SVG).` : ''}
+${base64ReferenceImage ? `CRITICAL: The user has provided a REFERENCE IMAGE. Analyze this reference image's layout, composition, color palette, lighting, and overall vibe. Your goal is to "Visual Reverse Engineer" this style and replicate it for the current ${isPhysical ? 'product' : 'brand'}. Ensure the text placement, subject positioning, and graphic style in your suggestions are heavily inspired by this reference image.` : ''}
 Use Google Search to find current trends and successful ad campaigns for similar ${isPhysical ? 'products' : 'services'} in the ${industryLabel} industry. ${isGraphicEditorial ? 'Also search for "trendy graphic design ads 2026" and "editorial ad layouts" to incorporate the latest visual design patterns.' : ''}
 
 CREATIVE BRIEF FOR THIS INDUSTRY:
@@ -245,7 +245,7 @@ ${brief}
 
 VISUAL STYLE & MOOD:
 The user has requested a "${styleLabel}" style. 
-${isGraphicEditorial ? `SPECIAL INSTRUCTION: This is a "Graphic/Editorial" style. Do NOT create a realistic photographic scene. Instead, design a professional "Graphic Design" layout using 2026 design trends. Incorporate a "Bento Box" layout (organized tiles with rounded corners), "Glassmorphism" (frosted glass panels with soft shadows), and "Maximalist Typography" (oversized, bold, high-contrast fonts). The uploaded logo/screenshot should be integrated as a key element within a glassmorphic panel or a central tile. Use stylized brand colors and add abstract 3D geometric accents (like high-gloss spheres or blobs) that match the brand identity. Focus on a premium "Textual Post" look that highlights brand values and features with clear typographic hierarchy.` : (selectedStyle === 'custom' ? `DEEP ANALYSIS OF CUSTOM STYLE: Analyze the user's requested style "${customStyleText}" and incorporate its specific visual cues (lighting, texture, color palette, and mood) into your suggestions.` : `Incorporate the essence of "${styleLabel}" into the visual concepts.`)}
+${base64ReferenceImage ? `REPLICATE REFERENCE STYLE: The user wants their ad to look like the provided reference image. Incorporate its specific visual cues (lighting, texture, color palette, layout, and mood) into your suggestions while featuring the ${isPhysical ? 'product' : 'brand logo'}.` : (isGraphicEditorial ? `SPECIAL INSTRUCTION: This is a "Graphic/Editorial" style. Do NOT create a realistic photographic scene. Instead, design a professional "Graphic Design" layout using 2026 design trends. Incorporate a "Bento Box" layout (organized tiles with rounded corners), "Glassmorphism" (frosted glass panels with soft shadows), and "Maximalist Typography" (oversized, bold, high-contrast fonts). The uploaded logo/screenshot should be integrated as a key element within a glassmorphic panel or a central tile. Use stylized brand colors and add abstract 3D geometric accents (like high-gloss spheres or blobs) that match the brand identity. Focus on a premium "Textual Post" look that highlights brand values and features with clear typographic hierarchy.` : (selectedStyle === 'custom' ? `DEEP ANALYSIS OF CUSTOM STYLE: Analyze the user's requested style "${customStyleText}" and incorporate its specific visual cues (lighting, texture, color palette, and mood) into your suggestions.` : `Incorporate the essence of "${styleLabel}" into the visual concepts.`))}
 
 AD FORMAT:
 The ad is intended for a ${formatLabel} (${selectedFormat}) aspect ratio. Ensure the visual compositions you suggest work perfectly for this format.
@@ -262,8 +262,18 @@ Output ONLY a JSON object with:
 - 'suggestions': an array of 5 objects with 'headline', 'displayPrompt', and 'detailedPrompt' keys.
 - 'brandInfo': an object with 'brandName', 'ctaUrl' (the exact URL to use), and 'logoUrl' (if found).
 Do not include any other text or markdown formatting.` },
-                            { inlineData: { data: imageData, mimeType } }
-                        ]
+                { inlineData: { data: imageData, mimeType } }
+            ];
+
+            if (base64ReferenceImage) {
+                parts.push({ inlineData: { data: base64ReferenceImage, mimeType: 'image/jpeg' } });
+            }
+
+            const response = await ai.models.generateContent({
+                model: "gemini-3.1-pro-preview",
+                contents: [
+                    {
+                        parts: parts
                     }
                 ],
                 config: {
@@ -919,6 +929,62 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                         {mode === 'model' && <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
                                                     </button>
                                                 </div>
+                                            </div>
+                                        </section>
+
+                                        {/* Step 04: Reference Style */}
+                                        <section className="relative pl-0 sm:pl-12">
+                                            <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">04</div>
+                                            <div className="flex flex-col gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Reference Style</h3>
+                                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
+                                                </div>
+                                                <div 
+                                                    onClick={() => referenceInputRef.current?.click()}
+                                                    className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer text-center ${referenceImage ? 'bg-indigo-50/30 border-indigo-500/50' : 'bg-white/40 border-gray-200 hover:border-indigo-300 hover:bg-white/60'}`}
+                                                >
+                                                    {referenceImage ? (
+                                                        <div className="relative w-full h-32 rounded-xl overflow-hidden">
+                                                            <img src={referenceImage} className="w-full h-full object-cover" alt="Reference" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Change Image</span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setReferenceImage(null);
+                                                                    setBase64ReferenceImage(null);
+                                                                }}
+                                                                className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+                                                            >
+                                                                <XIcon className="w-3.5 h-3.5 text-red-500" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                                <ImageIcon className="w-5 h-5 text-indigo-500" />
+                                                            </div>
+                                                            <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Upload Reference Ad</span>
+                                                            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter mt-1">We'll replicate the layout & vibe</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <input 
+                                                    type="file" 
+                                                    ref={referenceInputRef} 
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const { base64, mimeType } = await fileToBase64(file);
+                                                            setReferenceImage(`data:${mimeType};base64,${base64}`);
+                                                            setBase64ReferenceImage(base64);
+                                                        }
+                                                    }} 
+                                                    className="hidden" 
+                                                    accept="image/*" 
+                                                />
                                             </div>
                                         </section>
                                     </div>
