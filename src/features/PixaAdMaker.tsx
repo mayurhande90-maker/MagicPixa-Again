@@ -62,22 +62,22 @@ const INDUSTRY_STYLES: Record<string, { id: string; label: string; icon: string 
     ],
     'saas': [
         { id: 'high_tech_neon', label: 'High-Tech/Neon', icon: '💻' },
-        { id: 'professional_office', label: 'Professional Office', icon: '👔' },
-        { id: 'creative_startup', label: 'Creative/Startup', icon: '🎨' },
+        { id: 'graphic_editorial', label: 'Graphic/Editorial', icon: '🎨' },
+        { id: 'creative_startup', label: 'Creative/Startup', icon: '🚀' },
         { id: 'clean_minimalist', label: 'Clean/Minimalist', icon: '⚪' },
         { id: 'sleek_dark_mode', label: 'Sleek Dark Mode', icon: '🌑' },
     ],
     'education': [
         { id: 'academic_classic', label: 'Academic/Classic', icon: '📚' },
         { id: 'modern_digital', label: 'Modern/Digital', icon: '💻' },
-        { id: 'campus_outdoor', label: 'Campus/Outdoor', icon: '🏫' },
+        { id: 'graphic_editorial', label: 'Graphic/Editorial', icon: '🎨' },
         { id: 'focus_minimal', label: 'Focus/Minimal', icon: '🎯' },
         { id: 'inspirational', label: 'Inspirational', icon: '🌟' },
     ],
     'services': [
         { id: 'trust_professional', label: 'Trust/Professional', icon: '🤝' },
         { id: 'action_onsite', label: 'Action/On-site', icon: '🛠️' },
-        { id: 'friendly_warm', label: 'Friendly/Warm', icon: '😊' },
+        { id: 'graphic_editorial', label: 'Graphic/Editorial', icon: '🎨' },
         { id: 'sleek_office', label: 'Sleek/Office', icon: '🏢' },
         { id: 'industrial_strong', label: 'Industrial/Strong', icon: '🏗️' },
     ],
@@ -213,15 +213,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
             const formatLabel = AD_FORMATS.find(f => f.id === selectedFormat)?.label || 'Square';
 
+            const isGraphicEditorial = selectedStyle === 'graphic_editorial';
+
             const creativeBriefs: Record<string, string> = {
                 'ecommerce': 'Focus on high-end studio lighting, clean backgrounds, and premium textures. Make the product look tactile and high-quality.',
                 'fashion': 'Focus on style, elegance, and mood. Use editorial lighting and trendy backgrounds.',
                 'fmcg': 'Focus on vibrancy, freshness, and energy. Use bright colors and action cues like splashes or fresh ingredients.',
                 'realty': 'Focus on aspiration, space, and lifestyle. Use wide-angle shots, warm natural sunlight, and inviting atmospheres.',
                 'food': 'Focus on appetite appeal. Use warm lighting, macro shots, and sensory cues like steam or glistening textures.',
-                'saas': 'Focus on modern tech and productivity. Treat the uploaded image as a software screenshot and place it inside a sleek device mockup (like a MacBook or iPhone) in a professional high-tech office.',
-                'education': 'Focus on learning and growth. Treat the uploaded image as a logo and place it on a screen or banner in a bright, modern classroom or campus setting.',
-                'services': 'Focus on trust and professionalism. Treat the uploaded image as a logo and place it on a branded uniform, a professional service vehicle, or a clean office environment.'
+                'saas': isGraphicEditorial ? 'Create a high-impact "Software-as-a-Service" graphic post. Use bold typography, UI elements as design accents, and a clean grid. Highlight key features with text.' : 'Focus on modern tech and productivity. Treat the uploaded image as a software screenshot and place it inside a sleek device mockup (like a MacBook or iPhone) in a professional high-tech office.',
+                'education': isGraphicEditorial ? 'Create a professional "Educational" graphic post. Use inspiring typography, clean layouts, and brand colors. Focus on key benefits and learning outcomes using text.' : 'Focus on learning and growth. Treat the uploaded image as a logo and place it on a screen or banner in a bright, modern classroom or campus setting.',
+                'services': isGraphicEditorial ? 'Create a trustworthy "Professional Services" graphic post. Use clean, authoritative typography, brand-aligned colors, and a structured layout. Highlight service offerings with text.' : 'Focus on trust and professionalism. Treat the uploaded image as a logo and place it on a branded uniform, a professional service vehicle, or a clean office environment.'
             };
 
             const brief = industry ? creativeBriefs[industry] : 'Create a professional and high-converting advertisement.';
@@ -243,7 +245,7 @@ ${brief}
 
 VISUAL STYLE & MOOD:
 The user has requested a "${styleLabel}" style. 
-${selectedStyle === 'custom' ? `DEEP ANALYSIS OF CUSTOM STYLE: Analyze the user's requested style "${customStyleText}" and incorporate its specific visual cues (lighting, texture, color palette, and mood) into your suggestions.` : `Incorporate the essence of "${styleLabel}" into the visual concepts.`}
+${isGraphicEditorial ? `SPECIAL INSTRUCTION: This is a "Graphic/Editorial" style. Do NOT create a realistic photographic scene. Instead, design a professional "Graphic Design" layout. Use bold typography, clean grids, and Swiss-style design principles. The uploaded image (logo/screenshot) should be integrated as a key element of the graphic composition. Use high-contrast text, stylized brand colors, and abstract geometric shapes if needed. Focus on a "Textual Post" look that highlights brand values and features.` : (selectedStyle === 'custom' ? `DEEP ANALYSIS OF CUSTOM STYLE: Analyze the user's requested style "${customStyleText}" and incorporate its specific visual cues (lighting, texture, color palette, and mood) into your suggestions.` : `Incorporate the essence of "${styleLabel}" into the visual concepts.`)}
 
 AD FORMAT:
 The ad is intended for a ${formatLabel} (${selectedFormat}) aspect ratio. Ensure the visual compositions you suggest work perfectly for this format.
