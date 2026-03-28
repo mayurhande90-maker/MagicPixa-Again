@@ -292,34 +292,32 @@ Do not include any other text or markdown formatting.` },
             if (data.suggestions && Array.isArray(data.suggestions)) {
                 setSuggestions(data.suggestions);
                 
-                // DIRECT GENERATION FLOW
-                if (base64ReferenceImage && data.suggestions.length > 0) {
-                    setSelectedSuggestion(0);
-                    await executeAdGeneration(data.suggestions[0]);
-                }
+                let fetchedLogo: string | undefined = undefined;
 
                 // Auto-fetch logo if found and not already set manually
                 if (data.brandInfo?.logoUrl && !brandLogo) {
                     setIsFetchingLogo(true);
                     try {
-                        // Attempt to fetch and convert to base64 (might be blocked by CORS)
-                        const response = await fetch(data.brandInfo.logoUrl, { mode: 'no-cors' });
-                        // 'no-cors' won't allow reading the body, so this is tricky without a proxy.
-                        // For now, we'll try a standard fetch and fallback to just setting the URL 
-                        // if the user's browser allows it (e.g. same-origin or CORS enabled).
                         const res = await fetch(data.brandInfo.logoUrl);
                         const blob = await res.blob();
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            setBrandLogo(reader.result as string);
-                            setIsFetchingLogo(false);
-                        };
-                        reader.readAsDataURL(blob);
+                        const base64 = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(blob);
+                        });
+                        setBrandLogo(base64);
+                        fetchedLogo = base64;
                     } catch (e) {
                         console.error("Logo fetch failed (likely CORS):", e);
-                        // If fetch fails, we don't set the logo, user can upload manually.
+                    } finally {
                         setIsFetchingLogo(false);
                     }
+                }
+
+                // DIRECT GENERATION FLOW
+                if (base64ReferenceImage && data.suggestions.length > 0) {
+                    setSelectedSuggestion(0);
+                    await executeAdGeneration(data.suggestions[0], fetchedLogo);
                 }
             } else {
                 throw new Error("AI response format is incorrect");
@@ -360,7 +358,7 @@ Do not include any other text or markdown formatting.` },
         setMode(m);
     };
 
-    const executeAdGeneration = async (suggestion: { headline: string; detailedPrompt: string }) => {
+    const executeAdGeneration = async (suggestion: { headline: string; detailedPrompt: string }, logoOverride?: string) => {
         if (!base64Image || !auth.user) return;
         if (auth.user.credits < cost) {
             setNotification({ msg: "Insufficient credits.", type: 'error' });
@@ -379,6 +377,8 @@ Do not include any other text or markdown formatting.` },
             const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
             const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
 
+            const logoToUse = logoOverride || brandLogo;
+
             const contents: any[] = [
                 {
                     parts: [
@@ -392,7 +392,7 @@ ${mode === 'model' ? 'MANDATORY REQUIREMENT: A professional Indian model (male o
 ${includeCta && brandUrl ? `CALL TO ACTION (CTA): Include the official brand website "${brandUrl}" or a relevant social handle clearly but elegantly in the design. 
 HARD NEGATIVE: NEVER use generic placeholders like 'www.website.com' or 'yourbrand.com'. ONLY use the provided URL.` : 'HARD NEGATIVE: DO NOT include any website URLs, social handles, or generic CTA text in the design.'}
 
-${brandLogo ? `BRAND LOGO: I have provided the brand's official logo as an additional image. Integrate it naturally and professionally into the ad design (e.g., in a corner, on a branded element, or as a watermark as appropriate for a high-end ad).` : ''}
+${logoToUse ? `BRAND LOGO: I have provided the brand's official logo as an additional image. Integrate it naturally and professionally into the ad design (e.g., in a corner, on a branded element, or as a watermark as appropriate for a high-end ad).` : ''}
 
 The ad should be trend-ready, social media optimized, with perfect text placement and professional graphic design elements. 
 The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should be the central focus.` },
@@ -402,10 +402,10 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
             ];
 
             // Add logo if available
-            if (brandLogo) {
-                const logoMimeMatch = brandLogo.match(/^data:([^;]+);base64,/);
+            if (logoToUse) {
+                const logoMimeMatch = logoToUse.match(/^data:([^;]+);base64,/);
                 const logoMime = logoMimeMatch ? logoMimeMatch[1] : "image/png";
-                const logoData = brandLogo.split(',')[1];
+                const logoData = logoToUse.split(',')[1];
                 contents[0].parts.push({ inlineData: { data: logoData, mimeType: logoMime } });
             }
 
@@ -807,12 +807,13 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                         <div className="animate-fadeIn flex flex-col h-full overflow-y-auto custom-scrollbar p-4">
                             <button 
                                 onClick={handleBack} 
-                                className={AdMakerStyles.backButton}
+                                disabled={isScanning || isGenerating}
+                                className={`${AdMakerStyles.backButton} ${(isScanning || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back to Styles
                             </button>
 
-                            {(!isScanning && (suggestions.length === 0 || base64ReferenceImage) && !scanError) ? (
+                            {((!isScanning || base64ReferenceImage) && (suggestions.length === 0 || base64ReferenceImage) && !scanError) ? (
                                 <div className="pb-8 relative">
                                     {/* Vertical Timeline Line */}
                                     <div className="absolute left-[21px] top-[140px] bottom-[100px] w-0.5 bg-gradient-to-b from-indigo-500/50 via-indigo-200 to-transparent rounded-full hidden sm:block"></div>
@@ -839,8 +840,9 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                         type="url"
                                                         value={brandUrl}
                                                         onChange={(e) => setBrandUrl(e.target.value)}
+                                                        disabled={isScanning || isGenerating}
                                                         placeholder="https://yourbrand.com"
-                                                        className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-2xl pl-11 pr-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm"
+                                                        className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-2xl pl-11 pr-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                 </div>
                                             </div>
@@ -855,22 +857,23 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-3">
                                                     {/* CTA Toggle */}
-                                                    <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${includeCta ? 'bg-indigo-50/30 border-indigo-200/50 shadow-sm' : 'bg-white/40 border-gray-100/60'}`}>
+                                                    <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${includeCta ? 'bg-indigo-50/30 border-indigo-200/50 shadow-sm' : 'bg-white/40 border-gray-100/60'} ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}>
                                                         <div className="flex flex-col">
                                                             <span className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Include CTA Overlay</span>
                                                             <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter mt-0.5">Show URL/Handle in design</span>
                                                         </div>
                                                         <button 
                                                             onClick={() => setIncludeCta(!includeCta)}
-                                                            className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                                            disabled={isScanning || isGenerating}
+                                                            className={`w-10 h-5 rounded-full transition-all relative ${includeCta ? 'bg-indigo-600' : 'bg-gray-200'} disabled:opacity-50`}
                                                         >
                                                             <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${includeCta ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                         </button>
                                                     </div>
 
                                                     {/* Logo Section */}
-                                                    <div className="bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-gray-100/60 flex items-center gap-4">
-                                                        <div className="w-14 h-14 rounded-xl border border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white/50 group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => logoInputRef.current?.click()}>
+                                                    <div className={`bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-gray-100/60 flex items-center gap-4 ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}>
+                                                        <div className="w-14 h-14 rounded-xl border border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white/50 group hover:border-indigo-300 transition-colors cursor-pointer relative" onClick={() => !(isScanning || isGenerating) && logoInputRef.current?.click()}>
                                                             {brandLogo ? (
                                                                 <img src={brandLogo} className="w-full h-full object-contain p-1.5" alt="Logo" />
                                                             ) : (
@@ -891,7 +894,11 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                 {brandLogo ? "Logo ready for integration" : "Auto-fetch or upload logo"}
                                                             </p>
                                                             {brandLogo && (
-                                                                <button onClick={() => setBrandLogo(null)} className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline flex items-center gap-1">
+                                                                <button 
+                                                                    onClick={() => setBrandLogo(null)} 
+                                                                    disabled={isScanning || isGenerating}
+                                                                    className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline flex items-center gap-1 disabled:opacity-50"
+                                                                >
                                                                     <XIcon className="w-2.5 h-2.5" /> Remove
                                                                 </button>
                                                             )}
@@ -918,7 +925,8 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <button 
                                                         onClick={() => handleModeSelect('product')} 
-                                                        className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'product' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'}`}
+                                                        disabled={isScanning || isGenerating}
+                                                        className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'product' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
                                                     >
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${mode === 'product' ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
                                                             <CubeIcon className="w-5 h-5" />
@@ -929,7 +937,8 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                     </button>
                                                     <button 
                                                         onClick={() => handleModeSelect('model')} 
-                                                        className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'model' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'}`}
+                                                        disabled={isScanning || isGenerating}
+                                                        className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-500 text-left ${mode === 'model' ? 'bg-indigo-50/50 border-indigo-500/50 shadow-lg shadow-indigo-500/5' : 'bg-white/40 border-gray-100/60 hover:border-indigo-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
                                                     >
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${mode === 'model' ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
                                                             <UsersIcon className="w-5 h-5" />
@@ -951,8 +960,8 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                     <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">(Optional)</span>
                                                 </div>
                                                 <div 
-                                                    onClick={() => referenceInputRef.current?.click()}
-                                                    className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer text-center ${referenceImage ? 'bg-indigo-50/30 border-indigo-500/50' : 'bg-white/40 border-gray-200 hover:border-indigo-300 hover:bg-white/60'}`}
+                                                    onClick={() => !(isScanning || isGenerating) && referenceInputRef.current?.click()}
+                                                    className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer text-center ${referenceImage ? 'bg-indigo-50/30 border-indigo-500/50' : 'bg-white/40 border-gray-200 hover:border-indigo-300 hover:bg-white/60'} ${(isScanning || isGenerating) ? 'opacity-50 pointer-events-none' : ''}`}
                                                 >
                                                     {referenceImage ? (
                                                         <div className="relative w-full h-64 rounded-xl overflow-hidden bg-gray-50/50">
@@ -966,7 +975,8 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                     setReferenceImage(null);
                                                                     setBase64ReferenceImage(null);
                                                                 }}
-                                                                className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all hover:scale-110"
+                                                                disabled={isScanning || isGenerating}
+                                                                className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all hover:scale-110 disabled:opacity-50"
                                                             >
                                                                 <XIcon className="w-4 h-4 text-red-500" />
                                                             </button>
@@ -1017,7 +1027,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                 </div>
                             ) : (
                                 <div className="flex-1 flex flex-col overflow-hidden">
-                                    {isScanning ? (
+                                    {isScanning && !base64ReferenceImage ? (
                                         <div className="flex-1 flex items-center justify-center flex-col gap-4">
                                             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                                             <p className="text-sm font-bold text-indigo-600 animate-pulse">Pixa AI is analyzing your product...</p>
