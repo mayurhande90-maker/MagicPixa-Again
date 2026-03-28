@@ -1,10 +1,10 @@
 export const AdMakerStyles = {
   // Container
-  modeGrid: "grid grid-cols-2 gap-3 h-full content-start px-4 py-2",
+  modeGrid: "grid grid-cols-2 lg:grid-cols-3 gap-3 h-full content-start px-4 py-2",
   formContainer: "space-y-8 p-2 animate-fadeIn flex flex-col h-full relative",
 
   // Base Card - Apple/Bento Style
-  modeCard: "group relative w-full h-[clamp(110px,16vh,140px)] rounded-[1.8rem] overflow-hidden transition-all duration-500 ease-out hover:shadow-xl hover:shadow-gray-200 hover:-translate-y-1 border border-white/60 text-left cursor-pointer",
+  modeCard: "group relative w-full h-[100px] sm:h-[clamp(110px,16vh,140px)] rounded-[1.8rem] overflow-hidden transition-all duration-500 ease-out hover:shadow-xl hover:shadow-gray-200 hover:-translate-y-1 border border-white/60 text-left cursor-pointer",
   
   // Industry Variants (Gradients)
   cardEcommerce: "bg-gradient-to-br from-[#E3F2FD] via-[#F1F8FF] to-[#E1F5FE]", 
