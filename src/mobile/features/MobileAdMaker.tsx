@@ -737,7 +737,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isActive || isFilled ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]' : isAccessible ? 'bg-indigo-200' : 'bg-gray-100'} ${isFlashing ? 'animate-pulse bg-indigo-400' : ''}`}></div>
 
                                                 {/* Selection Label on Bottom */}
-                                                <span className={`font-bold uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 min-h-[12px] flex items-center justify-center ${isActive || isFilled ? 'text-indigo-600' : 'text-gray-300'} ${isFlashing ? 'animate-pulse text-purple-600 text-[9px]' : 'text-[6px]'}`}>
+                                                <span className={`font-bold uppercase tracking-tighter transition-all truncate w-full text-center px-0.5 min-h-[12px] flex items-center justify-center ${isActive || isFilled ? 'text-indigo-600' : 'text-gray-300'} ${isFlashing ? 'animate-pulse bg-purple-600 text-white text-[9px] rounded-sm py-0.5 shadow-[0_0_8px_rgba(147,51,234,0.5)]' : 'text-[6px]'}`}>
                                                     {isFlashing ? 'NEXT' : selectionLabel}
                                                 </span>
                                             </button>
