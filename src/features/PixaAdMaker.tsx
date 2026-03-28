@@ -181,6 +181,22 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
         return () => clearInterval(interval); 
     }, [isGenerating, isRefining]);
 
+    // Brand Kit Integration: Auto-populate from active brand
+    React.useEffect(() => {
+        if (auth.activeBrandKit) {
+            if (auth.activeBrandKit.industry && !industry) {
+                setIndustry(auth.activeBrandKit.industry);
+                setPhase('style_format_select');
+            }
+            if (auth.activeBrandKit.website && !brandUrl) {
+                setBrandUrl(auth.activeBrandKit.website);
+            }
+            if (auth.activeBrandKit.logos?.primary && !brandLogo) {
+                setBrandLogo(auth.activeBrandKit.logos.primary);
+            }
+        }
+    }, [auth.activeBrandKit]);
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -241,8 +257,18 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             const brief = industry ? creativeBriefs[industry] : 'Create a professional and high-converting advertisement.';
 
+            const brandKitContext = auth.activeBrandKit ? `
+BRAND KIT CONTEXT:
+- Brand Name: ${auth.activeBrandKit.companyName}
+- Industry: ${auth.activeBrandKit.industry}
+- Tone of Voice: ${auth.activeBrandKit.toneOfVoice}
+- Target Audience: ${auth.activeBrandKit.targetAudience || 'General'}
+- Brand Colors: ${auth.activeBrandKit.colors?.primary || 'Auto-detect'}, ${auth.activeBrandKit.colors?.secondary || 'Auto-detect'}
+` : '';
+
             const parts: any[] = [
                 { text: `You are Pixa AI, a world-class creative director and marketing expert. 
+${brandKitContext}
 Analyze this ${isPhysical ? 'product' : 'logo/screenshot'} image (identify the ${isPhysical ? 'product' : 'brand/software'}, its ${isPhysical ? 'material' : 'purpose'}, category, and unique selling points).
 ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity. 
 MANDATORY: Identify the official brand name and the primary website URL or social handle that should be used as a Call to Action (CTA). 
@@ -401,10 +427,19 @@ Do not include any other text or markdown formatting.` },
 
             const logoToUse = logoOverride || brandLogo;
 
+            const brandKitContext = auth.activeBrandKit ? `
+BRAND KIT CONTEXT:
+- Brand Name: ${auth.activeBrandKit.companyName}
+- Tone of Voice: ${auth.activeBrandKit.toneOfVoice}
+- Target Audience: ${auth.activeBrandKit.targetAudience || 'General'}
+- Brand Colors: ${auth.activeBrandKit.colors?.primary || 'Auto-detect'}, ${auth.activeBrandKit.colors?.secondary || 'Auto-detect'}
+` : '';
+
             const contents: any[] = [
                 {
                     parts: [
                         { text: `Generate a highly professional, high-converting advertisement image for this ${isPhysical ? 'product' : 'brand'}. 
+${brandKitContext}
 Concept: ${suggestion.detailedPrompt}
 Visual Style: ${styleLabel}
 Ad Format: ${selectedFormat} aspect ratio.
@@ -580,7 +615,8 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         setIsRefineActive(false);
         setEditingSuggestionIndex(null);
         setEditingSuggestionData(null);
-        setBrandUrl("");
+        setBrandUrl(auth.activeBrandKit?.website || "");
+        setBrandLogo(auth.activeBrandKit?.logos?.primary || null);
         setSelectedLanguage(null);
     };
 
@@ -657,11 +693,49 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                 <div className="relative h-full w-full flex items-center justify-center p-4 bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                     <LoadingOverlay isVisible={isGenerating || isRefining} loadingText={loadingText} progress={progress} />
                     {phase === 'mode_select' && !image ? (
-                        <UploadPlaceholder 
-                            label={industry && !INDUSTRY_CONFIG[industry].isPhysical ? "Upload Logo or Screenshot" : "Upload Product Image"} 
-                            onClick={() => fileInputRef.current?.click()} 
-                            icon={<MagicAdsIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />}
-                        />
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                            <UploadPlaceholder 
+                                label={industry && !INDUSTRY_CONFIG[industry].isPhysical ? "Upload Logo or Screenshot" : "Upload Product Image"} 
+                                onClick={() => fileInputRef.current?.click()} 
+                                icon={<MagicAdsIcon className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />}
+                            />
+
+                            {auth.activeBrandKit?.products && auth.activeBrandKit.products.length > 0 && (
+                                <div className="mt-8 w-full max-w-md animate-fadeIn">
+                                    <div className="flex items-center gap-3 mb-4 px-2">
+                                        <div className="h-px flex-1 bg-gray-100"></div>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Or Select from Inventory</span>
+                                        <div className="h-px flex-1 bg-gray-100"></div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3 max-h-[280px] overflow-y-auto p-2 custom-scrollbar">
+                                        {auth.activeBrandKit.products.map((product) => (
+                                            <button
+                                                key={product.id}
+                                                onClick={async () => {
+                                                    setIsScanning(true);
+                                                    try {
+                                                        const { base64, mimeType } = await urlToBase64(product.imageUrl);
+                                                        const blobUrl = await base64ToBlobUrl(base64, mimeType);
+                                                        setImage(blobUrl);
+                                                        setBase64Image(`data:${mimeType};base64,${base64}`);
+                                                    } catch (err) {
+                                                        setNotification({ msg: "Failed to load product from inventory.", type: 'error' });
+                                                    } finally {
+                                                        setIsScanning(false);
+                                                    }
+                                                }}
+                                                className="group relative aspect-square rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-indigo-500 transition-all bg-gray-50 flex items-center justify-center shadow-sm hover:shadow-md"
+                                            >
+                                                <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={product.name} referrerPolicy="no-referrer" />
+                                                <div className="absolute inset-0 bg-indigo-600/0 group-hover:bg-indigo-600/20 transition-all flex items-end p-2">
+                                                    <span className="text-[8px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity truncate w-full bg-black/60 px-2 py-1 rounded-lg backdrop-blur-md">{product.name}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     ) : image ? (
                         <div className="relative w-full h-full flex items-center justify-center">
                              <img 
