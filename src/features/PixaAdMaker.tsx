@@ -96,6 +96,14 @@ const AD_FORMATS = [
     { id: '16:9', label: 'Web', desc: 'Banner (16:9)', icon: <div className="w-8 h-4 border-2 border-indigo-500 rounded-sm" /> },
 ];
 
+const LANGUAGES = [
+    { id: 'english', label: 'English', desc: 'Standard English', icon: '🇺🇸' },
+    { id: 'hindi', label: 'Hindi', desc: 'Authentic Hindi', icon: '🇮🇳' },
+    { id: 'marathi', label: 'Marathi', desc: 'Authentic Marathi', icon: '🚩' },
+    { id: 'hinglish_hindi', label: 'Hinglish-Hindi', desc: 'Hindi in Latin script', icon: '💬' },
+    { id: 'hinglish_marathi', label: 'Hinglish-Marathi', desc: 'Marathi in Latin script', icon: '🗣️' },
+];
+
 type AdMakerPhase = 'industry_select' | 'style_format_select' | 'mode_select';
 
 const IndustryCard: React.FC<{ 
@@ -123,6 +131,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
     const [customStyleText, setCustomStyleText] = useState<string>("");
     const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+    const [selectedLanguage, setSelectedLanguage] = useState<string>('english');
     const [mode, setMode] = useState<'product' | 'model' | null>(null);
     const [image, setImage] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
@@ -215,6 +224,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
             const industryLabel = industry ? INDUSTRY_CONFIG[industry]?.label : 'General';
             const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
             const formatLabel = AD_FORMATS.find(f => f.id === selectedFormat)?.label || 'Square';
+            const languageConfig = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
 
             const isGraphicEditorial = selectedStyle === 'graphic_editorial';
 
@@ -253,13 +263,21 @@ ${base64ReferenceImage ? `REPLICATE REFERENCE STYLE: The user wants their ad to 
 AD FORMAT:
 The ad is intended for a ${formatLabel} (${selectedFormat}) aspect ratio. Ensure the visual compositions you suggest work perfectly for this format.
 
+LANGUAGE & LOCALIZATION:
+The user has selected the language: "${languageConfig.label}".
+${selectedLanguage === 'hindi' ? 'MANDATORY: Generate all marketing copy (headlines and display prompts) in authentic Hindi using the Devanagari script.' : ''}
+${selectedLanguage === 'marathi' ? 'MANDATORY: Generate all marketing copy (headlines and display prompts) in authentic Marathi using the Devanagari script.' : ''}
+${selectedLanguage === 'hinglish_hindi' ? 'MANDATORY: Generate all marketing copy in "Hinglish" (a conversational mix of Hindi and English) using the Latin (English) script. Example: "Ab brand banega aur bhi bada!".' : ''}
+${selectedLanguage === 'hinglish_marathi' ? 'MANDATORY: Generate all marketing copy in "Hinglish-Marathi" (a conversational mix of Marathi and English) using the Latin (English) script. Example: "Tumcha brand, aata navya style madhe!".' : ''}
+${selectedLanguage === 'english' ? 'MANDATORY: Generate all marketing copy in standard professional English.' : ''}
+
 ${mode === 'model' ? 'The user has selected "Model Ad" mode. Your suggestions MUST feature Indian models (male, female, or diverse groups as appropriate) interacting with the subject in lifestyle settings that resonate with the Indian market. Strictly avoid foreign or ambiguous models. MANDATORY: You MUST explicitly describe the Indian model character (e.g., "A young Indian professional woman", "A cheerful Indian family") as the primary subject in the displayPrompt. This is a strict requirement for Model Ad mode.' : 'The user has selected "Product Ad" mode. Your suggestions should focus on high-end, clean studio setups or creative environments.'}
 
 Then, generate ${base64ReferenceImage ? '1' : '5'} highly creative and high-converting ad prompt${base64ReferenceImage ? '' : 's'} for this ${isPhysical ? 'product' : 'brand'}.
 Each suggestion should include:
-1. A catchy 'displayPrompt' for the user to see. This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe. For Model Ad mode, this MUST include a description of the Indian model character.
-2. A very detailed 'detailedPrompt' for an AI image generator. ${isGraphicEditorial ? 'For this style, describe a high-end graphic design layout, specifying typography, grid structure, design elements, and brand-centric accents instead of photographic details. Focus on layout composition, color theory, and graphic elements.' : 'Describing the scene, lighting, placement, and professional photography details.'} This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model.
-3. A catchy marketing 'headline'.
+1. A catchy 'displayPrompt' for the user to see in the selected language (${languageConfig.label}). This should be 2-3 detailed and descriptive sentences explaining the visual concept, the background, the lighting, and the overall vibe. For Model Ad mode, this MUST include a description of the Indian model character.
+2. A very detailed 'detailedPrompt' for an AI image generator. ${isGraphicEditorial ? 'For this style, describe a high-end graphic design layout, specifying typography, grid structure, design elements, and brand-centric accents instead of photographic details. Focus on layout composition, color theory, and graphic elements.' : 'Describing the scene, lighting, placement, and professional photography details.'} This should be the "secret" prompt. For Model Ad mode, this MUST include specific instructions for an Indian model. MANDATORY: Instruct the image generator to include text overlays or background text in the selected language (${languageConfig.label}) where appropriate.
+3. A catchy marketing 'headline' in the selected language (${languageConfig.label}).
 
 Output ONLY a JSON object with:
 - 'suggestions': an array of ${base64ReferenceImage ? '1' : '5'} object${base64ReferenceImage ? '' : 's'} with 'headline', 'displayPrompt', and 'detailedPrompt' keys.
@@ -379,6 +397,7 @@ Do not include any other text or markdown formatting.` },
 
             const isPhysical = industry ? INDUSTRY_CONFIG[industry]?.isPhysical : true;
             const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
+            const languageConfig = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
 
             const logoToUse = logoOverride || brandLogo;
 
@@ -389,6 +408,7 @@ Do not include any other text or markdown formatting.` },
 Concept: ${suggestion.detailedPrompt}
 Visual Style: ${styleLabel}
 Ad Format: ${selectedFormat} aspect ratio.
+Language: ${languageConfig.label}
 Marketing Headline to include in the design: "${suggestion.headline}"
 ${mode === 'model' || base64ReferenceImage ? 'MANDATORY REQUIREMENT: If the scene includes a person (as requested in the concept or inspired by the reference image), they MUST be a professional Indian model (male or female as per the scene). The model MUST have clear Indian ethnicity, features, and skin tone. Strictly forbid foreign, Caucasian, East Asian, or ambiguous models. The scene MUST feel authentic to the Indian lifestyle context.' : ''}
 
@@ -561,6 +581,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         setEditingSuggestionIndex(null);
         setEditingSuggestionData(null);
         setBrandUrl("");
+        setSelectedLanguage('english');
     };
 
     const handleStartEdit = (e: React.MouseEvent, index: number) => {
@@ -785,6 +806,26 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                             <div>
                                 <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                     <GlobeIcon className="w-3 h-3 text-indigo-500" />
+                                    Select Language
+                                </h3>
+                                <div className="grid grid-cols-5 gap-2 mb-6">
+                                    {LANGUAGES.map((lang) => (
+                                        <div
+                                            key={lang.id}
+                                            onClick={() => setSelectedLanguage(lang.id)}
+                                            className={`group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-center ${selectedLanguage === lang.id ? 'bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-md'}`}
+                                        >
+                                            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">{lang.icon}</span>
+                                            <span className="text-[8px] font-black text-gray-900 uppercase tracking-tight leading-tight">{lang.label}</span>
+                                            <span className="text-[6px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{lang.desc}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <ImageIcon className="w-3 h-3 text-indigo-500" />
                                     Select Ad Format
                                 </h3>
                                 <div className="flex gap-3 mb-8">
