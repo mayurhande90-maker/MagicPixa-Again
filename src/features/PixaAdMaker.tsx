@@ -778,7 +778,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
 
                     {/* Horizontal Inventory Strip */}
                     {phase === 'mode_select' && auth.activeBrandKit?.products && auth.activeBrandKit.products.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-100 animate-fadeInUp">
+                        <div className={`mt-4 pt-4 border-t border-gray-100 animate-fadeInUp transition-all duration-300 ${isScanning || isGenerating || isRefining ? 'opacity-40 grayscale-[0.5] pointer-events-none' : ''}`}>
                             <div className="flex items-center justify-between mb-3 px-2">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Brand Inventory</span>
                                 <span className="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">{auth.activeBrandKit.products.length} Products</span>
@@ -787,6 +787,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                 {auth.activeBrandKit.products.map((product) => (
                                     <button
                                         key={product.id}
+                                        disabled={isScanning || isGenerating || isRefining}
                                         onClick={async () => {
                                             if (isScanning || isGenerating || isRefining) return;
                                             setSelectedProductId(product.id);
