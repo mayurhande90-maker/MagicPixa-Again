@@ -13,6 +13,7 @@ import { refineStudioImage } from '../../services/photoStudioService';
 import { deductCredits, saveCreation, updateCreation } from '../../firebase';
 import { MobileSheet } from '../components/MobileSheet';
 import { ImageModal } from '../../components/FeatureLayout';
+import ToastNotification from '../../components/ToastNotification';
 
 const THUMBNAIL_STEPS = [
     { id: 'category', label: 'Category', options: ['Podcast', 'Entertainment', 'Gaming', 'Vlogs', 'How-to & Style', 'Education', 'Comedy', 'Music', 'Technology', 'Sports', 'Travel & Events'] },
@@ -63,6 +64,7 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
     const [lastCreationId, setLastCreationId] = useState<string | null>(null);
     const [originalImage, setOriginalImage] = useState<{ base64: string; mimeType: string } | null>(null);
     const [originalPrompt, setOriginalPrompt] = useState<string>('');
+    const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
 
     const cost = appConfig?.featureCosts['Pixa Thumbnail Pro'] || 8;
     const refineCost = 5;
@@ -180,7 +182,6 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
 
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
-            setIsGenerating(false);
 
             const prompt = `YouTube/Social Media Thumbnail: ${category}, mood: ${mood}, title: ${context}, style: ${format}`;
             const primaryImg = isPodcast ? hostImg : subjectImg;
@@ -189,12 +190,23 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             }
             setOriginalPrompt(prompt);
 
-            await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail (Mobile)');
-            const id = await saveCreation(auth.user.uid, `data:image/png;base64,${resB64}`, 'Pixa Thumbnail Pro');
+            // Reorder: Save first, then deduct. This prevents charging if saving fails.
+            const id = await saveCreation(
+                auth.user.uid, 
+                `data:image/png;base64,${resB64}`, 
+                'Pixa Thumbnail Pro',
+                primaryImg ? { base64: primaryImg.base64.base64, mimeType: primaryImg.base64.mimeType } : undefined,
+                prompt
+            );
             setLastCreationId(id);
+
+            const updatedUser = await deductCredits(auth.user.uid, cost, 'Pixa Thumbnail (Mobile)');
+            auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+            
+            setIsGenerating(false);
         } catch (e) {
-            console.error(e);
-            alert("Thumbnail generation failed.");
+            console.error("Thumbnail generation error:", e);
+            setNotification({ msg: "Thumbnail generation failed. Please try again.", type: 'error' });
             setIsGenerating(false);
         }
     };
@@ -218,16 +230,23 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             );
             const blobUrl = await base64ToBlobUrl(resB64, 'image/png');
             setResult(blobUrl);
-            setIsGenerating(false);
             
             if (lastCreationId) {
-                await updateCreation(auth.user.uid, lastCreationId, `data:image/png;base64,${resB64}`);
+                await updateCreation(
+                    auth.user.uid, 
+                    lastCreationId, 
+                    `data:image/png;base64,${resB64}`,
+                    originalImage || undefined,
+                    originalPrompt || undefined
+                );
             }
             const updatedUser = await deductCredits(auth.user.uid, refineCost, 'Pixa Refinement');
             auth.setUser(prev => prev ? { ...prev, ...updatedUser } : null);
             setRefineText('');
+            setIsGenerating(false);
         } catch (e) {
-            alert("Refinement failed.");
+            console.error("Refinement error:", e);
+            setNotification({ msg: "Refinement failed. Please try again.", type: 'error' });
             setIsGenerating(false);
         }
     };
@@ -663,6 +682,14 @@ export const MobileThumbnail: React.FC<MobileThumbnailProps> = ({ auth, appConfi
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setSubjectImg)} />
             <input ref={hostInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setHostImg)} />
             <input ref={guestInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload(setGuestImg)} />
+
+            {notification && (
+                <ToastNotification 
+                    message={notification.msg} 
+                    type={notification.type} 
+                    onClose={() => setNotification(null)} 
+                />
+            )}
 
             <style>{`
                 @keyframes neural-scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }

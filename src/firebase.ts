@@ -385,10 +385,15 @@ export const saveCreation = async (uid: string, imageUrl: string, feature: strin
     // AGGRESSIVE OPTIMIZATION for Firestore 1MB document limit
     // base64 length is roughly 1.37x the actual byte size.
     // 1,000,000 chars is approx 730KB.
-    if (finalImage.length > 900000 && finalImage.startsWith('data:image')) {
+    if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
         try { 
-            // Resize to 1536px and lower quality (0.7) to guarantee fit
+            // First pass: 1536px, 0.7 quality
             finalImage = await resizeImage(finalImage, 1536, 0.7); 
+            
+            // Second pass if still too large: 1024px, 0.5 quality
+            if (finalImage.length > 950000) {
+                finalImage = await resizeImage(finalImage, 1024, 0.5);
+            }
         } catch (e) { 
             console.warn("Auto-resize for storage failed", e); 
         }
@@ -410,9 +415,15 @@ export const updateCreation = async (uid: string, creationId: string, imageUrl: 
     let finalImage = imageUrl;
     
     // AGGRESSIVE OPTIMIZATION for Firestore 1MB document limit
-    if (finalImage.length > 900000 && finalImage.startsWith('data:image')) {
+    if (finalImage.length > 800000 && finalImage.startsWith('data:image')) {
         try { 
+            // First pass
             finalImage = await resizeImage(finalImage, 1536, 0.7); 
+            
+            // Second pass if still too large
+            if (finalImage.length > 950000) {
+                finalImage = await resizeImage(finalImage, 1024, 0.5);
+            }
         } catch (e) { 
             console.warn("Auto-resize for storage update failed", e); 
         }
