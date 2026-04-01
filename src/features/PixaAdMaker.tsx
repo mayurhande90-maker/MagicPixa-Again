@@ -1243,12 +1243,20 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                     
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         <div className="space-y-1.5">
-                                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Product Name</label>
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                                                {industry === 'realty' ? 'Property Name' : 
+                                                                 industry === 'food' ? 'Dish / Product Name' : 
+                                                                 industry === 'fashion' ? 'Apparel / Collection Name' : 
+                                                                 industry === 'saas' ? 'Software / App Name' : 
+                                                                 industry === 'education' ? 'Course / Institution Name' : 
+                                                                 industry === 'services' ? 'Service Name' : 
+                                                                 'Product Name'}
+                                                            </label>
                                                             <input 
                                                                 type="text"
                                                                 value={productName}
                                                                 onChange={(e) => setProductName(e.target.value)}
-                                                                placeholder="e.g., Pixa Pro Gaming Mouse"
+                                                                placeholder={`e.g., ${industry === 'realty' ? 'Luxury Villa in Goa' : 'Pixa Pro Gaming Mouse'}`}
                                                                 className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm"
                                                             />
                                                         </div>
@@ -1273,25 +1281,26 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                             className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-2xl px-4 py-4 text-xs font-medium text-gray-700 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm min-h-[120px] resize-none"
                                                         />
                                                         
-                                                        <button 
-                                                            onClick={handleEnhanceContext}
-                                                            disabled={isEnhancingContext || isScanning || isGenerating}
-                                                            className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-sm border
-                                                                ${(adContext.length > 5 && !isEnhancingContext) ? 'bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700 hover:shadow-indigo-200 animate-soft-pulse' : 'bg-white text-indigo-600 border-indigo-100 hover:bg-indigo-50'}
-                                                                disabled:opacity-50 disabled:pointer-events-none`}
-                                                        >
-                                                            {isEnhancingContext ? (
-                                                                <>
-                                                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                                    <span>Enhancing...</span>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <SparklesIcon className="w-3.5 h-3.5" />
-                                                                    <span>✨ Let AI Write This For Me</span>
-                                                                </>
-                                                            )}
-                                                        </button>
+                                                        <div className="flex justify-center">
+                                                            <button 
+                                                                onClick={handleEnhanceContext}
+                                                                disabled={isEnhancingContext || isScanning || isGenerating}
+                                                                className={`px-6 py-2 rounded-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 shadow-sm border
+                                                                    ${(adContext.length > 5 && !isEnhancingContext) 
+                                                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent hover:shadow-lg hover:scale-105 animate-soft-pulse' 
+                                                                        : 'bg-white text-indigo-600 border-indigo-100 hover:bg-indigo-50'}
+                                                                    disabled:opacity-50 disabled:pointer-events-none`}
+                                                            >
+                                                                {isEnhancingContext ? (
+                                                                    <>
+                                                                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                                                        <span>Enhancing...</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span>Let AI Write This For Me</span>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                         <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest text-center mt-1">
                                                             Type a few words and let Pixa expand them into a professional brief
                                                         </p>
