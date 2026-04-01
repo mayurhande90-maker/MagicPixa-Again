@@ -1287,7 +1287,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                 disabled={isEnhancingContext || isScanning || isGenerating}
                                                                 className={`px-6 py-2 rounded-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 shadow-sm border
                                                                     ${(adContext.length > 5 && !isEnhancingContext) 
-                                                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent hover:shadow-lg hover:scale-105 animate-soft-pulse' 
+                                                                        ? 'bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white border-transparent hover:shadow-lg hover:scale-105 animate-soft-pulse' 
                                                                         : 'bg-white text-indigo-600 border-indigo-100 hover:bg-indigo-50'}
                                                                     disabled:opacity-50 disabled:pointer-events-none`}
                                                             >
@@ -1297,7 +1297,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                                         <span>Enhancing...</span>
                                                                     </>
                                                                 ) : (
-                                                                    <span>Let AI Write This For Me</span>
+                                                                    <span>AI Enhance</span>
                                                                 )}
                                                             </button>
                                                         </div>
