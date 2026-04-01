@@ -158,6 +158,11 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [base64ReferenceImage, setBase64ReferenceImage] = useState<string | null>(null);
     const [isFetchingLogo, setIsFetchingLogo] = useState(false);
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+    const [productName, setProductName] = useState<string>("");
+    const [keyBenefit, setKeyBenefit] = useState<string>("");
+    const [targetAudience, setTargetAudience] = useState<string>("");
+    const [adContext, setAdContext] = useState<string>("");
+    const [isEnhancingContext, setIsEnhancingContext] = useState(false);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,6 +277,17 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
 
             const brief = industry ? creativeBriefs[industry] : 'Create a professional and high-converting advertisement.';
 
+            const adContextBrief = `
+USER PROVIDED AD CONTEXT:
+- Product Name: ${productName || 'Auto-detect'}
+- Key Benefit: ${keyBenefit || 'Auto-detect'}
+- Target Audience: ${targetAudience || 'Auto-detect'}
+- Additional Context: ${adContext || 'None'}
+
+MANDATORY: You MUST prioritize the user-provided Ad Context over your visual analysis if there is any conflict. 
+DISCREPANCY CHECK: If the uploaded image appears to be a completely different product than what is described in the Ad Context (e.g., image is a shoe but context says "luxury car"), do NOT hallucinate. Instead, acknowledge the user's context but try to find a creative way to blend the visual reality with the requested context, or prioritize the context for the marketing copy while keeping the visual accurate to the image.
+`;
+
             const brandKitContext = auth.activeBrandKit ? `
 BRAND KIT CONTEXT:
 - Brand Name: ${auth.activeBrandKit.companyName}
@@ -284,6 +300,7 @@ BRAND KIT CONTEXT:
             const parts: any[] = [
                 { text: `You are Pixa AI, a world-class creative director and marketing expert. 
 ${brandKitContext}
+${adContextBrief}
 Analyze this ${isPhysical ? 'product' : 'logo/screenshot'} image (identify the ${isPhysical ? 'product' : 'brand/software'}, its ${isPhysical ? 'material' : 'purpose'}, category, and unique selling points).
 ${brandUrl ? `The user has provided their brand website: ${brandUrl}. Visit this website to understand their brand guidelines, color palette, typography, and existing marketing voice. Use this information to ensure the ad suggestions are perfectly aligned with their brand identity. 
 MANDATORY: Identify the official brand name and the primary website URL or social handle that should be used as a Call to Action (CTA). 
@@ -440,6 +457,16 @@ Do not include any other text or markdown formatting.` },
             const styleLabel = selectedStyle === 'custom' ? customStyleText : (industry && selectedStyle ? INDUSTRY_STYLES[industry]?.find(s => s.id === selectedStyle)?.label : 'General');
             const languageConfig = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
 
+            const adContextBrief = `
+USER PROVIDED AD CONTEXT:
+- Product Name: ${productName || 'Auto-detect'}
+- Key Benefit: ${keyBenefit || 'Auto-detect'}
+- Target Audience: ${targetAudience || 'Auto-detect'}
+- Additional Context: ${adContext || 'None'}
+
+MANDATORY: Prioritize this context for all visual and textual elements.
+`;
+
             const logoToUse = logoOverride || brandLogo;
 
             const brandKitContext = auth.activeBrandKit ? `
@@ -455,6 +482,7 @@ BRAND KIT CONTEXT:
                     parts: [
                         { text: `Generate a highly professional, high-converting advertisement image for this ${isPhysical ? 'product' : 'brand'}. 
 ${brandKitContext}
+${adContextBrief}
 Concept: ${suggestion.detailedPrompt}
 Visual Style: ${styleLabel}
 Ad Format: ${selectedFormat} aspect ratio.
@@ -651,6 +679,10 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
 
         setSelectedLanguage(null);
         setSelectedProductId(null);
+        setProductName("");
+        setKeyBenefit("");
+        setTargetAudience("");
+        setAdContext("");
     };
 
     const handleStartEdit = (e: React.MouseEvent, index: number) => {
@@ -682,6 +714,44 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         e.stopPropagation();
         setEditingSuggestionIndex(null);
         setEditingSuggestionData(null);
+    };
+
+    const handleEnhanceContext = async () => {
+        if (!productName && !keyBenefit && !targetAudience && !adContext) {
+            setNotification({ msg: "Please provide some basic information first.", type: 'info' });
+            return;
+        }
+        setIsEnhancingContext(true);
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API Key missing");
+            const ai = new GoogleGenAI({ apiKey });
+            
+            const prompt = `You are a professional marketing copywriter. 
+            Based on the following information, expand it into a compelling, professional, and high-converting "Ad Context" or "Creative Brief" (max 100 words).
+            - Product Name: ${productName || 'Not specified'}
+            - Key Benefit: ${keyBenefit || 'Not specified'}
+            - Target Audience: ${targetAudience || 'Not specified'}
+            - Current Context: ${adContext || 'Not specified'}
+            
+            Focus on the "Why" and the "Who". Make it punchy and clear.
+            Output ONLY the expanded text, no other commentary.`;
+
+            const response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: [{ parts: [{ text: prompt }] }]
+            });
+
+            if (response.text) {
+                setAdContext(response.text.trim());
+                setNotification({ msg: "Ad Context enhanced by AI!", type: 'success' });
+            }
+        } catch (error: any) {
+            console.error("Enhancement failed:", error);
+            setNotification({ msg: `Enhancement failed: ${error.message}`, type: 'error' });
+        } finally {
+            setIsEnhancingContext(false);
+        }
     };
 
     return (
@@ -1168,10 +1238,79 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                 }} className="hidden" accept="image/*" />
                                             </section>
 
-                                            {/* Step 04: Ad Strategy */}
+                                            {/* Step 04: Product & Ad Context */}
+                                            <section className="relative pl-0 sm:pl-12">
+                                                <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">04</div>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Product & Ad Context</h3>
+                                                        <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-full">New</span>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Product Name</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={productName}
+                                                                onChange={(e) => setProductName(e.target.value)}
+                                                                placeholder="e.g., Pixa Pro Gaming Mouse"
+                                                                className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Target Audience</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={targetAudience}
+                                                                onChange={(e) => setTargetAudience(e.target.value)}
+                                                                placeholder="e.g., Professional Esports Players"
+                                                                className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Key Benefit</label>
+                                                        <input 
+                                                            type="text"
+                                                            value={keyBenefit}
+                                                            onChange={(e) => setKeyBenefit(e.target.value)}
+                                                            placeholder="e.g., 10 programmable buttons & ergonomic grip"
+                                                            className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center justify-between ml-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Additional Ad Context</label>
+                                                            <button 
+                                                                onClick={handleEnhanceContext}
+                                                                disabled={isEnhancingContext || isScanning || isGenerating}
+                                                                className="text-[9px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1 hover:underline disabled:opacity-50"
+                                                            >
+                                                                {isEnhancingContext ? (
+                                                                    <div className="w-2 h-2 border border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                                ) : (
+                                                                    <SparklesIcon className="w-2.5 h-2.5" />
+                                                                )}
+                                                                Enhance with AI
+                                                            </button>
+                                                        </div>
+                                                        <textarea 
+                                                            value={adContext}
+                                                            onChange={(e) => setAdContext(e.target.value)}
+                                                            placeholder="Describe the mood, specific features, or any other details you want the AI to consider..."
+                                                            className="w-full bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-2xl px-4 py-4 text-xs font-medium text-gray-700 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all placeholder:text-gray-300 shadow-sm min-h-[100px] resize-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </section>
+
+                                            {/* Step 05: Ad Strategy */}
                                             {!base64ReferenceImage && (
                                                 <section className="relative pl-0 sm:pl-12">
-                                                    <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">04</div>
+                                                    <div className="absolute left-0 top-0 w-11 h-11 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-sm font-black text-indigo-600 z-10 hidden sm:flex">05</div>
                                                     <div className="flex flex-col gap-4">
                                                         <div className="flex items-center gap-2">
                                                             <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.15em]">Ad Strategy</h3>
