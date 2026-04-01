@@ -162,6 +162,7 @@ export const PixaAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | nul
     const [targetAudience, setTargetAudience] = useState<string>("");
     const [adContext, setAdContext] = useState<string>("");
     const [isEnhancingContext, setIsEnhancingContext] = useState(false);
+    const [lastEnhancedContext, setLastEnhancedContext] = useState<string | null>(null);
 
     const progress = useSimulatedProgress(isGenerating || isRefining);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -678,6 +679,7 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
         setProductName("");
         setTargetAudience("");
         setAdContext("");
+        setLastEnhancedContext(null);
     };
 
     const handleStartEdit = (e: React.MouseEvent, index: number) => {
@@ -737,7 +739,9 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
             });
 
             if (response.text) {
-                setAdContext(response.text.trim());
+                const enhanced = response.text.trim();
+                setAdContext(enhanced);
+                setLastEnhancedContext(enhanced);
                 setNotification({ msg: "Ad Context enhanced by AI!", type: 'success' });
             }
         } catch (error: any) {
@@ -1284,12 +1288,12 @@ The ${isPhysical ? 'product' : 'logo/screenshot'} from the primary image should 
                                                         <div className="flex justify-center">
                                                             <button 
                                                                 onClick={handleEnhanceContext}
-                                                                disabled={isEnhancingContext || isScanning || isGenerating}
+                                                                disabled={isEnhancingContext || isScanning || isGenerating || (lastEnhancedContext !== null && adContext === lastEnhancedContext)}
                                                                 className={`px-6 py-2 rounded-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 shadow-sm border
-                                                                    ${(adContext.length > 5 && !isEnhancingContext) 
+                                                                    ${!(isEnhancingContext || isScanning || isGenerating || (lastEnhancedContext !== null && adContext === lastEnhancedContext)) 
                                                                         ? 'bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white border-transparent hover:shadow-lg hover:scale-105 animate-soft-pulse' 
-                                                                        : 'bg-white text-indigo-600 border-indigo-100 hover:bg-indigo-50'}
-                                                                    disabled:opacity-50 disabled:pointer-events-none`}
+                                                                        : 'bg-white text-indigo-400 border-indigo-50 hover:bg-white'}
+                                                                    disabled:opacity-70 disabled:pointer-events-none`}
                                                             >
                                                                 {isEnhancingContext ? (
                                                                     <>
