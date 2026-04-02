@@ -105,6 +105,7 @@ const AD_STEPS = [
     { id: 'format', label: 'Format' },
     { id: 'language', label: 'Language' },
     { id: 'mode', label: 'Mode' },
+    { id: 'context', label: 'Context' },
     { id: 'config', label: 'Config' },
     { id: 'ai_suggestion', label: 'AI Suggestion' }
 ];
@@ -144,6 +145,13 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     const [fetchedLogo, setFetchedLogo] = useState<string | null>(null);
+
+    const [productName, setProductName] = useState("");
+    const [targetAudience, setTargetAudience] = useState("");
+    const [adContext, setAdContext] = useState("");
+    const [isEnhancingContext, setIsEnhancingContext] = useState(false);
+    const [lastEnhancedContext, setLastEnhancedContext] = useState<string | null>(null);
+    const [isContextSheetOpen, setIsContextSheetOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cost = appConfig?.featureCosts['Pixa AdMaker'] || 10;
@@ -267,6 +275,44 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         }
     };
 
+    const handleEnhanceContext = async () => {
+        if (!productName && !targetAudience && !adContext) {
+            alert("Please provide some basic information first.");
+            return;
+        }
+        setIsEnhancingContext(true);
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API Key missing");
+            const ai = new GoogleGenAI({ apiKey });
+            
+            const prompt = `You are a professional marketing copywriter. 
+            Based on the following information, expand it into a compelling, professional, and high-converting "Ad Context" or "Creative Brief" (max 100 words).
+            - Product Name: ${productName || 'Not specified'}
+            - Target Audience: ${targetAudience || 'Not specified'}
+            - Current Context: ${adContext || 'Not specified'}
+            
+            Focus on the "Why" and the "Who". Make it punchy and clear.
+            Output ONLY the expanded text, no other commentary.`;
+
+            const response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: [{ parts: [{ text: prompt }] }]
+            });
+
+            if (response.text) {
+                const enhanced = response.text.trim();
+                setAdContext(enhanced);
+                setLastEnhancedContext(enhanced);
+            }
+        } catch (error: any) {
+            console.error("Enhancement failed:", error);
+            alert(`Enhancement failed: ${error.message}`);
+        } finally {
+            setIsEnhancingContext(false);
+        }
+    };
+
     const handleGenerate = async () => {
         if (!image || !isStrategyComplete || !auth.user || isGenerating || isScanning) return;
         
@@ -287,6 +333,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
             const styleLabel = customStyle || INDUSTRY_STYLES[industry]?.find(s => s.id === selections.style)?.label || 'General';
             const languageConfig = LANGUAGES.find(l => l.id === selections.language) || LANGUAGES[0];
 
+            const adContextBrief = `
+                USER PROVIDED AD CONTEXT:
+                - Product Name: ${productName || 'Auto-detect'}
+                - Target Audience: ${targetAudience || 'Auto-detect'}
+                - Additional Context: ${adContext || 'None'}
+                
+                MANDATORY: Prioritize this context for all visual and textual elements.
+            `;
+
             // Generation Phase
             const genPrompt = `
                 Generate a professional high-converting ad image based on this specific AI suggestion: "${selectedSuggestion}".
@@ -296,6 +351,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                 Style: ${styleLabel}
                 Format: ${selections.format}
                 Language: ${languageConfig.label}
+                ${adContextBrief}
                 ${selections.mode === 'model' ? 'MANDATORY: The scene MUST feature professional Indian models with clear Indian ethnicity and features.' : ''}
                 ${brandUrl ? `Fetch brand logo and style from website: ${brandUrl}` : ''}
                 
@@ -432,6 +488,10 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         setFetchedLogo(null);
         setCurrentStep(0);
         setLastCreationId(null);
+        setProductName("");
+        setTargetAudience("");
+        setAdContext("");
+        setLastEnhancedContext(null);
     };
 
     return (
@@ -647,6 +707,15 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                     <span className="text-[10px] font-black uppercase tracking-widest">Model Ad</span>
                                                 </button>
                                             </div>
+                                        ) : step.id === 'context' ? (
+                                            <div className="w-full px-6 py-2 flex flex-col items-center justify-center gap-4">
+                                                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
+                                                    <PencilIcon className="w-8 h-8 text-indigo-600" />
+                                                </div>
+                                                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest text-center">
+                                                    {adContext ? "Context Provided" : "Define your product & audience"}
+                                                </p>
+                                            </div>
                                         ) : step.id === 'config' ? (
                                             <div className="w-full px-6 py-2 flex flex-col gap-3">
                                                 <div className={`flex items-center gap-2 bg-gray-50 p-4 rounded-2xl border transition-all shadow-inner ${urlError ? 'border-red-500 bg-red-50' : 'border-gray-100'}`}>
@@ -697,7 +766,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                     {AD_STEPS.map((step, idx) => {
                                         const isActive = currentStep === idx;
                                         const isAccessible = isStepAccessible(idx);
-                                        const isFilled = (step.id === 'industry' ? (!!selections.industry && !!image) : step.id === 'config' ? (!!brandUrl && !urlError) : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : !!selections[step.id]);
+                                        const isFilled = (step.id === 'industry' ? (!!selections.industry && !!image) : step.id === 'config' ? (!!brandUrl && !urlError) : step.id === 'ai_suggestion' ? !!selectedSuggestion : step.id === 'style' ? (!!selections.style || !!customStyle) : step.id === 'context' ? (!!productName || !!adContext) : !!selections[step.id]);
                                         
                                         let selectionLabel = "";
                                         if (step.id === 'industry' && selections.industry) selectionLabel = INDUSTRY_CONFIG[selections.industry].label;
@@ -705,6 +774,7 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                         if (step.id === 'format' && selections.format) selectionLabel = AD_FORMATS.find(f => f.id === selections.format)?.label || "";
                                         if (step.id === 'language' && selections.language) selectionLabel = LANGUAGES.find(l => l.id === selections.language)?.label || "";
                                         if (step.id === 'mode' && selections.mode) selectionLabel = selections.mode === 'model' ? 'Model' : 'Product';
+                                        if (step.id === 'context' && (productName || adContext)) selectionLabel = "Set";
                                         if (step.id === 'config' && brandUrl && !urlError) selectionLabel = "Set";
                                         if (step.id === 'ai_suggestion' && selectedSuggestion) selectionLabel = "Selected";
 
@@ -716,6 +786,9 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                                 onClick={() => {
                                                     if (isAccessible) {
                                                         setCurrentStep(idx);
+                                                        if (step.id === 'context') {
+                                                            setIsContextSheetOpen(true);
+                                                        }
                                                         if (step.id === 'ai_suggestion') {
                                                             if (aiSuggestions.length === 0) {
                                                                 generateAISuggestions();
@@ -749,6 +822,94 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                     )}
                 </div>
             </div>
+
+            <MobileSheet 
+                isOpen={isContextSheetOpen} 
+                onClose={() => setIsContextSheetOpen(false)} 
+                title="Product & Ad Context"
+                footer={
+                    <div className="pb-8 px-6">
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={handleEnhanceContext}
+                                disabled={isEnhancingContext || isScanning || isGenerating || (lastEnhancedContext !== null && adContext === lastEnhancedContext)}
+                                className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-xl border
+                                    ${!(isEnhancingContext || isScanning || isGenerating || (lastEnhancedContext !== null && adContext === lastEnhancedContext)) 
+                                        ? 'bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white border-transparent hover:shadow-lg animate-cta-pulse' 
+                                        : 'bg-white text-indigo-400 border-indigo-50'}
+                                    disabled:opacity-70 disabled:pointer-events-none`}
+                            >
+                                {isEnhancingContext ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Enhancing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <SparklesIcon className="w-4 h-4" />
+                                        <span>AI Enhance</span>
+                                    </>
+                                )}
+                            </button>
+                            <button 
+                                onClick={() => setIsContextSheetOpen(false)}
+                                className="w-full py-3 bg-gray-50 text-gray-400 rounded-xl font-black text-[10px] uppercase tracking-widest border border-gray-100"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                }
+            >
+                <div className="flex flex-col gap-6 pb-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-1">
+                            {selections.industry === 'realty' ? 'Property Name' : 
+                             selections.industry === 'food' ? 'Dish / Product Name' : 
+                             selections.industry === 'saas' ? 'Software Name' : 
+                             selections.industry === 'education' ? 'Course / Institute Name' : 
+                             'Product Name'}
+                        </label>
+                        <div className="relative">
+                            <input 
+                                type="text"
+                                value={productName}
+                                onChange={(e) => setProductName(e.target.value)}
+                                placeholder="e.g. Pixa Pro Mouse"
+                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-1">Target Audience</label>
+                        <div className="relative">
+                            <input 
+                                type="text"
+                                value={targetAudience}
+                                onChange={(e) => setTargetAudience(e.target.value)}
+                                placeholder="e.g. Professional Gamers"
+                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-1">Additional Ad Context</label>
+                        <div className="relative">
+                            <textarea 
+                                value={adContext}
+                                onChange={(e) => setAdContext(e.target.value)}
+                                placeholder="Describe your product, its key benefits, and the mood you want to capture..."
+                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-4 ring-indigo-500/5 focus:border-indigo-500/50 transition-all min-h-[120px] resize-none"
+                            />
+                        </div>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mt-1">
+                            Type a few words and let Pixa expand them
+                        </p>
+                    </div>
+                </div>
+            </MobileSheet>
 
             {/* AI Suggestion Tray */}
             <MobileSheet 
