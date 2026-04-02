@@ -268,6 +268,11 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
         // Do not progress from step 0 (Industry) if no image is uploaded
         if (currentStep === 0 && !image) return;
 
+        // Auto-open context tray if mode is selected
+        if (stepId === 'mode') {
+            setIsContextSheetOpen(true);
+        }
+
         if (currentStep < AD_STEPS.length - 1) {
             setTimeout(() => {
                 setCurrentStep(prev => prev + 1);
@@ -852,8 +857,16 @@ export const MobileAdMaker: React.FC<{ auth: AuthProps; appConfig: AppConfig | n
                                 )}
                             </button>
                             <button 
-                                onClick={() => setIsContextSheetOpen(false)}
-                                className="w-full py-3 bg-gray-50 text-gray-400 rounded-xl font-black text-[10px] uppercase tracking-widest border border-gray-100"
+                                onClick={() => {
+                                    setIsContextSheetOpen(false);
+                                    // Jump to Config tab (index 6)
+                                    setCurrentStep(6);
+                                }}
+                                disabled={!lastEnhancedContext || isEnhancingContext}
+                                className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all duration-300
+                                    ${(lastEnhancedContext && !isEnhancingContext) 
+                                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent shadow-lg' 
+                                        : 'bg-gray-50 text-gray-400 border-gray-100'}`}
                             >
                                 Done
                             </button>
