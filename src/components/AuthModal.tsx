@@ -2,7 +2,7 @@ import React, { useState, useEffect, ReactNode } from 'react';
 import { GoogleIcon, MagicPixaLogo } from './icons';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { COUNTRY_CODES } from '../utils/countryCodes';
 import { getFriendlyErrorMessage } from '../utils/errorHandling';
 
@@ -127,6 +127,19 @@ const AuthModal: React.FC<AuthModalProps> = ({
         setAuthStep('name_input');
         setIsLoading(false);
       } else {
+        // Option 1: The Login Catch for old users with missing or default names
+        if (db && result.user) {
+          const userDoc = await db.collection('users').doc(result.user.uid).get();
+          const userData = userDoc.data();
+          const currentName = userData?.name || '';
+          
+          // If name is missing, empty, or the default "Creator"
+          if (!currentName || currentName.trim() === '' || currentName === 'Creator') {
+            setAuthStep('name_input');
+            setIsLoading(false);
+            return;
+          }
+        }
         // Success! The auth state listener in App.tsx will handle the rest.
         onClose();
       }
@@ -189,7 +202,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           <h2 id="auth-modal-title" className="text-2xl font-bold text-[#1E1E1E] mb-2">
             {authStep === 'options' ? 'Sign In to Continue' : 
              authStep === 'phone_input' ? 'Enter Phone Number' : 
-             authStep === 'code_input' ? 'Verify Phone' : 'Welcome to MagicPixa'}
+             authStep === 'code_input' ? 'Verify Phone' : 'Welcome! What should we call you?'}
           </h2>
           <p className="text-[#5F6368] mb-6">
             {authStep === 'options' ? 'Access your projects and unlock all features.' : 
