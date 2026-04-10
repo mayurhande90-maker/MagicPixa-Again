@@ -25,11 +25,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   
   // Phone Auth State
-  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input'>(
+  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input'>(
     initialStep === 'phone_input' ? 'phone_input' : 'options'
   );
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [userName, setUserName] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
 
@@ -119,8 +120,40 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     
     try {
-      await confirmationResult.confirm(verificationCode);
-      // Success! The auth state listener in App.tsx will handle the rest and close the modal.
+      const result = await confirmationResult.confirm(verificationCode);
+      const isNewUser = result.additionalUserInfo?.isNewUser;
+      
+      if (isNewUser) {
+        setAuthStep('name_input');
+        setIsLoading(false);
+      } else {
+        // Success! The auth state listener in App.tsx will handle the rest.
+        onClose();
+      }
+    } catch (err: any) {
+      console.error(err);
+      setInternalError(getFriendlyErrorMessage(err));
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userName.trim()) {
+      setInternalError('Please enter your name.');
+      return;
+    }
+
+    setInternalError(null);
+    setIsLoading(true);
+
+    try {
+      if (!auth?.currentUser) throw new Error("No authenticated user found.");
+      
+      // Import dynamic to avoid circular dependency if any, but auth is already here
+      const { updateUserProfile } = await import('../firebase');
+      await updateUserProfile(auth.currentUser.uid, { name: userName.trim() });
+      
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -154,10 +187,15 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 <MagicPixaLogo />
             </div>
           <h2 id="auth-modal-title" className="text-2xl font-bold text-[#1E1E1E] mb-2">
-            {authStep === 'options' ? 'Sign In to Continue' : authStep === 'phone_input' ? 'Enter Phone Number' : 'Verify Phone'}
+            {authStep === 'options' ? 'Sign In to Continue' : 
+             authStep === 'phone_input' ? 'Enter Phone Number' : 
+             authStep === 'code_input' ? 'Verify Phone' : 'Welcome to MagicPixa'}
           </h2>
           <p className="text-[#5F6368] mb-6">
-            {authStep === 'options' ? 'Access your projects and unlock all features.' : authStep === 'phone_input' ? 'We will send you a verification code.' : 'Enter the 6-digit code sent to your phone.'}
+            {authStep === 'options' ? 'Access your projects and unlock all features.' : 
+             authStep === 'phone_input' ? 'We will send you a verification code.' : 
+             authStep === 'code_input' ? 'Enter the 6-digit code sent to your phone.' : 
+             'Please tell us your name to complete your profile.'}
           </p>
         </div>
 
@@ -297,6 +335,36 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 ) : 'Verify'}
               </button>
             </div>
+          </form>
+        )}
+
+        {authStep === 'name_input' && (
+          <form onSubmit={handleSaveName} className="space-y-4">
+            <div>
+              <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                id="userName"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="John Doe"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading || !userName.trim()}
+              className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+            >
+              {isLoading ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : 'Complete Sign Up'}
+            </button>
           </form>
         )}
         
