@@ -247,13 +247,24 @@ function App() {
     
     // Handle redirect result for mobile devices
     firebaseAuth.getRedirectResult().then((result) => {
-        if (result.user) {
+        if (result && result.user) {
             console.log("Successfully signed in via redirect");
+            setIsAuthModalOpen(false);
         }
     }).catch((error) => {
         console.error("Redirect sign-in error:", error);
         if (error.code === 'auth/missing-initial-state') {
-            setAuthError("Sign-in session expired. Please try again.");
+            // This is the specific error the user is facing in the APK.
+            // We show a more helpful message and suggest a retry which might work 
+            // if the storage is partially available.
+            setAuthError("Login session interrupted. Please try clicking 'Sign in with Google' again.");
+            
+            // Optional: Clear any stale auth state that might be causing the conflict
+            if (firebaseAuth) {
+                firebaseAuth.signOut().catch(() => {});
+            }
+        } else if (error.code === 'auth/network-request-failed') {
+            setAuthError("Network error. Please check your internet connection.");
         }
     });
 

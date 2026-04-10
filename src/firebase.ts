@@ -120,18 +120,35 @@ export const signInWithGoogle = async () => {
     
     try {
         // Force local persistence to prevent state loss on mobile
+        // Persistence.LOCAL is better for APKs as it survives app restarts
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
+        
+        // Custom parameters to improve mobile compatibility
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
 
-        // On mobile APKs, popups are often blocked or fail to return state.
-        // We try popup first, but fall back to redirect which is more reliable in WebViews.
+        // Detect if we are likely in a restricted WebView environment
+        const isWebView = /wv|Android.*Version\/4\.0/i.test(navigator.userAgent) || 
+                          (window.location.protocol === 'file:' || window.location.hostname === 'localhost');
+
+        // On mobile APKs/WebViews, popups are often blocked or fail to return state.
+        // However, if redirect is failing with "missing initial state", we try popup as a fallback
+        // because it keeps the parent window alive, preserving the session state.
         try {
+            // If we are in a WebView, we might want to try redirect first if the user prefers,
+            // but the error reported is specifically about redirect failing.
+            // So we try Popup first.
             return await auth.signInWithPopup(provider);
         } catch (popupError: any) {
-            console.log("Popup failed, trying redirect...", popupError.code);
+            console.log("Popup failed or blocked, trying redirect...", popupError.code);
+            
+            // If popup is blocked or not supported, we use redirect.
+            // If the user gets "missing initial state" later, App.tsx will catch it.
             if (popupError.code === 'auth/popup-blocked' || 
                 popupError.code === 'auth/operation-not-supported-in-this-environment' ||
                 popupError.code === 'auth/auth-domain-config-required') {
