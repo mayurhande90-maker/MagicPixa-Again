@@ -9,7 +9,6 @@ import PricingPage from './PricingPage';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsConditionsPage from './TermsConditionsPage';
 import AuthModal from './components/AuthModal';
-import PhoneOnboardingModal from './components/PhoneOnboardingModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
 import ConfigurationError from './components/ConfigurationError';
@@ -126,14 +125,11 @@ function App() {
   const [pendingDestination, setPendingDestination] = useState<{ page: Page, view?: View } | null>(null);
   const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [showPhoneOnboardingModal, setShowPhoneOnboardingModal] = useState(false);
-  const [phoneOnboardingMode, setPhoneOnboardingMode] = useState<'link' | 'change'>('link');
   const [authError, setAuthError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [showBanner, setShowBanner] = useState(true);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
-  const [hasSkippedPhone, setHasSkippedPhone] = useState(false);
   const [authModalStep, setAuthModalStep] = useState<'initial' | 'phone_input' | 'name_input' | 'phone_link'>('initial');
 
   const activeUser = impersonatedUser || user;
@@ -170,7 +166,6 @@ function App() {
         setUser(null);
         setImpersonatedUser(null);
         setActiveBrandKit(null);
-        setShowPhoneOnboardingModal(false);
         navigateTo('home');
     }
   };
@@ -296,9 +291,7 @@ function App() {
         subscribeToUserProfile(firebaseUser.uid, (profile) => {
             if (profile) {
                 setUser(profile);
-                if (!profile.phoneNumber && !firebaseUser.phoneNumber) {
-                    setShowPhoneOnboardingModal(true);
-                } else if (firebaseUser.phoneNumber && !profile.phoneNumber) {
+                if (firebaseUser.phoneNumber && !profile.phoneNumber) {
                     // Sync phone number to profile if it exists on auth object but not in profile
                     updateUserProfile(firebaseUser.uid, { phoneNumber: firebaseUser.phoneNumber });
                 }
@@ -306,9 +299,6 @@ function App() {
             else {
                 getOrCreateUserProfile(firebaseUser.uid, firebaseUser.displayName || 'User', firebaseUser.email, firebaseUser.phoneNumber).then((newProfile) => {
                     setUser(newProfile as User);
-                    if (!newProfile?.phoneNumber) {
-                        setShowPhoneOnboardingModal(true);
-                    }
                 });
             }
             setLoading(false);
@@ -325,7 +315,6 @@ function App() {
         setUser(null);
         setImpersonatedUser(null);
         setActiveBrandKit(null); 
-        setShowPhoneOnboardingModal(false);
         setLoading(false);
       }
     });
@@ -387,10 +376,9 @@ function App() {
     setActiveBrandKit,
     handleLogout,
     openAuthModal: () => setIsAuthModalOpen(true),
-    openPhoneVerification: (mode = 'link') => {
-        setHasSkippedPhone(false);
-        setPhoneOnboardingMode(mode);
-        setShowPhoneOnboardingModal(true);
+    openPhoneVerification: () => {
+        setAuthModalStep('phone_link');
+        setIsAuthModalOpen(true);
     },
     impersonateUser: user?.isAdmin ? (u) => { setImpersonatedUser(u); if(u) navigateTo('dashboard', 'dashboard'); } : undefined
   };
@@ -409,17 +397,6 @@ function App() {
                 />
                 {activeUser?.systemNotification && !activeUser.systemNotification.read && (
                     <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
-                )}
-                {showPhoneOnboardingModal && !hasSkippedPhone && (
-                    <PhoneOnboardingModal 
-                        mode={phoneOnboardingMode}
-                        onComplete={() => setShowPhoneOnboardingModal(false)}
-                        onSkip={() => {
-                            setHasSkippedPhone(true);
-                            setShowPhoneOnboardingModal(false);
-                        }}
-                        onClose={() => setShowPhoneOnboardingModal(false)}
-                    />
                 )}
             </div>
         );
@@ -494,17 +471,6 @@ function App() {
             onGoogleSignIn={handleGoogleSignIn} 
             error={authError}
             initialStep={authModalStep}
-          />
-      )}
-      {showPhoneOnboardingModal && !hasSkippedPhone && (
-          <PhoneOnboardingModal 
-            mode={phoneOnboardingMode}
-            onComplete={() => setShowPhoneOnboardingModal(false)}
-            onSkip={() => {
-                setHasSkippedPhone(true);
-                setShowPhoneOnboardingModal(false);
-            }}
-            onClose={() => setShowPhoneOnboardingModal(false)}
           />
       )}
     </div>
