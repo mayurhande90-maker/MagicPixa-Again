@@ -27,7 +27,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   
   // Phone Auth State
-  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link' | 'support'>(
+  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link' | 'support' | 'merge_confirm'>(
     initialStep === 'phone_input' ? 'phone_input' : 
     initialStep === 'name_input' ? 'name_input' : 
     initialStep === 'phone_link' ? 'phone_link' : 
@@ -187,6 +187,38 @@ const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error(err);
+      
+      // Handle "Phone already in use" during linking
+      if (authStep === 'code_link' && (err.code === 'auth/credential-already-in-use' || err.message?.includes('already-in-use'))) {
+          setAuthStep('merge_confirm');
+          setIsLoading(false);
+          return;
+      }
+
+      setInternalError(getFriendlyErrorMessage(err));
+      setIsLoading(false);
+    }
+  };
+
+  const handleMerge = async () => {
+    setIsLoading(true);
+    setInternalError(null);
+    try {
+      if (!auth?.currentUser) throw new Error("No user logged in.");
+      
+      const { findUserByPhone, mergeUserAccounts } = await import('../firebase');
+      const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+      const formattedPhone = `${countryCode}${cleanPhone}`;
+      
+      const existingUser = await findUserByPhone(formattedPhone);
+      if (!existingUser) throw new Error("Could not find the existing account to merge.");
+      
+      // Merge the Phone account (source) into the current Google account (target)
+      await mergeUserAccounts(existingUser.uid, auth.currentUser.uid);
+      
+      onClose();
+    } catch (err: any) {
+      console.error(err);
       setInternalError(getFriendlyErrorMessage(err));
       setIsLoading(false);
     }
@@ -247,6 +279,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
              authStep === 'code_input' ? 'Verify Phone' : 
              authStep === 'phone_link' ? 'Let’s Get You Set Up' :
              authStep === 'code_link' ? 'Verify Your Number' :
+             authStep === 'merge_confirm' ? 'Account Already Exists' :
              authStep === 'support' ? 'Contact Support' :
              'Welcome! What should we call you?'}
           </h2>
@@ -256,6 +289,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
              authStep === 'code_input' ? 'Enter the 6-digit code sent to your phone.' : 
              authStep === 'phone_link' ? 'To give you the best experience on both web and mobile, please take a moment to link your phone number to your profile.' :
              authStep === 'code_link' ? 'Enter the 6-digit code sent to your phone.' :
+             authStep === 'merge_confirm' ? 'This phone number is already linked to another account. Would you like to merge your mobile account data into this Google account?' :
              authStep === 'support' ? 'Having trouble? Send us a message and we will get back to you.' :
              'Please tell us your name to complete your profile.'}
           </p>
@@ -465,6 +499,31 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </form>
         )}
         
+        {authStep === 'merge_confirm' && (
+          <div className="space-y-4">
+            <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-2">
+                <p className="text-sm text-indigo-800 leading-relaxed">
+                    <strong>What happens during a merge?</strong><br/>
+                    All your creations, credits, and settings from your mobile account will be moved to this Google account. This cannot be undone.
+                </p>
+            </div>
+            <button
+              onClick={handleMerge}
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+            >
+              {isLoading ? 'Merging...' : 'Yes, Merge My Accounts'}
+            </button>
+            <button
+              onClick={() => setAuthStep('phone_link')}
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         {authStep === 'support' && (
           <div className="space-y-4">
             {supportSuccess ? (

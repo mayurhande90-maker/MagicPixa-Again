@@ -175,9 +175,21 @@ export const updateUserLastActive = async (uid: string) => {
 
 export const getOrCreateUserProfile = async (uid: string, name: string, email: string | null, phoneNumber?: string | null) => {
     if (!db) return;
-    const userRef = db.collection('users').doc(uid);
-    const doc = await userRef.get();
     
+    // First, try to find by UID
+    const userRef = db.collection('users').doc(uid);
+    let doc = await userRef.get();
+    
+    // If not found by UID, but we have an email, try to find by email
+    // This helps link Google accounts to existing Phone accounts that have an email set
+    if (!doc.exists && email) {
+        const existingUser = await findUserByEmail(email);
+        if (existingUser && existingUser.uid !== uid) {
+            console.log("Found existing user by email, merging might be needed or this is a secondary login.");
+            // We don't automatically merge here for security, but we know the user exists
+        }
+    }
+
     const initials = name && name.trim()
         ? name.trim().split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
         : email?.substring(0, 2).toUpperCase() || 'U';
@@ -744,7 +756,7 @@ export const findUserByPhone = async (phone: string): Promise<User | null> => {
     return { uid: snap.docs[0].id, ...snap.docs[0].data() } as User;
 };
 
-export const mergeUserAccounts = async (adminUid: string, sourceUid: string, targetUid: string) => {
+export const mergeUserAccounts = async (sourceUid: string, targetUid: string, adminUid?: string) => {
     if (!db) throw new Error("DB not initialized");
     
     const sourceRef = db.collection('users').doc(sourceUid);
@@ -757,7 +769,7 @@ export const mergeUserAccounts = async (adminUid: string, sourceUid: string, tar
     const sourceData = sourceDoc.data() as User;
     const targetData = targetDoc.data() as User;
     
-    // 1. Calculate Paid Credits (Subtract 50 free credits from source)
+    // 1. Calculate Paid Credits (Subtract 50 free credits from source to avoid duplication)
     const sourcePaidCredits = Math.max(0, (sourceData.credits || 0) - 50);
     const sourcePaidTotal = Math.max(0, (sourceData.totalCreditsAcquired || 0) - 50);
     
@@ -772,6 +784,11 @@ export const mergeUserAccounts = async (adminUid: string, sourceUid: string, tar
     // If target has no phone, copy source phone
     if (!targetData.phoneNumber && sourceData.phoneNumber) {
         targetUpdates.phoneNumber = sourceData.phoneNumber;
+    }
+    
+    // If target has no email, copy source email
+    if (!targetData.email && sourceData.email) {
+        targetUpdates.email = sourceData.email;
     }
     
     batch.update(targetRef, targetUpdates);
@@ -814,7 +831,9 @@ export const mergeUserAccounts = async (adminUid: string, sourceUid: string, tar
     // 6. Commit Batch
     await batch.commit();
     
-    await logAudit(adminUid, 'Merge Accounts', `Merged ${sourceUid} into ${targetUid}. Transferred ${sourcePaidCredits} paid credits.`);
+    if (adminUid) {
+        await logAudit(adminUid, 'Merge Accounts', `Merged ${sourceUid} into ${targetUid}. Transferred ${sourcePaidCredits} paid credits.`);
+    }
 };
 
 export const unlinkUserPhone = async (adminUid: string, uid: string) => {
