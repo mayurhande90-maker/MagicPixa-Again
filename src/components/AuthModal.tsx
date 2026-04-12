@@ -12,6 +12,7 @@ interface AuthModalProps {
   onGoogleSignIn: () => Promise<void>;
   error?: ReactNode | null;
   initialStep?: 'initial' | 'phone_input' | 'name_input' | 'phone_link';
+  isMobile?: boolean;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
@@ -20,6 +21,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   onGoogleSignIn,
   error: propError,
   initialStep = 'initial',
+  isMobile = false,
 }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +30,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link' | 'support'>(
     initialStep === 'phone_input' ? 'phone_input' : 
     initialStep === 'name_input' ? 'name_input' : 
-    initialStep === 'phone_link' ? 'phone_link' : 'options'
+    initialStep === 'phone_link' ? 'phone_link' : 
+    (isMobile && initialStep === 'initial') ? 'phone_input' : 'options'
   );
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -272,23 +275,25 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
         {authStep === 'options' && (
           <div className="space-y-3">
-            <button
-              onClick={handleGoogleClick}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              {isLoading ? (
-                <svg className="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                <>
-                  <GoogleIcon className="w-6 h-6" />
-                  <span>Sign In with Google</span>
-                </>
-              )}
-            </button>
+            {!isMobile && (
+              <button
+                onClick={handleGoogleClick}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <>
+                    <GoogleIcon className="w-6 h-6" />
+                    <span>Sign In with Google</span>
+                  </>
+                )}
+              </button>
+            )}
             
             <button
               onClick={() => { setAuthStep('phone_input'); setInternalError(null); }}
