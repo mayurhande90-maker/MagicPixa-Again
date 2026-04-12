@@ -13,7 +13,8 @@ import {
     CloudUploadIcon,
     ImageIcon,
     CreditCardIcon,
-    MagicWandIcon
+    MagicWandIcon,
+    LinkIcon
 } from './icons';
 import { AdminStyles } from '../styles/Admin.styles';
 
@@ -27,6 +28,7 @@ import { AdminConfig } from './admin/AdminConfig';
 import { AdminSystem } from './admin/AdminSystem';
 import { AdminVault } from './admin/AdminVault';
 import { AdminLabManager } from './admin/AdminLabManager';
+import { AdminAccountMerge } from './admin/AdminAccountMerge';
 
 interface AdminPanelProps {
     auth: AuthProps;
@@ -35,7 +37,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfigUpdate }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'vault' | 'lab' | 'users' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'vault' | 'lab' | 'users' | 'merge' | 'support' | 'comms' | 'config' | 'feedback' | 'system'>('overview');
 
     const TabButton = ({ id, label, icon: Icon }: any) => ( 
         <button 
@@ -58,6 +60,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
                     <TabButton id="feedback" label="Feedback" icon={StarIcon} />
                     <TabButton id="support" label="Support" icon={LifebuoyIcon} />
                     <TabButton id="users" label="Users" icon={UsersIcon} />
+                    <TabButton id="merge" label="Merge" icon={LinkIcon} />
                     <TabButton id="comms" label="Comms" icon={AudioWaveIcon} />
                     <TabButton id="config" label="Config" icon={CogIcon} />
                     <TabButton id="system" label="System" icon={SystemIcon} />
@@ -70,6 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ auth, appConfig, onConfi
             {activeTab === 'feedback' && <AdminFeedback />}
             {activeTab === 'support' && <AdminSupport auth={auth} />}
             {activeTab === 'users' && <AdminUsers auth={auth} appConfig={appConfig} />}
+            {activeTab === 'merge' && <AdminAccountMerge auth={auth} />}
             {activeTab === 'comms' && <AdminComms auth={auth} />}
             {activeTab === 'config' && <AdminConfig appConfig={appConfig} onConfigUpdate={onConfigUpdate} />}
             {activeTab === 'system' && <AdminSystem />}

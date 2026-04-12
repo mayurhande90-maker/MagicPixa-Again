@@ -724,6 +724,114 @@ export const clearSupportChat = async (uid: string) => { if (!db) return; const 
 export const submitFeedback = async (uid: string, creationId: string | null, feedback: 'up' | 'down', feature: string = 'Unknown', imageUrl: string | null = null, userEmail: string = '', userName: string = '') => { if (!db) return; await db.collection('feedbacks').add(sanitizeData({ userId: uid, creationId: creationId, feedback: feedback, feature: feature, imageUrl: imageUrl, userEmail: userEmail, userName: userName, timestamp: firebase.firestore.Timestamp.now() })); };
 export const getRecentFeedbacks = async (limit = 100) => { if (!db) return []; const snap = await db.collection('feedbacks').orderBy('timestamp', 'desc').limit(limit).get(); return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); };
 export const getAllUsers = async (limit = 100) => { if (!db) return []; const snapshot = await db.collection('users').limit(limit).get(); return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User)); };
+
+export const findUserByEmail = async (email: string): Promise<User | null> => {
+    if (!db) return null;
+    const snap = await db.collection('users').where('email', '==', email.toLowerCase().trim()).limit(1).get();
+    if (snap.empty) return null;
+    return { uid: snap.docs[0].id, ...snap.docs[0].data() } as User;
+};
+
+export const findUserByPhone = async (phone: string): Promise<User | null> => {
+    if (!db) return null;
+    // We try both with and without + prefix just in case
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    let snap = await db.collection('users').where('phoneNumber', '==', phone.trim()).limit(1).get();
+    if (snap.empty) {
+        snap = await db.collection('users').where('phoneNumber', '==', `+${cleanPhone}`).limit(1).get();
+    }
+    if (snap.empty) return null;
+    return { uid: snap.docs[0].id, ...snap.docs[0].data() } as User;
+};
+
+export const mergeUserAccounts = async (adminUid: string, sourceUid: string, targetUid: string) => {
+    if (!db) throw new Error("DB not initialized");
+    
+    const sourceRef = db.collection('users').doc(sourceUid);
+    const targetRef = db.collection('users').doc(targetUid);
+    
+    const [sourceDoc, targetDoc] = await Promise.all([sourceRef.get(), targetRef.get()]);
+    
+    if (!sourceDoc.exists || !targetDoc.exists) throw new Error("One or both users not found.");
+    
+    const sourceData = sourceDoc.data() as User;
+    const targetData = targetDoc.data() as User;
+    
+    // 1. Calculate Paid Credits (Subtract 50 free credits from source)
+    const sourcePaidCredits = Math.max(0, (sourceData.credits || 0) - 50);
+    const sourcePaidTotal = Math.max(0, (sourceData.totalCreditsAcquired || 0) - 50);
+    
+    const batch = db.batch();
+    
+    // 2. Update Target Profile
+    const targetUpdates: any = {
+        credits: firebase.firestore.FieldValue.increment(sourcePaidCredits),
+        totalCreditsAcquired: firebase.firestore.FieldValue.increment(sourcePaidTotal),
+    };
+    
+    // If target has no phone, copy source phone
+    if (!targetData.phoneNumber && sourceData.phoneNumber) {
+        targetUpdates.phoneNumber = sourceData.phoneNumber;
+    }
+    
+    batch.update(targetRef, targetUpdates);
+    
+    // 3. Migrate Subcollections (Creations, Brands, Transactions, Support)
+    const migrateSubcollection = async (collName: string) => {
+        const snap = await sourceRef.collection(collName).get();
+        snap.docs.forEach(doc => {
+            const data = doc.data();
+            batch.set(targetRef.collection(collName).doc(doc.id), data);
+            batch.delete(doc.ref);
+        });
+    };
+    
+    await Promise.all([
+        migrateSubcollection('creations'),
+        migrateSubcollection('brands'),
+        migrateSubcollection('transactions'),
+        migrateSubcollection('support_chat')
+    ]);
+    
+    // 4. Migrate Root Collections with userId field
+    const migrateRootCollection = async (collName: string) => {
+        const snap = await db!.collection(collName).where('userId', '==', sourceUid).get();
+        snap.docs.forEach(doc => {
+            batch.update(doc.ref, { userId: targetUid });
+        });
+    };
+    
+    await Promise.all([
+        migrateRootCollection('usage_logs'),
+        migrateRootCollection('purchases'),
+        migrateRootCollection('feedbacks'),
+        migrateRootCollection('api_errors')
+    ]);
+    
+    // 5. Delete Source Profile
+    batch.delete(sourceRef);
+    
+    // 6. Commit Batch
+    await batch.commit();
+    
+    await logAudit(adminUid, 'Merge Accounts', `Merged ${sourceUid} into ${targetUid}. Transferred ${sourcePaidCredits} paid credits.`);
+};
+
+export const unlinkUserPhone = async (adminUid: string, uid: string) => {
+    if (!db) return;
+    await db.collection('users').doc(uid).update({
+        phoneNumber: null
+    });
+    await logAudit(adminUid, 'Unlink Phone', `Removed phone from user ${uid}`);
+};
+
+export const unlinkUserEmail = async (adminUid: string, uid: string) => {
+    if (!db) return;
+    await db.collection('users').doc(uid).update({
+        email: ''
+    });
+    await logAudit(adminUid, 'Unlink Email', `Removed email from user ${uid}`);
+};
 export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => { if (!db) return () => {}; return db.collection('users').orderBy('lastActive', 'desc').limit(limit).onSnapshot((snapshot) => { const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as unknown as User)); callback(users); }); };
 export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(amount), creditGrantNotification: sanitizeData({ amount: amount, message: reason || 'Admin Grant', type: 'credit', timestamp: firebase.firestore.Timestamp.now() }) }); await userRef.collection('transactions').add(sanitizeData({ feature: 'Admin Grant', reason, creditChange: `+${amount}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Credits', `Granted ${amount} to ${targetUid}. Reason: ${reason}`); };
 export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update(sanitizeData({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } })); await userRef.collection('transactions').add(sanitizeData({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };
