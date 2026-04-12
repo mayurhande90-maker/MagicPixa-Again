@@ -117,6 +117,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error(err);
+      
+      // Handle "Phone already in use" during initial send
+      if (authStep === 'phone_link' && (err.code === 'auth/credential-already-in-use' || err.message?.includes('already-in-use'))) {
+          setAuthStep('merge_confirm');
+          setIsLoading(false);
+          return;
+      }
+
       setInternalError(getFriendlyErrorMessage(err));
       // Reset recaptcha on error
       if ((window as any).recaptchaVerifier) {
@@ -214,7 +222,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
       if (!existingUser) throw new Error("Could not find the existing account to merge.");
       
       // Merge the Phone account (source) into the current Google account (target)
-      await mergeUserAccounts(existingUser.uid, auth.currentUser.uid);
+      // Pass current user UID as adminUid since they are the owner/admin
+      await mergeUserAccounts(existingUser.uid, auth.currentUser.uid, auth.currentUser.uid);
       
       onClose();
     } catch (err: any) {
@@ -559,7 +568,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
                   });
                   setSupportSuccess(true);
                 } catch (err: any) {
-                  setInternalError("Failed to send message. Please try again.");
+                  console.error("Support submission error:", err);
+                  setInternalError(`Failed to send message: ${err.message || "Please try again."}`);
                 } finally {
                   setIsLoading(false);
                 }

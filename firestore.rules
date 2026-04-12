@@ -91,7 +91,7 @@ service cloud.firestore {
     }
 
     match /support_tickets/{ticketId} {
-      allow create: if request.auth != null;
+      allow create: if true;
       allow read, update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
