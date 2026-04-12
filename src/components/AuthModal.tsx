@@ -94,8 +94,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!phoneNumber) {
       setInternalError('Please enter a valid phone number.');
       return;
@@ -111,8 +111,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
       const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
       const formattedPhone = `${countryCode}${cleanPhone}`;
       
+      const isLinking = authStep === 'phone_link' || authStep === 'code_link';
+
       let result;
-      if (authStep === 'phone_link') {
+      if (isLinking) {
         if (!auth.currentUser) throw new Error("No user logged in to link phone.");
         // Use linkWithPhoneNumber for existing users
         result = await auth.currentUser.linkWithPhoneNumber(formattedPhone, appVerifier);
@@ -427,7 +429,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                ) : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send Code'}
+                ) : 'Send Code'}
               </button>
             </div>
 
@@ -492,6 +494,23 @@ const AuthModal: React.FC<AuthModalProps> = ({
                   </svg>
                 ) : 'Verify'}
               </button>
+            </div>
+
+            <div className="pt-4 text-center">
+                {cooldown > 0 ? (
+                    <p className="text-gray-500 text-sm">
+                        Didn't receive code? Resend in <span className="font-bold text-indigo-600">{cooldown}s</span>
+                    </p>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => handleSendCode()}
+                        disabled={isLoading}
+                        className="text-indigo-600 text-sm font-bold hover:underline"
+                    >
+                        Resend Code
+                    </button>
+                )}
             </div>
           </form>
         )}
