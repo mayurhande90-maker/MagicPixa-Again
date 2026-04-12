@@ -30,8 +30,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link' | 'support' | 'merge_confirm'>(
     initialStep === 'phone_input' ? 'phone_input' : 
     initialStep === 'name_input' ? 'name_input' : 
-    initialStep === 'phone_link' ? 'phone_link' : 
-    (isMobile && initialStep === 'initial') ? 'phone_input' : 'options'
+    initialStep === 'phone_link' ? 'phone_link' : 'options'
   );
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -346,7 +345,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
         <div id="recaptcha-container"></div>
 
         {authStep === 'options' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {!isMobile && (
               <button
                 onClick={handleGoogleClick}
@@ -370,9 +369,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <button
               onClick={() => { setAuthStep('phone_input'); setInternalError(null); }}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className={`w-full flex items-center justify-center gap-3 font-bold py-4 px-4 rounded-xl transition-all shadow-sm active:scale-[0.98] ${
+                isMobile 
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                  : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isMobile ? 'text-white' : 'text-gray-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
               <span>Continue with Phone</span>
