@@ -25,7 +25,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   
   // Phone Auth State
-  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link'>(
+  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link' | 'support'>(
     initialStep === 'phone_input' ? 'phone_input' : 
     initialStep === 'name_input' ? 'name_input' : 
     initialStep === 'phone_link' ? 'phone_link' : 'options'
@@ -35,6 +35,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [userName, setUserName] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
+
+  // Support Form State
+  const [supportName, setSupportName] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSuccess, setSupportSuccess] = useState(false);
 
   // If a prop error is passed from the main app, it takes precedence.
   const error = propError || internalError;
@@ -238,6 +244,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
              authStep === 'code_input' ? 'Verify Phone' : 
              authStep === 'phone_link' ? 'Let’s Get You Set Up' :
              authStep === 'code_link' ? 'Verify Your Number' :
+             authStep === 'support' ? 'Contact Support' :
              'Welcome! What should we call you?'}
           </h2>
           <p className="text-[#5F6368] mb-6">
@@ -246,6 +253,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
              authStep === 'code_input' ? 'Enter the 6-digit code sent to your phone.' : 
              authStep === 'phone_link' ? 'To give you the best experience on both web and mobile, please take a moment to link your phone number to your profile.' :
              authStep === 'code_link' ? 'Enter the 6-digit code sent to your phone.' :
+             authStep === 'support' ? 'Having trouble? Send us a message and we will get back to you.' :
              'Please tell us your name to complete your profile.'}
           </p>
         </div>
@@ -292,6 +300,15 @@ const AuthModal: React.FC<AuthModalProps> = ({
               </svg>
               <span>Continue with Phone</span>
             </button>
+
+            <div className="pt-4 text-center">
+                <button 
+                    onClick={() => { setAuthStep('support'); setInternalError(null); }}
+                    className="text-indigo-600 text-sm font-medium hover:underline"
+                >
+                    Having trouble signing in? Contact Support
+                </button>
+            </div>
           </div>
         )}
 
@@ -443,6 +460,100 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </form>
         )}
         
+        {authStep === 'support' && (
+          <div className="space-y-4">
+            {supportSuccess ? (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Message Sent!</h3>
+                <p className="text-gray-600 mb-6">We've received your request and will get back to you at {supportEmail} as soon as possible.</p>
+                <button
+                  onClick={() => {
+                    setAuthStep('options');
+                    setSupportSuccess(false);
+                    setSupportMessage('');
+                  }}
+                  className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+                >
+                  Back to Login
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                try {
+                  const { createTicket } = await import('../services/supportService');
+                  await createTicket('anonymous', supportEmail, {
+                    subject: `Login Issue: ${supportName}`,
+                    description: supportMessage,
+                    type: 'general'
+                  });
+                  setSupportSuccess(true);
+                } catch (err: any) {
+                  setInternalError("Failed to send message. Please try again.");
+                } finally {
+                  setIsLoading(false);
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={supportName}
+                    onChange={(e) => setSupportName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    placeholder="john@example.com"
+                    className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">How can we help?</label>
+                  <textarea
+                    required
+                    value={supportMessage}
+                    onChange={(e) => setSupportMessage(e.target.value)}
+                    placeholder="Describe the issue you're having..."
+                    rows={4}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAuthStep('options')}
+                    className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+                  >
+                    {isLoading ? 'Sending...' : 'Send Message'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
         <p className="text-xs text-gray-500 mt-6 text-center">
             By signing in, you agree to our Terms of Service.
         </p>
