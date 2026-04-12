@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { User, AuthProps } from '../../types';
 import { findUserByEmail, findUserByPhone, mergeUserAccounts, unlinkUserPhone, unlinkUserEmail } from '../../firebase';
-import { SearchIcon, UsersIcon, ShieldCheckIcon, TrashIcon, LinkIcon } from '../icons';
+import { SearchIcon, UsersIcon, ShieldCheckIcon, TrashIcon, LinkIcon, InformationCircleIcon } from '../icons';
 
 interface AdminAccountMergeProps {
     auth: AuthProps;
@@ -134,6 +134,15 @@ export const AdminAccountMerge: React.FC<AdminAccountMergeProps> = ({ auth }) =>
 
                 {error && <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
                 {success && <div className="mt-4 p-3 bg-green-50 text-green-600 text-sm rounded-lg border border-green-100">{success}</div>}
+                
+                <div className="mt-4 p-3 bg-blue-50 text-blue-700 text-[10px] rounded-lg border border-blue-100 flex gap-2">
+                    <InformationCircleIcon className="w-4 h-4 flex-shrink-0" />
+                    <p>
+                        <strong>Note:</strong> Unlinking a phone number removes it from the database profile. 
+                        The user will be prompted to link a new number on their next login. 
+                        We've added a safety flag to prevent the app from automatically re-syncing the old number.
+                    </p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

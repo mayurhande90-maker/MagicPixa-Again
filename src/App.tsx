@@ -291,8 +291,9 @@ function App() {
         subscribeToUserProfile(firebaseUser.uid, (profile) => {
             if (profile) {
                 setUser(profile);
-                if (firebaseUser.phoneNumber && !profile.phoneNumber) {
+                if (firebaseUser.phoneNumber && !profile.phoneNumber && !profile.phoneUnlinked) {
                     // Sync phone number to profile if it exists on auth object but not in profile
+                    // AND it hasn't been explicitly unlinked by an admin
                     updateUserProfile(firebaseUser.uid, { phoneNumber: firebaseUser.phoneNumber });
                 }
             }

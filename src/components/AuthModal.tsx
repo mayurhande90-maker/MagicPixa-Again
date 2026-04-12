@@ -137,6 +137,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
         // After linking, we might still need to check if they have a name
         const user = result.user;
         if (db && user) {
+          // Clear the phoneUnlinked flag since the user has now linked a phone
+          await db.collection('users').doc(user.uid).update({ phoneUnlinked: firebase.firestore.FieldValue.delete() });
+          
           const userDoc = await db.collection('users').doc(user.uid).get();
           const userData = userDoc.data();
           const currentName = userData?.name || '';
@@ -344,6 +347,24 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 ) : 'Send Code'}
               </button>
             </div>
+
+            {authStep === 'phone_link' && (
+                <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+                    <p className="text-sm text-gray-500 mb-3">Not your account?</p>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            if (auth) {
+                                await auth.signOut();
+                                onClose();
+                            }
+                        }}
+                        className="text-indigo-600 font-bold hover:underline text-sm"
+                    >
+                        Sign Out & Switch Account
+                    </button>
+                </div>
+            )}
           </form>
         )}
 

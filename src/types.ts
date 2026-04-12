@@ -136,6 +136,7 @@ export interface User {
 
   isAdmin?: boolean; // Added for admin access control
   isBanned?: boolean; // New: Account suspension status
+  phoneUnlinked?: boolean; // New: Flag to prevent auto-syncing of unlinked phone numbers
   notes?: string; // New: Admin notes for user
   lastActive?: Timestamp; // For tracking user activity
   totalSpent?: number; // For admin panel tracking

@@ -820,7 +820,8 @@ export const mergeUserAccounts = async (adminUid: string, sourceUid: string, tar
 export const unlinkUserPhone = async (adminUid: string, uid: string) => {
     if (!db) return;
     await db.collection('users').doc(uid).update({
-        phoneNumber: null
+        phoneNumber: null,
+        phoneUnlinked: true
     });
     await logAudit(adminUid, 'Unlink Phone', `Removed phone from user ${uid}`);
 };
