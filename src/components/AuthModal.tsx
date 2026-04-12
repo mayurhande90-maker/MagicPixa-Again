@@ -38,6 +38,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [userName, setUserName] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
+  const [cooldown, setCooldown] = useState(0);
 
   // Support Form State
   const [supportName, setSupportName] = useState('');
@@ -71,6 +72,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleGoogleClick = async () => {
     setInternalError(null);
@@ -115,6 +123,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
         setConfirmationResult(result);
         setAuthStep('code_input');
       }
+      setCooldown(60); // Start 60s cooldown on success
     } catch (err: any) {
       console.error("Phone Link Error:", err);
       
@@ -410,7 +419,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
               )}
               <button
                 type="submit"
-                disabled={isLoading || !phoneNumber}
+                disabled={isLoading || !phoneNumber || cooldown > 0}
                 className={`flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center ${authStep === 'phone_link' ? 'w-full' : ''}`}
               >
                 {isLoading ? (
@@ -418,7 +427,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                ) : 'Send Code'}
+                ) : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send Code'}
               </button>
             </div>
 
