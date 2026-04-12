@@ -133,8 +133,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
           const userData = userDoc.data();
           const currentName = userData?.name || '';
           
-          // If name is missing, empty, or the default "Creator"
-          if (!currentName || currentName.trim() === '' || currentName === 'Creator') {
+          // If name is missing, empty, or the default "Creator" or "User"
+          if (!currentName || currentName.trim() === '' || currentName === 'Creator' || currentName === 'User') {
             setAuthStep('name_input');
             setIsLoading(false);
             return;
