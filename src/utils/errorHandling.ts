@@ -19,6 +19,7 @@ export const getFriendlyErrorMessage = (error: any): string => {
     case 'auth/too-many-requests':
       return 'Too many attempts. Please wait a moment and try again later.';
     case 'auth/credential-already-in-use':
+    case 'auth/phone-number-already-exists':
       return 'This phone number is already linked to another account.';
     case 'auth/user-disabled':
       return 'This account has been disabled. Please contact support.';

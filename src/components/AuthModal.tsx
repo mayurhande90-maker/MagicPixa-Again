@@ -116,10 +116,17 @@ const AuthModal: React.FC<AuthModalProps> = ({
         setAuthStep('code_input');
       }
     } catch (err: any) {
-      console.error(err);
+      console.error("Phone Link Error:", err);
       
-      // Handle "Phone already in use" during initial send
-      if (authStep === 'phone_link' && (err.code === 'auth/credential-already-in-use' || err.message?.includes('already-in-use'))) {
+      // Broaden detection for "Phone already in use"
+      const isAlreadyInUse = 
+        err.code === 'auth/credential-already-in-use' || 
+        err.code === 'auth/phone-number-already-exists' ||
+        err.message?.toLowerCase().includes('already-in-use') ||
+        err.message?.toLowerCase().includes('already-exists') ||
+        err.message?.toLowerCase().includes('already linked');
+
+      if (authStep === 'phone_link' && isAlreadyInUse) {
           setAuthStep('merge_confirm');
           setIsLoading(false);
           return;
