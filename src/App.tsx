@@ -443,6 +443,7 @@ function App() {
                         onGoogleSignIn={handleGoogleSignIn} 
                         error={authError}
                         initialStep={authModalStep}
+                        isMobile={isMobile}
                     />
                 )}
             </div>
