@@ -1,4 +1,5 @@
 
+import firebase from 'firebase/compat/app';
 import React, { useState, useEffect, useCallback } from 'react';
 import './styles/typography.css'; 
 import HomePage from './HomePage';
@@ -291,10 +292,17 @@ function App() {
         subscribeToUserProfile(firebaseUser.uid, (profile) => {
             if (profile) {
                 setUser(profile);
-                if (firebaseUser.phoneNumber && !profile.phoneNumber && !profile.phoneUnlinked) {
-                    // Sync phone number to profile if it exists on auth object but not in profile
-                    // AND it hasn't been explicitly unlinked by an admin
-                    updateUserProfile(firebaseUser.uid, { phoneNumber: firebaseUser.phoneNumber });
+                if (firebaseUser.phoneNumber && !profile.phoneNumber) {
+                    const isPhoneUser = firebaseUser.providerData.some(p => p?.providerId === 'phone');
+                    if (!profile.phoneUnlinked || isPhoneUser) {
+                        // Sync phone number to profile if it exists on auth object but not in profile
+                        // AND it hasn't been explicitly unlinked by an admin (unless they logged in WITH phone)
+                        const updates: any = { phoneNumber: firebaseUser.phoneNumber };
+                        if (isPhoneUser && profile.phoneUnlinked) {
+                            updates.phoneUnlinked = firebase.firestore.FieldValue.delete();
+                        }
+                        updateUserProfile(firebaseUser.uid, updates);
+                    }
                 }
             }
             else {
@@ -398,6 +406,18 @@ function App() {
                 />
                 {activeUser?.systemNotification && !activeUser.systemNotification.read && (
                     <NotificationDisplay title={activeUser.systemNotification.title} message={activeUser.systemNotification.message} type={activeUser.systemNotification.type} style="modal" link={activeUser.systemNotification.link || undefined} onClose={() => updateUserProfile(activeUser.uid, { systemNotification: null as any })} />
+                )}
+                {isAuthModalOpen && (
+                    <AuthModal 
+                        isOpen={isAuthModalOpen}
+                        onClose={() => {
+                            setIsAuthModalOpen(false);
+                            setAuthModalStep('initial');
+                        }} 
+                        onGoogleSignIn={handleGoogleSignIn} 
+                        error={authError}
+                        initialStep={authModalStep}
+                    />
                 )}
             </div>
         );
