@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { User, AppConfig } from '../../types';
-import { addCreditsToUser, grantPackageToUser, sendSystemNotification, adminLinkUserPhone } from '../../firebase';
-import { CreditCardIcon, GiftIcon, FlagIcon, XIcon, PhoneIcon } from '../icons';
+import { addCreditsToUser, grantPackageToUser, sendSystemNotification, adminLinkUserPhone, adminLinkUserEmail } from '../../firebase';
+import { CreditCardIcon, GiftIcon, FlagIcon, XIcon, PhoneIcon, MailIcon } from '../icons';
 
 interface UserDetailModalProps {
     user: User;
@@ -24,6 +24,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
     
     const [isLoading, setIsLoading] = useState(false);
     const [manualPhone, setManualPhone] = useState(user.phoneNumber || '');
+    const [manualEmail, setManualEmail] = useState(user.email || '');
 
     const handleGrantCredits = async () => {
         if (creditAmount <= 0) return;
@@ -89,6 +90,21 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
                 alert('Phone number linked successfully.');
             } catch (e: any) {
                 alert('Failed to link phone: ' + e.message);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    const handleManualEmailLink = async () => {
+        if (!manualEmail || manualEmail === user.email) return;
+        if (confirm(`Manually link ${manualEmail} to this account? This will bypass Google verification.`)) {
+            setIsLoading(true);
+            try {
+                await adminLinkUserEmail(currentUser.uid, user.uid, manualEmail);
+                alert('Email address linked successfully.');
+            } catch (e: any) {
+                alert('Failed to link email: ' + e.message);
             } finally {
                 setIsLoading(false);
             }
@@ -172,6 +188,27 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
                             </button>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-2 italic">Use this to fix accounts stuck in linking. Format: +[CountryCode][Number]</p>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-6">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MailIcon className="w-5 h-5"/> Manual Email Link</h3>
+                        <div className="flex gap-2">
+                            <input 
+                                type="email" 
+                                placeholder="user@example.com" 
+                                value={manualEmail} 
+                                onChange={(e) => setManualEmail(e.target.value)} 
+                                className="flex-1 px-3 py-2 border rounded-lg outline-none focus:border-indigo-500"
+                            />
+                            <button 
+                                onClick={handleManualEmailLink} 
+                                disabled={isLoading || !manualEmail || manualEmail === user.email} 
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                Link Manually
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2 italic">Use this to link a Google email to a phone account. This bypasses verification.</p>
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">

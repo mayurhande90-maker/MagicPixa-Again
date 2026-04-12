@@ -875,6 +875,27 @@ export const adminLinkUserPhone = async (adminUid: string, targetUid: string, ph
 
     await logAudit(adminUid, 'Manual Phone Link', `Linked ${phoneNumber} to user ${targetUid}`);
 };
+
+export const adminLinkUserEmail = async (adminUid: string, targetUid: string, email: string) => {
+    if (!db) return;
+    
+    // 1. Check if this email is already in use
+    const existingUser = await findUserByEmail(email);
+    
+    if (existingUser) {
+        if (existingUser.uid === targetUid) {
+            throw new Error("This email is already linked to this user.");
+        }
+        throw new Error(`This email is already linked to another user (${existingUser.phoneNumber || existingUser.uid}). Please use the Merge tool instead or unlink it first.`);
+    }
+
+    // 2. Update the target user
+    await db.collection('users').doc(targetUid).update({
+        email: email.toLowerCase().trim()
+    });
+
+    await logAudit(adminUid, 'Manual Email Link', `Linked ${email} to user ${targetUid}`);
+};
 export const subscribeToRecentActiveUsers = (callback: (users: User[]) => void, limit = 20) => { if (!db) return () => {}; return db.collection('users').orderBy('lastActive', 'desc').limit(limit).onSnapshot((snapshot) => { const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as unknown as User)); callback(users); }); };
 export const addCreditsToUser = async (adminUid: string, targetUid: string, amount: number, reason: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update({ credits: firebase.firestore.FieldValue.increment(amount), creditGrantNotification: sanitizeData({ amount: amount, message: reason || 'Admin Grant', type: 'credit', timestamp: firebase.firestore.Timestamp.now() }) }); await userRef.collection('transactions').add(sanitizeData({ feature: 'Admin Grant', reason, creditChange: `+${amount}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Credits', `Granted ${amount} to ${targetUid}. Reason: ${reason}`); };
 export const grantPackageToUser = async (adminUid: string, targetUid: string, pack: CreditPack, message: string) => { if (!db) return; const userRef = db.collection('users').doc(targetUid); await userRef.update(sanitizeData({ credits: firebase.firestore.FieldValue.increment(pack.totalCredits), totalCreditsAcquired: firebase.firestore.FieldValue.increment(pack.totalCredits), plan: pack.name, ...(pack.name.includes('Studio') || pack.name.includes('Agency') ? { storageTier: 'unlimited', basePlan: pack.name, lastTierPurchaseDate: firebase.firestore.FieldValue.serverTimestamp() } : {}), creditGrantNotification: { amount: pack.totalCredits, message: message, type: 'package', packageName: pack.name, timestamp: firebase.firestore.Timestamp.now() } })); await userRef.collection('transactions').add(sanitizeData({ feature: `Grant: ${pack.name}`, reason: message, creditChange: `+${pack.totalCredits}`, cost: 0, grantedBy: adminUid, date: firebase.firestore.FieldValue.serverTimestamp() })); await logAudit(adminUid, 'Grant Package', `Granted ${pack.name} to ${targetUid}. Msg: ${message}`); };

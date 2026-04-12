@@ -155,6 +155,10 @@ export const MagicPixaLogo: React.FC<{ className?: string }> = ({ className = ''
     </div>
 );
 
+export const MailIcon: React.FC<IconProps> = (props) => (
+    <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />} />
+);
+
 export const TicketIcon: React.FC<IconProps> = (props) => (
     <BaseIcon {...props} path={<path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m3 0h-1.5m-6 0h1.5m5.25 0h3m-3 0h-1.5m3 0h-1.5m-3 0h1.5m-6 0h1.5m7.5-12l-.75.638m0 0l-1.5-1.275m1.5 1.275L12 3m0 0l-1.5 1.275M12 3l.75.638M12 3l-.75.638m1.5-1.275L12 3m0 0l1.5 1.275M12 3l-.75.638m-3 6.38l.75.638m0 0l1.5-1.275m-1.5 1.275L9 9.38m0 0l1.5 1.275m-1.5-1.275L9 9.38m0 0l-.75.638m3-6.38l-.75.638m0 0l-1.5-1.275m1.5 1.275L12 3m0 0l-1.5 1.275M12 3l.75.638m-3 6.38l.75.638" />} />
 );
