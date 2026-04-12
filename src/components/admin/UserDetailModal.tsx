@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { User, AppConfig } from '../../types';
-import { addCreditsToUser, grantPackageToUser, sendSystemNotification } from '../../firebase';
-import { CreditCardIcon, GiftIcon, FlagIcon, XIcon } from '../icons';
+import { addCreditsToUser, grantPackageToUser, sendSystemNotification, adminLinkUserPhone } from '../../firebase';
+import { CreditCardIcon, GiftIcon, FlagIcon, XIcon, PhoneIcon } from '../icons';
 
 interface UserDetailModalProps {
     user: User;
@@ -23,6 +23,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
     const [notificationStyle, setNotificationStyle] = useState<'banner' | 'pill' | 'toast' | 'modal'>('banner');
     
     const [isLoading, setIsLoading] = useState(false);
+    const [manualPhone, setManualPhone] = useState(user.phoneNumber || '');
 
     const handleGrantCredits = async () => {
         if (creditAmount <= 0) return;
@@ -76,6 +77,21 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
             alert('Failed to send notification: ' + e.message);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleManualLink = async () => {
+        if (!manualPhone || manualPhone === user.phoneNumber) return;
+        if (confirm(`Manually link ${manualPhone} to ${user.email}? This will bypass SMS verification.`)) {
+            setIsLoading(true);
+            try {
+                await adminLinkUserPhone(currentUser.uid, user.uid, manualPhone);
+                alert('Phone number linked successfully.');
+            } catch (e: any) {
+                alert('Failed to link phone: ' + e.message);
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -135,6 +151,27 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, currentU
                             <p className="text-xs text-gray-500 uppercase font-bold">Phone</p>
                             <p className="text-sm font-medium text-gray-800 break-all">{user.phoneNumber || <span className="text-gray-400 italic font-normal">Not provided</span>}</p>
                         </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-6">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><PhoneIcon className="w-5 h-5"/> Manual Phone Link</h3>
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                placeholder="+917775066650" 
+                                value={manualPhone} 
+                                onChange={(e) => setManualPhone(e.target.value)} 
+                                className="flex-1 px-3 py-2 border rounded-lg outline-none focus:border-indigo-500"
+                            />
+                            <button 
+                                onClick={handleManualLink} 
+                                disabled={isLoading || !manualPhone || manualPhone === user.phoneNumber} 
+                                className="bg-orange-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-orange-700 disabled:opacity-50"
+                            >
+                                Link Manually
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2 italic">Use this to fix accounts stuck in linking. Format: +[CountryCode][Number]</p>
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
