@@ -134,7 +134,7 @@ function App() {
   const [showBanner, setShowBanner] = useState(true);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [hasSkippedPhone, setHasSkippedPhone] = useState(false);
-  const [authModalStep, setAuthModalStep] = useState<'initial' | 'phone_input'>('initial');
+  const [authModalStep, setAuthModalStep] = useState<'initial' | 'phone_input' | 'name_input'>('initial');
 
   const activeUser = impersonatedUser || user;
 
@@ -241,6 +241,19 @@ function App() {
       const unsubscribe = subscribeToAnnouncement((ann) => { setAnnouncement(ann); setShowBanner(true); });
       return () => unsubscribe();
   }, []);
+
+  // Auto-check for missing or default names for already logged-in users
+  useEffect(() => {
+    // We only want to trigger this if the user is loaded and not currently in the middle of a loading state
+    if (user && !loading && !isAuthModalOpen) {
+      const currentName = user.name || '';
+      // If name is missing, empty, or the default "Creator" or "User"
+      if (!currentName || currentName.trim() === '' || currentName === 'Creator' || currentName === 'User') {
+        setAuthModalStep('name_input');
+        setIsAuthModalOpen(true);
+      }
+    }
+  }, [user, loading, isAuthModalOpen]);
 
   useEffect(() => {
     if (!firebaseAuth) { setLoading(false); return; }

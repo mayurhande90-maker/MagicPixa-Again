@@ -11,7 +11,7 @@ interface AuthModalProps {
   onClose: () => void;
   onGoogleSignIn: () => Promise<void>;
   error?: ReactNode | null;
-  initialStep?: 'initial' | 'phone_input';
+  initialStep?: 'initial' | 'phone_input' | 'name_input';
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
@@ -26,7 +26,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
   
   // Phone Auth State
   const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input'>(
-    initialStep === 'phone_input' ? 'phone_input' : 'options'
+    initialStep === 'phone_input' ? 'phone_input' : 
+    initialStep === 'name_input' ? 'name_input' : 'options'
   );
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
