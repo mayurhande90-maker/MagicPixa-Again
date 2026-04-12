@@ -134,7 +134,7 @@ function App() {
   const [showBanner, setShowBanner] = useState(true);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [hasSkippedPhone, setHasSkippedPhone] = useState(false);
-  const [authModalStep, setAuthModalStep] = useState<'initial' | 'phone_input' | 'name_input'>('initial');
+  const [authModalStep, setAuthModalStep] = useState<'initial' | 'phone_input' | 'name_input' | 'phone_link'>('initial');
 
   const activeUser = impersonatedUser || user;
 
@@ -247,7 +247,16 @@ function App() {
     // We only want to trigger this if the user is loaded and not currently in the middle of a loading state
     if (user && !loading && !isAuthModalOpen) {
       const currentName = user.name || '';
-      // If name is missing, empty, or the default "Creator" or "User"
+      const hasPhone = !!user.phoneNumber;
+
+      // Priority 1: Mandatory Phone Linking
+      if (!hasPhone) {
+        setAuthModalStep('phone_link');
+        setIsAuthModalOpen(true);
+        return;
+      }
+
+      // Priority 2: Name Request
       if (!currentName || currentName.trim() === '' || currentName === 'Creator' || currentName === 'User') {
         setAuthModalStep('name_input');
         setIsAuthModalOpen(true);

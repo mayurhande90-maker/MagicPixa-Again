@@ -11,7 +11,7 @@ interface AuthModalProps {
   onClose: () => void;
   onGoogleSignIn: () => Promise<void>;
   error?: ReactNode | null;
-  initialStep?: 'initial' | 'phone_input' | 'name_input';
+  initialStep?: 'initial' | 'phone_input' | 'name_input' | 'phone_link';
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
@@ -25,9 +25,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   
   // Phone Auth State
-  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input'>(
+  const [authStep, setAuthStep] = useState<'options' | 'phone_input' | 'code_input' | 'name_input' | 'phone_link' | 'code_link'>(
     initialStep === 'phone_input' ? 'phone_input' : 
-    initialStep === 'name_input' ? 'name_input' : 'options'
+    initialStep === 'name_input' ? 'name_input' : 
+    initialStep === 'phone_link' ? 'phone_link' : 'options'
   );
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -93,9 +94,18 @@ const AuthModal: React.FC<AuthModalProps> = ({
       const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
       const formattedPhone = `${countryCode}${cleanPhone}`;
       
-      const result = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
-      setConfirmationResult(result);
-      setAuthStep('code_input');
+      let result;
+      if (authStep === 'phone_link') {
+        if (!auth.currentUser) throw new Error("No user logged in to link phone.");
+        // Use linkWithPhoneNumber for existing users
+        result = await auth.currentUser.linkWithPhoneNumber(formattedPhone, appVerifier);
+        setConfirmationResult(result);
+        setAuthStep('code_link');
+      } else {
+        result = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
+        setConfirmationResult(result);
+        setAuthStep('code_input');
+      }
     } catch (err: any) {
       console.error(err);
       setInternalError(getFriendlyErrorMessage(err));
@@ -122,6 +132,25 @@ const AuthModal: React.FC<AuthModalProps> = ({
     
     try {
       const result = await confirmationResult.confirm(verificationCode);
+      
+      if (authStep === 'code_link') {
+        // After linking, we might still need to check if they have a name
+        const user = result.user;
+        if (db && user) {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          const userData = userDoc.data();
+          const currentName = userData?.name || '';
+          
+          if (!currentName || currentName.trim() === '' || currentName === 'Creator' || currentName === 'User') {
+            setAuthStep('name_input');
+            setIsLoading(false);
+            return;
+          }
+        }
+        onClose();
+        return;
+      }
+
       const isNewUser = result.additionalUserInfo?.isNewUser;
       
       if (isNewUser) {
@@ -203,12 +232,17 @@ const AuthModal: React.FC<AuthModalProps> = ({
           <h2 id="auth-modal-title" className="text-2xl font-bold text-[#1E1E1E] mb-2">
             {authStep === 'options' ? 'Sign In to Continue' : 
              authStep === 'phone_input' ? 'Enter Phone Number' : 
-             authStep === 'code_input' ? 'Verify Phone' : 'Welcome! What should we call you?'}
+             authStep === 'code_input' ? 'Verify Phone' : 
+             authStep === 'phone_link' ? 'Let’s Get You Set Up' :
+             authStep === 'code_link' ? 'Verify Your Number' :
+             'Welcome! What should we call you?'}
           </h2>
           <p className="text-[#5F6368] mb-6">
             {authStep === 'options' ? 'Access your projects and unlock all features.' : 
              authStep === 'phone_input' ? 'We will send you a verification code.' : 
              authStep === 'code_input' ? 'Enter the 6-digit code sent to your phone.' : 
+             authStep === 'phone_link' ? 'To give you the best experience on both web and mobile, please take a moment to link your phone number to your profile.' :
+             authStep === 'code_link' ? 'Enter the 6-digit code sent to your phone.' :
              'Please tell us your name to complete your profile.'}
           </p>
         </div>
@@ -258,7 +292,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {authStep === 'phone_input' && (
+        {(authStep === 'phone_input' || authStep === 'phone_link') && (
           <form onSubmit={handleSendCode} className="space-y-4">
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
@@ -287,18 +321,20 @@ const AuthModal: React.FC<AuthModalProps> = ({
               <p className="text-xs text-gray-500 mt-2">We will send a 6-digit verification code.</p>
             </div>
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => { setAuthStep('options'); setInternalError(null); }}
-                disabled={isLoading}
-                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
-              >
-                Back
-              </button>
+              {authStep === 'phone_input' && (
+                <button
+                  type="button"
+                  onClick={() => { setAuthStep('options'); setInternalError(null); }}
+                  disabled={isLoading}
+                  className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Back
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={isLoading || !phoneNumber}
-                className="flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+                className={`flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center ${authStep === 'phone_link' ? 'w-full' : ''}`}
               >
                 {isLoading ? (
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -311,7 +347,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </form>
         )}
 
-        {authStep === 'code_input' && (
+        {(authStep === 'code_input' || authStep === 'code_link') && (
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div>
               <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
@@ -330,7 +366,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => { setAuthStep('phone_input'); setVerificationCode(''); setInternalError(null); }}
+                onClick={() => { 
+                  setAuthStep(authStep === 'code_link' ? 'phone_link' : 'phone_input'); 
+                  setVerificationCode(''); 
+                  setInternalError(null); 
+                }}
                 disabled={isLoading}
                 className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
