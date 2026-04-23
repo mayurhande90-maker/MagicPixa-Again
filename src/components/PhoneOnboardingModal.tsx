@@ -15,7 +15,7 @@ interface PhoneOnboardingModalProps {
   mode?: 'link' | 'change';
 }
 
-type OnboardingStep = 'welcome' | 'role_selection' | 'phone_input' | 'code_input' | 'success';
+type OnboardingStep = 'welcome' | 'role_selection' | 'phone_input' | 'code_input' | 'success' | 'support';
 
 const ROLES = [
   { id: 'designer', label: 'Designer', icon: <PenTool className="w-5 h-5" /> },
@@ -40,6 +40,12 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
   const [confirmationResult, setConfirmationResult] = useState<firebase.auth.ConfirmationResult | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
 
+  // Support Form State
+  const [supportName, setSupportName] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSuccess, setSupportSuccess] = useState(false);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (resendTimer > 0) {
@@ -55,11 +61,22 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
   useEffect(() => {
     // Only init recaptcha when we get to phone step
     if (step === 'phone_input' && !(window as any).recaptchaVerifier && auth) {
-        setTimeout(() => {
-            (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-onboarding-container', {
-                size: 'invisible',
-            });
+        // Ensure container exists in DOM before init
+        const checkContainer = setInterval(() => {
+            const container = document.getElementById('recaptcha-onboarding-container');
+            if (container) {
+                clearInterval(checkContainer);
+                try {
+                    (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-onboarding-container', {
+                        size: 'invisible',
+                    });
+                    console.log("Onboarding reCAPTCHA initialized");
+                } catch (e) {
+                    console.error("reCAPTCHA Init Error:", e);
+                }
+            }
         }, 100);
+        return () => clearInterval(checkContainer);
     }
   }, [step]);
 
@@ -195,12 +212,6 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                   Get Started
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button
-                  onClick={onSkip}
-                  className="mt-4 text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors"
-                >
-                  Skip for now
-                </button>
               </motion.div>
             )}
 
@@ -328,6 +339,18 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                       By continuing, you agree to receive a one-time verification code via SMS. Standard rates may apply.
                     </p>
                 </form>
+
+                <div className="mt-8 pt-4 border-t border-gray-100 text-center">
+                    <button 
+                        onClick={() => { setStep('support'); setInternalError(null); }}
+                        className="text-indigo-600 text-sm font-bold hover:underline flex items-center justify-center gap-2 mx-auto"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Having trouble? Contact Support
+                    </button>
+                </div>
               </motion.div>
             )}
 
@@ -399,6 +422,114 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                         )}
                     </div>
                 </form>
+              </motion.div>
+            )}
+
+            {step === 'support' && (
+              <motion.div 
+                key="support"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                {supportSuccess ? (
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Message Sent!</h3>
+                    <p className="text-gray-500 mb-8 px-4 text-sm leading-relaxed">
+                      We've received your request and will get back to you at {supportEmail} as soon as possible.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setStep('phone_input');
+                        setSupportSuccess(false);
+                        setSupportMessage('');
+                      }}
+                      className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                    >
+                      Back to Onboarding
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Contact Support</h3>
+                    <p className="text-gray-500 mb-6 text-sm">Having trouble? Send us a message and we'll help you out.</p>
+                    
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      setIsLoading(true);
+                      try {
+                        const { createTicket } = await import('../services/supportService');
+                        await createTicket('anonymous', supportEmail, {
+                          subject: `Onboarding Issue: ${supportName}`,
+                          description: supportMessage,
+                          type: 'general'
+                        });
+                        setSupportSuccess(true);
+                      } catch (err: any) {
+                        console.error("Support submission error:", err);
+                        setInternalError(`Failed to send message: ${err.message || "Please try again."}`);
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={supportName}
+                          onChange={(e) => setSupportName(e.target.value)}
+                          placeholder="John Doe"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={supportEmail}
+                          onChange={(e) => setSupportEmail(e.target.value)}
+                          placeholder="john@example.com"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">How can we help?</label>
+                        <textarea
+                          required
+                          value={supportMessage}
+                          onChange={(e) => setSupportMessage(e.target.value)}
+                          placeholder="Describe the issue you're having with phone verification..."
+                          rows={4}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all"
+                        />
+                      </div>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setStep('phone_input')}
+                          className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isLoading}
+                          className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all disabled:opacity-50 flex justify-center items-center shadow-lg shadow-indigo-100"
+                        >
+                          {isLoading ? (
+                             <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : 'Send Message'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </motion.div>
             )}
 
