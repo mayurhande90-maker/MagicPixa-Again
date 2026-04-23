@@ -59,28 +59,18 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
   }, [resendTimer]);
 
   useEffect(() => {
-    // Only init recaptcha when we get to phone step
-    if (step === 'phone_input' && !(window as any).recaptchaVerifier && auth) {
-        // Ensure container exists in DOM before init
-        const checkContainer = setInterval(() => {
-            const container = document.getElementById('recaptcha-onboarding-container');
-            if (container) {
-                clearInterval(checkContainer);
-                try {
-                    (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-onboarding-container', {
-                        size: 'invisible',
-                    });
-                    console.log("Onboarding reCAPTCHA initialized");
-                } catch (e) {
-                    console.error("reCAPTCHA Init Error:", e);
-                }
-            }
-        }, 100);
-        return () => clearInterval(checkContainer);
+    // Initialize reCAPTCHA verifier when component mounts
+    if (!(window as any).recaptchaVerifier && auth) {
+        try {
+            (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-onboarding-container', {
+                size: 'invisible',
+            });
+            console.log("Onboarding reCAPTCHA initialized");
+        } catch (e) {
+            console.error("reCAPTCHA Init Error:", e);
+        }
     }
-  }, [step]);
-
-  useEffect(() => {
+    
     return () => {
       // Cleanup recaptcha on unmount
       if ((window as any).recaptchaVerifier) {
@@ -322,8 +312,6 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                             autoFocus
                         />
                     </div>
-                    
-                    <div id="recaptcha-onboarding-container"></div>
                     
                     <button
                         type="submit"
@@ -574,6 +562,9 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
             )}
             
           </AnimatePresence>
+
+          {/* Stable reCAPTCHA container outside animated steps */}
+          <div id="recaptcha-onboarding-container"></div>
         </div>
       </div>
     </div>
