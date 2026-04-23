@@ -10,6 +10,7 @@ import PricingPage from './PricingPage';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsConditionsPage from './TermsConditionsPage';
 import AuthModal from './components/AuthModal';
+import PhoneOnboardingModal from './components/PhoneOnboardingModal';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
 import ConfigurationError from './components/ConfigurationError';
@@ -126,6 +127,7 @@ function App() {
   const [pendingDestination, setPendingDestination] = useState<{ page: Page, view?: View } | null>(null);
   const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isPhoneOnboardingOpen, setIsPhoneOnboardingOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -247,8 +249,7 @@ function App() {
 
       // Priority 1: Mandatory Phone Linking
       if (!hasPhone) {
-        setAuthModalStep('phone_link');
-        setIsAuthModalOpen(true);
+        setIsPhoneOnboardingOpen(true);
         return;
       }
 
@@ -420,6 +421,13 @@ function App() {
                         isMobile={isMobile}
                     />
                 )}
+                {isPhoneOnboardingOpen && (
+                    <PhoneOnboardingModal 
+                        onClose={() => setIsPhoneOnboardingOpen(false)}
+                        onComplete={() => setIsPhoneOnboardingOpen(false)}
+                        onSkip={() => setIsPhoneOnboardingOpen(false)}
+                    />
+                )}
             </div>
         );
     } else if (currentPage === 'home' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'about' || currentPage === 'pricing') {
@@ -495,6 +503,13 @@ function App() {
             error={authError}
             initialStep={authModalStep}
             isMobile={isMobile}
+          />
+      )}
+      {isPhoneOnboardingOpen && (
+          <PhoneOnboardingModal 
+            onClose={() => setIsPhoneOnboardingOpen(false)}
+            onComplete={() => setIsPhoneOnboardingOpen(false)}
+            onSkip={() => setIsPhoneOnboardingOpen(false)}
           />
       )}
     </div>

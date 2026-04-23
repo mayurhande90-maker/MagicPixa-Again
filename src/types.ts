@@ -160,6 +160,7 @@ export interface User {
 
   // Brand Kit
   brandKit?: BrandKit;
+  role?: string; // New: User's role/specialization
   
   // Admin System Notifications
   systemNotification?: {

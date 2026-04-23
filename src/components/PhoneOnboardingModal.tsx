@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MagicPixaLogo, XIcon } from './icons';
+import { motion, AnimatePresence } from 'motion/react';
+import { CheckCircle2, User, Target, Building2, Smartphone, ArrowRight, X, ChevronRight, PenTool, ShoppingBag, Terminal } from 'lucide-react';
+import { MagicPixaLogo } from './icons';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
-import { auth } from '../firebase';
+import { auth, updateUserProfile } from '../firebase';
 import { COUNTRY_CODES } from '../utils/countryCodes';
 import { getFriendlyErrorMessage } from '../utils/errorHandling';
 
@@ -13,12 +15,25 @@ interface PhoneOnboardingModalProps {
   mode?: 'link' | 'change';
 }
 
+type OnboardingStep = 'welcome' | 'role_selection' | 'phone_input' | 'code_input' | 'success';
+
+const ROLES = [
+  { id: 'designer', label: 'Designer', icon: <PenTool className="w-5 h-5" /> },
+  { id: 'marketer', label: 'Marketer', icon: <Target className="w-5 h-5" /> },
+  { id: 'business_owner', label: 'Business Owner', icon: <Building2 className="w-5 h-5" /> },
+  { id: 'content_creator', label: 'Content Creator', icon: <User className="w-5 h-5" /> },
+  { id: 'ecommerce', label: 'E-commerce Seller', icon: <ShoppingBag className="w-5 h-5" /> },
+  { id: 'other', label: 'Other', icon: <Terminal className="w-5 h-5" /> },
+];
+
 const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip, onClose, mode = 'link' }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
-  const [isCredentialInUse, setIsCredentialInUse] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const [authStep, setAuthStep] = useState<'phone_input' | 'code_input'>('phone_input');
+  const [step, setStep] = useState<OnboardingStep>('welcome');
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [customRole, setCustomRole] = useState<string>('');
+  
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
@@ -38,13 +53,17 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
   }, [resendTimer]);
 
   useEffect(() => {
-    // Initialize reCAPTCHA verifier when component mounts
-    if (!(window as any).recaptchaVerifier && auth) {
-      (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-onboarding-container', {
-        size: 'invisible',
-      });
+    // Only init recaptcha when we get to phone step
+    if (step === 'phone_input' && !(window as any).recaptchaVerifier && auth) {
+        setTimeout(() => {
+            (window as any).recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-onboarding-container', {
+                size: 'invisible',
+            });
+        }, 100);
     }
-    
+  }, [step]);
+
+  useEffect(() => {
     return () => {
       // Cleanup recaptcha on unmount
       if ((window as any).recaptchaVerifier) {
@@ -54,8 +73,8 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
     };
   }, []);
 
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!phoneNumber) {
       setInternalError('Please enter a valid phone number.');
       return;
@@ -72,16 +91,16 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
       
       const result = await auth.currentUser.linkWithPhoneNumber(formattedPhone, appVerifier);
       setConfirmationResult(result);
-      setAuthStep('code_input');
-      setResendTimer(60); // Start 60s timer
+      setStep('code_input');
+      setResendTimer(60); 
     } catch (err: any) {
       console.error(err);
-      setInternalError(getFriendlyErrorMessage(err));
       if (err.code === 'auth/credential-already-in-use') {
-        setIsCredentialInUse(true);
+        setInternalError('This phone number is already linked to another account. Please use a different number or sign in with that account.');
+      } else {
+        setInternalError(getFriendlyErrorMessage(err));
       }
       
-      // Reset recaptcha on error
       if ((window as any).recaptchaVerifier) {
         (window as any).recaptchaVerifier.render().then((widgetId: any) => {
           (window as any).recaptchaVerifier.reset(widgetId);
@@ -104,12 +123,17 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
     
     try {
       const result = await confirmationResult.confirm(verificationCode);
-      // Success! Phone is linked.
       if (auth?.currentUser) {
-          const { updateUserProfile } = await import('../firebase');
-          await updateUserProfile(auth.currentUser.uid, { phoneNumber: result.user?.phoneNumber || phoneNumber });
+          const finalRole = selectedRole === 'other' ? customRole : selectedRole;
+          await updateUserProfile(auth.currentUser.uid, { 
+            phoneNumber: result.user?.phoneNumber || phoneNumber,
+            role: finalRole 
+          });
       }
-      onComplete();
+      setStep('success');
+      setTimeout(() => {
+        onComplete();
+      }, 2500);
     } catch (err: any) {
       console.error(err);
       setInternalError(getFriendlyErrorMessage(err));
@@ -117,192 +141,309 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
     }
   };
 
-  const handleSwitchAccount = async () => {
-    setIsLoading(true);
-    try {
-      await auth?.signOut();
-      // Redirect to home and open auth modal with phone input
-      window.location.href = '/?auth_modal=open&step=phone_input';
-    } catch (err) {
-      console.error(err);
-      setIsLoading(false);
-    }
+  const handleNextFromRole = () => {
+      if (!selectedRole) return;
+      if (selectedRole === 'other' && !customRole) return;
+      setStep('phone_input');
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as any } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeIn" as any } }
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      aria-labelledby="phone-onboarding-title"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="relative bg-white w-full max-w-sm m-4 p-8 rounded-2xl shadow-xl border border-gray-200/80">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+      <div className="relative w-full max-w-md mx-4 overflow-hidden bg-white rounded-3xl shadow-2xl border border-white/20">
+        
+        {/* Header decoration */}
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
-          aria-label="Close"
+          className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10"
         >
-          <XIcon className="w-5 h-5" />
+          <X className="w-5 h-5" />
         </button>
-        
-        <div className="text-center">
-            <div className="flex justify-center mb-4">
-                <MagicPixaLogo />
-            </div>
-          <h2 id="phone-onboarding-title" className="text-2xl font-bold text-[#1E1E1E] mb-2">
-            {authStep === 'phone_input' 
-              ? (mode === 'change' ? 'Update Phone' : 'Verify Your Phone') 
-              : 'Enter Code'}
-          </h2>
-          <p className="text-[#5F6368] mb-6">
-            {authStep === 'phone_input' 
-              ? (mode === 'change' ? 'Enter your new phone number below. We\'ll send a code to verify it.' : 'Please link a phone number to secure your account and continue.') 
-              : 'Enter the 6-digit code sent to your phone.'}
-          </p>
-        </div>
 
-        {internalError && (
-            <div className="flex flex-col gap-3 bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-6 text-sm shadow-sm">
-                <div className="flex items-start gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-relaxed">{internalError}</span>
+        <div className="p-8 pb-10">
+          <AnimatePresence mode="wait">
+            
+            {step === 'welcome' && (
+              <motion.div 
+                key="welcome"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="text-center"
+              >
+                <div className="flex justify-center mb-6">
+                    <div className="p-4 bg-indigo-50 rounded-2xl">
+                        <MagicPixaLogo />
+                    </div>
                 </div>
-                {isCredentialInUse && (
-                    <button
-                        onClick={handleSwitchAccount}
-                        className="mt-2 text-indigo-600 font-semibold hover:text-indigo-700 text-left flex items-center gap-1"
-                    >
-                        Sign in with this phone instead
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </button>
-                )}
-            </div>
-        )}
-
-        {/* Hidden reCAPTCHA container */}
-        <div id="recaptcha-onboarding-container"></div>
-
-        {authStep === 'phone_input' && (
-          <form onSubmit={handleSendCode} className="space-y-4">
-            <div>
-              <label htmlFor="onboarding-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-              <div className="flex gap-2">
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-1/3 px-3 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
-                  disabled={isLoading}
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  id="onboarding-phone"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="555 555 5555"
-                  className="w-2/3 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                  disabled={isLoading}
-                  autoFocus
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">We will send a 6-digit verification code.</p>
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !phoneNumber}
-              className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
-            >
-              {isLoading ? (
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (mode === 'change' ? 'Update Number' : 'Send Code')}
-            </button>
-            {mode === 'link' && (
-              <button
-                type="button"
-                onClick={onSkip}
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-white text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 flex justify-center items-center mt-2"
-              >
-                Skip for now
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => auth?.signOut()}
-              disabled={isLoading}
-              className="w-full py-2 px-4 bg-transparent text-gray-400 text-xs hover:text-gray-600 transition-colors disabled:opacity-50 flex justify-center items-center mt-4"
-            >
-              Sign Out
-            </button>
-          </form>
-        )}
-
-        {authStep === 'code_input' && (
-          <form onSubmit={handleVerifyCode} className="space-y-4">
-            <div>
-              <label htmlFor="onboarding-code" className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
-              <input
-                type="text"
-                id="onboarding-code"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                placeholder="123456"
-                maxLength={6}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-center text-xl tracking-widest"
-                disabled={isLoading}
-                autoFocus
-              />
-            </div>
-            <div className="text-center mt-4">
-              {resendTimer > 0 ? (
-                <p className="text-sm text-gray-500">
-                  Didn't receive the code? Resend in <span className="font-semibold">{resendTimer}s</span>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">Welcome to MagicPixa!</h2>
+                <p className="text-gray-500 text-lg leading-relaxed mb-8">
+                  We're excited to have you here. Let's take 30 seconds to personalize your creative studio.
                 </p>
-              ) : (
                 <button
-                  type="button"
-                  onClick={handleSendCode}
-                  disabled={isLoading}
-                  className="text-sm text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+                  onClick={() => setStep('role_selection')}
+                  className="group w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all flex justify-center items-center gap-2 shadow-lg shadow-indigo-200"
                 >
-                  Resend Code
+                  Get Started
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => { setAuthStep('phone_input'); setVerificationCode(''); setInternalError(null); }}
-                disabled={isLoading}
-                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                <button
+                  onClick={onSkip}
+                  className="mt-4 text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors"
+                >
+                  Skip for now
+                </button>
+              </motion.div>
+            )}
+
+            {step === 'role_selection' && (
+              <motion.div 
+                key="role"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading || verificationCode.length < 6}
-                className="flex-1 py-3 px-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex justify-center items-center"
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">What best describes you?</h2>
+                <p className="text-gray-500 mb-6 text-sm">This helps us tailor your tools and features.</p>
+
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {ROLES.map((role) => (
+                    <button
+                      key={role.id}
+                      onClick={() => setSelectedRole(role.id)}
+                      className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                        selectedRole === role.id 
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md ring-1 ring-indigo-100' 
+                          : 'border-gray-100 hover:border-gray-200 text-gray-600'
+                      }`}
+                    >
+                      <div className={`mb-2 p-2 rounded-lg ${selectedRole === role.id ? 'bg-white' : 'bg-gray-50'}`}>
+                        {role.icon}
+                      </div>
+                      <span className="text-sm font-bold">{role.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <AnimatePresence>
+                  {selectedRole === 'other' && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="mb-6"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Please specify your role..."
+                        value={customRole}
+                        onChange={(e) => setCustomRole(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                        autoFocus
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button
+                  onClick={handleNextFromRole}
+                  disabled={!selectedRole || (selectedRole === 'other' && !customRole)}
+                  className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 disabled:opacity-50 disabled:grayscale transition-all flex justify-center items-center gap-2 shadow-lg shadow-indigo-100"
+                >
+                  Continue
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
+
+            {step === 'phone_input' && (
+              <motion.div 
+                key="phone"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
-                {isLoading ? (
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : 'Verify'}
-              </button>
-            </div>
-          </form>
-        )}
+                <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-indigo-50 rounded-full">
+                        <Smartphone className="w-6 h-6 text-indigo-600" />
+                    </div>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Secure Your Studio</h2>
+                <p className="text-gray-500 mb-8 text-center text-sm">
+                  We use phone verification to keep your creations safe and provide instant updates.
+                </p>
+
+                {internalError && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm border border-red-100 animate-shake">
+                        {internalError}
+                    </div>
+                )}
+
+                <form onSubmit={handleSendCode} className="space-y-4">
+                    <div className="flex gap-2">
+                        <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="w-[100px] px-3 py-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-gray-50 text-sm font-bold"
+                            disabled={isLoading}
+                        >
+                            {COUNTRY_CODES.map((c) => (
+                                <option key={c.code} value={c.code}>{c.label}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            placeholder="Mobile Number"
+                            className="flex-1 px-4 py-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-lg font-medium"
+                            disabled={isLoading}
+                            autoFocus
+                        />
+                    </div>
+                    
+                    <div id="recaptcha-onboarding-container"></div>
+                    
+                    <button
+                        type="submit"
+                        disabled={isLoading || !phoneNumber}
+                        className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all disabled:opacity-50 flex justify-center items-center shadow-lg shadow-indigo-100"
+                    >
+                        {isLoading ? (
+                            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : 'Send Verification Code'}
+                    </button>
+                    
+                    <p className="text-[10px] text-gray-400 text-center px-4 leading-normal">
+                      By continuing, you agree to receive a one-time verification code via SMS. Standard rates may apply.
+                    </p>
+                </form>
+              </motion.div>
+            )}
+
+            {step === 'code_input' && (
+              <motion.div 
+                key="code"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Verify It's You</h2>
+                <p className="text-gray-500 mb-8 text-center text-sm">
+                  Enter the 6-digit code sent to <span className="font-bold text-gray-700">{countryCode} {phoneNumber}</span>
+                </p>
+
+                {internalError && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm border border-red-100">
+                        {internalError}
+                    </div>
+                )}
+
+                <form onSubmit={handleVerifyCode} className="space-y-6">
+                    <input
+                        type="text"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        placeholder="••••••"
+                        maxLength={6}
+                        className="w-full px-4 py-5 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-center text-4xl font-bold tracking-[0.5em] text-indigo-600 bg-gray-50/50"
+                        disabled={isLoading}
+                        autoFocus
+                    />
+
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => { setStep('phone_input'); setVerificationCode(''); setInternalError(null); }}
+                            disabled={isLoading}
+                            className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isLoading || verificationCode.length < 6}
+                            className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all disabled:opacity-50 flex justify-center items-center shadow-lg shadow-indigo-100"
+                        >
+                            {isLoading ? (
+                                <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : 'Verify Code'}
+                        </button>
+                    </div>
+
+                    <div className="text-center">
+                        {resendTimer > 0 ? (
+                            <p className="text-xs text-gray-400 font-medium">
+                                Resend available in <span className="text-indigo-600">{resendTimer}s</span>
+                            </p>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => handleSendCode()}
+                                disabled={isLoading}
+                                className="text-xs text-indigo-600 font-bold hover:underline"
+                            >
+                                Resend SMS Code
+                            </button>
+                        )}
+                    </div>
+                </form>
+              </motion.div>
+            )}
+
+            {step === 'success' && (
+              <motion.div 
+                key="success"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1, transition: { type: "spring", damping: 12 } }}
+                className="text-center py-10"
+              >
+                <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                    <CheckCircle2 className="w-10 h-10 text-green-600" />
+                </motion.div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">You're All Set!</h2>
+                <p className="text-gray-500 mb-0">
+                  Welcome to the future of creative AI. Redirecting you to your studio...
+                </p>
+                
+                {/* Visual celebratory pulses */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(6)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ scale: 0, opacity: 0.4, x: '50%', y: '50%' }}
+                            animate={{ 
+                                scale: 2, 
+                                opacity: 0,
+                                x: `${Math.random() * 100}%`,
+                                y: `${Math.random() * 100}%`
+                            }}
+                            transition={{ duration: 1, delay: i * 0.15 }}
+                            className="absolute w-4 h-4 bg-indigo-400/30 rounded-full"
+                        />
+                    ))}
+                </div>
+              </motion.div>
+            )}
+            
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
