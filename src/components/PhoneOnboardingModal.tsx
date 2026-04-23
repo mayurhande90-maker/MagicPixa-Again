@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, User, Target, Building2, Smartphone, ArrowRight, X, ChevronRight, PenTool, ShoppingBag, Terminal } from 'lucide-react';
+import { CheckCircle2, ArrowRight, X, ChevronRight, PenTool, ShoppingBag, Terminal, Smartphone, ArrowLeft, Send, ShieldCheck, Mail, MessageSquare, Target, Building2, User } from 'lucide-react';
 import { MagicPixaLogo } from './icons';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
-import { auth, updateUserProfile } from '../firebase';
+import { auth, updateUserProfile, findUserByPhone, mergeUserAccounts } from '../firebase';
 import { COUNTRY_CODES } from '../utils/countryCodes';
 import { getFriendlyErrorMessage } from '../utils/errorHandling';
 
@@ -129,47 +129,50 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
     setIsLoading(true);
     
     try {
-      setInternalError(null);
-      setIsLoading(true);
-      const result = await confirmationResult.confirm(verificationCode);
-      
-      if (auth?.currentUser) {
+      if (!auth?.currentUser) throw new Error("No user session found. Please sign in again.");
+
+      // Create a credential with the code
+      const credential = firebase.auth.PhoneAuthProvider.credential(
+        (confirmationResult as any).verificationId,
+        verificationCode
+      );
+
+      try {
+          // Try to link the phone number to the current account
+          const linkResult = await auth.currentUser.linkWithCredential(credential);
+          
           const finalRole = selectedRole === 'other' ? customRole : selectedRole;
           const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
           const formattedPhone = `${countryCode}${cleanPhone}`;
           
-          try {
-              await updateUserProfile(auth.currentUser.uid, { 
-                phoneNumber: result.user?.phoneNumber || formattedPhone,
-                role: finalRole,
-                phoneUnlinked: firebase.firestore.FieldValue.delete() as any
-              });
-          } catch (dbErr: any) {
-              console.error("Profile Update Error:", dbErr);
-              throw new Error(`Profile update failed: ${dbErr.message || "Please contact support."}`);
+          await updateUserProfile(auth.currentUser.uid, { 
+            phoneNumber: linkResult.user?.phoneNumber || formattedPhone,
+            role: finalRole,
+            phoneUnlinked: firebase.firestore.FieldValue.delete() as any
+          });
+          
+          setStep('success');
+          setTimeout(() => {
+            onComplete();
+          }, 2500);
+      } catch (linkErr: any) {
+          console.error("Link Error:", linkErr);
+          
+          const isAlreadyInUse = 
+            linkErr.code === 'auth/credential-already-in-use' || 
+            linkErr.code === 'auth/account-exists-with-different-credential' ||
+            linkErr.message?.includes('already-in-use') ||
+            linkErr.message?.includes('already-exists');
+
+          if (isAlreadyInUse) {
+              setStep('merge_confirm');
+              setIsLoading(false);
+          } else {
+              throw linkErr;
           }
       }
-      setStep('success');
-      setTimeout(() => {
-        onComplete();
-      }, 2500);
     } catch (err: any) {
       console.error("Verification Error:", err);
-      
-      const isAlreadyInUse = 
-        err.code === 'auth/credential-already-in-use' || 
-        err.code === 'auth/account-exists-with-different-credential' ||
-        err.message?.includes('already-in-use') ||
-        err.message?.includes('already-exists') ||
-        err.message?.includes('account-exists-with-different-credential');
-
-      if (isAlreadyInUse) {
-          setStep('merge_confirm');
-          setIsLoading(false);
-          return;
-      }
-
-      // Use the actual error message if it's been wrapped by our db catch
       const message = err.message || getFriendlyErrorMessage(err);
       setInternalError(message);
       setIsLoading(false);
@@ -177,28 +180,34 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
   };
 
   const handleMerge = async () => {
+    console.log("Merge button clicked");
     setIsLoading(true);
     setInternalError(null);
     try {
       if (!auth?.currentUser) throw new Error("No user logged in.");
       
-      const { findUserByPhone, mergeUserAccounts } = await import('../firebase');
       const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
       const formattedPhone = `${countryCode}${cleanPhone}`;
       
+      console.log("Finding user by phone:", formattedPhone);
       const existingUser = await findUserByPhone(formattedPhone);
-      if (!existingUser) throw new Error("Could not find the existing account to merge.");
       
-      // Merge the Phone account (source) into the current Google account (target)
+      if (!existingUser) {
+          console.error("User not found for phone:", formattedPhone);
+          throw new Error("Could not find the existing account to merge. Please try again.");
+      }
+      
+      console.log("Merging accounts:", existingUser.uid, "into", auth.currentUser.uid);
       await mergeUserAccounts(existingUser.uid, auth.currentUser.uid, auth.currentUser.uid);
       
+      console.log("Merge successful");
       setStep('success');
       setTimeout(() => {
         onComplete();
       }, 2500);
     } catch (err: any) {
       console.error("Merge Error:", err);
-      setInternalError(getFriendlyErrorMessage(err));
+      setInternalError(err.message || getFriendlyErrorMessage(err));
       setIsLoading(false);
     }
   };
