@@ -28,6 +28,7 @@ const ROLES = [
 
 const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip, onClose, mode = 'link' }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
+  const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   const [step, setStep] = useState<OnboardingStep>('welcome');
@@ -158,6 +159,10 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
       } catch (linkErr: any) {
           console.error("Link Error:", linkErr);
           
+          // Store the role in case we need to use it in handleMerge (Force Link)
+          const finalRole = selectedRole === 'other' ? customRole : selectedRole;
+          setConfirmedRole(finalRole);
+
           const isAlreadyInUse = 
             linkErr.code === 'auth/credential-already-in-use' || 
             linkErr.code === 'auth/account-exists-with-different-credential' ||
@@ -193,14 +198,20 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
       const existingUser = await findUserByPhone(formattedPhone);
       
       if (!existingUser) {
-          console.error("User not found for phone:", formattedPhone);
-          throw new Error("Could not find the existing account to merge. Please try again.");
+          console.log("No existing profile found. Performing Smart Force-Link.");
+          // If no profile found to merge, just link the phone to the current profile and finish
+          await updateUserProfile(auth.currentUser.uid, { 
+            phoneNumber: formattedPhone,
+            role: confirmedRole || 'member',
+            phoneUnlinked: firebase.firestore.FieldValue.delete() as any
+          });
+      } else {
+          console.log("Merging accounts:", existingUser.uid, "into", auth.currentUser.uid);
+          // Merge the Phone account (source) into the current Google account (target)
+          await mergeUserAccounts(existingUser.uid, auth.currentUser.uid, auth.currentUser.uid);
       }
       
-      console.log("Merging accounts:", existingUser.uid, "into", auth.currentUser.uid);
-      await mergeUserAccounts(existingUser.uid, auth.currentUser.uid, auth.currentUser.uid);
-      
-      console.log("Merge successful");
+      console.log("Process successful");
       setStep('success');
       setTimeout(() => {
         onComplete();
