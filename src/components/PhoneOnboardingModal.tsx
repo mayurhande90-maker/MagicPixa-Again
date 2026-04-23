@@ -15,7 +15,7 @@ interface PhoneOnboardingModalProps {
   mode?: 'link' | 'change';
 }
 
-type OnboardingStep = 'welcome' | 'role_selection' | 'phone_input' | 'code_input' | 'success' | 'support';
+type OnboardingStep = 'welcome' | 'role_selection' | 'phone_input' | 'code_input' | 'success' | 'support' | 'merge_confirm';
 
 const ROLES = [
   { id: 'designer', label: 'Designer', icon: <PenTool className="w-5 h-5" /> },
@@ -142,7 +142,7 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
               await updateUserProfile(auth.currentUser.uid, { 
                 phoneNumber: result.user?.phoneNumber || formattedPhone,
                 role: finalRole,
-                phoneUnlinked: firebase.firestore.FieldValue.delete()
+                phoneUnlinked: firebase.firestore.FieldValue.delete() as any
               });
           } catch (dbErr: any) {
               console.error("Profile Update Error:", dbErr);
@@ -155,9 +155,50 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
       }, 2500);
     } catch (err: any) {
       console.error("Verification Error:", err);
+      
+      const isAlreadyInUse = 
+        err.code === 'auth/credential-already-in-use' || 
+        err.code === 'auth/account-exists-with-different-credential' ||
+        err.message?.includes('already-in-use') ||
+        err.message?.includes('already-exists') ||
+        err.message?.includes('account-exists-with-different-credential');
+
+      if (isAlreadyInUse) {
+          setStep('merge_confirm');
+          setIsLoading(false);
+          return;
+      }
+
       // Use the actual error message if it's been wrapped by our db catch
       const message = err.message || getFriendlyErrorMessage(err);
       setInternalError(message);
+      setIsLoading(false);
+    }
+  };
+
+  const handleMerge = async () => {
+    setIsLoading(true);
+    setInternalError(null);
+    try {
+      if (!auth?.currentUser) throw new Error("No user logged in.");
+      
+      const { findUserByPhone, mergeUserAccounts } = await import('../firebase');
+      const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+      const formattedPhone = `${countryCode}${cleanPhone}`;
+      
+      const existingUser = await findUserByPhone(formattedPhone);
+      if (!existingUser) throw new Error("Could not find the existing account to merge.");
+      
+      // Merge the Phone account (source) into the current Google account (target)
+      await mergeUserAccounts(existingUser.uid, auth.currentUser.uid, auth.currentUser.uid);
+      
+      setStep('success');
+      setTimeout(() => {
+        onComplete();
+      }, 2500);
+    } catch (err: any) {
+      console.error("Merge Error:", err);
+      setInternalError(getFriendlyErrorMessage(err));
       setIsLoading(false);
     }
   };
@@ -532,6 +573,52 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                     </form>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {step === 'merge_confirm' && (
+              <motion.div 
+                key="merge"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-amber-50 rounded-full">
+                        <ArrowRight className="w-6 h-6 text-amber-600 rotate-90" />
+                    </div>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Account Found</h2>
+                <p className="text-gray-500 mb-6 text-center text-sm">
+                  This phone number is already linked to another account. Would you like to merge its data into your Google account?
+                </p>
+
+                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6">
+                    <p className="text-xs text-indigo-800 leading-relaxed">
+                        <strong>What happens?</strong><br/>
+                        All your creations and credits from your phone-based account will be combined with this account.
+                    </p>
+                </div>
+
+                <div className="space-y-3">
+                    <button
+                        onClick={handleMerge}
+                        disabled={isLoading}
+                        className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all flex justify-center items-center shadow-lg shadow-indigo-100"
+                    >
+                        {isLoading ? (
+                            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : 'Yes, Merge Accounts'}
+                    </button>
+                    <button
+                        onClick={() => setStep('phone_input')}
+                        disabled={isLoading}
+                        className="w-full py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+                    >
+                        Use Different Number
+                    </button>
+                </div>
               </motion.div>
             )}
 
