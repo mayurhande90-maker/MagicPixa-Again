@@ -31,6 +31,8 @@ service cloud.firestore {
           'name', 
           'avatar', 
           'phoneNumber',
+          'role',
+          'phoneUnlinked',
           'lastActive', 
           'brandKit', 
           'referralCode', 
