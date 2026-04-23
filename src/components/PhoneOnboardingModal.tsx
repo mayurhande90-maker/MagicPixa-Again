@@ -278,9 +278,9 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                         <Smartphone className="w-6 h-6 text-indigo-600" />
                     </div>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Secure Your Studio</h2>
-                <p className="text-gray-500 mb-8 text-center text-sm">
-                  We use phone verification to keep your creations safe and provide instant updates.
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Instant Access</h2>
+                <p className="text-gray-500 mb-8 text-center text-sm px-2">
+                  Finish your setup. Providing a mobile number ensures your account remains accessible across all your devices.
                 </p>
 
                 {internalError && (

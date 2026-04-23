@@ -11,6 +11,7 @@ import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsConditionsPage from './TermsConditionsPage';
 import AuthModal from './components/AuthModal';
 import PhoneOnboardingModal from './components/PhoneOnboardingModal';
+import { OnboardingBanner } from './components/OnboardingBanner';
 import { NotificationDisplay } from './components/NotificationDisplay';
 import { CreditGrantModal } from './components/CreditGrantModal';
 import ConfigurationError from './components/ConfigurationError';
@@ -128,6 +129,7 @@ function App() {
   const [activeBrandKit, setActiveBrandKit] = useState<BrandKit | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPhoneOnboardingOpen, setIsPhoneOnboardingOpen] = useState(false);
+  const [onboardingRetryCount, setOnboardingRetryCount] = useState(0);
   const [authError, setAuthError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -359,6 +361,17 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (user && !user.phoneNumber && !isPhoneOnboardingOpen) {
+      timer = setTimeout(() => {
+        setIsPhoneOnboardingOpen(true);
+        setOnboardingRetryCount(prev => prev + 1);
+      }, 60000); // 60 seconds
+    }
+    return () => clearTimeout(timer);
+  }, [user, isPhoneOnboardingOpen]);
+
+  useEffect(() => {
     if (user && pendingDestination) {
       const { page, view } = pendingDestination;
       setPendingDestination(null);
@@ -427,6 +440,9 @@ function App() {
                         onComplete={() => setIsPhoneOnboardingOpen(false)}
                         onSkip={() => setIsPhoneOnboardingOpen(false)}
                     />
+                )}
+                {user && !user.phoneNumber && !isPhoneOnboardingOpen && (
+                    <OnboardingBanner onClick={() => setIsPhoneOnboardingOpen(true)} />
                 )}
             </div>
         );
@@ -511,6 +527,9 @@ function App() {
             onComplete={() => setIsPhoneOnboardingOpen(false)}
             onSkip={() => setIsPhoneOnboardingOpen(false)}
           />
+      )}
+      {user && !user.phoneNumber && !isPhoneOnboardingOpen && (
+          <OnboardingBanner onClick={() => setIsPhoneOnboardingOpen(true)} />
       )}
     </div>
   );
