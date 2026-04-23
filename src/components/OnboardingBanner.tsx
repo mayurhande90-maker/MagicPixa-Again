@@ -9,9 +9,9 @@ interface OnboardingBannerProps {
 export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({ onClick }) => {
   return (
     <motion.div
-      initial={{ y: -50, opacity: 0 }}
+      initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-6 left-1/2 -translate-x-1/2 z-[90] pointer-events-auto"
+      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] pointer-events-auto"
     >
       <button
         onClick={onClick}
