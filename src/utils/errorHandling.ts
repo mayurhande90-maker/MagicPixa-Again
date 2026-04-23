@@ -1,9 +1,8 @@
 export const getFriendlyErrorMessage = (error: any): string => {
   if (!error) return 'An unexpected error occurred. Please try again.';
   
-  // If it's just a string, try to clean it up or return as is if it doesn't look like a raw firebase error
+  // If it's just a string, try to clean it up
   if (typeof error === 'string') {
-    if (error.toLowerCase().includes('firebase')) return 'An unexpected error occurred. Please try again.';
     return error;
   }
 
@@ -33,11 +32,7 @@ export const getFriendlyErrorMessage = (error: any): string => {
     case 'auth/app-not-authorized':
       return 'App verification failed. Please contact support.';
     default:
-      // Fallback for unknown errors, ensuring "Firebase" is stripped if it somehow leaks
       const msg = error.message || '';
-      if (msg.toLowerCase().includes('firebase')) {
-        return 'An unexpected error occurred. Please try again.';
-      }
       return msg || 'An unexpected error occurred. Please try again.';
   }
 };

@@ -129,21 +129,35 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
     setIsLoading(true);
     
     try {
+      setInternalError(null);
+      setIsLoading(true);
       const result = await confirmationResult.confirm(verificationCode);
+      
       if (auth?.currentUser) {
           const finalRole = selectedRole === 'other' ? customRole : selectedRole;
-          await updateUserProfile(auth.currentUser.uid, { 
-            phoneNumber: result.user?.phoneNumber || phoneNumber,
-            role: finalRole 
-          });
+          const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+          const formattedPhone = `${countryCode}${cleanPhone}`;
+          
+          try {
+              await updateUserProfile(auth.currentUser.uid, { 
+                phoneNumber: result.user?.phoneNumber || formattedPhone,
+                role: finalRole,
+                phoneUnlinked: firebase.firestore.FieldValue.delete()
+              });
+          } catch (dbErr: any) {
+              console.error("Profile Update Error:", dbErr);
+              throw new Error(`Profile update failed: ${dbErr.message || "Please contact support."}`);
+          }
       }
       setStep('success');
       setTimeout(() => {
         onComplete();
       }, 2500);
     } catch (err: any) {
-      console.error(err);
-      setInternalError(getFriendlyErrorMessage(err));
+      console.error("Verification Error:", err);
+      // Use the actual error message if it's been wrapped by our db catch
+      const message = err.message || getFriendlyErrorMessage(err);
+      setInternalError(message);
       setIsLoading(false);
     }
   };
