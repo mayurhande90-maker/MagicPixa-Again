@@ -99,17 +99,22 @@ service cloud.firestore {
 
     match /feedbacks/{feedbackId} {
       allow create: if request.auth != null;
-      allow read: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     match /purchases/{purchaseId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+      allow read, write: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
     }
 
     match /api_errors/{logId} {
       allow create: if true;
-      allow read: if isAdmin();
+      allow read, write: if isAdmin();
+    }
+    
+    match /usage_logs/{logId} {
+      allow create: if request.auth != null;
+      allow read, write: if isAdmin();
     }
     
     match /audit_logs/{logId} {

@@ -29,6 +29,7 @@ const ROLES = [
 const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip, onClose, mode = 'link' }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
   const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
+  const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   const [step, setStep] = useState<OnboardingStep>('welcome');
@@ -593,6 +594,52 @@ const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete,
                     </form>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {step === 'merge_confirm' && (
+              <motion.div 
+                key="merge"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-amber-50 rounded-full">
+                        <ArrowRight className="w-6 h-6 text-amber-600 rotate-90" />
+                    </div>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Account Found</h2>
+                <p className="text-gray-500 mb-6 text-center text-sm">
+                  This phone number is already linked to another account. Would you like to merge its data into your Google account?
+                </p>
+
+                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6">
+                    <p className="text-xs text-indigo-800 leading-relaxed">
+                        <strong>What happens?</strong><br/>
+                        All your creations and credits from your phone-based account will be combined with this account.
+                    </p>
+                </div>
+
+                <div className="space-y-3">
+                    <button
+                        onClick={handleMerge}
+                        disabled={isLoading}
+                        className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all flex justify-center items-center shadow-lg shadow-indigo-100"
+                    >
+                        {isLoading ? (
+                            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : 'Yes, Merge Accounts'}
+                    </button>
+                    <button
+                        onClick={() => setStep('phone_input')}
+                        disabled={isLoading}
+                        className="w-full py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+                    >
+                        Use Different Number
+                    </button>
+                </div>
               </motion.div>
             )}
 
