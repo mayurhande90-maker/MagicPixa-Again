@@ -29,7 +29,6 @@ const ROLES = [
 const PhoneOnboardingModal: React.FC<PhoneOnboardingModalProps> = ({ onComplete, onSkip, onClose, mode = 'link' }) => {
   const [internalError, setInternalError] = useState<string | null>(null);
   const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
-  const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   const [step, setStep] = useState<OnboardingStep>('welcome');
